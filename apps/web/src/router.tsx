@@ -3,6 +3,7 @@ import { AppShell } from "./components/app-shell.tsx";
 import { ComingSoon } from "./components/ui.tsx";
 import { BrainPage } from "./features/brain/brain-page.tsx";
 import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
+import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
 
@@ -63,7 +64,9 @@ const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
     component:
       s.slug === "settings"
         ? GeneralSettingsPage
-        : () => (
+        : s.slug === "data-sources"
+          ? DataSourcesPage
+          : () => (
             <div className="rounded-xl border border-dashed border-line px-6 py-16 text-center text-sm text-muted">
               {s.label} arrives in phase {s.phase} of PLAN.md.
             </div>

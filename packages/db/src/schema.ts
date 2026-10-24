@@ -238,3 +238,35 @@ export const brainProposals = sqliteTable(
 );
 
 export type BrainProposal = typeof brainProposals.$inferSelect;
+
+// ── Data providers ───────────────────────────────────────────────────────────
+
+/** Response cache: provider calls cost money or rate limit, so identical requests are served from here. */
+export const providerCache = sqliteTable(
+  "provider_cache",
+  {
+    key: text("key").primaryKey(),
+    provider: text("provider").notNull(),
+    value: text("value", { mode: "json" }).$type<unknown>().notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("provider_cache_expiry_idx").on(t.expiresAt)],
+);
+
+/** One row per real (uncached) provider call, with its cost when the provider reports one. */
+export const providerCalls = sqliteTable(
+  "provider_call",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    provider: text("provider").notNull(),
+    operation: text("operation").notNull(),
+    ok: integer("ok", { mode: "boolean" }).notNull(),
+    costMicroUsd: integer("cost_micro_usd").notNull().default(0),
+    items: integer("items").notNull().default(0),
+    durationMs: integer("duration_ms").notNull(),
+    error: text("error"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("provider_call_provider_idx").on(t.provider, t.createdAt)],
+);
