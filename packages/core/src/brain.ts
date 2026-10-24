@@ -149,3 +149,64 @@ export async function archiveWorkspaceBrain(db: Db, workspaceId: string) {
     .set({ status: "archived" })
     .where(and(eq(brainItems.workspaceId, workspaceId), eq(brainItems.status, "active")));
 }
+
+export class BrainConflictError extends Error {
+  constructor(readonly current: BrainItemView) {
+    super("This item changed since you opened it; reload and retry");
+  }
+}
+
+async function getItem(db: Db, id: string) {
+  const row = await db.query.brainItems.findFirst({ where: eq(brainItems.id, id) });
+  if (!row) throw new Error(`Brain item ${id} not found`);
+  return row;
+}
+
+/** Replaces an item's data. `revision` must match the stored one (optimistic concurrency). */
+export async function updateBrainItem(
+  db: Db,
+  id: string,
+  revision: number,
+  data: unknown,
+  source: BrainItem["source"] = "user",
+) {
+  const current = await getItem(db, id);
+  const parsed = brainSchemas[current.section].parse(data) as Record<string, unknown>;
+  const [updated] = await db
+    .update(brainItems)
+    .set({ data: parsed, source, revision: sql`${brainItems.revision} + 1` })
+    .where(and(eq(brainItems.id, id), eq(brainItems.revision, revision), eq(brainItems.status, "active")))
+    .returning();
+  if (!updated) throw new BrainConflictError(toView(await getItem(db, id)));
+  return toView(updated);
+}
+
+export async function createBrainItem(db: Db, workspaceId: string, section: BrainSection, data: unknown) {
+  if (SINGLETON_SECTIONS.includes(section) && (await getSingleton(db, workspaceId, section))) {
+    throw new Error(`${section} already exists; edit it instead`);
+  }
+  const [item] = await saveBrainItems(db, workspaceId, section, [brainSchemas[section].parse(data)] as never, "user");
+  return item!;
+}
+
+export async function restoreBrainItem(db: Db, id: string) {
+  const item = await getItem(db, id);
+  if (SINGLETON_SECTIONS.includes(item.section) && (await getSingleton(db, item.workspaceId, item.section))) {
+    throw new Error(`An active ${item.section} already exists`);
+  }
+  const [restored] = await db
+    .update(brainItems)
+    .set({ status: "active", revision: sql`${brainItems.revision} + 1` })
+    .where(eq(brainItems.id, id))
+    .returning();
+  return toView(restored!);
+}
+
+export async function listArchivedBrain(db: Db, workspaceId: string) {
+  const rows = await db
+    .select()
+    .from(brainItems)
+    .where(and(eq(brainItems.workspaceId, workspaceId), eq(brainItems.status, "archived")))
+    .orderBy(brainItems.updatedAt);
+  return rows.map(toView);
+}

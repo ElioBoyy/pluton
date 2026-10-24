@@ -207,3 +207,34 @@ export type BrainItem = typeof brainItems.$inferSelect;
 export type OnboardingSession = typeof onboardingSessions.$inferSelect;
 export type OnboardingStageRow = typeof onboardingStages.$inferSelect;
 export type OnboardingCard = typeof onboardingCards.$inferSelect;
+
+// Suggested Brain edits. The review agent only proposes; a person accepts or rejects.
+export const PROPOSAL_KINDS = ["create", "revise", "archive", "question"] as const;
+export const PROPOSAL_STATUSES = ["proposed", "accepted", "rejected", "answered", "superseded"] as const;
+
+export const brainProposals = sqliteTable(
+  "brain_proposal",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: PROPOSAL_KINDS }).notNull(),
+    section: text("section", { enum: BRAIN_SECTIONS }),
+    targetItemId: text("target_item_id").references(() => brainItems.id, { onDelete: "cascade" }),
+    // The target's revision when proposed: accepting a revise on a since-edited item is refused.
+    baseRevision: integer("base_revision"),
+    data: text("data", { mode: "json" }).$type<Record<string, unknown>>(),
+    question: text("question"),
+    rationale: text("rationale").notNull(),
+    evidence: text("evidence", { mode: "json" }).$type<string[]>().notNull().default([]),
+    status: text("status", { enum: PROPOSAL_STATUSES }).notNull().default("proposed"),
+    answer: text("answer"),
+    jobId: text("job_id"),
+    createdAt: createdAt(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("brain_proposal_workspace_idx").on(t.workspaceId, t.status)],
+);
+
+export type BrainProposal = typeof brainProposals.$inferSelect;

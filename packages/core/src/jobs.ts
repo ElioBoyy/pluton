@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, jobs, lt, lte, sql, type Db, type Job } from "@pluton/db";
+import { and, asc, desc, eq, inArray, jobs, lt, lte, sql, type Db, type Job } from "@pluton/db";
 
 export type EnqueueInput = {
   type: string;
@@ -97,3 +97,11 @@ export type JobContext = {
 };
 
 export type JobHandler = (ctx: JobContext) => Promise<unknown>;
+
+/** The workspace's queued or running job of a type, so the UI can reattach to it after a reload. */
+export async function findActiveJob(db: Db, workspaceId: string, type: string) {
+  return db.query.jobs.findFirst({
+    where: and(eq(jobs.workspaceId, workspaceId), eq(jobs.type, type), inArray(jobs.status, ["queued", "running"])),
+    orderBy: desc(jobs.createdAt),
+  });
+}
