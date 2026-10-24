@@ -12,8 +12,9 @@ export function CardModal({ card, index, total }: { card: CardView; index: numbe
   const answer = useMutation(trpc.onboarding.answerCard.mutationOptions());
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center bg-canvas/70 px-6 backdrop-blur-[2px]">
-      <div className="flex w-full max-w-[460px] flex-col items-end gap-4">
+    <div className="absolute inset-0 z-20 overflow-y-auto bg-canvas/70 px-6 backdrop-blur-[2px]">
+      {/* min-h-full + my-auto centers short cards and lets tall ones scroll instead of overflowing. */}
+      <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col items-end justify-center gap-4 py-8">
         {card.kind === "company_statement" ? (
           <StatementCard card={card} pending={answer.isPending} onAnswer={(a) => answer.mutate({ cardId: card.id, answer: a })} />
         ) : (
@@ -193,7 +194,7 @@ function Tile({ checked, onClick, label, detail }: { checked: boolean; onClick: 
       </span>
       <span className="min-w-0">
         <span className="block">{label}</span>
-        {detail && <span className="mt-0.5 block text-xs text-faint">{detail}</span>}
+        {detail && <span className="mt-0.5 line-clamp-2 block text-xs text-faint">{detail}</span>}
       </span>
     </button>
   );

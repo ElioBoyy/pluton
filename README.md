@@ -27,7 +27,7 @@ Open http://localhost:5173. The Home page has a "Run test job" button that check
 
 `/onboarding` → website → three research jobs (`company`, then `audience` and `market` in parallel once the company is confirmed). Agents save Brain items through validated tools; confirmation cards are built by code from what was saved. The screen is a replay of the `onboarding:<id>` event stream, so a reload restores everything.
 
-Needs `ANTHROPIC_API_KEY` in `.env`. Set `PLUTON_SIMULATE_AGENT=1` to replay a canned Brain instead (UI work without credits).
+Uses your Claude subscription through the Claude Agent SDK (needs Claude Code installed and logged in on this machine; personal use only). Set `PLUTON_AGENT_BACKEND=api_key` and `ANTHROPIC_API_KEY` to use the API instead. Set `PLUTON_SIMULATE_AGENT=1` to replay a canned Brain instead (UI work without credits).
 
 ## Conventions
 

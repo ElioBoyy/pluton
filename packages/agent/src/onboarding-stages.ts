@@ -11,7 +11,8 @@ import {
   type ResearchStepKey,
 } from "@pluton/core";
 import type { Db, OnboardingStage } from "@pluton/db";
-import { localTool, runAgent, type LocalTool } from "./run-agent.ts";
+import { runAgent } from "./backend.ts";
+import { localTool, type LocalTool } from "./run-agent.ts";
 
 const BASE_SYSTEM = `You are Pluton's research agent. You build the go-to-market "Brain" of a B2B company: who it is, who buys from it, and where to find those buyers.
 
