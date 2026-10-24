@@ -6,12 +6,12 @@ export const MODEL = "claude-opus-5-5";
 export type LocalTool = {
   name: string;
   description: string;
-  schema: z.ZodType;
+  schema: z.ZodObject;
   run: (input: never) => Promise<string>;
 };
 
 /** Typed helper so each tool's `run` sees its own schema's output type. */
-export const localTool = <S extends z.ZodType>(t: {
+export const localTool = <S extends z.ZodObject>(t: {
   name: string;
   description: string;
   schema: S;
@@ -30,6 +30,8 @@ export type RunAgentOptions = {
   signal?: AbortSignal;
 };
 
+export type RunAgentResult = { turns: number; missing: string[] };
+
 export class AgentRefusalError extends Error {}
 
 // Created on first use so the worker still boots (and runs other jobs) without credentials.
@@ -42,11 +44,11 @@ function toInputSchema(schema: z.ZodType): Anthropic.Beta.BetaTool.InputSchema {
 }
 
 /**
- * Manual agent loop: server-side web search/fetch plus our own tools.
+ * API-key backend. Manual agent loop: server-side web search/fetch plus our own tools.
  * Manual rather than the beta tool runner because the runner does not resume `pause_turn`,
  * which long web-search turns hit.
  */
-export async function runAgent(opts: RunAgentOptions) {
+export async function runAgentWithApiKey(opts: RunAgentOptions): Promise<RunAgentResult> {
   const byName = new Map(opts.tools.map((t) => [t.name, t]));
   const tools: Anthropic.Beta.BetaToolUnion[] = [
     { type: "web_search_20260209", name: "web_search", max_uses: opts.webSearchUses ?? 6 },

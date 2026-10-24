@@ -45,7 +45,7 @@ function describeFailure(error: unknown) {
   if (error instanceof Anthropic.APIError) return `Claude returned an error (${error.status}). You can retry this step.`;
   // Raised by the SDK before any request, e.g. when no credentials are configured.
   if (error instanceof Anthropic.AnthropicError) {
-    return "I can't reach Claude: no API key is configured. Set ANTHROPIC_API_KEY in .env, restart `pnpm dev`, then retry.";
+    return "I can't reach Claude: no API key is configured. Set ANTHROPIC_API_KEY in .env (or PLUTON_AGENT_BACKEND=subscription), restart `pnpm dev`, then retry.";
   }
   return `This step failed: ${error instanceof Error ? error.message : String(error)}`;
 }

@@ -143,14 +143,18 @@ export function BrainGraph({
     return { nodes: merged, links };
   }, [items, rootLabel]);
 
+  const mounted = size.width > 0;
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph) return;
-    graph.d3Force("charge")?.strength?.(-140);
+    // Spread harder as the Brain grows so leaf labels stop overlapping.
+    const crowd = Math.min(data.nodes.length / 40, 2);
+    graph.d3Force("charge")?.strength?.(-140 - 120 * crowd);
     const link = graph.d3Force("link");
-    link?.distance?.((l: { target: GraphNode }) => (l.target.kind === "leaf" ? 46 : 150));
+    link?.distance?.((l: { target: GraphNode }) => (l.target.kind === "leaf" ? 46 + 18 * crowd : 150 + 60 * crowd));
     graph.d3ReheatSimulation();
-  }, [data]);
+    // `mounted` matters on reload: the replayed events can all land before the canvas exists.
+  }, [data, mounted]);
 
   return (
     <div ref={containerRef} className="relative h-full w-full">
@@ -161,7 +165,7 @@ export function BrainGraph({
           height={size.height}
           graphData={data}
           backgroundColor="rgba(0,0,0,0)"
-          cooldownTicks={120}
+          cooldownTicks={400}
           onEngineStop={() => {
             // Fitting a handful of nodes would blow them up; keep a sane zoom until the graph fills in.
             if (data.nodes.length > 6) graphRef.current?.zoomToFit(600, 80);
