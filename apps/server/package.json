@@ -1,0 +1,28 @@
+{
+  "name": "@pluton/server",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./router": "./src/router.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/main.ts",
+    "start": "tsx --env-file=../../.env src/main.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "@hono/trpc-server": "^0.4.2",
+    "@pluton/core": "workspace:*",
+    "@pluton/db": "workspace:*",
+    "@trpc/server": "^11.19.0",
+    "hono": "^4.13.13",
+    "superjson": "^2.2.6",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

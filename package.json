@@ -1,0 +1,21 @@
+{
+  "name": "pluton",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @pluton/db generate",
+    "db:migrate": "pnpm --filter @pluton/db migrate"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "turbo": "^2.11.10",
+    "typescript": "^7.0.2"
+  },
+  "packageManager": "pnpm@12.3.4"
+}

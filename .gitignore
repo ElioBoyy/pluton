@@ -1,0 +1,7 @@
+node_modules
+dist
+.turbo
+.env
+data/*.db*
+*.mov
+.DS_Store
