@@ -31,7 +31,17 @@ import {
   tailStreamEvents,
   updateWorkspace,
 } from "@pluton/core";
-import { BRAIN_SECTIONS, PROPOSAL_STATUSES, count, jobs } from "@pluton/db";
+import { webSearch } from "@pluton/agent";
+import { BRAIN_SECTIONS, PROPOSAL_STATUSES, count, gte, jobs, providerCalls, sql } from "@pluton/db";
+import {
+  MissingKeyError,
+  companyJobs,
+  detectStack,
+  profilePosts,
+  providerCatalog,
+  searchJobs,
+  searchRegistry,
+} from "@pluton/providers";
 import { publicProcedure, router } from "./trpc.ts";
 
 const system = router({
@@ -224,5 +234,55 @@ const brain = router({
   }),
 });
 
-export const appRouter = router({ system, workspace, jobs: jobsRouter, events, onboarding, brain });
+const tryInput = z.discriminatedUnion("provider", [
+  z.object({ provider: z.literal("registry"), query: z.string().trim().min(2).max(120), sizeBands: z.array(z.string()).optional() }),
+  z.object({ provider: z.literal("careers"), website: z.string().trim().min(3).max(200), titles: z.array(z.string()).optional() }),
+  z.object({ provider: z.literal("stack"), website: z.string().trim().min(3).max(200) }),
+  z.object({ provider: z.literal("web"), query: z.string().trim().min(2).max(200) }),
+  z.object({ provider: z.literal("theirstack"), titles: z.array(z.string().min(1)).min(1), countries: z.array(z.string().length(2)).optional() }),
+  z.object({ provider: z.literal("apify"), profileUrl: z.string().url() }),
+]);
+
+const providers = router({
+  catalog: publicProcedure.query(() => providerCatalog()),
+  /** Real (uncached) calls per provider over the last 30 days. */
+  usage: publicProcedure.query(async ({ ctx }) => {
+    const since = new Date(Date.now() - 30 * 24 * 3600_000);
+    return ctx.db
+      .select({
+        provider: providerCalls.provider,
+        calls: count(),
+        failed: sql<number>`sum(case when ${providerCalls.ok} then 0 else 1 end)`,
+        items: sql<number>`sum(${providerCalls.items})`,
+        costMicroUsd: sql<number>`sum(${providerCalls.costMicroUsd})`,
+      })
+      .from(providerCalls)
+      .where(gte(providerCalls.createdAt, since))
+      .groupBy(providerCalls.provider);
+  }),
+  /** Runs one sample query so you can check a source works before Plays rely on it. */
+  try: publicProcedure.input(tryInput).mutation(async ({ ctx, input }) => {
+    try {
+      switch (input.provider) {
+        case "registry":
+          return { provider: input.provider, result: await searchRegistry(ctx.db, { query: input.query, sizeBands: input.sizeBands, perPage: 10 }) };
+        case "careers":
+          return { provider: input.provider, result: await companyJobs(ctx.db, input.website, { titleFilter: input.titles }) };
+        case "stack":
+          return { provider: input.provider, result: await detectStack(ctx.db, input.website) };
+        case "web":
+          return { provider: input.provider, result: await webSearch(ctx.db, input.query) };
+        case "theirstack":
+          return { provider: input.provider, result: await searchJobs(ctx.db, { titles: input.titles, countries: input.countries, limit: 10 }) };
+        case "apify":
+          return { provider: input.provider, result: await profilePosts(ctx.db, [input.profileUrl], { maxPosts: 3 }) };
+      }
+    } catch (error) {
+      if (error instanceof MissingKeyError) throw new TRPCError({ code: "PRECONDITION_FAILED", message: error.message });
+      throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
+    }
+  }),
+});
+
+export const appRouter = router({ system, workspace, jobs: jobsRouter, events, onboarding, brain, providers });
 export type AppRouter = typeof appRouter;

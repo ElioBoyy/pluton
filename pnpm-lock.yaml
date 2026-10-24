@@ -127,12 +127,18 @@ importers:
       '@hono/trpc-server':
         specifier: ^0.4.2
         version: 0.4.2(@trpc/server@11.19.0(typescript@7.0.2))(hono@4.13.13)
+      '@pluton/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
       '@pluton/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@pluton/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@pluton/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
       '@trpc/server':
         specifier: ^11.19.0
         version: 11.19.0(typescript@7.0.2)
@@ -237,6 +243,9 @@ importers:
       '@pluton/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@pluton/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
     devDependencies:
       '@types/node':
         specifier: ^26.6.5
@@ -262,6 +271,9 @@ importers:
       '@pluton/db':
         specifier: workspace:*
         version: link:../db
+      '@pluton/providers':
+        specifier: workspace:*
+        version: link:../providers
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -307,6 +319,22 @@ importers:
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/providers:
+    dependencies:
+      '@pluton/db':
+        specifier: workspace:*
+        version: link:../db
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

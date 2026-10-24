@@ -21,6 +21,7 @@ Open http://localhost:5173. The Home page has a "Run test job" button that check
 | `apps/worker` | Polls the `job` table and runs handlers (`src/handlers`) |
 | `packages/db` | Drizzle schema + migrations, SQLite file in `data/` |
 | `packages/core` | Domain logic shared by server and worker: jobs, events, workspaces, Brain, onboarding |
+| `packages/providers` | Data sources: French registry, careers boards, stack detection (free); TheirStack, Apify (keys). Cached, every real call logged |
 | `packages/agent` | Claude research agent (`claude-opus-5-5`, web search/fetch + save tools) |
 
 ## Onboarding
@@ -32,6 +33,10 @@ Uses your Claude subscription through the Claude Agent SDK (needs Claude Code in
 ## Brain
 
 `/brain` shows and edits the Brain by tab (Company, ICPs, Competitors, Influencers, Outreach, Market research, Graph). Every edit carries the item's `revision`; a stale one returns `CONFLICT`. "Review my Brain" runs the `brain.review` job: the agent researches and can only *propose* (add, edit, remove, or ask a question). Accepting applies it; a proposed edit whose item changed since is marked `superseded`. Rejected proposals and answered questions are fed back to the next review.
+
+## Data sources
+
+Settings → Data sources lists every source, its status and a "Try it" box. Free now: French company registry, company careers boards (Greenhouse/Lever/Ashby/Recruitee), website tech detection, Claude web search (subscription). `THEIRSTACK_API_KEY` and `APIFY_TOKEN` in `.env` switch on market-wide job search and LinkedIn engagement. Provider responses are cached in `provider_cache`; real calls go to `provider_call`.
 
 ## Conventions
 

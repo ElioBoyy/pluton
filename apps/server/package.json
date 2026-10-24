@@ -13,8 +13,10 @@
   "dependencies": {
     "@hono/node-server": "^2.1.5",
     "@hono/trpc-server": "^0.4.2",
+    "@pluton/agent": "workspace:*",
     "@pluton/core": "workspace:*",
     "@pluton/db": "workspace:*",
+    "@pluton/providers": "workspace:*",
     "@trpc/server": "^11.19.0",
     "hono": "^4.13.13",
     "superjson": "^2.2.6",
