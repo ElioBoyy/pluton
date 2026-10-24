@@ -29,6 +29,10 @@ Open http://localhost:5173. The Home page has a "Run test job" button that check
 
 Uses your Claude subscription through the Claude Agent SDK (needs Claude Code installed and logged in on this machine; personal use only). Set `PLUTON_AGENT_BACKEND=api_key` and `ANTHROPIC_API_KEY` to use the API instead. Set `PLUTON_SIMULATE_AGENT=1` to replay a canned Brain instead (UI work without credits).
 
+## Brain
+
+`/brain` shows and edits the Brain by tab (Company, ICPs, Competitors, Influencers, Outreach, Market research, Graph). Every edit carries the item's `revision`; a stale one returns `CONFLICT`. "Review my Brain" runs the `brain.review` job: the agent researches and can only *propose* (add, edit, remove, or ask a question). Accepting applies it; a proposed edit whose item changed since is marked `superseded`. Rejected proposals and answered questions are fed back to the next review.
+
 ## Conventions
 
 - Query helpers (`eq`, `and`, `sql`…) come from `@pluton/db`, never directly from `drizzle-orm`, so the repo shares one drizzle instance.

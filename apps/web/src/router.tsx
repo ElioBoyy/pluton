@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter, Link, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell.tsx";
 import { ComingSoon } from "./components/ui.tsx";
+import { BrainPage } from "./features/brain/brain-page.tsx";
 import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
 import { HomePage } from "./routes/home.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
@@ -75,7 +76,7 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     indexRoute,
     homeRoute,
-    page("/brain", "Brain", "Company, ICP, personas, competitors, voice and signals.", 2),
+    createRoute({ getParentRoute: () => appRoute, path: "/brain", component: BrainPage }),
     page("/agent", "Agent", "Chat with the Pluton agent to plan Plays and act on leads.", 4),
     page("/plays", "Plays", "Each Play turns one GTM idea into a recurring lead search.", 4),
     page("/plays/new", "New Play", "Describe who you want to reach.", 4),

@@ -15,6 +15,13 @@
       "when": 1792883274668,
       "tag": "0001_fast_celestials",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792884794552,
+      "tag": "0002_fair_xorn",
+      "breakpoints": true
     }
   ]
 }

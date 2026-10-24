@@ -10,6 +10,10 @@ export const jobPayloads = {
     sessionId: z.string(),
     stage: z.enum(["company", "audience", "market"]),
   }),
+  "brain.review": z.object({
+    workspaceId: z.string(),
+    focus: z.string().trim().max(500).optional(),
+  }),
 } as const;
 
 export type JobType = keyof typeof jobPayloads;

@@ -1,9 +1,20 @@
 import { TRPCError, tracked } from "@trpc/server";
 import { z } from "zod";
 import {
+  BrainConflictError,
   JOB_TYPES,
   RevisionConflictError,
+  acceptProposal,
   activateOnboarding,
+  answerProposal,
+  archiveBrainItems,
+  createBrainItem,
+  findActiveJob,
+  listArchivedBrain,
+  listProposals,
+  rejectProposal,
+  restoreBrainItem,
+  updateBrainItem,
   answerCard,
   cardAnswerSchema,
   enqueueJob,
@@ -20,7 +31,7 @@ import {
   tailStreamEvents,
   updateWorkspace,
 } from "@pluton/core";
-import { count, jobs } from "@pluton/db";
+import { BRAIN_SECTIONS, PROPOSAL_STATUSES, count, jobs } from "@pluton/db";
 import { publicProcedure, router } from "./trpc.ts";
 
 const system = router({
@@ -141,10 +152,75 @@ const onboarding = router({
   }),
 });
 
+/** Maps domain errors to tRPC codes so the UI can tell a conflict from a bad request. */
+async function brainCall<T>(fn: () => Promise<T>) {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error instanceof BrainConflictError) {
+      throw new TRPCError({ code: "CONFLICT", message: error.message, cause: error });
+    }
+    if (error instanceof z.ZodError) throw new TRPCError({ code: "BAD_REQUEST", message: z.prettifyError(error) });
+    if (error instanceof Error) throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+    throw error;
+  }
+}
+
 const brain = router({
   list: publicProcedure.query(async ({ ctx }) => {
     const ws = await getOrCreateDefaultWorkspace(ctx.db);
     return listBrain(ctx.db, ws.id);
+  }),
+  archived: publicProcedure.query(async ({ ctx }) => {
+    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    return listArchivedBrain(ctx.db, ws.id);
+  }),
+  create: publicProcedure
+    .input(z.object({ section: z.enum(BRAIN_SECTIONS), data: z.record(z.string(), z.unknown()) }))
+    .mutation(async ({ ctx, input }) => {
+      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      return brainCall(() => createBrainItem(ctx.db, ws.id, input.section, input.data));
+    }),
+  update: publicProcedure
+    .input(z.object({ id: z.string(), revision: z.number().int(), data: z.record(z.string(), z.unknown()) }))
+    .mutation(({ ctx, input }) => brainCall(() => updateBrainItem(ctx.db, input.id, input.revision, input.data))),
+  archive: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(({ ctx, input }) => brainCall(() => archiveBrainItems(ctx.db, [input.id]))),
+  restore: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(({ ctx, input }) => brainCall(() => restoreBrainItem(ctx.db, input.id))),
+
+  proposals: publicProcedure
+    .input(z.object({ statuses: z.array(z.enum(PROPOSAL_STATUSES)).optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      return listProposals(ctx.db, ws.id, input?.statuses);
+    }),
+  acceptProposal: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(({ ctx, input }) => brainCall(() => acceptProposal(ctx.db, input.id))),
+  rejectProposal: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(({ ctx, input }) => brainCall(() => rejectProposal(ctx.db, input.id))),
+  answerProposal: publicProcedure
+    .input(z.object({ id: z.string(), answer: z.string().trim().min(1).max(1000) }))
+    .mutation(({ ctx, input }) => brainCall(() => answerProposal(ctx.db, input.id, input.answer))),
+  /** Starts a review job; follow it with `events.watch` on `job:<id>`. */
+  review: publicProcedure
+    .input(z.object({ focus: z.string().trim().max(500).optional() }).optional())
+    .mutation(async ({ ctx, input }) => {
+      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      return enqueueJob(ctx.db, {
+        type: "brain.review",
+        workspaceId: ws.id,
+        payload: { workspaceId: ws.id, focus: input?.focus },
+        maxAttempts: 1,
+      });
+    }),
+  activeReview: publicProcedure.query(async ({ ctx }) => {
+    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    return (await findActiveJob(ctx.db, ws.id, "brain.review")) ?? null;
   }),
 });
 

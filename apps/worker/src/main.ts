@@ -10,12 +10,14 @@ import {
   type JobType,
 } from "@pluton/core";
 import { createDb, prepareDb } from "@pluton/db";
+import { brainReview } from "./handlers/brain-review.ts";
 import { onboardingStage } from "./handlers/onboarding-stage.ts";
 import { systemPing } from "./handlers/system-ping.ts";
 
 const handlers: Record<JobType, JobHandler> = {
   "system.ping": systemPing,
   "onboarding.stage": onboardingStage,
+  "brain.review": brainReview,
 };
 
 const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY ?? 4);
