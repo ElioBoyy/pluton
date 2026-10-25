@@ -41,6 +41,8 @@ export const jobPayloads = {
     /** An action the founder just approved: it runs first, then the agent reports on it. */
     actionId: z.string().optional(),
   }),
+  /** One prompt, two wallpapers: Codex draws the light one, then the same scene at night for dark. */
+  "appearance.generate_wallpaper": z.object({ prompt: z.string().trim().min(3).max(1000) }),
   "brain.review": z.object({
     workspaceId: z.string(),
     focus: z.string().trim().max(500).optional(),

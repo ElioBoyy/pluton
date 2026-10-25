@@ -63,6 +63,7 @@ import {
   searchRegistry,
 } from "@pluton/providers";
 import { campaignsRouter, linkedinRouter } from "./campaigns-router.ts";
+import { appearanceRouter } from "./appearance-router.ts";
 import { copilotRouter } from "./copilot-router.ts";
 import { activityRouter, creditsRouter, notificationsRouter } from "./credits-router.ts";
 import { integrationsRouter } from "./integrations-router.ts";
@@ -442,5 +443,6 @@ export const appRouter = router({
   integrations: integrationsRouter,
   mcp: mcpRouter,
   copilot: copilotRouter,
+  appearance: appearanceRouter,
 });
 export type AppRouter = typeof appRouter;
