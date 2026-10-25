@@ -41,7 +41,7 @@ import {
 } from "@pluton/providers";
 import { runAgent } from "./backend.ts";
 import { findLinkedinProfiles } from "./linkedin-lookup.ts";
-import { localTool } from "./run-agent.ts";
+import { AgentTurnLimitError, localTool } from "./run-agent.ts";
 import { languageInstruction, localized } from "@pluton/i18n/server";
 import messages from "./messages/lead-finding.ts";
 
@@ -335,7 +335,7 @@ async function runPipeline(ctx: Ctx, pipeline: Pipeline, wanted: number, deadlin
       await collectByResearch(ctx, pipeline, wanted, gate, research);
     } catch (error) {
       // Out of turns or out of time: keep what was found and score it rather than fail the run.
-      const outOfBudget = deadline.aborted || (error instanceof Error && /max_turns|turn budget/i.test(error.message));
+      const outOfBudget = deadline.aborted || error instanceof AgentTurnLimitError;
       if (ctx.signal.aborted || !outOfBudget) throw error;
     }
   }

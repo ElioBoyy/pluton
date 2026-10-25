@@ -92,6 +92,8 @@ function meterUsage(meter: AgentMeter, model: string, usage: Anthropic.Beta.Beta
 }
 
 export class AgentRefusalError extends Error {}
+/** Ran out of turns: what the agent saved through its tools still stands. Both backends throw it. */
+export class AgentTurnLimitError extends Error {}
 
 // Created on first use (and again when the key changes in Settings) so the worker boots without credentials.
 let client: { key: string | undefined; instance: Anthropic } | undefined;
@@ -197,5 +199,5 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
     );
     messages.push({ role: "user", content: results });
   }
-  throw new Error(t("claude.turnBudget"));
+  throw new AgentTurnLimitError(t("claude.turnBudget"));
 }
