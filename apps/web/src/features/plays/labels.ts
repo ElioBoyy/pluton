@@ -28,6 +28,7 @@ export const STOP_LABELS: Record<string, string> = {
 export const REJECTION_LABELS: Record<string, string> = {
   incomplete_profile: "Missing title or company",
   own_company_or_competitor: "Your company or a competitor",
+  rejected_before: "You rejected them before",
   excluded: "Matched an exclusion",
   wrong_persona: "Wrong role",
   wrong_seniority: "Wrong seniority",

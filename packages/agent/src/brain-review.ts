@@ -79,6 +79,9 @@ ${history.filter((p) => p.status === "answered").map(describe).join("\n") || "no
 What recent searches found (use it: many "to review" leads or one rejection reason dominating usually means a persona, size or industry in the Brain is off):
 ${outcomes.runs === 0 ? "No search has run yet." : JSON.stringify({ runs: outcomes.runs, qualified: outcomes.qualified, needsReview: outcomes.needsReview, setAside: outcomes.rejections, toReviewSample: outcomes.reviewSample })}
 
+The founder's verdicts on leads (strongest evidence; rejection reasons counted ${JSON.stringify(outcomes.founderFeedback.reasonCounts)}). Turn a repeated reason into a concrete Brain fix: wrong_role → persona titles, wrong_seniority → persona seniority, wrong_industry or wrong_company_size → ICP, wrong_location → ICP geographies, competitor_or_partner → competitors. Approved leads show what good looks like.
+${outcomes.founderFeedback.examples || "No verdicts yet."}
+
 ${opts.focus ? `The founder asked you to focus on: ${opts.focus}` : "Review the whole Brain, starting with what most affects who we target."}`,
     required: [],
     webSearchUses: 8,

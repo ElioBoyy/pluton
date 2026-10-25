@@ -20,6 +20,7 @@ import {
 import { createDb, getSetting, prepareDb, watchSettings } from "@pluton/db";
 import { brainReview } from "./handlers/brain-review.ts";
 import { onboardingStage } from "./handlers/onboarding-stage.ts";
+import { leadsFindEmails } from "./handlers/leads.ts";
 import { leadFindingRun, playsPlan } from "./handlers/plays.ts";
 import { systemPing } from "./handlers/system-ping.ts";
 
@@ -29,6 +30,7 @@ const handlers: Record<JobType, JobHandler> = {
   "brain.review": brainReview,
   "plays.plan": playsPlan,
   "lead_finding.run": leadFindingRun,
+  "leads.find_emails": leadsFindEmails,
 };
 
 const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY ?? 4);

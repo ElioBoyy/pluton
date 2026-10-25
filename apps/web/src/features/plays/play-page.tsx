@@ -1,33 +1,52 @@
-import { ArrowLeft, CircleNotch, Pause, Play as PlayIcon, Stop } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, CircleNotch, Pause, Play as PlayIcon, Stop } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useState } from "react";
+import type { PlayTab } from "../../router.tsx";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Card } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
 import { PIPELINE_LABELS, REJECTION_LABELS, SCHEDULE_LABELS, STOP_LABELS } from "./labels.ts";
-import { LeadTable, type LeadRow } from "./lead-table.tsx";
+import { initials, STATUS, type LeadTabKey } from "../leads/labels.ts";
+import { LeadsView } from "../leads/leads-view.tsx";
 
 type PlayData = inferRouterOutputs<AppRouter>["plays"]["get"];
 type Run = PlayData["runs"][number];
 type Report = NonNullable<Run["report"]>;
 
-const TABS = ["Overview", "Sourcing", "Leads"] as const;
+const TABS: Array<{ key: PlayTab; label: string }> = [
+  { key: "overview", label: "Overview" },
+  { key: "sourcing", label: "Sourcing" },
+  { key: "leads", label: "Leads" },
+];
 
-export function PlayPage({ playId }: { playId: string }) {
+export function PlayPage({
+  playId,
+  tab,
+  leadTab,
+  leadId,
+  onChange,
+}: {
+  playId: string;
+  tab: PlayTab;
+  leadTab: LeadTabKey;
+  leadId?: string;
+  onChange: (next: { tab?: PlayTab; status?: LeadTabKey; lead?: string }) => void;
+}) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const data = useQuery(trpc.plays.get.queryOptions({ id: playId }));
-  const leads = useQuery(trpc.leads.list.queryOptions({ playId, includeDisqualified: true }));
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
+  const counts = useQuery(trpc.leads.counts.queryOptions({ playId }));
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: trpc.plays.get.queryKey({ id: playId }) }),
-      queryClient.invalidateQueries({ queryKey: trpc.leads.list.queryKey() }),
+      queryClient.invalidateQueries({ queryKey: trpc.leads.pathKey() }),
       queryClient.invalidateQueries({ queryKey: trpc.plays.list.queryKey() }),
+      queryClient.invalidateQueries({ queryKey: trpc.plays.activity.pathKey() }),
+      queryClient.invalidateQueries({ queryKey: trpc.plays.leadsPerDay.pathKey() }),
     ]);
   const runNow = useMutation(trpc.plays.run.mutationOptions({ onSuccess: refresh }));
   const cancel = useMutation(trpc.plays.cancelRun.mutationOptions({ onSuccess: refresh }));
@@ -37,7 +56,6 @@ export function PlayPage({ playId }: { playId: string }) {
   const { play, runs } = data.data;
   const active = runs.find((r) => r.status === "queued" || r.status === "running");
   const latest = runs[0];
-  const leadRows = leads.data ?? [];
 
   return (
     <div className="mx-auto max-w-6xl px-8 py-10">
@@ -89,17 +107,17 @@ export function PlayPage({ playId }: { playId: string }) {
       <nav className="mb-6 flex gap-1 border-b border-line">
         {TABS.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={cn("-mb-px border-b-2 px-3 py-2 text-sm", tab === t ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink")}
+            key={t.key}
+            onClick={() => onChange({ tab: t.key, lead: undefined })}
+            className={cn("-mb-px border-b-2 px-3 py-2 text-sm", tab === t.key ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink")}
           >
-            {t}
-            {t === "Leads" && <span className="ml-1.5 text-faint">{leadRows.filter((l) => l.stage !== "disqualified").length}</span>}
+            {t.label}
+            {t.key === "leads" && <span className="ml-1.5 text-faint">{counts.data?.counts.all ?? ""}</span>}
           </button>
         ))}
       </nav>
 
-      {tab === "Overview" && (
+      {tab === "overview" && (
         <div className="flex flex-col gap-6">
           <div className="grid gap-3 md:grid-cols-3">
             <Summary label="Who" text={play.summary.who} />
@@ -107,12 +125,20 @@ export function PlayPage({ playId }: { playId: string }) {
             <Summary label="How many" text={play.summary.howMany} />
           </div>
           {latest && <RunPanel key={latest.id} run={latest} live={latest.id === active?.id} onFinished={refresh} />}
-          <LeadsChart leads={leadRows} />
+          <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
+            <div className="flex flex-col gap-4">
+              <LeadsChart playId={playId} onView={() => onChange({ tab: "leads" })} />
+              <NewestLeads playId={playId} onOpen={(lead) => onChange({ tab: "leads", status: "all", lead })} onReviewAll={() => onChange({ tab: "leads", status: "to_review" })} />
+            </div>
+            <Activity playId={playId} />
+          </div>
           {runs.length > 1 && <RunHistory runs={runs.slice(1)} />}
         </div>
       )}
-      {tab === "Sourcing" && <Sourcing data={data.data} />}
-      {tab === "Leads" && <LeadTable leads={leadRows} />}
+      {tab === "sourcing" && <Sourcing data={data.data} />}
+      {tab === "leads" && (
+        <LeadsView playId={playId} tab={leadTab} onTab={(t) => onChange({ status: t, lead: undefined })} openLeadId={leadId} onOpenLead={(id) => onChange({ lead: id })} />
+      )}
     </div>
   );
 }
@@ -199,49 +225,140 @@ function Funnel({ report: r }: { report: Report }) {
   );
 }
 
-/** Leads added per day over the last 30 days, qualified stacked on to-review. */
-function LeadsChart({ leads }: { leads: LeadRow[] }) {
+/** Leads added per day over the last 30 days, strong matches stacked on worth-a-look. */
+function LeadsChart({ playId, onView }: { playId: string; onView: () => void }) {
+  const trpc = useTRPC();
+  const perDay = useQuery(trpc.plays.leadsPerDay.queryOptions({ id: playId }));
   const days = useMemo(() => {
     const out: Array<{ day: string; qualified: number; review: number }> = [];
     for (let i = 29; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
-      out.push({ day: d, qualified: 0, review: 0 });
-    }
-    for (const l of leads) {
-      const slot = out.find((o) => o.day === new Date(l.createdAt).toISOString().slice(0, 10));
-      if (!slot) continue;
-      if (l.stage === "qualified") slot.qualified++;
-      else if (l.stage === "needs_review") slot.review++;
+      const d = new Date(Date.now() - i * 86_400_000);
+      const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const row = perDay.data?.find((r) => r.day === day);
+      out.push({ day, qualified: Number(row?.qualified ?? 0), review: Number(row?.review ?? 0) });
     }
     return out;
-  }, [leads]);
+  }, [perDay.data]);
   const max = Math.max(1, ...days.map((d) => d.qualified + d.review));
   const total = days.reduce((t, d) => t + d.qualified + d.review, 0);
 
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Leads over the last 30 days</h2>
-        <span className="flex items-center gap-3 text-xs text-faint">
-          <span className="flex items-center gap-1">
-            <span className="size-2 rounded-sm bg-cat-green" /> Qualified
+        <div>
+          <h2 className="text-sm font-semibold">Leads over time</h2>
+          <p className="text-xs text-faint">{total} leads in the last 30 days</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-3 text-xs text-faint">
+            <span className="flex items-center gap-1">
+              <span className="size-2 rounded-sm bg-cat-green" /> Strong match
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="size-2 rounded-sm bg-cat-yellow/70" /> Worth a look
+            </span>
           </span>
-          <span className="flex items-center gap-1">
-            <span className="size-2 rounded-sm bg-cat-yellow/70" /> To review
-          </span>
-        </span>
+          <button onClick={onView} className="flex items-center gap-1 text-xs text-muted hover:text-ink">
+            View leads <ArrowRight size={12} />
+          </button>
+        </div>
       </div>
       {total === 0 ? (
         <p className="py-6 text-center text-sm text-faint">No leads in the last 30 days.</p>
       ) : (
         <div className="flex h-28 items-end gap-1" role="img" aria-label={`${total} leads in the last 30 days`}>
           {days.map((d) => (
-            <div key={d.day} className="flex flex-1 flex-col justify-end" title={`${d.day}: ${d.qualified} qualified, ${d.review} to review`}>
+            <div key={d.day} className="flex h-full flex-1 flex-col justify-end" title={`${d.day}: ${d.qualified} strong, ${d.review} worth a look`}>
               <div className="rounded-t-sm bg-cat-yellow/70" style={{ height: `${(d.review / max) * 100}%` }} />
               <div className={cn("bg-cat-green", d.review === 0 && "rounded-t-sm")} style={{ height: `${(d.qualified / max) * 100}%` }} />
             </div>
           ))}
         </div>
+      )}
+    </Card>
+  );
+}
+
+function NewestLeads({ playId, onOpen, onReviewAll }: { playId: string; onOpen: (leadId: string) => void; onReviewAll: () => void }) {
+  const trpc = useTRPC();
+  const newest = useQuery(trpc.leads.list.queryOptions({ playId, tab: "all", sort: "newest", limit: 5 }));
+  const counts = useQuery(trpc.leads.counts.queryOptions({ playId }));
+  const toReview = counts.data?.counts.to_review ?? 0;
+  if (!newest.data?.items.length) return null;
+  return (
+    <Card>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">Newest leads</h2>
+        {toReview > 0 && (
+          <button onClick={onReviewAll} className="flex items-center gap-1 text-xs text-muted hover:text-ink">
+            Review all {toReview} <ArrowRight size={12} />
+          </button>
+        )}
+      </div>
+      <ul className="flex flex-col divide-y divide-line">
+        {newest.data.items.map((l) => (
+          <li key={l.id}>
+            <button onClick={() => onOpen(l.id)} className="flex w-full items-center gap-3 py-2.5 text-left hover:opacity-80">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-raised text-[11px] font-semibold text-muted">{initials(l.person.name)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm">{l.person.name}</span>
+                <span className="block truncate text-xs text-muted">
+                  {l.person.title}
+                  {l.person.company && ` @ ${l.person.company}`}
+                </span>
+              </span>
+              <span className={cn("rounded-full px-2 py-0.5 text-xs", (l.isNew ? STATUS.new : STATUS[l.status])?.className)}>{(l.isNew ? STATUS.new : STATUS[l.status])?.label}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+const ACTIVITY_TEXT: Record<string, (p: Record<string, unknown>) => string> = {
+  "play.created": () => "You created this Play",
+  "lead_finding.started": (p) => (p.trigger === "schedule" ? "A scheduled search started" : "You started a search"),
+  "lead_finding.completed": (p) => {
+    const n = Number(p.qualified ?? 0) + Number(p.needsReview ?? 0);
+    return n === 0 ? "A search finished with no new leads" : `Pluton found ${n} lead${n === 1 ? "" : "s"}`;
+  },
+  "lead_finding.failed": () => "A search stopped on an error",
+  "lead_finding.cancelled": () => "You stopped a search",
+  "leads.approved": (p) => `You approved ${p.count} lead${p.count === 1 ? "" : "s"}`,
+  "leads.rejected": (p) => `You rejected ${p.count} lead${p.count === 1 ? "" : "s"}`,
+};
+
+function Activity({ playId }: { playId: string }) {
+  const trpc = useTRPC();
+  const activity = useQuery(trpc.plays.activity.queryOptions({ id: playId }));
+  const rows = (activity.data ?? []).filter((a) => ACTIVITY_TEXT[a.kind]);
+  const groups = new Map<string, typeof rows>();
+  for (const a of rows) {
+    const d = new Date(a.createdAt);
+    const today = new Date().toDateString() === d.toDateString();
+    const key = today ? "Today" : d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+    groups.set(key, [...(groups.get(key) ?? []), a]);
+  }
+  return (
+    <Card className="self-start">
+      <h2 className="mb-3 text-sm font-semibold">Activity</h2>
+      {rows.length === 0 ? (
+        <p className="text-sm text-faint">Nothing yet.</p>
+      ) : (
+        [...groups].map(([day, items]) => (
+          <div key={day} className="mb-3 last:mb-0">
+            <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-faint uppercase">{day}</p>
+            <ul className="flex flex-col gap-1.5">
+              {items.map((a) => (
+                <li key={a.id} className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="text-muted">{ACTIVITY_TEXT[a.kind]!(a.payload as Record<string, unknown>)}</span>
+                  <span className="shrink-0 text-xs text-faint">{new Date(a.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
       )}
     </Card>
   );

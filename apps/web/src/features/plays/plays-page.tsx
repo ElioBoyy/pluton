@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Button, PageHeader } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
-import { LeadTable } from "./lead-table.tsx";
 import { PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
 
 const FILTERS = ["active", "paused", "archived"] as const;
@@ -88,17 +87,6 @@ export function PlaysPage() {
           ))}
         </ul>
       )}
-    </div>
-  );
-}
-
-export function LeadsPage() {
-  const trpc = useTRPC();
-  const leads = useQuery(trpc.leads.list.queryOptions({ includeDisqualified: true }));
-  return (
-    <div className="mx-auto max-w-6xl px-8 py-10">
-      <PageHeader title="Leads" description="Everyone your Plays found. Reviewing and approving them arrives in phase 5." />
-      <LeadTable leads={leads.data ?? []} showPlay />
     </div>
   );
 }

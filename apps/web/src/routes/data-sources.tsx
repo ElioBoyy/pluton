@@ -98,9 +98,11 @@ function ProviderCard({
             </p>
           )}
         </div>
-        <Button variant="ghost" className="h-8 shrink-0" disabled={!p.configured} onClick={() => setOpen(!open)}>
-          <Play size={13} /> Try it
-        </Button>
+        {SAMPLES[p.id] && (
+          <Button variant="ghost" className="h-8 shrink-0" disabled={!p.configured} onClick={() => setOpen(!open)}>
+            <Play size={13} /> Try it
+          </Button>
+        )}
       </div>
       {open && SAMPLES[p.id] && <TryPanel providerId={p.id} />}
     </Card>
