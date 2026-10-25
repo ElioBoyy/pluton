@@ -14,11 +14,16 @@ import { ListSection, SingletonSection } from "./sections.tsx";
 const TABS = ["Company", "ICPs", "Competitors", "Influencers", "Outreach", "Market research", "Graph"] as const;
 type Tab = (typeof TABS)[number];
 
-export function BrainPage() {
+/** The `tab` search param of /brain, which ⌘K results link to. */
+export const BRAIN_TAB_SLUGS = ["company", "icps", "competitors", "influencers", "outreach", "market", "graph"] as const;
+export type BrainTabSlug = (typeof BRAIN_TAB_SLUGS)[number];
+
+export function BrainPage({ tabSlug, onTab }: { tabSlug: BrainTabSlug; onTab: (slug: BrainTabSlug) => void }) {
   const trpc = useTRPC();
   const brain = useQuery(trpc.brain.list.queryOptions());
   const proposals = useQuery(trpc.brain.proposals.queryOptions());
-  const [tab, setTab] = useState<Tab>("Company");
+  const tab = TABS[BRAIN_TAB_SLUGS.indexOf(tabSlug)]!;
+  const setTab = (t: Tab) => onTab(BRAIN_TAB_SLUGS[TABS.indexOf(t)]!);
   const [panelOpen, setPanelOpen] = useState(false);
   const items = brain.data ?? [];
   const pendingCount = proposals.data?.length ?? 0;

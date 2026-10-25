@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { customType, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 const id = () =>
   text("id")
@@ -1087,6 +1087,54 @@ export type CopilotAction = typeof copilotActions.$inferSelect;
 export type Integration = typeof integrations.$inferSelect;
 export type CrmExport = typeof crmExports.$inferSelect;
 export type McpClient = typeof mcpClients.$inferSelect;
+
+// ── Search ───────────────────────────────────────────────────────────────────
+
+/** Size of the vectors the search model produces (multilingual-e5-small). */
+export const EMBEDDING_DIMENSIONS = 384;
+
+/** libSQL's native vector column: float32 values, compared in SQL with vector_distance_cos. */
+const vector = (name: string) =>
+  customType<{ data: number[]; driverData: ArrayBuffer }>({
+    dataType: () => `F32_BLOB(${EMBEDDING_DIMENSIONS})`,
+    toDriver: (value) => new Float32Array(value).buffer,
+    fromDriver: (value) => Array.from(new Float32Array(value)),
+  })(name);
+
+export const SEARCH_KINDS = ["page", "lead", "play", "brain", "conversation"] as const;
+export type SearchKind = (typeof SEARCH_KINDS)[number];
+
+/**
+ * One row per thing ⌘K can find, with the embedding of its text. Rebuilt from the source tables by
+ * syncSearchIndex in @pluton/core: `hash` tells which rows changed since they were embedded.
+ */
+export const searchDocuments = sqliteTable(
+  "search_document",
+  {
+    /** "<kind>:<refId>" */
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: SEARCH_KINDS }).notNull(),
+    refId: text("ref_id").notNull(),
+    title: text("title").notNull(),
+    subtitle: text("subtitle"),
+    /** Where the result opens, as an app path with its search params. */
+    href: text("href").notNull(),
+    /** What was embedded. */
+    text: text("text").notNull(),
+    /** Title, subtitle and text lowercased without accents, for matching by name ("marie" finds "Marié"). */
+    folded: text("folded").notNull(),
+    hash: text("hash").notNull(),
+    /** Null until the model has embedded `text` (it downloads on first use). */
+    embedding: vector("embedding"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("search_document_workspace_idx").on(t.workspaceId, t.kind)],
+);
+
+export type SearchDocument = typeof searchDocuments.$inferSelect;
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 

@@ -65,6 +65,7 @@ import {
 import { campaignsRouter, linkedinRouter } from "./campaigns-router.ts";
 import { appearanceRouter } from "./appearance-router.ts";
 import { copilotRouter } from "./copilot-router.ts";
+import { searchRouter } from "./search-router.ts";
 import { activityRouter, creditsRouter, notificationsRouter } from "./credits-router.ts";
 import { integrationsRouter } from "./integrations-router.ts";
 import { mcpRouter } from "./mcp-router.ts";
@@ -444,5 +445,6 @@ export const appRouter = router({
   mcp: mcpRouter,
   copilot: copilotRouter,
   appearance: appearanceRouter,
+  search: searchRouter,
 });
 export type AppRouter = typeof appRouter;
