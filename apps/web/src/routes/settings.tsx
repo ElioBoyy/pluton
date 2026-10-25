@@ -22,7 +22,7 @@ export function SettingsShell() {
   return (
     <div className="mx-auto flex max-w-5xl gap-10 px-4 py-6 max-md:flex-col max-md:gap-6 sm:px-8 sm:py-10">
       {/* A column beside the page from md up; a row of tabs that scrolls sideways on phones. */}
-      <nav className="flex w-44 shrink-0 flex-col gap-0.5 max-md:-mx-4 max-md:w-auto max-md:flex-row max-md:overflow-x-auto max-md:px-4 max-md:[scrollbar-width:none]">
+      <nav className="flex w-44 shrink-0 flex-col gap-0.5 md:sticky md:top-10 md:self-start max-md:-mx-4 max-md:w-auto max-md:flex-row max-md:overflow-x-auto max-md:px-4 max-md:[scrollbar-width:none]">
         <p className="mb-2 px-2.5 text-xs font-medium text-faint max-md:hidden">Workspace</p>
         {SETTINGS_SECTIONS.map((s) => (
           <Link
