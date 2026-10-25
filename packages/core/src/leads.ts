@@ -16,8 +16,11 @@ import {
   or,
   people,
   plays,
+  PIPELINES,
   sql,
   type Db,
+  type SQL,
+  type SQLWrapper,
   type FeedbackReason,
   enrollments,
   type EnrollmentStatus,
@@ -85,7 +88,11 @@ export function seniorityFromTitle(title?: string | null) {
 
 export const LEAD_TABS = ["all", "new", "to_review", "approved", "in_campaign", "contacted", "rejected"] as const;
 export type LeadTab = (typeof LEAD_TABS)[number];
-export const LEAD_SORTS = ["newest", "fit", "warmness"] as const;
+/** Every column the table sorts by; `newest` is the Found column. */
+export const LEAD_SORTS = ["newest", "fit", "warmness", "name", "position", "company", "location", "status", "why", "email", "play"] as const;
+export type LeadSort = (typeof LEAD_SORTS)[number];
+/** Numbers and dates read best from the top, text from A. */
+export const defaultSortDir = (sort: LeadSort): "asc" | "desc" => (sort === "newest" || sort === "fit" || sort === "warmness" ? "desc" : "asc");
 
 export type LeadFilter = {
   workspaceId: string;
@@ -142,13 +149,42 @@ const rowSelect = {
   sequenceStatus: sql<EnrollmentStatus | null>`(select ${enrollments.status} from ${enrollments} where ${enrollments.leadId} = ${leads.id} order by ${enrollments.createdAt} desc limit 1)`,
 };
 
+// Statuses in the order of the tabs, as the pipeline moves; unseen leads show as New, so they come first.
+const STATUS_RANK = sql`case when ${leads.status} = 'new' or (${leads.status} = 'to_review' and ${leads.seenAt} is null) then 0 when ${leads.status} = 'to_review' then 1 when ${leads.status} = 'approved' then 2 when ${leads.status} = 'in_campaign' then 3 when ${leads.status} = 'contacted' then 4 else 5 end`;
+
+/** Signals ranked by the label the table shows, in the current language. */
+function signalRank() {
+  const ranked = [...PIPELINES].sort((a, b) => signalLabel(a).localeCompare(signalLabel(b)));
+  const pipeline = sql`coalesce(${leads.pipeline}, ${plays.pipeline})`;
+  return sql`case ${pipeline} ${sql.join(ranked.map((p, i) => sql`when ${p} then ${i}`), sql` `)} else ${ranked.length} end`;
+}
+
+/** Empty values sort last both ways; ties fall back to the newest lead. */
+function leadOrder(sort: LeadSort, dir: "asc" | "desc") {
+  const by = dir === "asc" ? asc : desc;
+  const text = (col: SQLWrapper) => [sql`${col} is null or ${col} = ''`, by(sql`lower(${col})`)];
+  const keys: Record<LeadSort, SQL[]> = {
+    newest: [by(leads.createdAt)],
+    fit: [by(leads.fit), desc(leads.warmness)],
+    warmness: [by(leads.warmness), desc(leads.fit)],
+    name: text(people.name),
+    position: text(people.title),
+    company: text(people.company),
+    location: text(people.location),
+    status: [by(STATUS_RANK)],
+    why: [by(signalRank()), ...text(leads.reason)],
+    email: text(people.email),
+    play: text(plays.name),
+  };
+  return [...keys[sort], desc(leads.createdAt), asc(leads.id)];
+}
+
 export async function listLeads(
   db: Db,
-  f: LeadFilter & { sort?: (typeof LEAD_SORTS)[number]; limit?: number; offset?: number },
+  f: LeadFilter & { sort?: LeadSort; dir?: "asc" | "desc"; limit?: number; offset?: number },
 ) {
   const where = filterWhere(f);
-  const order =
-    f.sort === "fit" ? [desc(leads.fit), desc(leads.createdAt)] : f.sort === "warmness" ? [desc(leads.warmness), desc(leads.fit)] : [desc(leads.createdAt), desc(leads.fit)];
+  const order = leadOrder(f.sort ?? "newest", f.dir ?? defaultSortDir(f.sort ?? "newest"));
   const rows = await db
     .select(rowSelect)
     .from(leads)

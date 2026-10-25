@@ -50,3 +50,4 @@ export async function prepareDb(db: Db) {
 
 // One drizzle instance for the whole repo: apps import query helpers from here, never from drizzle-orm.
 export { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lt, lte, ne, notInArray, or, sql } from "drizzle-orm";
+export type { SQL, SQLWrapper } from "drizzle-orm";

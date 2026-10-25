@@ -40,7 +40,7 @@ async function workspaceId(db: Parameters<typeof getCurrentWorkspace>[0]) {
 
 export const leadsRouter = router({
   list: publicProcedure
-    .input(filterInput.extend({ sort: z.enum(LEAD_SORTS).default("newest"), limit: z.number().int().min(1).max(200).default(50), offset: z.number().int().min(0).default(0) }))
+    .input(filterInput.extend({ sort: z.enum(LEAD_SORTS).default("newest"), dir: z.enum(["asc", "desc"]).optional(), limit: z.number().int().min(1).max(200).default(50), offset: z.number().int().min(0).default(0) }))
     .query(async ({ ctx, input }) => listLeads(ctx.db, { ...input, workspaceId: await workspaceId(ctx.db) })),
   counts: publicProcedure
     .input(filterInput.omit({ tab: true }))

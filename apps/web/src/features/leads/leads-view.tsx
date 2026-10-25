@@ -1,5 +1,7 @@
 import {
   ArrowSquareOut,
+  CaretDown,
+  CaretUp,
   ChatCircle,
   Check,
   CircleNotch,
@@ -15,7 +17,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { inferRouterOutputs } from "@trpc/server";
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AppRouter } from "@pluton/server/router";
@@ -60,7 +62,25 @@ function BulkAddToCampaign({ resolveIds, count, onDone }: { resolveIds: () => Pr
 }
 
 type LeadRow = inferRouterOutputs<AppRouter>["leads"]["list"]["items"][number];
-type Sort = "newest" | "fit" | "warmness";
+type Sort = NonNullable<inferRouterInputs<AppRouter>["leads"]["list"]["sort"]>;
+type SortDir = "asc" | "desc";
+
+/** What each column header sorts by: Found is `newest`. */
+const COLUMN_SORT: Record<ColumnKey, Sort> = {
+  position: "position",
+  company: "company",
+  location: "location",
+  status: "status",
+  why: "why",
+  fit: "fit",
+  warmness: "warmness",
+  email: "email",
+  play: "play",
+  found: "newest",
+};
+const SORT_PRESETS = ["newest", "fit", "warmness"] as const;
+// Numbers and dates read best from the top, text from A (as the server's defaultSortDir).
+const defaultDir = (key: Sort): SortDir => ((SORT_PRESETS as readonly Sort[]).includes(key) ? "desc" : "asc");
 
 const PAGE = 50;
 const COLUMNS_KEY = "pluton.leads.columns";
@@ -99,7 +119,10 @@ export function LeadsView({
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [pipeline, setPipeline] = useState<string>("");
-  const [sort, setSort] = useState<Sort>("newest");
+  const [sort, setSort] = useState<{ key: Sort; dir: SortDir }>({ key: "newest", dir: "desc" });
+  // A header sorts by its column; clicking it again reverses the order.
+  const sortBy = (key: Sort) => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: defaultDir(key) }));
+  const isPreset = (SORT_PRESETS as readonly Sort[]).includes(sort.key) && sort.dir === defaultDir(sort.key);
   const [limit, setLimit] = useState(PAGE);
   const [columns, setColumns] = useState<ColumnKey[]>(() => loadColumns(showPlay));
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -120,7 +143,7 @@ export function LeadsView({
     setAllMatching(false);
   }, [filterKey]);
 
-  const list = useQuery(trpc.leads.list.queryOptions({ ...filter, sort, limit }, { placeholderData: keepPreviousData }));
+  const list = useQuery(trpc.leads.list.queryOptions({ ...filter, sort: sort.key, dir: sort.dir, limit }, { placeholderData: keepPreviousData }));
   const counts = useQuery(trpc.leads.counts.queryOptions({ playId, search: filter.search, pipeline: filter.pipeline }));
   const items = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
@@ -209,7 +232,21 @@ export function LeadsView({
               </option>
             ))}
         </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label={t("view.sort")} className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)">
+        <select
+          value={isPreset ? sort.key : "custom"}
+          onChange={(e) => {
+            const key = e.target.value as Sort;
+            setSort({ key, dir: defaultDir(key) });
+          }}
+          aria-label={t("view.sort")}
+          className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)"
+        >
+          {/* A header sort shows here as its column, so the menu never claims an order the table isn't in. */}
+          {!isPreset && (
+            <option value="custom" disabled>
+              {sort.key === "name" ? t("table.lead") : t(`column.${(Object.keys(COLUMN_SORT) as ColumnKey[]).find((c) => COLUMN_SORT[c] === sort.key)!}`)} {sort.dir === "asc" ? "↑" : "↓"}
+            </option>
+          )}
           <option value="newest">{t("sort.newest")}</option>
           <option value="fit">{t("sort.fit")}</option>
           <option value="warmness">{t("sort.warmness")}</option>
@@ -255,11 +292,9 @@ export function LeadsView({
                 <th className="w-10 pt-2 pr-1 pb-1.5 pl-4">
                   <input type="checkbox" checked={pageAllSelected || allMatching} onChange={togglePage} aria-label={t("table.selectPage")} className="block accent-accent" />
                 </th>
-                <th className="px-3 pt-2 pb-1.5 font-medium">{t("table.lead")}</th>
+                <SortHeader label={t("table.lead")} sortKey="name" sort={sort} onSort={sortBy} />
                 {COLUMNS.filter((c) => has(c)).map((c) => (
-                  <th key={c} className={cn("px-3 pt-2 pb-1.5 font-medium", (c === "fit" || c === "warmness") && "text-right")}>
-                    {t(`column.${c}`)}
-                  </th>
+                  <SortHeader key={c} label={t(`column.${c}`)} sortKey={COLUMN_SORT[c]} sort={sort} onSort={sortBy} alignRight={c === "fit" || c === "warmness"} />
                 ))}
                 <th className="w-0 p-0 [@media(hover:none)]:w-auto">
                   <span className="sr-only">{t("table.actions")}</span>
@@ -296,6 +331,37 @@ export function LeadsView({
 
       {openLeadId && <LeadDrawer key={openLeadId} leadId={openLeadId} onClose={() => onOpenLead(undefined)} onStep={step} focusNote={noteFocus} />}
     </div>
+  );
+}
+
+/** A column header that sorts the table; the caret shows on the active column, and on hover elsewhere. */
+function SortHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  alignRight,
+}: {
+  label: string;
+  sortKey: Sort;
+  sort: { key: Sort; dir: SortDir };
+  onSort: (key: Sort) => void;
+  alignRight?: boolean;
+}) {
+  const active = sort.key === sortKey;
+  const dir = active ? sort.dir : defaultDir(sortKey);
+  const Caret = dir === "asc" ? CaretUp : CaretDown;
+  return (
+    <th aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined} className={cn("px-3 pt-2 pb-1.5 font-medium", alignRight && "text-right")}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={cn("group/sort inline-flex items-center gap-1 transition-colors duration-150 hover:text-ink", alignRight && "flex-row-reverse", active && "text-ink")}
+      >
+        {label}
+        <Caret size={10} weight="bold" className={cn("transition-opacity duration-150", active ? "opacity-100" : "opacity-0 group-hover/sort:opacity-60")} />
+      </button>
+    </th>
   );
 }
 
