@@ -202,6 +202,28 @@
   }
 }
 
+/*
+ * Glass with a refraction layer inside (<LiquidGlassLayer>): its rim reads the backdrop just
+ * outside the pill, which would include the host's own outer shadow and draw it back in as a dark
+ * inner ring. So the host's shadows move to ::after, painted above the layer and out of its sight.
+ */
+.glass[data-refract] {
+  box-shadow: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      inset 0 -12px 16px -14px var(--glass-glow),
+      0 0 0 0.5px var(--glass-edge),
+      var(--glass-shadow);
+  }
+}
+
 /* The macOS keyboard focus ring: a soft accent halo around the control. */
 @utility focus-ring {
   outline: 3px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
