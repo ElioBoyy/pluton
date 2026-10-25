@@ -28,6 +28,7 @@ import { RejectPopover } from "./reject-popover.tsx";
 import { downloadText, useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
 import { AddToCampaignModal } from "../sequence/add-to-campaign.tsx";
 import { ENROLLMENT } from "../sequence/labels.ts";
+import { BulkCrmExport } from "../integrations/crm-export.tsx";
 
 /** "Add N to campaign": opens the message review before they join their Play's sequence. */
 function BulkAddToCampaign({ resolveIds, count, onDone }: { resolveIds: () => Promise<string[]>; count: number; onDone: () => void }) {
@@ -522,6 +523,7 @@ function BulkBar({
       </div>
       <BulkAddToCampaign resolveIds={resolveIds} count={count} onDone={onClear} />
       <BulkFindEmails resolveIds={resolveIds} count={count} />
+      <BulkCrmExport resolveIds={resolveIds} count={count} />
       <Button
         variant="ghost"
         className="h-8"

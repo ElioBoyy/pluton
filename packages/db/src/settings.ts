@@ -13,7 +13,7 @@ export type SettingDef = {
   secret: boolean;
   options?: Array<{ value: string; label: string }>;
   defaultValue?: string;
-  group: "claude" | "data" | "outreach" | "email" | "automation";
+  group: "claude" | "data" | "outreach" | "email" | "integrations" | "mcp" | "automation";
 };
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -52,6 +52,24 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: "smtp_user", label: "SMTP user", description: "Usually your email address.", secret: false, group: "email" },
   { key: "smtp_password", label: "SMTP password", description: "An app password, not your main password.", secret: true, group: "email" },
   { key: "smtp_from", label: "From address", description: "Sender of the digest. Defaults to the SMTP user.", secret: false, group: "email" },
+  { key: "slack_bot_token", label: "Slack bot token", description: "xoxb-… from your Slack app (OAuth & Permissions). Scopes: chat:write, channels:read, channels:join, groups:read.", secret: true, group: "integrations" },
+  { key: "slack_app_token", label: "Slack app-level token", description: "xapp-… with connections:write. Socket Mode lets Approve/Reject work without a public URL.", secret: true, group: "integrations" },
+  { key: "hubspot_token", label: "HubSpot private app token", description: "pat-… with crm.objects.contacts.read/write and crm.objects.companies.read/write.", secret: true, group: "integrations" },
+  { key: "attio_api_key", label: "Attio API key", description: "Workspace settings → Developers. Scopes: record read/write, object configuration read.", secret: true, group: "integrations" },
+  { key: "pipedrive_api_token", label: "Pipedrive API token", description: "Personal preferences → API.", secret: true, group: "integrations" },
+  { key: "mcp_token", label: "MCP access token", description: "Bearer token AI clients use to reach Pluton's MCP server.", secret: true, group: "mcp" },
+  {
+    key: "mcp_runs_paused",
+    label: "Pause agent-started searches",
+    description: "Connected AI clients can read everything but can't start searches.",
+    secret: false,
+    options: [
+      { value: "on", label: "Paused" },
+      { value: "off", label: "Allowed" },
+    ],
+    defaultValue: "off",
+    group: "mcp",
+  },
   {
     key: "daily_brain_review",
     label: "Daily Brain review",

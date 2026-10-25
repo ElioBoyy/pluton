@@ -12,3 +12,4 @@ export * from "./activity.ts";
 export * from "./notifications.ts";
 export * from "./credits.ts";
 export * from "./digest.ts";
+export * from "./integrations.ts";

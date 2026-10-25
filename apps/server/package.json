@@ -13,6 +13,7 @@
   "dependencies": {
     "@hono/node-server": "^2.1.5",
     "@hono/trpc-server": "^0.4.2",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@pluton/agent": "workspace:*",
     "@pluton/core": "workspace:*",
     "@pluton/db": "workspace:*",

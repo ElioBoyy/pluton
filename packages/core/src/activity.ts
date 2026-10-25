@@ -1,6 +1,7 @@
 import {
   activityEvents,
   and,
+  asc,
   desc,
   eq,
   gt,
@@ -41,6 +42,8 @@ const REPLY_TEXT: Record<string, string> = {
   in_your_hands: "needs your answer",
   not_interested: "not interested",
 };
+const VIA: Record<string, string> = { slack: " from Slack", mcp: " from your AI client" };
+const CRM_NAMES: Record<string, string> = { hubspot: "HubSpot", attio: "Attio", pipedrive: "Pipedrive", slack: "Slack" };
 const found = (p: P) => Number(p.qualified ?? 0) + Number(p.needsReview ?? 0);
 const playLink = (id: unknown, tab?: string) => (typeof id === "string" ? `/plays/${id}${tab ? `?tab=${tab}` : ""}` : undefined);
 
@@ -50,7 +53,7 @@ const DESCRIBE: Record<string, (p: P, play: string, names: Names) => { actor: Ac
   "lead_finding.started": (p, play) =>
     p.trigger === "schedule"
       ? { actor: "pluton", text: `A scheduled search started for ${play}`, link: playLink(p.playId) }
-      : { actor: "you", text: `You started a search for ${play}`, link: playLink(p.playId) },
+      : { actor: "you", text: `You started a search for ${play}${p.trigger === "agent" ? " from your AI client" : ""}`, link: playLink(p.playId) },
   "lead_finding.completed": (p, play) => {
     const n = found(p);
     return n === 0
@@ -59,8 +62,17 @@ const DESCRIBE: Record<string, (p: P, play: string, names: Names) => { actor: Ac
   },
   "lead_finding.failed": (p, play) => ({ actor: "pluton", text: `A search for ${play} stopped on an error`, link: playLink(p.playId) }),
   "lead_finding.cancelled": (p, play) => ({ actor: "you", text: `You stopped a search for ${play}`, link: playLink(p.playId) }),
-  "leads.approved": (p, play) => ({ actor: "you", text: `You approved ${plural(Number(p.count), "lead")} in ${play}`, link: playLink(p.playId, "leads") }),
-  "leads.rejected": (p, play) => ({ actor: "you", text: `You rejected ${plural(Number(p.count), "lead")} in ${play}`, link: playLink(p.playId, "leads") }),
+  "leads.approved": (p, play) => ({ actor: "you", text: `You approved ${plural(Number(p.count), "lead")} in ${play}${VIA[String(p.via)] ?? ""}`, link: playLink(p.playId, "leads") }),
+  "leads.rejected": (p, play) => ({ actor: "you", text: `You rejected ${plural(Number(p.count), "lead")} in ${play}${VIA[String(p.via)] ?? ""}`, link: playLink(p.playId, "leads") }),
+  "slack.posted": (p, play) => ({ actor: "pluton", text: `Pluton posted ${plural(Number(p.count), "lead")} from ${play} to Slack`, link: "/workspace/integrations/slack" }),
+  "crm.exported": (p) => ({
+    actor: p.trigger === "auto" ? "pluton" : "you",
+    text: `${p.trigger === "auto" ? "Pluton exported" : "You exported"} ${plural(Number(p.created), "lead")} to ${CRM_NAMES[String(p.provider)] ?? p.provider}${Number(p.exists) ? ` (${p.exists} already there)` : ""}${Number(p.failed) ? `, ${p.failed} failed` : ""}`,
+    link: `/workspace/integrations/${p.provider}`,
+  }),
+  "integration.connected": (p) => ({ actor: "you", text: `You connected ${CRM_NAMES[String(p.provider)] ?? p.provider}`, link: `/workspace/integrations/${p.provider}` }),
+  "integration.disconnected": (p) => ({ actor: "you", text: `You disconnected ${CRM_NAMES[String(p.provider)] ?? p.provider}`, link: "/workspace/integrations" }),
+  "mcp.client_connected": (p) => ({ actor: "you", text: `${p.name} connected to Pluton over MCP`, link: "/workspace/mcp" }),
   "leads.emails_found": (p) => ({ actor: "pluton", text: `Pluton found ${plural(Number(p.found), "work email")} for ${plural(Number(p.checked), "lead")}`, link: "/leads" }),
   "proposal.accepted": () => ({ actor: "you", text: "You accepted a Brain suggestion", link: "/brain" }),
   "proposal.rejected": () => ({ actor: "you", text: "You rejected a Brain suggestion", link: "/brain" }),
@@ -142,7 +154,8 @@ export async function listActivity(
     .select()
     .from(activityEvents)
     .where(and(...where))
-    .orderBy(desc(activityEvents.id))
+    // Reading forward from a cursor takes the oldest unseen first, so nothing is skipped.
+    .orderBy(opts.afterId ? asc(activityEvents.id) : desc(activityEvents.id))
     .limit(limit * 2 + 1);
   const names = await playNames(db, rows);
   const items = rows.map((r) => describeActivity(r, names)).filter((r): r is DescribedActivity => r !== null);

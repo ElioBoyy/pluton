@@ -14,6 +14,9 @@ Designed and built by **Mathis Sportiello**.
 - **Learns from your verdicts.** Approve or reject leads with a reason. Later runs score similar people the same way, rejected people never come back, and repeated rejections trigger a Brain review.
 - **Runs LinkedIn sequences.** Visit, follow, like, connect, then up to three messages written in your voice for each person, all reviewed by you before anything is sent. Sends automatically through Unipile, or gives you a ready-to-copy to-do list if you prefer to send by hand. A reply stops the sequence.
 - **Finds emails and exports.** Free sources first, then Hunter if you add a key; CSV export of any lead list.
+- **Keeps spend in check.** Every paid call is logged at its real cost, per Play and per lead. Set a monthly budget; a search holds its cap, stops at it and gives back what it didn't use.
+- **Tells you what needs you.** One activity feed, a notification bell and a morning digest (in the app, or by email through your own SMTP).
+- **Plugs into your tools.** New leads in Slack with Approve/Reject buttons, approved leads in HubSpot, Attio or Pipedrive, and a local MCP server so Claude Code, Claude Desktop or Codex can work with your leads.
 - **Feels like a Mac app.** The interface follows Apple's macOS 27 design, with light and dark appearances.
 
 ## Requirements
@@ -109,6 +112,22 @@ Accounts (Settings → LinkedIn accounts):
 The engine is a `campaigns.tick` job every 30 s (one per slot even with several workers; each lead is claimed before acting): only inside the send window (Mon–Fri 9–18 in the workspace timezone by default), within each account's daily limits (80 visits/follows/likes, 20 invitations, 50 messages), with random gaps, round-robin across accounts with a sticky account per person.
 
 A reply stops the sequence and is classified (positive / in your hands / not interested). With an objective link (Book a meeting / Share your app) and auto-reply on, a positive reply gets one short answer with the link; everything else waits under "Replies waiting for you". Tone (archetype + guidelines) is saved to the Brain's voice; language follows the Brain unless set per sequence.
+
+### Spend, activity and notifications
+
+Every paid call writes its real cost to a ledger, attributed to the Play, the search and the kind of work: Apify's own run cost, Hunter per email found, Claude with an API key from tokens and list prices. Claude through the subscription is recorded at API prices as *not billed*: shown on Usage, never counted against the budget. Costs Pluton can't see (a provider plan) can be added by hand.
+
+Settings → Budget sets a monthly amount, an optional daily cap, a per-search cap and *Stop* or *Only track*. A search sets its cap aside when it starts (refused when nothing is left), stops researching at it, then settles. Alerts at 80% and 100%. Settings → Usage shows spend per day, Play (with cost per lead), type and source, and the ledger.
+
+Activity (Home, each Play, Settings → Activity) is one feed of what you and Pluton did. Events that need you become notifications in the sidebar bell, each category can be muted, and a digest (every weekday at 08:30 by default) lists what waits for you, in the app and by email if SMTP is set in Settings → API keys.
+
+### Integrations and AI clients
+
+Settings → Integrations:
+- **Slack**: create a Slack app with Socket Mode (no public URL needed), paste the bot and app-level tokens, pick a channel. After each search, new leads are posted (one message, or one per lead with why they fit) with Approve and Reject buttons that act like the app's.
+- **HubSpot, Attio, Pipedrive**: paste a token, map Pluton fields to CRM properties, and export from the Leads table (“To HubSpot”) or automatically on approval. Create-only: a person already in the CRM (same email) is left alone, and nothing is ever updated or deleted. Every export is logged.
+
+Settings → Connect your AI: a local MCP server at `http://localhost:8787/api/mcp` (bearer token shown there) with the same actions as the app: Brain, Plays, searches, leads and feedback, sequences, replies, spend, activity, CRM export. A search returns its cost first and needs an explicit confirmation; so do sequences and CRM exports. Copy the setup line for Claude Code, Claude Desktop or Codex, and install the Claude Code skill (`skills/pluton/SKILL.md`) for the morning check and lead review routines.
 
 ## Contributing
 

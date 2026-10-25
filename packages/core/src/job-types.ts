@@ -30,6 +30,12 @@ export const jobPayloads = {
     /** Sent from Settings: goes out even if nothing changed and ignores the schedule. */
     manual: z.boolean().default(false),
   }),
+  "integrations.slack_post": z.object({ runId: z.string() }),
+  "integrations.crm_export": z.object({
+    provider: z.enum(["hubspot", "attio", "pipedrive"]),
+    leadIds: z.array(z.string()).min(1).max(500),
+    trigger: z.enum(["manual", "auto", "agent"]).default("manual"),
+  }),
   "brain.review": z.object({
     workspaceId: z.string(),
     focus: z.string().trim().max(500).optional(),

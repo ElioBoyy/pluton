@@ -1,4 +1,5 @@
 import { notifyForActivity } from "./activity.ts";
+import { integrationsForActivity } from "./integrations.ts";
 import {
   activityEvents,
   and,
@@ -57,6 +58,7 @@ export async function recordActivity(
   const [event] = await db.insert(activityEvents).values({ workspaceId, context, kind, payload }).returning();
   // A notification is a side effect: never let it fail the action that was recorded.
   await notifyForActivity(db, event!).catch((error) => console.error("[activity] notification failed", error));
+  await integrationsForActivity(db, event!).catch((error) => console.error("[activity] integration hook failed", error));
   return event!;
 }
 

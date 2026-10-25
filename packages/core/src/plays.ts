@@ -19,6 +19,7 @@ import {
   type LeadFindingRun,
   type Pipeline,
   type Play,
+  type RunTrigger,
   type RunReport,
 } from "@pluton/db";
 import { createHold, planReservation } from "./credits.ts";
@@ -182,7 +183,7 @@ export async function activeRun(db: Db, playId: string) {
 }
 
 /** Queues a run. One active run per Play: a second request returns the one in flight. */
-export async function startRun(db: Db, playId: string, trigger: "manual" | "schedule" = "manual") {
+export async function startRun(db: Db, playId: string, trigger: RunTrigger = "manual") {
   const play = await getPlay(db, playId);
   if (!play) throw new Error("Play not found");
   if (play.status === "archived") throw new Error("This Play is archived");

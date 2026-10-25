@@ -26,6 +26,7 @@ import { useTRPC } from "../../lib/trpc.ts";
 import { EMAIL_SOURCE, REASON_LABEL, STAGE_LABELS, STATUS, initials, type RejectReason } from "./labels.ts";
 import { RejectPopover } from "./reject-popover.tsx";
 import { LeadCampaignBlock } from "../sequence/lead-campaign-block.tsx";
+import { LeadCrmBlock } from "../integrations/crm-export.tsx";
 import { useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
 
 type Detail = inferRouterOutputs<AppRouter>["leads"]["get"];
@@ -165,6 +166,7 @@ export function LeadDrawer({
             <LeadCampaignBlock leadId={data.id} status={data.status} />
           </Section>
 
+          <CrmSection leadId={data.id} />
           <Section title="Why they fit">
             <p className="text-sm font-medium">{data.signalLabel}</p>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">{data.reason}</p>
@@ -417,6 +419,19 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <dt className="pt-0.5 text-xs text-faint">{label}</dt>
       <dd className="min-w-0 break-words">{children}</dd>
     </>
+  );
+}
+
+/** Hidden until a CRM is connected or the lead was exported. */
+function CrmSection({ leadId }: { leadId: string }) {
+  const trpc = useTRPC();
+  const crms = useQuery(trpc.integrations.crm.connected.queryOptions());
+  const exports = useQuery(trpc.integrations.crm.forLead.queryOptions({ leadId }));
+  if (!crms.data?.length && !exports.data?.length) return null;
+  return (
+    <Section title="CRM">
+      <LeadCrmBlock leadId={leadId} />
+    </Section>
   );
 }
 

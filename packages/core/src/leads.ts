@@ -245,7 +245,7 @@ export async function addLeadNote(db: Db, leadId: string, text: string) {
  */
 export async function reviewLeads(
   db: Db,
-  input: { workspaceId: string; leadIds: string[]; verdict: "up" | "down"; reasons?: FeedbackReason[]; comment?: string },
+  input: { workspaceId: string; leadIds: string[]; verdict: "up" | "down"; reasons?: FeedbackReason[]; comment?: string; via?: "slack" | "mcp" },
 ) {
   const rows = await db.select().from(leads).where(and(eq(leads.workspaceId, input.workspaceId), inArray(leads.id, input.leadIds)));
   const feedbackIds: string[] = [];
@@ -282,11 +282,13 @@ export async function reviewLeads(
     });
   }
   for (const playId of playIds) {
-    const n = rows.filter((r) => r.playId === playId).length;
+    const ids = rows.filter((r) => r.playId === playId).map((r) => r.id);
     await recordActivity(db, input.workspaceId, "leads", input.verdict === "up" ? "leads.approved" : "leads.rejected", {
       playId,
-      count: n,
+      count: ids.length,
+      leadIds: ids,
       reasons: input.reasons ?? [],
+      via: input.via,
     });
   }
   if (input.verdict === "down") await maybeQueueFeedbackReview(db, input.workspaceId);

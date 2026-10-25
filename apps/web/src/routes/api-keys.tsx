@@ -53,7 +53,7 @@ export function ApiKeysPage() {
   );
 }
 
-function SettingRow({ setting: s }: { setting: Setting }) {
+export function SettingRow({ setting: s }: { setting: Setting }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");

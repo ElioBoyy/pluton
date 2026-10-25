@@ -13,6 +13,8 @@ import { ApiKeysPage } from "./routes/api-keys.tsx";
 import { BudgetPage } from "./routes/budget.tsx";
 import { NotificationsPage } from "./routes/notifications.tsx";
 import { UsagePage } from "./routes/usage.tsx";
+import { IntegrationPage, IntegrationsPage } from "./routes/integrations.tsx";
+import { McpPage } from "./routes/mcp.tsx";
 import { LinkedinPage } from "./routes/linkedin.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
@@ -77,7 +79,20 @@ const SETTINGS_PAGES: Partial<Record<(typeof SETTINGS_SECTIONS)[number]["slug"],
   usage: UsagePage,
   billing: BudgetPage,
   activity: ActivityPage,
+  integrations: IntegrationsPage,
+  mcp: McpPage,
 };
+
+const INTEGRATION_PROVIDERS = ["slack", "hubspot", "attio", "pipedrive"] as const;
+const integrationRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: "integrations/$provider",
+  component: function Integration() {
+    const { provider } = integrationRoute.useParams();
+    const known = INTEGRATION_PROVIDERS.find((p) => p === provider);
+    return known ? <IntegrationPage key={known} provider={known} /> : <p className="text-sm text-muted">Unknown integration.</p>;
+  },
+});
 
 const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
   createRoute({
@@ -152,7 +167,7 @@ const routeTree = rootRoute.addChildren([
     createRoute({ getParentRoute: () => appRoute, path: "/plays/new", component: NewPlayPage }),
     playRoute,
     leadsRoute,
-    workspaceRoute.addChildren([workspaceIndexRoute, ...settingsRoutes]),
+    workspaceRoute.addChildren([workspaceIndexRoute, ...settingsRoutes, integrationRoute]),
   ]),
 ]);
 

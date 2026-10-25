@@ -18,6 +18,7 @@ import {
   type CostPurpose,
   type Db,
   type Play,
+  type RunTrigger,
   type Workspace,
 } from "@pluton/db";
 import { recordActivity } from "./events.ts";
@@ -179,7 +180,7 @@ const MIN_RESERVE = 10_000;
  * How much a new run of this Play may spend. In `enforce` mode it is the Play's cap, trimmed to
  * what is left; nothing left refuses the run. Throws BudgetError (and says so in Activity).
  */
-export async function planReservation(db: Db, play: Play, trigger: "manual" | "schedule") {
+export async function planReservation(db: Db, play: Play, trigger: RunTrigger) {
   const ws = (await db.query.workspaces.findFirst({ where: eq(workspaces.id, play.workspaceId) }))!;
   const status = await budgetStatus(db, ws);
   const cap = toMicro(play.definition.policy?.maxCostUsd ?? status.settings.runCapUsd);
