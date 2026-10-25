@@ -61,8 +61,8 @@ export function Markdown({ text }: { text: string }) {
   return <div className="flex flex-col gap-2 break-words">{blocks}</div>;
 }
 
-// Bold first, so a link inside bold is split again from the bold text.
-const TOKEN = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\))/g;
+// Bold first, so a link inside bold is split again from the bold text. URLs may hold one level of parentheses.
+const TOKEN = /(\*\*(?:(?!\*\*).)+\*\*|`[^`]+`|\[[^\]]+\]\((?:[^()\s]|\([^()\s]*\))+\))/g;
 
 function inline(text: string): ReactNode {
   return text.split(TOKEN).map((part, i) => {
@@ -74,7 +74,7 @@ function inline(text: string): ReactNode {
         </code>
       );
     }
-    const link = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(part);
+    const link = /^\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)$/.exec(part);
     if (link) {
       const [, label, href] = link;
       const className = "text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent";
