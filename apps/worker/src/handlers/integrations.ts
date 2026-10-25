@@ -3,7 +3,7 @@ import {
   alreadyExported,
   crmConfig,
   crmRecords,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   getRun,
   INTEGRATION_INFO,
   jobPayloads,
@@ -15,7 +15,7 @@ import {
   slackConfig,
   type JobHandler,
 } from "@pluton/core";
-import { and, eq, inArray, leads, people, plays, slackPosts, type Db } from "@pluton/db";
+import { and, eq, inArray, leads, people, plays, slackPosts, withinCostScope, type Db } from "@pluton/db";
 import { crmAdapter, ProviderError, slackPost, slackUpdate, SlackError, type SlackAction, type SlackBlock } from "@pluton/providers";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -127,26 +127,28 @@ export const slackPostRun: JobHandler = async ({ db, job }) => {
 export async function handleSlackAction(db: Db, a: SlackAction) {
   const [verdict, leadId] = a.actionId.split(":");
   if ((verdict !== "approve" && verdict !== "reject") || !leadId) return;
-  const ws = await getOrCreateDefaultWorkspace(db);
   const lead = await db.query.leads.findFirst({ where: eq(leads.id, leadId) });
   if (!lead) return;
-  if (lead.status === "to_review" || lead.status === "new") {
-    await reviewLeads(db, { workspaceId: ws.id, leadIds: [leadId], verdict: verdict === "approve" ? "up" : "down", via: "slack", comment: `From Slack (${a.userName})` });
-  }
-  const post = await db.query.slackPosts.findFirst({ where: and(eq(slackPosts.channelId, a.channelId), eq(slackPosts.ts, a.messageTs)) });
-  if (!post) return;
-  const integration = await activeIntegration(db, ws.id, "slack");
-  const detailed = slackConfig(integration ?? undefined).delivery === "detailed";
-  const rows = await loadLeads(db, post.leadIds);
-  const play = await db.query.plays.findFirst({ where: eq(plays.id, lead.playId) });
-  const title = detailed ? `New lead for ${play?.name ?? "a Play"}` : `${rows.length} new lead${rows.length === 1 ? "" : "s"} for ${play?.name ?? "a Play"}`;
-  await slackUpdate(a.channelId, a.messageTs, title, messageBlocks(title, rows, lead.playId, detailed, 0));
+  // Workspaces copied from one another share a Slack app: the lead's own workspace and settings apply.
+  await withinCostScope({ workspaceId: lead.workspaceId }, async () => {
+    if (lead.status === "to_review" || lead.status === "new") {
+      await reviewLeads(db, { workspaceId: lead.workspaceId, leadIds: [leadId], verdict: verdict === "approve" ? "up" : "down", via: "slack", comment: `From Slack (${a.userName})` });
+    }
+    const post = await db.query.slackPosts.findFirst({ where: and(eq(slackPosts.channelId, a.channelId), eq(slackPosts.ts, a.messageTs)) });
+    if (!post) return;
+    const integration = await activeIntegration(db, lead.workspaceId, "slack");
+    const detailed = slackConfig(integration ?? undefined).delivery === "detailed";
+    const rows = await loadLeads(db, post.leadIds);
+    const play = await db.query.plays.findFirst({ where: eq(plays.id, lead.playId) });
+    const title = detailed ? `New lead for ${play?.name ?? "a Play"}` : `${rows.length} new lead${rows.length === 1 ? "" : "s"} for ${play?.name ?? "a Play"}`;
+    await slackUpdate(a.channelId, a.messageTs, title, messageBlocks(title, rows, lead.playId, detailed, 0));
+  });
 }
 
 /** Create-only export: people already in the CRM (same email) are left as they are. */
 export const crmExport: JobHandler = async ({ db, job, emit, signal }) => {
   const { provider, leadIds, trigger } = jobPayloads["integrations.crm_export"].parse(job.payload);
-  const workspaceId = job.workspaceId ?? (await getOrCreateDefaultWorkspace(db)).id;
+  const workspaceId = job.workspaceId ?? (await getCurrentWorkspace(db)).id;
   const integration = await activeIntegration(db, workspaceId, provider);
   if (!integration) throw new Error(`${provider} is not connected`);
   const config = crmConfig(integration, provider);

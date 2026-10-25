@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { estimateRun, getJob, getOrCreateDefaultWorkspace, reviewLeads, startRun } from "@pluton/core";
+import { estimateRun, getJob, getCurrentWorkspace, reviewLeads, startRun } from "@pluton/core";
 import { ACTIVITY_CONTEXTS, CRM_PROVIDERS, FEEDBACK_REASONS, getSetting, type Db } from "@pluton/db";
 import { appRouter } from "./router.ts";
+import { assertInWorkspace } from "./workspace-guard.ts";
 
 /**
  * The tools AI clients use on Pluton, shared by the MCP server (`/api/mcp`) and the in-app agent.
@@ -47,6 +48,8 @@ const compactLead = (l: { id: string; status: string; stage: string; fit: number
 
 export function buildPlutonTools(db: Db, via: "mcp" | "agent"): PlutonTool[] {
   const caller = appRouter.createCaller({ db });
+  // Calls through `caller` are checked by the RPC layer; direct ones check their ids here.
+  const inThisWorkspace = async (path: string, input: Record<string, unknown>) => assertInWorkspace(db, (await getCurrentWorkspace(db)).id, path, input);
   const tools: PlutonTool[] = [];
   const tool = <S extends z.ZodRawShape>(
     name: string,
@@ -115,6 +118,7 @@ export function buildPlutonTools(db: Db, via: "mcp" | "agent"): PlutonTool[] {
     "Starts a lead search for a Play. Without confirm it only returns the expected cost and the budget left: tell the user, and call again with confirm: true after an explicit yes.",
     { playId: z.string(), confirm: z.boolean().default(false) },
     async ({ playId, confirm }) => {
+      await inThisWorkspace("plays.run", { playId });
       const estimate = await estimateRun(db, playId);
       if (!confirm) return { needsConfirmation: true, estimate, note: "Amounts are micro-USD. Claude through the user's subscription is not charged." };
       if (via === "mcp" && getSetting("mcp_runs_paused") === "on") throw new Error("Searches started from AI clients are paused in Pluton (Settings → Connect your AI).");
@@ -154,7 +158,8 @@ export function buildPlutonTools(db: Db, via: "mcp" | "agent"): PlutonTool[] {
     "Approve (up) or reject (down) leads, with reasons for a rejection. This teaches later searches; only on the user's verdict.",
     { leadIds: z.array(z.string()).min(1).max(200), verdict: z.enum(["up", "down"]), reasons: z.array(z.enum(FEEDBACK_REASONS)).default([]), comment: z.string().max(1000).optional() },
     async (args) => {
-      const ws = await getOrCreateDefaultWorkspace(db);
+      const ws = await getCurrentWorkspace(db);
+      await assertInWorkspace(db, ws.id, "leads.review", { leadIds: args.leadIds });
       return reviewLeads(db, { workspaceId: ws.id, ...args, via });
     },
     false,

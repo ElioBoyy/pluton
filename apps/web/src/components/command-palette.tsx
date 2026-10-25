@@ -77,9 +77,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     const t = setTimeout(() => setSearched(query.trim()), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [query]);
+  // Results belong to one workspace: the shell remounts the palette on a switch, so none carry over.
+  const workspaceId = useQuery(trpc.workspace.current.queryOptions()).data?.id;
   // Keeps the last results on screen while the next ones load, so the list doesn't flicker.
   const search = useQuery(
-    trpc.search.query.queryOptions({ q: searched }, { enabled: open && searched.length > 0, placeholderData: keepPreviousData }),
+    trpc.search.query.queryOptions(
+      { q: searched, workspaceId: workspaceId ?? "" },
+      { enabled: open && searched.length > 0 && Boolean(workspaceId), placeholderData: keepPreviousData },
+    ),
   );
 
   // Stay mounted through the exit transition; reopening mid-exit just retargets it.

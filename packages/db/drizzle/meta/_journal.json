@@ -99,6 +99,27 @@
       "when": 1792935928115,
       "tag": "0013_search_folded",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1792936104334,
+      "tag": "0014_workspace_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1792936109406,
+      "tag": "0015_drop_global_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1792936772922,
+      "tag": "0016_search_ids_per_workspace",
+      "breakpoints": true
     }
   ]
 }

@@ -24,6 +24,7 @@ import { LiquidGlassLayer, refractionSupported } from "./liquid-glass.tsx";
 import { NotificationBell } from "./notification-bell.tsx";
 import { Toaster } from "./toast.tsx";
 import { Wallpaper } from "./wallpaper.tsx";
+import { WorkspaceMenu } from "../features/workspaces/workspace-menu.tsx";
 
 const NAV: Array<{ to: string; label: string; icon: Icon }> = [
   { to: "/home", label: "Home", icon: House },
@@ -74,11 +75,8 @@ export function AppShell() {
           navOpen ? "max-md:translate-x-0 max-md:shadow-2xl" : "max-md:-translate-x-full",
         )}
       >
-        <div className="flex items-center gap-2.5 px-4 pt-4 pb-3">
-          <span className="flex size-6 items-center justify-center rounded-md bg-cat-pink text-xs font-semibold text-on-accent">
-            {workspace.data?.icon ?? name.charAt(0).toUpperCase()}
-          </span>
-          <span className="flex-1 truncate text-sm font-semibold">{name}</span>
+        <div className="flex items-center gap-2 px-3 pt-4 pb-3">
+          <WorkspaceMenu className="pl-1" />
           <NotificationBell />
         </div>
 
@@ -199,7 +197,7 @@ export function AppShell() {
         </main>
       </div>
 
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <CommandPalette key={workspace.data?.id} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <Toaster />
     </div>
   );

@@ -13,7 +13,7 @@ import {
   enqueueJob,
   ensureCampaign,
   getCampaign,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   getSingleton,
   leadCampaignDetail,
   listEnrollments,
@@ -40,7 +40,7 @@ import { ENDED_ENROLLMENT, STEP_KINDS, enrollments, eq, inArray, senders, type D
 import { unipileAccounts, unipileConfigured, unipileConnectLink } from "@pluton/providers";
 import { publicProcedure, router } from "./trpc.ts";
 
-const ws = async (db: Db) => getOrCreateDefaultWorkspace(db);
+const ws = async (db: Db) => getCurrentWorkspace(db);
 
 async function conflicts<T>(fn: () => Promise<T>) {
   try {

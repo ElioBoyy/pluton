@@ -1,12 +1,21 @@
+import { randomUUID } from "node:crypto";
 import {
+  activeWorkspaceOrder,
   and,
   asc,
   brainItems,
   copilotConversations,
+  copyWorkspaceSettings,
+  count,
+  currentCostScope,
   eq,
+  integrations,
   leadFeedback,
   mcpClients,
+  onboardingSessions,
   plays,
+  refreshSettings,
+  saveSetting,
   sql,
   workspaces,
   type Db,
@@ -19,12 +28,83 @@ export class RevisionConflictError extends Error {
   }
 }
 
-/** Pluton runs single-user locally: the first workspace is the current one, created on demand. */
-export async function getOrCreateDefaultWorkspace(db: Db): Promise<Workspace> {
-  const existing = await db.query.workspaces.findFirst({ orderBy: asc(workspaces.createdAt) });
-  if (existing) return existing;
-  const [created] = await db.insert(workspaces).values({ name: "My workspace" }).returning();
+/**
+ * The workspace being worked on: the current job's or request's (its cost scope), else the one the
+ * app shows (switched to last). The first one is created on demand.
+ */
+export async function getCurrentWorkspace(db: Db): Promise<Workspace> {
+  const scoped = currentCostScope()?.workspaceId;
+  if (scoped) {
+    const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.id, scoped) });
+    if (ws) return ws;
+  }
+  const [active] = await db.select().from(workspaces).orderBy(...activeWorkspaceOrder).limit(1);
+  if (active) return active;
+  const [created] = await db.insert(workspaces).values({ name: "My workspace", openedAt: new Date() }).returning();
+  await refreshSettings(db);
   return created!;
+}
+
+export const newMcpToken = () => `pluton_${randomUUID().replaceAll("-", "")}`;
+
+/** Every workspace, oldest first, and whether its onboarding is done (a confirmed company in its Brain). */
+export async function listWorkspaces(db: Db) {
+  const current = await getCurrentWorkspace(db);
+  const [rows, withCompany, completed] = await Promise.all([
+    db.select().from(workspaces).orderBy(asc(workspaces.createdAt)),
+    db.selectDistinct({ id: brainItems.workspaceId }).from(brainItems).where(and(eq(brainItems.section, "company"), eq(brainItems.status, "active"))),
+    db.selectDistinct({ id: onboardingSessions.workspaceId }).from(onboardingSessions).where(eq(onboardingSessions.status, "completed")),
+  ]);
+  const onboarded = new Set([...withCompany, ...completed].map((r) => r.id));
+  return rows.map((ws) => ({ ...ws, onboarded: onboarded.has(ws.id), current: ws.id === current.id }));
+}
+
+/**
+ * A new, empty workspace (its own Brain, Plays and leads). With `copyFrom`, it starts with that
+ * workspace's settings: timezone, budget, notifications, API keys and integrations, each changeable
+ * afterwards without touching the other. LinkedIn accounts are not copied: their daily limits are
+ * counted per workspace, so one account shared by two would send twice its limit. It gets its own
+ * MCP token, which is how an AI client's calls land in the right workspace.
+ */
+export async function createWorkspace(db: Db, input: { name: string; copyFrom?: string | null }) {
+  const source = input.copyFrom ? await db.query.workspaces.findFirst({ where: eq(workspaces.id, input.copyFrom) }) : undefined;
+  if (input.copyFrom && !source) throw new Error("Workspace to copy from not found");
+  const [created] = await db
+    .insert(workspaces)
+    .values({
+      name: input.name,
+      ...(source ? { timezone: source.timezone, budget: source.budget, notifications: source.notifications } : {}),
+    })
+    .returning();
+  const ws = created!;
+  if (source) {
+    await copyWorkspaceSettings(db, source.id, ws.id, ["mcp_token"]);
+    const rows = await db.select().from(integrations).where(eq(integrations.workspaceId, source.id));
+    if (rows.length) {
+      await db.insert(integrations).values(
+        rows.map(({ provider, enabled, status, account, config, error, connectedAt }) => ({ workspaceId: ws.id, provider, enabled, status, account, config, error, connectedAt })),
+      );
+    }
+  }
+  await saveSetting(db, "mcp_token", newMcpToken(), ws.id);
+  return switchWorkspace(db, ws.id);
+}
+
+/** Makes it the workspace the app shows (and the default for anything not tied to one). */
+export async function switchWorkspace(db: Db, id: string) {
+  const [ws] = await db.update(workspaces).set({ openedAt: new Date() }).where(eq(workspaces.id, id)).returning();
+  if (!ws) throw new Error("Workspace not found");
+  await refreshSettings(db);
+  return ws;
+}
+
+/** Deletes a workspace and everything in it. The last one can't go; the app moves to the one opened before. */
+export async function deleteWorkspace(db: Db, id: string) {
+  const [row] = await db.select({ n: count() }).from(workspaces);
+  if ((row?.n ?? 0) <= 1) throw new Error("Pluton needs at least one workspace");
+  await db.delete(workspaces).where(eq(workspaces.id, id));
+  await refreshSettings(db);
+  return getCurrentWorkspace(db);
 }
 
 export type WorkspacePatch = Partial<Pick<Workspace, "name" | "website" | "icon" | "timezone">>;

@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { BrainData } from "@pluton/core";
 import { Input } from "../../components/ui.tsx";
+import { WorkspaceMenu } from "../workspaces/workspace-menu.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { BrainGraph, buildGraph, hubForSection, hubMeta } from "./brain-graph.tsx";
@@ -46,6 +47,10 @@ function OnboardingForm() {
 
   return (
     <div className="flex min-h-full items-center justify-center px-6 py-16">
+      {/* Full screen, without the sidebar: the way back to another workspace. */}
+      <div className="fixed top-4 left-4 flex w-60">
+        <WorkspaceMenu className="pl-1" />
+      </div>
       <form
         className="w-full max-w-[366px]"
         onSubmit={(e) => {
@@ -161,8 +166,13 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
 
   return (
     <div className="flex h-full">
-      <aside className="w-[300px] shrink-0 border-r border-line bg-panel">
-        <ChatPanel state={state} sessionId={sessionId} startedAt={startedAt} onActivated={() => setCelebrating(true)} />
+      <aside className="flex w-[300px] shrink-0 flex-col border-r border-line bg-panel">
+        <div className="flex border-b border-line px-3 py-2.5">
+          <WorkspaceMenu className="pl-1" />
+        </div>
+        <div className="min-h-0 flex-1">
+          <ChatPanel state={state} sessionId={sessionId} startedAt={startedAt} onActivated={() => setCelebrating(true)} />
+        </div>
       </aside>
       <section className="relative flex-1 overflow-hidden">
         <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />

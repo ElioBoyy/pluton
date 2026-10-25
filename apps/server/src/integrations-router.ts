@@ -5,7 +5,7 @@ import {
   crmConfig,
   DEFAULT_MAPPING,
   getIntegration,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   INTEGRATION_INFO,
   isCrm,
   leadCrmExports,
@@ -20,7 +20,7 @@ import { CRM_FIELDS, CRM_PROVIDERS, INTEGRATION_PROVIDERS, saveSetting } from "@
 import { crmAdapter, ProviderError, slackAuthTest, slackChannels, slackJoin, slackPost } from "@pluton/providers";
 import { publicProcedure, router } from "./trpc.ts";
 
-const ws = getOrCreateDefaultWorkspace;
+const ws = getCurrentWorkspace;
 const providerInput = z.object({ provider: z.enum(INTEGRATION_PROVIDERS) });
 const crmInput = z.object({ provider: z.enum(CRM_PROVIDERS) });
 

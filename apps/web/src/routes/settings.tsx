@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button, Card, Input, PageHeader } from "../components/ui.tsx";
+import { WorkspacesSection } from "../features/workspaces/workspaces-section.tsx";
 import { useTRPC } from "../lib/trpc.ts";
 
 export const SETTINGS_SECTIONS = [
@@ -63,7 +64,10 @@ export function GeneralSettingsPage() {
 
   const save = useMutation(
     trpc.workspace.update.mutationOptions({
-      onSuccess: (updated) => queryClient.setQueryData(trpc.workspace.current.queryKey(), updated),
+      onSuccess: (updated) => {
+        queryClient.setQueryData(trpc.workspace.current.queryKey(), updated);
+        void queryClient.invalidateQueries({ queryKey: trpc.workspace.list.queryKey() });
+      },
       // A revision conflict means someone else saved first: reload the latest values.
       onError: () => queryClient.invalidateQueries({ queryKey: trpc.workspace.current.queryKey() }),
     }),
@@ -76,7 +80,7 @@ export function GeneralSettingsPage() {
 
   return (
     <>
-      <PageHeader title="General" description="Your workspace name, website and timezone." />
+      <PageHeader title="General" description="This workspace's name, website and timezone, and your other workspaces." />
       <Card>
         <form
           className="flex flex-col gap-5"
@@ -119,6 +123,7 @@ export function GeneralSettingsPage() {
           </div>
         </form>
       </Card>
+      <WorkspacesSection />
     </>
   );
 }

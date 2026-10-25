@@ -1,10 +1,11 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { currentCostScope } from "./costs.ts";
 import type { Db } from "./index.ts";
 import { repoRoot } from "./paths.ts";
-import { settings } from "./schema.ts";
+import { workspaces, workspaceSettings } from "./schema.ts";
 
 export type SettingDef = {
   key: string;
@@ -117,19 +118,28 @@ function decrypt(sealed: string) {
 // ── Cache ────────────────────────────────────────────────────────────────────
 
 /** Server and worker are separate processes: each keeps a copy refreshed from the database. */
-let cache = new Map<string, string>();
+let cache = new Map<string, Map<string, string>>();
+let activeWorkspaceId: string | undefined;
+
+/** The workspace the app shows: the one switched to last, else the oldest. */
+export const activeWorkspaceOrder = [sql`${workspaces.openedAt} is null`, desc(workspaces.openedAt), asc(workspaces.createdAt)];
 
 export async function refreshSettings(db: Db) {
-  const rows = await db.select().from(settings);
-  const next = new Map<string, string>();
+  const [rows, [active]] = await Promise.all([
+    db.select().from(workspaceSettings),
+    db.select({ id: workspaces.id }).from(workspaces).orderBy(...activeWorkspaceOrder).limit(1),
+  ]);
+  const next = new Map<string, Map<string, string>>();
   for (const row of rows) {
     try {
-      next.set(row.key, row.encrypted ? decrypt(row.value) : row.value);
+      if (!next.has(row.workspaceId)) next.set(row.workspaceId, new Map());
+      next.get(row.workspaceId)!.set(row.key, row.encrypted ? decrypt(row.value) : row.value);
     } catch {
       // A value sealed with another install's key can't be read; treat it as unset.
     }
   }
   cache = next;
+  activeWorkspaceId = active?.id;
 }
 
 /** Keeps the cache fresh so a key saved in the web app reaches the worker within seconds. */
@@ -141,36 +151,62 @@ export function watchSettings(db: Db, intervalMs = 3000) {
 
 export type SettingSource = "app" | "default" | "unset";
 
-export function getSetting(key: string): string | undefined {
-  return resolve(key).value;
+/**
+ * Settings belong to a workspace: the one of the current job or request (its cost scope), else
+ * the workspace the app shows. Deep provider code reads keys without passing ids around.
+ */
+const scopedWorkspace = (workspaceId?: string | null) => workspaceId ?? currentCostScope()?.workspaceId ?? activeWorkspaceId;
+
+export function getSetting(key: string, workspaceId?: string): string | undefined {
+  return resolve(key, scopedWorkspace(workspaceId)).value;
 }
 
-function resolve(key: string): { value: string | undefined; source: SettingSource } {
-  const saved = cache.get(key);
+function resolve(key: string, workspaceId: string | undefined): { value: string | undefined; source: SettingSource } {
+  const saved = workspaceId ? cache.get(workspaceId)?.get(key) : undefined;
   if (saved !== undefined && saved !== "") return { value: saved, source: "app" };
   const def = SETTING_DEFS.find((d) => d.key === key);
   if (def?.defaultValue) return { value: def.defaultValue, source: "default" };
   return { value: undefined, source: "unset" };
 }
 
-export async function saveSetting(db: Db, key: string, value: string | null) {
+export async function saveSetting(db: Db, key: string, value: string | null, workspaceId?: string) {
   const def = SETTING_DEFS.find((d) => d.key === key);
   if (!def) throw new Error(`Unknown setting ${key}`);
   if (def.options && value !== null && !def.options.some((o) => o.value === value)) throw new Error(`Invalid value for ${key}`);
+  const ws = scopedWorkspace(workspaceId);
+  if (!ws) throw new Error("No workspace to save the setting in");
   if (value === null || value.trim() === "") {
-    await db.delete(settings).where(eq(settings.key, key));
+    await db.delete(workspaceSettings).where(and(eq(workspaceSettings.workspaceId, ws), eq(workspaceSettings.key, key)));
   } else {
     const v = value.trim();
-    const row = { key, value: def.secret ? encrypt(v) : v, encrypted: def.secret };
-    await db.insert(settings).values(row).onConflictDoUpdate({ target: settings.key, set: row });
+    const row = { workspaceId: ws, key, value: def.secret ? encrypt(v) : v, encrypted: def.secret };
+    await db
+      .insert(workspaceSettings)
+      .values(row)
+      .onConflictDoUpdate({ target: [workspaceSettings.workspaceId, workspaceSettings.key], set: { value: row.value, encrypted: row.encrypted } });
   }
   await refreshSettings(db);
 }
 
+/** A new workspace starts with the same settings and keys as another; `except` keys stay unset. */
+export async function copyWorkspaceSettings(db: Db, fromId: string, toId: string, except: string[] = []) {
+  const rows = await db.select().from(workspaceSettings).where(eq(workspaceSettings.workspaceId, fromId));
+  const copied = rows.filter((r) => !except.includes(r.key)).map((r) => ({ workspaceId: toId, key: r.key, value: r.value, encrypted: r.encrypted }));
+  if (copied.length) await db.insert(workspaceSettings).values(copied).onConflictDoNothing();
+  await refreshSettings(db);
+  return copied.length;
+}
+
+/** One setting across every workspace, e.g. to find whose MCP token a request carries. */
+export function settingByWorkspace(key: string) {
+  return [...cache].flatMap(([workspaceId, values]) => (values.get(key) ? [{ workspaceId, value: values.get(key)! }] : []));
+}
+
 /** What the Settings page shows: never the secret itself, only whether it's set and its last 4 characters. */
-export function describeSettings() {
+export function describeSettings(workspaceId?: string) {
+  const ws = scopedWorkspace(workspaceId);
   return SETTING_DEFS.map((def) => {
-    const { value, source } = resolve(def.key);
+    const { value, source } = resolve(def.key, ws);
     return {
       ...def,
       source,

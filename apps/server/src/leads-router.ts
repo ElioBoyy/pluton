@@ -10,7 +10,7 @@ import {
   findActiveJob,
   getLeadDetail,
   getLeadWithPerson,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   leadCounts,
   leadIdsFor,
   listLeads,
@@ -32,8 +32,8 @@ const filterInput = z.object({
 });
 const idsInput = z.object({ leadIds: z.array(z.string()).min(1).max(5000) });
 
-async function workspaceId(db: Parameters<typeof getOrCreateDefaultWorkspace>[0]) {
-  return (await getOrCreateDefaultWorkspace(db)).id;
+async function workspaceId(db: Parameters<typeof getCurrentWorkspace>[0]) {
+  return (await getCurrentWorkspace(db)).id;
 }
 
 export const leadsRouter = router({

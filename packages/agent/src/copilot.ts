@@ -3,7 +3,7 @@ import {
   addCopilotMessage,
   getConversation,
   getCopilotAction,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   proposeCopilotAction,
   recordActivity,
   setCopilotActionStatus,
@@ -119,7 +119,7 @@ export async function executeCopilotAction(db: Db, actionId: string, tools: Copi
     if (result && typeof result === "object" && "pending" in result && result.pending) {
       throw new Error(`Still running in the background (job ${String((result as { jobId?: unknown }).jobId ?? "?")}); check its result in Pluton before relying on it.`);
     }
-    const ws = await getOrCreateDefaultWorkspace(db);
+    const ws = await getCurrentWorkspace(db);
     await recordActivity(db, ws.id, "agent", "agent.action_completed", { tool: action.tool, summary: action.summary, conversationId: action.conversationId });
     return setCopilotActionStatus(db, actionId, "completed", { result: result ?? null });
   } catch (error) {
@@ -132,7 +132,7 @@ export async function runCopilotTurn(opts: { db: Db; conversationId: string; too
   const { db, conversationId } = opts;
   const state = await getConversation(db, conversationId);
   if (!state) throw new Error("Conversation not found");
-  const ws = await getOrCreateDefaultWorkspace(db);
+  const ws = await getCurrentWorkspace(db);
   const now = new Date().toLocaleString("en-GB", { timeZone: ws.timezone, dateStyle: "full", timeStyle: "short" });
 
   const approved = opts.justApproved;

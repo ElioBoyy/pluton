@@ -35,7 +35,7 @@ import {
 } from "@pluton/db";
 import { recordActivity } from "./events.ts";
 import { addLeadEvent } from "./leads.ts";
-import { getOrCreateDefaultWorkspace } from "./workspaces.ts";
+import { getCurrentWorkspace } from "./workspaces.ts";
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -150,7 +150,7 @@ export async function listSenders(db: Db, workspaceId: string) {
     .from(enrollments)
     .where(and(eq(enrollments.workspaceId, workspaceId), notInArray(enrollments.status, ENDED_ENROLLMENT)))
     .groupBy(enrollments.senderId);
-  const tz = (await getOrCreateDefaultWorkspace(db)).timezone;
+  const tz = (await getCurrentWorkspace(db)).timezone;
   const usage = await Promise.all(rows.map((s) => usageToday(db, s.id, tz)));
   return rows.map((s, i) => ({ ...s, activeLeads: active.find((a) => a.senderId === s.id)?.n ?? 0, today: usage[i]! }));
 }
@@ -421,7 +421,7 @@ export async function pickSender(db: Db, campaign: Campaign, personId: string) {
  */
 export async function addToCampaign(db: Db, leadIds: string[]) {
   const preview = await previewRecipients(db, leadIds);
-  const ws = await getOrCreateDefaultWorkspace(db);
+  const ws = await getCurrentWorkspace(db);
   const added: Array<{ leadId: string; enrollmentId: string; name: string; senderName: string | null }> = [];
   const skipped: Array<{ leadId: string; name: string; reason: string }> = [];
   const playIds = new Set<string>();
@@ -486,7 +486,7 @@ export async function restartEnrollment(db: Db, enrollmentId: string) {
   const e = await db.query.enrollments.findFirst({ where: eq(enrollments.id, enrollmentId) });
   if (!e) throw new Error("Not in a sequence");
   const campaign = (await getCampaign(db, e.campaignId))!;
-  const ws = await getOrCreateDefaultWorkspace(db);
+  const ws = await getCurrentWorkspace(db);
   const sender = e.senderId ? await db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : await pickSender(db, campaign, (await db.query.leads.findFirst({ where: eq(leads.id, e.leadId) }))!.personId);
   const [row] = await db
     .update(enrollments)

@@ -5,7 +5,6 @@ import {
   dueEnrollments,
   endEnrollment,
   enrollmentsToPoll,
-  getOrCreateDefaultWorkspace,
   inSendWindow,
   jitterMs,
   logAction,
@@ -34,6 +33,7 @@ import {
   replies,
   senders,
   withinCostScope,
+  workspaces,
   type Campaign,
   type CampaignStep,
   type Db,
@@ -66,11 +66,14 @@ type Ctx = { db: Db; now: Date; timeZone: string; busy: Set<string> };
  * and each account's daily limits.
  */
 export async function runSequenceTick(db: Db, now = new Date()) {
-  const ws = await getOrCreateDefaultWorkspace(db);
-  const ctx: Ctx = { db, now, timeZone: ws.timezone, busy: new Set() };
+  // One pass covers every workspace: each enrollment runs on its workspace's clock and keys.
+  const zones = new Map((await db.select({ id: workspaces.id, timezone: workspaces.timezone }).from(workspaces)).map((w) => [w.id, w.timezone]));
+  const busy = new Set<string>();
+  const inWorkspace = <T>(workspaceId: string, fn: (ctx: Ctx) => Promise<T>) =>
+    withinCostScope({ db, workspaceId }, () => fn({ db, now, timeZone: zones.get(workspaceId) ?? "Europe/Paris", busy }));
   let polled = 0;
   for (const { enrollment } of await enrollmentsToPoll(db, now)) {
-    await pollReplies(db, enrollment).catch((error) => console.error("[sequence] reply check failed", (error as Error).message));
+    await inWorkspace(enrollment.workspaceId, () => pollReplies(db, enrollment)).catch((error) => console.error("[sequence] reply check failed", (error as Error).message));
     polled++;
   }
   let acted = 0;
@@ -82,11 +85,13 @@ export async function runSequenceTick(db: Db, now = new Date()) {
       .where(and(eq(enrollments.id, enrollment.id), eq(enrollments.nextActionAt, enrollment.nextActionAt!)))
       .returning({ id: enrollments.id });
     if (!claimed) continue;
-    try {
-      if (await runStep(ctx, enrollment, campaign)) acted++;
-    } catch (error) {
-      await onError(ctx, enrollment, campaign, error as Error);
-    }
+    await inWorkspace(enrollment.workspaceId, async (ctx) => {
+      try {
+        if (await runStep(ctx, enrollment, campaign)) acted++;
+      } catch (error) {
+        await onError(ctx, enrollment, campaign, error as Error);
+      }
+    });
   }
   return { polled, acted };
 }

@@ -8,7 +8,7 @@ import {
   getConversation,
   getCopilotAction,
   getJob,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   listConversations,
   renameConversation,
   requestJobCancel,
@@ -18,7 +18,7 @@ import {
 import type { Db } from "@pluton/db";
 import { publicProcedure, router } from "./trpc.ts";
 
-const ws = (db: Db) => getOrCreateDefaultWorkspace(db);
+const ws = (db: Db) => getCurrentWorkspace(db);
 
 /**
  * Runs one conversation's turn-starting calls one at a time, so two quick sends (or a send and an

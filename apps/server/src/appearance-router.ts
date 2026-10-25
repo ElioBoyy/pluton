@@ -4,7 +4,7 @@ import {
   codexAvailable,
   enqueueJob,
   findActiveJob,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   removeWallpaper,
   requestJobCancel,
   saveWallpaper,
@@ -32,14 +32,14 @@ export const appearanceRouter = router({
   /** Starts a Codex job that draws both wallpapers from one prompt; follow it on `job:<id>`. */
   generate: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(1000) })).mutation(async ({ ctx, input }) => {
     if (!codexAvailable()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Codex is not installed on this computer." });
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     if (await findActiveJob(ctx.db, ws.id, "appearance.generate_wallpaper")) {
       throw new TRPCError({ code: "CONFLICT", message: "Codex is already drawing a wallpaper." });
     }
     return enqueueJob(ctx.db, { type: "appearance.generate_wallpaper", workspaceId: ws.id, payload: { prompt: input.prompt }, maxAttempts: 1 });
   }),
   activeGeneration: publicProcedure.query(async ({ ctx }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return (await findActiveJob(ctx.db, ws.id, "appearance.generate_wallpaper")) ?? null;
   }),
   cancelGeneration: publicProcedure.input(z.object({ jobId: z.string() })).mutation(({ ctx, input }) => requestJobCancel(ctx.db, input.jobId)),

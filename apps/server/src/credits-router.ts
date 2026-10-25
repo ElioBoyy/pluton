@@ -10,7 +10,7 @@ import {
   digestWindowStart,
   enqueueJob,
   estimateRun,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   listActivity,
   listCreditEntries,
   listNotifications,
@@ -28,7 +28,7 @@ import { ACTIVITY_CONTEXTS, and, COST_PURPOSES, desc, eq, NOTIFICATION_CATEGORIE
 import { mailerConfigured } from "@pluton/providers";
 import { publicProcedure, router } from "./trpc.ts";
 
-const ws = getOrCreateDefaultWorkspace;
+const ws = getCurrentWorkspace;
 
 const asBadRequest = async <T>(fn: () => Promise<T>) => {
   try {

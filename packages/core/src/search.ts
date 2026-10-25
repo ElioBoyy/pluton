@@ -270,6 +270,8 @@ async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
 
 // ── Index ────────────────────────────────────────────────────────────────────
 
+const searchDocumentId = (workspaceId: string, d: Doc) => `${workspaceId}:${d.kind}:${d.refId}`;
+
 const hashOf = (d: Doc) => createHash("sha1").update(JSON.stringify([SEARCH_MODEL, d.title, d.subtitle, d.href, d.text])).digest("hex");
 
 const EMBED_BATCH = 16;
@@ -280,7 +282,8 @@ const WRITE_CHUNK = 200;
  * (so ⌘K finds them by name straight away), then embedded; rows whose source is gone are deleted.
  */
 export async function syncSearchIndex(db: Db, workspaceId: string) {
-  const docs = (await collectDocuments(db, workspaceId)).map((d) => ({ ...d, id: `${d.kind}:${d.refId}`, hash: hashOf(d) }));
+  // Ids carry the workspace: the same page (or anything else) indexed in two workspaces is two rows.
+  const docs = (await collectDocuments(db, workspaceId)).map((d) => ({ ...d, id: searchDocumentId(workspaceId, d), hash: hashOf(d) }));
   const existing = new Map(
     (
       await db
@@ -293,7 +296,7 @@ export async function syncSearchIndex(db: Db, workspaceId: string) {
   const wanted = new Set(docs.map((d) => d.id));
   const gone = [...existing.keys()].filter((id) => !wanted.has(id));
   for (let i = 0; i < gone.length; i += WRITE_CHUNK) {
-    await db.delete(searchDocuments).where(inArray(searchDocuments.id, gone.slice(i, i + WRITE_CHUNK)));
+    await db.delete(searchDocuments).where(and(eq(searchDocuments.workspaceId, workspaceId), inArray(searchDocuments.id, gone.slice(i, i + WRITE_CHUNK))));
   }
 
   const changed = docs.filter((d) => existing.get(d.id)?.hash !== d.hash);
@@ -329,7 +332,7 @@ export async function syncSearchIndex(db: Db, workspaceId: string) {
         .update(searchDocuments)
         .set({ embedding: vectors[j]! })
         // A newer sync may have rewritten the row meanwhile: its own embedding wins.
-        .where(and(eq(searchDocuments.id, d.id), eq(searchDocuments.hash, d.hash)));
+        .where(and(eq(searchDocuments.workspaceId, workspaceId), eq(searchDocuments.id, d.id), eq(searchDocuments.hash, d.hash)));
     }
   }
 
