@@ -209,7 +209,7 @@ export function LeadsView({
             <thead>
               <tr className="border-b border-line text-left text-xs text-faint">
                 <th className="w-9 px-3 py-2">
-                  <input type="checkbox" checked={pageAllSelected || allMatching} onChange={togglePage} aria-label="Select all on this page" className="accent-white" />
+                  <input type="checkbox" checked={pageAllSelected || allMatching} onChange={togglePage} aria-label="Select all on this page" className="accent-accent" />
                 </th>
                 <th className="px-3 py-2 font-medium">Lead</th>
                 {COLUMNS.filter((c) => has(c.key)).map((c) => (
@@ -277,10 +277,10 @@ function Row({
   return (
     <tr
       onClick={() => onOpen()}
-      className={cn("cursor-pointer border-b border-line align-top last:border-0 hover:bg-raised/40", open && "bg-raised/60", selected && "bg-raised/30")}
+      className={cn("cursor-pointer align-top even:bg-zebra hover:bg-raised", open && "!bg-selected", selected && "!bg-raised")}
     >
       <td className="px-3 py-3" onClick={stop}>
-        <input type="checkbox" checked={selected} onChange={onToggle} aria-label={`Select ${l.person.name}`} className="accent-white" />
+        <input type="checkbox" checked={selected} onChange={onToggle} aria-label={`Select ${l.person.name}`} className="accent-accent" />
       </td>
       <td className="min-w-52 px-3 py-3">
         <div className="flex items-center gap-2.5">
@@ -602,7 +602,7 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
             <label key={c.key} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-raised">
               <input
                 type="checkbox"
-                className="accent-white"
+                className="accent-accent"
                 checked={columns.includes(c.key)}
                 onChange={() => onChange(ordered(columns.includes(c.key) ? columns.filter((x) => x !== c.key) : [...columns, c.key]))}
               />

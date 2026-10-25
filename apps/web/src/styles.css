@@ -2,8 +2,9 @@
 @import "tailwindcss";
 
 /*
- * macOS 26 (Tahoe) theme, from Apple's macOS 26 UI Kit and the Human Interface Guidelines.
- * Light/dark follow the system appearance, like a native Mac app, unless the user picks one in the sidebar. The token names predate the kit
+ * macOS 27 (Golden Gate) theme, from Apple's macOS 27 UI Kit; system colors and text styles from the
+ * Human Interface Guidelines (unchanged since macOS 26). Light/dark follow the system appearance,
+ * like a native Mac app, unless the user picks one in the sidebar. The token names predate the kit
  * (canvas, panel, ink, …) so every screen picks it up; the values below are the macOS semantic colors.
  */
 /* `static` keeps every variable in the output: the dark block and the graph read them at runtime. */
@@ -34,16 +35,20 @@
   --color-canvas: #ffffff; /* content background */
   --color-panel: #f5f5f5; /* boxes, grouped content */
   --color-raised: rgb(0 0 0 / 0.05); /* fills: hover, wells */
-  --color-selected: rgb(0 0 0 / 0.1); /* sidebar and list selection */
+  --color-selected: rgb(0 0 0 / 0.06); /* sidebar selection */
+  --color-sidebar: #e6e6e6; /* opaque, full height, flush with the window edge */
+  --color-zebra: rgb(0 0 0 / 0.05); /* alternating list rows */
+  --color-selection: #0064e1; /* selected list row */
   --color-line: rgb(0 0 0 / 0.1); /* separator */
   --color-line-strong: rgb(0 0 0 / 0.18);
   --color-ink: rgb(0 0 0 / 0.85); /* label */
   --color-muted: rgb(0 0 0 / 0.5); /* secondary label */
   --color-faint: rgb(0 0 0 / 0.26); /* tertiary label, placeholders */
 
-  /* Push buttons and other bezelled controls. */
-  --color-control: #ffffff;
-  --color-control-hover: #f2f2f2;
+  /* Push buttons: flat rounded rectangles, no bezel shadow. */
+  --color-control: rgb(0 0 0 / 0.08);
+  --color-control-hover: rgb(0 0 0 / 0.12);
+  --color-control-pressed: rgb(0 0 0 / 0.16);
   --color-accent: #0088ff; /* system blue, the default accent */
   --color-on-accent: #ffffff;
 
@@ -71,7 +76,8 @@
   --color-cat-orange: var(--color-system-orange);
   --color-cat-yellow: var(--color-system-yellow);
 
-  --shadow-control: 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.08);
+  /* For raised surfaces inside content (a selected segment, a card picker), not for buttons. */
+  --shadow-control: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.08);
   --shadow-window: 0 0 0 0.5px rgb(0 0 0 / 0.1), 0 8px 40px rgb(0 0 0 / 0.16);
 
   /* Liquid Glass, approximated: a translucent, blurred surface with a hairline edge. */
@@ -87,7 +93,10 @@
   --color-canvas: #1e1e1e;
   --color-panel: #282828;
   --color-raised: rgb(255 255 255 / 0.08);
-  --color-selected: rgb(255 255 255 / 0.14);
+  --color-selected: rgb(255 255 255 / 0.06);
+  --color-sidebar: #161616;
+  --color-zebra: rgb(255 255 255 / 0.045);
+  --color-selection: #0058d0;
   --color-line: rgb(255 255 255 / 0.1);
   --color-line-strong: rgb(255 255 255 / 0.18);
   --color-ink: rgb(255 255 255 / 0.85);
@@ -95,7 +104,8 @@
   --color-faint: rgb(255 255 255 / 0.25);
 
   --color-control: rgb(255 255 255 / 0.12);
-  --color-control-hover: rgb(255 255 255 / 0.18);
+  --color-control-hover: rgb(255 255 255 / 0.16);
+  --color-control-pressed: rgb(255 255 255 / 0.22);
   --color-accent: #0091ff;
 
   --color-system-red: #ff4245;

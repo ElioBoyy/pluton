@@ -112,7 +112,7 @@ function OnboardingForm() {
         <button
           type="submit"
           disabled={!canSubmit || start.isPending}
-          className="mt-7 flex h-8 w-full items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-on-accent shadow-control transition-[filter] hover:brightness-110 disabled:opacity-50"
+          className="mt-7 flex h-8 w-full items-center justify-center gap-2 rounded-md bg-accent text-sm font-medium text-on-accent transition-[filter] hover:brightness-110 disabled:opacity-50"
         >
           {start.isPending && <CircleNotch size={14} className="animate-spin" />}
           Start deepsearch
