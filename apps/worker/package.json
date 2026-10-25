@@ -1,6 +1,8 @@
 {
   "name": "@pluton/worker",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Mathis Sportiello",
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/main.ts",

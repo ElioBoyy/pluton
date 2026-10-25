@@ -1,6 +1,8 @@
 {
   "name": "@pluton/db",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Mathis Sportiello",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
