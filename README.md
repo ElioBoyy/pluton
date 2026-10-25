@@ -16,8 +16,9 @@ Designed and built by **Mathis Sportiello**.
 - **Finds emails and exports.** Free sources first, then Hunter if you add a key; CSV export of any lead list.
 - **Keeps spend in check.** Every paid call is logged at its real cost, per Play and per lead. Set a monthly budget; a search holds its cap, stops at it and gives back what it didn't use.
 - **Tells you what needs you.** One activity feed, a notification bell and a morning digest (in the app, or by email through your own SMTP).
+- **Has an agent you can talk to.** Ask about your leads, Plays, Brain or spend from the Agent page or ⌘K. It reads what it needs and asks before it changes anything, starts a search, contacts someone or exports to a CRM.
 - **Plugs into your tools.** New leads in Slack with Approve/Reject buttons, approved leads in HubSpot, Attio or Pipedrive, and a local MCP server so Claude Code, Claude Desktop or Codex can work with your leads.
-- **Feels like a Mac app.** The interface follows Apple's macOS 27 design, with light and dark appearances.
+- **Feels like a Mac app.** The interface follows Apple's macOS 27 design, with light and dark appearances, and works on a phone.
 
 ## Requirements
 
@@ -120,6 +121,10 @@ Every paid call writes its real cost to a ledger, attributed to the Play, the se
 Settings → Budget sets a monthly amount, an optional daily cap, a per-search cap and *Stop* or *Only track*. A search sets its cap aside when it starts (refused when nothing is left), stops researching at it, then settles. Alerts at 80% and 100%. Settings → Usage shows spend per day, Play (with cost per lead), type and source, and the ledger.
 
 Activity (Home, each Play, Settings → Activity) is one feed of what you and Pluton did. Events that need you become notifications in the sidebar bell, each category can be muted, and a digest (every weekday at 08:30 by default) lists what waits for you, in the app and by email if SMTP is set in Settings → API keys.
+
+### Agent
+
+`/agent` (or a question typed in ⌘K) opens a conversation with Pluton. Each message runs one `copilot.turn` job in the worker; the agent's text, the tools it read and its proposals stream on `copilot:<id>`. It uses the same tools as the MCP server (`apps/server/src/agent-tools.ts`). Read tools run directly; any tool that changes data, spends money or reaches outside Pluton becomes an approval card instead, with its preview (a search's cost, who would join a sequence). Approving runs it exactly as proposed, then the agent reports on it. What it costs is in the ledger under *Agent*.
 
 ### Integrations and AI clients
 

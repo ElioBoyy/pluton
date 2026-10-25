@@ -43,6 +43,8 @@ export type RunAgentOptions = {
   signal?: AbortSignal;
   /** Defaults to MODEL. */
   model?: string;
+  /** Each block of text the agent writes, as it writes it (for chat-style agents). */
+  onText?: (text: string) => Promise<void>;
 };
 
 export type RunAgentResult = { turns: number; missing: string[] };
@@ -142,6 +144,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
       throw new AgentRefusalError(response.stop_details?.explanation ?? "The model declined this request");
     }
     messages.push({ role: "assistant", content: response.content });
+    for (const block of response.content) if (block.type === "text" && block.text.trim()) await opts.onText?.(block.text);
 
     // A long server-tool turn was paused: re-send so the model picks up where it stopped.
     if (response.stop_reason === "pause_turn") continue;

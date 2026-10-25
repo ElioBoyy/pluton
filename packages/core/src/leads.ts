@@ -245,7 +245,7 @@ export async function addLeadNote(db: Db, leadId: string, text: string) {
  */
 export async function reviewLeads(
   db: Db,
-  input: { workspaceId: string; leadIds: string[]; verdict: "up" | "down"; reasons?: FeedbackReason[]; comment?: string; via?: "slack" | "mcp" },
+  input: { workspaceId: string; leadIds: string[]; verdict: "up" | "down"; reasons?: FeedbackReason[]; comment?: string; via?: "slack" | "mcp" | "agent" },
 ) {
   const rows = await db.select().from(leads).where(and(eq(leads.workspaceId, input.workspaceId), inArray(leads.id, input.leadIds)));
   const feedbackIds: string[] = [];

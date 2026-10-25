@@ -72,6 +72,7 @@ const DESCRIBE: Record<string, (p: P, play: string, names: Names) => { actor: Ac
   }),
   "integration.connected": (p) => ({ actor: "you", text: `You connected ${CRM_NAMES[String(p.provider)] ?? p.provider}`, link: `/workspace/integrations/${p.provider}` }),
   "integration.disconnected": (p) => ({ actor: "you", text: `You disconnected ${CRM_NAMES[String(p.provider)] ?? p.provider}`, link: "/workspace/integrations" }),
+  "agent.action_completed": (p) => ({ actor: "you", text: `You approved for the agent: ${p.summary}`, link: `/agent/${p.conversationId}` }),
   "mcp.client_connected": (p) => ({ actor: "you", text: `${p.name} connected to Pluton over MCP`, link: "/workspace/mcp" }),
   "leads.emails_found": (p) => ({ actor: "pluton", text: `Pluton found ${plural(Number(p.found), "work email")} for ${plural(Number(p.checked), "lead")}`, link: "/leads" }),
   "proposal.accepted": () => ({ actor: "you", text: "You accepted a Brain suggestion", link: "/brain" }),

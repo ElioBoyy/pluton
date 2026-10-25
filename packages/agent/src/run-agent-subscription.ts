@@ -57,6 +57,9 @@ export async function runAgentWithSubscription(opts: RunAgentOptions, meter: Age
         resume,
       },
     })) {
+      if (message.type === "assistant" && !message.parent_tool_use_id && opts.onText) {
+        for (const block of message.message.content) if (block.type === "text" && block.text.trim()) await opts.onText(block.text);
+      }
       if (message.type !== "result") continue;
       sessionId = message.session_id;
       turns = message.num_turns;

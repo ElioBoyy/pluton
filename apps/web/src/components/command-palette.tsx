@@ -1,7 +1,9 @@
-import { Brain, Lightning, MagnifyingGlass, Plus, UsersThree, type Icon } from "@phosphor-icons/react";
+import { Brain, CircleNotch, Lightning, MagnifyingGlass, Plus, Sparkle, UsersThree, type Icon } from "@phosphor-icons/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../lib/cn.ts";
+import { useTRPC } from "../lib/trpc.ts";
 
 const COMMANDS = [
   { label: "Go to Home", to: "/home" },
@@ -11,6 +13,9 @@ const COMMANDS = [
   { label: "New Play", to: "/plays/new" },
   { label: "Go to Leads", to: "/leads" },
   { label: "Workspace settings", to: "/workspace/settings" },
+  { label: "Usage", to: "/workspace/usage" },
+  { label: "Activity", to: "/workspace/activity" },
+  { label: "What's new", to: "/workspace/whats-new" },
   { label: "Start onboarding", to: "/onboarding" },
 ] as const;
 
@@ -34,10 +39,21 @@ const POP =
 
 /**
  * ⌘K palette, laid out like macOS Spotlight: a large glass capsule with round shortcuts beside it,
- * and results only once you type. Navigation only for now; phase 9 routes free-text questions to the agent.
+ * and results only once you type. The first result asks the agent; the others go to a page.
  */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const ask = useMutation(
+    trpc.copilot.send.mutationOptions({
+      onSuccess: async ({ conversationId }) => {
+        onClose();
+        await queryClient.invalidateQueries({ queryKey: trpc.copilot.list.queryKey() });
+        await navigate({ to: "/agent/$conversationId", params: { conversationId } });
+      },
+    }),
+  );
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const [mounted, setMounted] = useState(open);
@@ -53,10 +69,15 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     return () => clearTimeout(t);
   }, [open]);
 
-  const results = useMemo(
-    () => COMMANDS.filter((c) => c.label.toLowerCase().includes(query.trim().toLowerCase())),
-    [query],
-  );
+  const results = useMemo(() => {
+    const q = query.trim();
+    if (!q) return [];
+    const pages = COMMANDS.filter((c) => c.label.toLowerCase().includes(q.toLowerCase())).map((c) => ({ ...c, ask: false }));
+    // A page whose name was typed whole goes first; anything else is a question for the agent.
+    const exact = pages.length > 0 && pages[0]!.label.toLowerCase().replace(/^go to /, "") === q.toLowerCase();
+    const askItem = { label: q, to: "", ask: true };
+    return exact ? [...pages, askItem] : [askItem, ...pages];
+  }, [query]);
 
   useEffect(() => {
     if (!open) return;
@@ -73,7 +94,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   };
   const run = (index: number) => {
     const command = results[index];
-    if (command) go(command.to);
+    if (!command) return;
+    if (command.ask) {
+      if (!ask.isPending) ask.mutate({ text: command.label });
+    } else go(command.to);
   };
   const typing = query.trim().length > 0;
 
@@ -86,7 +110,11 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       <div className="w-full max-w-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2.5">
           <div className={cn("glass flex h-14 flex-1 items-center gap-3 rounded-full px-5", POP)}>
-            <MagnifyingGlass size={22} className="shrink-0 text-muted" />
+            {ask.isPending ? (
+              <CircleNotch size={22} className="shrink-0 animate-spin text-muted" />
+            ) : (
+              <MagnifyingGlass size={22} className="shrink-0 text-muted" />
+            )}
             <input
               ref={inputRef}
               value={query}
@@ -139,20 +167,29 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               />
             )}
             {results.map((c, i) => (
-              <li key={c.to}>
+              <li key={c.ask ? "ask" : c.to}>
                 <button
                   onMouseEnter={() => setActive(i)}
                   onClick={() => run(i)}
                   className={cn(
-                    "relative h-9 w-full rounded-2xl px-3.5 text-left text-base transition-colors duration-150",
+                    "relative flex h-9 w-full items-center gap-2 rounded-2xl px-3.5 text-left text-base transition-colors duration-150",
                     i === active ? "text-on-accent" : "text-ink",
                   )}
                 >
-                  {c.label}
+                  {c.ask ? (
+                    <>
+                      <Sparkle size={16} weight="fill" className="shrink-0" />
+                      <span className="truncate">
+                        Ask Pluton: <span className="opacity-80">{c.label}</span>
+                      </span>
+                    </>
+                  ) : (
+                    c.label
+                  )}
                 </button>
               </li>
             ))}
-            {results.length === 0 && <li className="px-3.5 py-6 text-center text-base text-muted">No match</li>}
+            {ask.error && <li className="px-3.5 py-2 text-sm text-cat-orange">{ask.error.message}</li>}
           </ul>
         )}
       </div>

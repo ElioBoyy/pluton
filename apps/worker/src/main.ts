@@ -22,6 +22,7 @@ import {
 } from "@pluton/core";
 import { and, createDb, eq, getSetting, inArray, jobs, lt, prepareDb, watchSettings, withCostScope, type CostPurpose } from "@pluton/db";
 import { brainReview } from "./handlers/brain-review.ts";
+import { copilotTurn } from "./handlers/copilot.ts";
 import { onboardingStage } from "./handlers/onboarding-stage.ts";
 import { prepareDrafts, sequenceTick } from "./handlers/campaigns.ts";
 import { leadsFindEmails } from "./handlers/leads.ts";
@@ -35,6 +36,7 @@ const handlers: Record<JobType, JobHandler> = {
   "system.ping": systemPing,
   "onboarding.stage": onboardingStage,
   "brain.review": brainReview,
+  "copilot.turn": copilotTurn,
   "plays.plan": playsPlan,
   "lead_finding.run": leadFindingRun,
   "leads.find_emails": leadsFindEmails,
@@ -50,6 +52,7 @@ const PURPOSE: Record<JobType, CostPurpose> = {
   "system.ping": "other",
   "onboarding.stage": "onboarding",
   "brain.review": "brain",
+  "copilot.turn": "agent",
   "plays.plan": "planning",
   "lead_finding.run": "lead_finding",
   "leads.find_emails": "email_finding",
