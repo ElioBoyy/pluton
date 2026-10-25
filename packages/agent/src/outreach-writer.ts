@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   campaignsText,
+  draftChannels,
   getCampaign,
   getLeadWithPerson,
   getSingleton,
@@ -12,7 +13,7 @@ import {
   upsertDraft,
   type BrainItemView,
 } from "@pluton/core";
-import { and, eq, getSetting, inArray, messageDrafts, senders, type Campaign, type CampaignStep, type Db, type Lead, type Person } from "@pluton/db";
+import { OUTREACH_CHANNELS, and, eq, getSetting, inArray, messageDrafts, senders, type Campaign, type CampaignStep, type Db, type Lead, type OutreachChannel, type Person } from "@pluton/db";
 import { APIFY_KEY, profilePosts } from "@pluton/providers";
 import { languageInstruction, localized } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
@@ -22,9 +23,11 @@ import messages from "./messages/sequence.ts";
 
 const t = localized(messages);
 
-const WRITER_SYSTEM = `You write LinkedIn outreach for a founder, in their voice, one person at a time.
+const WRITER_SYSTEM = `You write outreach for a founder, in their voice, one person at a time. Messages go on LinkedIn unless the prompt says a step goes by email.
 Rules:
-- Write like a peer, not a salesperson. Short: LinkedIn messages of 2–4 sentences, under 600 characters.
+- Write like a peer, not a salesperson.
+- A LinkedIn message is a chat message: 2–4 sentences, under 600 characters, no greeting line, no signature.
+- An email reads as an email, not a chat message: a greeting with their first name on its own line, then 2–5 short sentences in one or two short paragraphs ending on one clear question, then a short sign-off and the founder's first name on its own line. Under 900 characters. Ignore anything in a step's guidelines that only makes sense on LinkedIn (being connected, the invitation).
 - Every message follows its step's guidelines exactly.
 - Ground the opener in something true and specific about THIS person (their post, role change, hiring, project). Never invent facts; if you know little, say less.
 - No flattery, no "I hope this finds you well", no buzzwords, no emojis unless the voice asks for them.
@@ -99,60 +102,67 @@ export async function writeDrafts(
     if (opts.signal?.aborted) break;
     const row = await getLeadWithPerson(db, leadId);
     if (!row) continue;
-    const keep = (s: CampaignStep) => {
-      const d = existing.find((x) => x.leadId === leadId && x.stepId === s.id);
+    const keep = (slot: Slot) => {
+      const d = existing.find((x) => x.leadId === leadId && x.stepId === slot.step.id && x.channel === slot.channel);
       return d && (d.sentAt || (!opts.force && (d.origin === "edited" || d.review === "reviewed")));
     };
+    // A LinkedIn version, and an email version when their address is known (see draftChannels).
+    const slots: Slot[] = steps.flatMap((step) => draftChannels(row.person, step).map((channel) => ({ step, channel })));
     const vars = templateVars(row.person, sender, campaign.objective.link);
-    for (const s of steps.filter((s) => s.mode === "template" && !keep(s))) {
-      const { text, skipReason } = renderTemplate(s.template ?? "", vars, s);
-      await upsertDraft(db, { campaignId: campaign.id, leadId, stepId: s.id, text, origin: "rendered", review: "not_reviewed", stepRevision: s.revision, skipReason });
+    for (const slot of slots.filter((x) => x.step.mode === "template" && !keep(x))) {
+      const { text, skipReason } = renderTemplate(slot.step.template ?? "", vars, slot.step);
+      await upsertDraft(db, { ...draftKey(slot), text, origin: "rendered", review: "not_reviewed", skipReason });
     }
-    const aiSteps = steps.filter((s) => s.mode !== "template" && !keep(s));
-    if (aiSteps.length === 0) {
+    const aiSlots = slots.filter((x) => x.step.mode !== "template" && !keep(x));
+    if (aiSlots.length === 0) {
       await opts.onLead?.(leadId, true);
       continue;
     }
-    for (const s of aiSteps) {
-      await upsertDraft(db, { campaignId: campaign.id, leadId, stepId: s.id, text: "", origin: "generated", review: "being_written", stepRevision: s.revision });
-    }
+    for (const slot of aiSlots) await upsertDraft(db, { ...draftKey(slot), text: "", origin: "generated", review: "being_written" });
     try {
-      const { texts, subject } = await writeForLead(db, { campaign, steps, aiSteps, lead: row.lead, person: row.person, brain: brain.text, language, sender: sender?.name, signal: opts.signal });
-      for (const s of aiSteps) {
+      const { texts, subject } = await writeForLead(db, { campaign, steps, aiSlots, lead: row.lead, person: row.person, brain: brain.text, language, sender: getSetting("smtp_from_name") || sender?.name, signal: opts.signal });
+      for (const slot of aiSlots) {
+        const text = texts.get(slotKey(slot));
         await upsertDraft(db, {
-          campaignId: campaign.id,
-          leadId,
-          stepId: s.id,
-          text: texts.get(s.id) ?? "",
+          ...draftKey(slot),
+          text: text ?? "",
           origin: "generated",
-          review: texts.get(s.id) ? "not_reviewed" : "failed",
-          stepRevision: s.revision,
-          error: texts.get(s.id) ? null : t("draftNotWritten"),
-          subject: s.id === emailSteps(row.person, steps)[0]?.id ? (subject ?? null) : undefined,
+          review: text ? "not_reviewed" : "failed",
+          error: text ? null : t("draftNotWritten"),
+          // One subject for the email thread: whichever email goes out first carries it.
+          subject: slot.channel === "email" ? (subject ?? null) : undefined,
         });
       }
       written++;
       await opts.onLead?.(leadId, true);
     } catch (error) {
-      for (const s of aiSteps) {
-        await upsertDraft(db, { campaignId: campaign.id, leadId, stepId: s.id, text: "", origin: "generated", review: "failed", stepRevision: s.revision, error: (error as Error).message.slice(0, 300) });
-      }
+      for (const slot of aiSlots) await upsertDraft(db, { ...draftKey(slot), text: "", origin: "generated", review: "failed", error: (error as Error).message.slice(0, 300) });
       await opts.onLead?.(leadId, false);
       if (opts.signal?.aborted) break;
+    }
+
+    function draftKey(slot: Slot) {
+      return { campaignId: campaign!.id, leadId, stepId: slot.step.id, channel: slot.channel, stepRevision: slot.step.revision };
     }
   }
   return { written };
 }
 
+type Slot = { step: CampaignStep; channel: OutreachChannel };
+const slotKey = (slot: { step: { id: string }; channel: OutreachChannel } | { stepId: string; channel: OutreachChannel }) =>
+  `${"step" in slot ? slot.step.id : slot.stepId}:${slot.channel}`;
+
 async function writeForLead(
   db: Db,
-  o: { campaign: Campaign; steps: CampaignStep[]; aiSteps: CampaignStep[]; lead: Lead; person: Person; brain: string; language: string; sender?: string; signal?: AbortSignal },
+  o: { campaign: Campaign; steps: CampaignStep[]; aiSlots: Slot[]; lead: Lead; person: Person; brain: string; language: string; sender?: string; signal?: AbortSignal },
 ) {
   const activity = await recentActivity(db, o.person);
   const texts = new Map<string, string>();
   let subject: string | undefined;
-  const byMail = emailSteps(o.person, o.steps);
-  const firstEmailWritten = Boolean(byMail[0] && o.aiSteps.some((s) => s.id === byMail[0]!.id));
+  const wanted = o.steps.filter((s) => o.aiSlots.some((x) => x.step.id === s.id));
+  const versions = (s: CampaignStep) => o.aiSlots.filter((x) => x.step.id === s.id).map((x) => x.channel);
+  const anyEmail = o.aiSlots.some((x) => x.channel === "email");
+  const anyLinkedin = o.aiSlots.some((x) => x.channel === "linkedin");
   await runAgent({
     system: WRITER_SYSTEM,
     model: WRITER_MODEL,
@@ -172,22 +182,23 @@ Signal: ${o.lead.signal}
 Evidence: ${o.lead.evidence.map((e) => e.label).join(" | ") || "none"}
 Their recent LinkedIn posts: ${activity.length ? `\n${activity.join("\n---\n")}` : "unknown"}
 
-${byEmail(o.person) ? `${EMAIL_CHANNEL(o.sender)}\n` : byMail.length ? `${MIXED_CHANNEL(o.sender)}\n` : ""}${firstEmailWritten ? "Also give the first email a subject: 2 to 6 plain words, specific to them, no clickbait, no capitals for effect.\n" : ""}
-Write these messages (the sequence sends them in this order, each only if there was no reply):
-${o.aiSteps.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHours} h after the previous step${byMail.includes(s) && !byEmail(o.person) ? ", by email" : ""}): ${s.guidelines ?? ""}`).join("\n")}`,
+${byEmail(o.person) ? EMAIL_CHANNEL(o.sender) : anyEmail && anyLinkedin ? BOTH_CHANNELS(o.sender) : anyEmail ? EMAIL_STEPS(o.sender) : ""}
+${anyEmail ? "Also give the email thread a subject: 2 to 6 plain words, specific to them, no clickbait, no capitals for effect.\n" : ""}
+Write these messages (the sequence sends them in this order, each only if there was no reply), in every version listed:
+${wanted.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHours} h after the previous step) — versions: ${versions(s).join(", ")}: ${s.guidelines ?? ""}`).join("\n")}`,
     tools: [
       localTool({
         name: "write_messages",
-        description: "Save one message per step, by stepId.",
+        description: "Save every version of every message, by stepId and channel.",
         schema: z.object({
-          messages: z.array(z.object({ stepId: z.string(), text: z.string().trim().min(1).max(1500) })),
-          subject: z.string().trim().min(1).max(120).optional().describe("The first email's subject, only when the messages go out by email."),
+          messages: z.array(z.object({ stepId: z.string(), channel: z.enum(OUTREACH_CHANNELS), text: z.string().trim().min(1).max(1500) })),
+          subject: z.string().trim().min(1).max(120).optional().describe("The email thread's subject, when any email version is asked for."),
         }),
         run: async ({ messages, subject: s }) => {
           if (s) subject = s;
-          for (const m of messages) if (o.aiSteps.some((s) => s.id === m.stepId)) texts.set(m.stepId, m.text);
-          const missing = o.aiSteps.filter((s) => !texts.has(s.id));
-          return missing.length ? `Missing: ${missing.map((s) => s.id).join(", ")}` : "saved";
+          for (const m of messages) if (o.aiSlots.some((x) => slotKey(x) === slotKey(m))) texts.set(slotKey(m), m.text);
+          const missing = o.aiSlots.filter((x) => !texts.has(slotKey(x)));
+          return missing.length ? `Missing: ${missing.map((x) => `${x.step.id} (${x.channel})`).join(", ")}` : "saved";
         },
       }),
     ],
@@ -198,15 +209,16 @@ ${o.aiSteps.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHou
 /** No LinkedIn profile but an address: the sequence emails them instead (see the sequence engine). */
 export const byEmail = (person: Pick<Person, "linkedinUrl" | "email">) => !person.linkedinUrl && Boolean(person.email);
 
-/** The message steps that go by email for this person: all of them without LinkedIn, else those set to email. */
-export const emailSteps = (person: Pick<Person, "linkedinUrl" | "email">, steps: CampaignStep[]) =>
-  !person.email ? [] : byEmail(person) ? steps.filter((s) => s.kind === "message") : steps.filter((s) => s.kind === "message" && s.channel === "email");
+const signAs = (sender?: string) => (sender ? ` Sign emails as ${sender.split(/\s+/)[0]}.` : "");
 
-const MIXED_CHANNEL = (sender?: string) =>
-  `Steps marked "by email" go to their inbox as plain-text emails instead of LinkedIn; the others are LinkedIn messages. Write the emails as short emails: open with their first name, end with the founder's first name${sender ? ` (${sender.split(/\s+/)[0]})` : ""} on its own line. An email may say in a few words that you also wrote on LinkedIn, but never repeats that message.`;
+const BOTH_CHANNELS = (sender?: string) =>
+  `Each message has two versions. The LinkedIn version is sent while LinkedIn works for them. The email version goes to their inbox instead when LinkedIn isn't available (the invitation wasn't accepted, the profile can't be reached) or when the step is set to go by email: follow the email rules, make it stand on its own (they may not have read anything on LinkedIn; a few words saying you also tried there are fine), and keep the same substance as the LinkedIn version. Emails 2 and 3 follow earlier emails in one thread.${signAs(sender)}`;
+
+const EMAIL_STEPS = (sender?: string) =>
+  `The versions marked "email" go to their inbox as emails (follow the email rules); the others are LinkedIn messages. An email may say in a few words that you also wrote on LinkedIn, but never repeats that message.${signAs(sender)}`;
 
 const EMAIL_CHANNEL = (sender?: string) =>
-  `This person has no LinkedIn profile: these messages go out as plain-text emails from the founder's own mailbox, replies in one thread. Write them as short emails: open with their first name, never mention LinkedIn or connecting, keep the same length and tone, and end with the founder's first name${sender ? ` (${sender.split(/\s+/)[0]})` : ""} on its own line. No links unless a step's guidelines ask for one.`;
+  `This person has no LinkedIn profile: every message below is an email from the founder's own mailbox, in one thread (follow-ups answer the first). Follow the email rules and never mention LinkedIn or connecting. No links unless a step's guidelines ask for one.${signAs(sender)}`;
 
 /** A subject for a first email whose text came from a template or an older draft. */
 export async function writeEmailSubject(opts: { text: string; language: string }) {
@@ -298,13 +310,19 @@ The summary is for the founder: ${languageInstruction()}`,
   return verdict;
 }
 
-/** The single automatic answer to a positive reply: thanks, the link, nothing else. */
-export async function writeAutoReply(db: Db, opts: { campaign: Campaign; person: Person; reply: string }) {
+/**
+ * The single automatic answer to a positive reply. On LinkedIn: thanks and the link. By email it
+ * closes like an email: greeting, an answer to what they said, the link with what it's for, a signature.
+ */
+export async function writeAutoReply(db: Db, opts: { campaign: Campaign; person: Person; reply: string; channel?: "linkedin" | "email"; signAs?: string }) {
   const brain = await brainContext(db, opts.campaign.workspaceId);
   const language = await campaignLanguage(db, opts.campaign);
   let text = "";
   await runAgent({
-    system: `${WRITER_SYSTEM}\nYou now answer a positive reply. One or two sentences: a warm thanks matching their tone, then the link. Don't pitch.`,
+    system:
+      opts.channel === "email"
+        ? `${WRITER_SYSTEM}\nYou now answer, by email in the same thread, a positive reply. Write it as an email: a greeting with their first name; one sentence of thanks matching their tone that answers anything concrete they said (a day they suggested, a question); the link on its own line with a few words on what it's for (picking a time that suits them, or trying the product); a short sign-off and the founder's first name${opts.signAs ? ` (${opts.signAs.split(/\s+/)[0]})` : ""}. 3 to 5 sentences. Don't pitch.`
+        : `${WRITER_SYSTEM}\nYou now answer a positive reply on LinkedIn. One or two sentences: a warm thanks matching their tone, then the link. Don't pitch.`,
     model: WRITER_MODEL,
     noWeb: true,
     maxTurns: 3,
@@ -314,7 +332,7 @@ export async function writeAutoReply(db: Db, opts: { campaign: Campaign; person:
       localTool({
         name: "answer",
         description: "The reply to send.",
-        schema: z.object({ text: z.string().trim().min(5).max(600) }),
+        schema: z.object({ text: z.string().trim().min(5).max(1200) }),
         run: async ({ text: t }) => {
           text = t;
           return "saved";

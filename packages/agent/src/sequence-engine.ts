@@ -44,6 +44,7 @@ import {
   type CampaignStep,
   type Db,
   type Enrollment,
+  type OutreachChannel,
   type Person,
   type Sender,
 } from "@pluton/db";
@@ -188,10 +189,10 @@ async function recentlyActive(db: Db, senderId: string, now: Date) {
 }
 
 /** The message text for a step, written now if it's missing. null with a reason when it can't be sent. */
-async function messageFor(db: Db, e: Enrollment, campaign: Campaign, step: CampaignStep) {
+async function messageFor(db: Db, e: Enrollment, campaign: Campaign, step: CampaignStep, channel: OutreachChannel) {
   const find = () =>
     db.query.messageDrafts.findFirst({
-      where: and(eq(messageDrafts.campaignId, campaign.id), eq(messageDrafts.leadId, e.leadId), eq(messageDrafts.stepId, step.id)),
+      where: and(eq(messageDrafts.campaignId, campaign.id), eq(messageDrafts.leadId, e.leadId), eq(messageDrafts.stepId, step.id), eq(messageDrafts.channel, channel)),
     });
   let draft = await find();
   if (!draft || (!draft.text && !draft.skipReason) || draft.review === "failed" || draft.review === "being_written") {
@@ -203,11 +204,11 @@ async function messageFor(db: Db, e: Enrollment, campaign: Campaign, step: Campa
   return { text: draft.text, subject: draft.subject, skipped: false, reason: null };
 }
 
-async function markSent(db: Db, campaign: Campaign, e: Enrollment, step: CampaignStep) {
+async function markSent(db: Db, campaign: Campaign, e: Enrollment, step: CampaignStep, channel: OutreachChannel) {
   await db
     .update(messageDrafts)
     .set({ sentAt: new Date() })
-    .where(and(eq(messageDrafts.campaignId, campaign.id), eq(messageDrafts.leadId, e.leadId), eq(messageDrafts.stepId, step.id)));
+    .where(and(eq(messageDrafts.campaignId, campaign.id), eq(messageDrafts.leadId, e.leadId), eq(messageDrafts.stepId, step.id), eq(messageDrafts.channel, channel)));
 }
 
 /** Waiting on an invitation before a message: re-check, give up after the expiry, or keep waiting. */
@@ -341,7 +342,7 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
         const fresh = await db.query.enrollments.findFirst({ where: eq(enrollments.id, e.id) });
         if (!fresh || ENDED_ENROLLMENT.includes(fresh.status)) return false;
       }
-      const { text, skipped, reason } = await messageFor(db, e, campaign, step);
+      const { text, skipped, reason } = await messageFor(db, e, campaign, step, "linkedin");
       if (!text) {
         await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
         return false;
@@ -350,7 +351,7 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
       const chatId = e.chatId ?? (await unipileFindChat(account, providerId));
       const sent = await unipileSendMessage(account, { chatId, providerId, text });
       await logAction(db, { ...base, kind: "message", status: "done", text });
-      await markSent(db, campaign, e, step);
+      await markSent(db, campaign, e, step, "linkedin");
       await markContacted(db, e.leadId);
       await addLeadEvent(db, e.leadId, "outreach", { kind: "message", step: stepLabel(campaign.steps, step), sender: sender.name });
       await advance(db, e, campaign, { status: "message_sent", chatId: sent.chatId ?? chatId }, now);
@@ -376,7 +377,7 @@ async function manualStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Cam
       await defer(db, e.id, wait);
       return false;
     }
-    const { text, skipped, reason } = await messageFor(db, e, campaign, step);
+    const { text, skipped, reason } = await messageFor(db, e, campaign, step, "linkedin");
     if (!text) {
       await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
       return false;
@@ -463,7 +464,7 @@ async function emailStep(ctx: Ctx, e: Enrollment, campaign: Campaign, person: Pe
     const fresh = await db.query.enrollments.findFirst({ where: eq(enrollments.id, e.id) });
     if (!fresh || ENDED_ENROLLMENT.includes(fresh.status)) return false;
   }
-  const { text, subject: written, skipped, reason } = await messageFor(db, e, campaign, step);
+  const { text, subject: written, skipped, reason } = await messageFor(db, e, campaign, step, "email");
   if (!text) {
     await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
     return false;
@@ -479,7 +480,7 @@ async function emailStep(ctx: Ctx, e: Enrollment, campaign: Campaign, person: Pe
     references: thread.length ? thread : undefined,
   });
   await logAction(db, { ...base, kind: "message", status: "done", text, externalId: messageId, detail: person.email });
-  await markSent(db, campaign, e, step);
+  await markSent(db, campaign, e, step, "email");
   await markContacted(db, e.leadId);
   await addLeadEvent(db, e.leadId, "outreach", { kind: "message", channel: "email", step: stepLabel(campaign.steps, step), to: person.email });
   await advance(db, e, campaign, { status: "message_sent", emailSubject: subject }, now);
@@ -589,9 +590,16 @@ async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: s
   if (firstReply && verdict.label === "positive" && o.kind !== "none" && o.link && o.autoReply && !alreadyAnswered) {
     const sender = e.senderId ? await db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : null;
     try {
-      const text = await writeAutoReply(db, { campaign, person, reply: reply.text });
-      // The answer goes back the way their reply came.
-      if ((reply.source === "email" || e.channel === "email") && person.email && mailerConfigured()) {
+      // The answer goes back the way their reply came, written for that channel.
+      const byMail = (reply.source === "email" || e.channel === "email") && Boolean(person.email) && mailerConfigured();
+      const text = await writeAutoReply(db, {
+        campaign,
+        person,
+        reply: reply.text,
+        channel: byMail ? "email" : "linkedin",
+        signAs: getSetting("smtp_from_name") || sender?.name,
+      });
+      if (byMail && person.email) {
         const thread = await emailThread(db, e.id);
         const theirs = reply.externalId?.startsWith("<") ? reply.externalId : undefined;
         const { messageId } = await sendOutreachEmail({
@@ -654,8 +662,11 @@ async function onError(ctx: Ctx, e: Enrollment, campaign: Campaign, error: Error
       await defer(db, e.id, new Date(now.getTime() + (error.retryAfter ? error.retryAfter * 1000 : 6 * HOUR)), "LinkedIn asked to slow down");
       return;
     }
-    if (error.status === 422 && ["errors/invalid_recipient", "errors/cannot_invite_attendee"].includes(error.type ?? "")) {
-      await endEnrollment(db, e.id, "failed", "LinkedIn won't let this account reach this person");
+    // LinkedIn can't find or reach this person: their email takes over when it's known.
+    if (error.status === 404 || (error.status === 422 && ["errors/invalid_recipient", "errors/cannot_invite_attendee"].includes(error.type ?? ""))) {
+      const why = error.status === 404 ? t("profileNotFound") : t("unreachableOnLinkedin");
+      if (await continueByEmail(ctx, e, why)) return;
+      await endEnrollment(db, e.id, "failed", why);
       return;
     }
   }

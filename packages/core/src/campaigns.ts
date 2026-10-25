@@ -29,6 +29,7 @@ import {
   type EnrollmentStatus,
   type MessageDraft,
   type OutreachAction,
+  type OutreachChannel,
   type Person,
   type Sender,
   type SendWindow,
@@ -380,18 +381,34 @@ export async function previewRecipients(db: Db, leadIds: string[]) {
       person: r.person,
       playName: r.playName,
       campaignId: campaign.id,
-      steps: messageSteps.map((s) => ({ id: s.id, label: stepLabel(campaign.steps, s), mode: s.mode ?? "ai", delayHours: s.delayHours })),
+      steps: messageSteps.map((s) => ({ id: s.id, label: stepLabel(campaign.steps, s), mode: s.mode ?? "ai", delayHours: s.delayHours, channels: draftChannels(r.person, s) })),
       drafts,
       conflict: live[0] ? t("inSequence", { play: live[0].playName }) : r.lead.status === "rejected" ? t("rejectedLead") : null,
-      review: draftState(drafts, messageSteps),
+      review: draftState(drafts, draftSlots(r.person, messageSteps)),
     });
   }
   return out;
 }
 
-/** Not reviewed / Being written / Reviewed, across a lead's message steps. */
-export function draftState(drafts: MessageDraft[], messageSteps: CampaignStep[]) {
-  const mine = messageSteps.map((s) => drafts.find((d) => d.stepId === s.id));
+/**
+ * The versions a message needs for this person: LinkedIn when they have a profile (unless the step
+ * goes by email and their address is known), email whenever their address is known, ready for any
+ * switch to email. Nobody reachable keeps a LinkedIn version, as before.
+ */
+export function draftChannels(person: Pick<Person, "linkedinUrl" | "email">, step: Pick<CampaignStep, "channel">): OutreachChannel[] {
+  const out: OutreachChannel[] = [];
+  if (person.linkedinUrl && !(step.channel === "email" && person.email)) out.push("linkedin");
+  if (person.email) out.push("email");
+  return out.length ? out : ["linkedin"];
+}
+
+/** Every (step, channel) draft a lead's sequence needs. */
+export const draftSlots = (person: Pick<Person, "linkedinUrl" | "email">, messageSteps: CampaignStep[]) =>
+  messageSteps.flatMap((s) => draftChannels(person, s).map((channel) => ({ stepId: s.id, channel })));
+
+/** Not reviewed / Being written / Reviewed, across a lead's message drafts. */
+export function draftState(drafts: MessageDraft[], slots: Array<{ stepId: string; channel: OutreachChannel }>) {
+  const mine = slots.map((slot) => drafts.find((d) => d.stepId === slot.stepId && d.channel === slot.channel));
   if (mine.some((d) => d?.review === "being_written")) return "being_written" as const;
   if (mine.length > 0 && mine.every((d) => d?.review === "reviewed")) return "reviewed" as const;
   if (mine.some((d) => d?.review === "failed")) return "failed" as const;
@@ -401,13 +418,13 @@ export function draftState(drafts: MessageDraft[], messageSteps: CampaignStep[])
 
 export async function upsertDraft(
   db: Db,
-  values: Pick<MessageDraft, "campaignId" | "leadId" | "stepId" | "text" | "origin" | "review" | "stepRevision"> & { skipReason?: string | null; error?: string | null; subject?: string | null },
+  values: Pick<MessageDraft, "campaignId" | "leadId" | "stepId" | "channel" | "text" | "origin" | "review" | "stepRevision"> & { skipReason?: string | null; error?: string | null; subject?: string | null },
 ) {
   await db
     .insert(messageDrafts)
     .values(values)
     .onConflictDoUpdate({
-      target: [messageDrafts.campaignId, messageDrafts.leadId, messageDrafts.stepId],
+      target: [messageDrafts.campaignId, messageDrafts.leadId, messageDrafts.stepId, messageDrafts.channel],
       set: {
         text: values.text,
         origin: values.origin,
@@ -652,7 +669,9 @@ export async function completeManualAction(db: Db, actionId: string, outcome: { 
       await db
         .update(messageDrafts)
         .set({ sentAt: now })
-        .where(and(eq(messageDrafts.campaignId, e.campaignId), eq(messageDrafts.leadId, e.leadId), eq(messageDrafts.stepId, action.stepId)));
+        .where(
+          and(eq(messageDrafts.campaignId, e.campaignId), eq(messageDrafts.leadId, e.leadId), eq(messageDrafts.stepId, action.stepId), eq(messageDrafts.channel, "linkedin")),
+        );
   }
   if (action.kind === "auto_reply") {
     await db.update(enrollments).set(patch).where(eq(enrollments.id, e.id));
@@ -742,7 +761,7 @@ export async function listEnrollments(db: Db, campaignId: string) {
       nextStep: !ended && step ? stepLabel(campaign.steps, step) : null,
       stepId: !ended && step ? step.id : null,
       drafts: drafts.filter((d) => d.leadId === r.leadId),
-      review: draftState(drafts.filter((d) => d.leadId === r.leadId), messageSteps),
+      review: draftState(drafts.filter((d) => d.leadId === r.leadId), draftSlots(r.person, messageSteps)),
     };
   });
 }
@@ -772,7 +791,12 @@ export async function leadCampaignDetail(db: Db, leadId: string) {
     replies: replyRows,
     drafts: campaign.steps
       .filter((s) => s.kind === "message" && s.enabled)
-      .map((s) => ({ stepId: s.id, label: stepLabel(campaign.steps, s), draft: drafts.find((d) => d.stepId === s.id) ?? null })),
+      .map((s) => {
+        // The version this lead will get: email once the sequence went to email or the step goes by email.
+        const channel: OutreachChannel = e.channel === "email" || s.channel === "email" ? "email" : "linkedin";
+        const draft = drafts.find((d) => d.stepId === s.id && d.channel === channel) ?? drafts.find((d) => d.stepId === s.id) ?? null;
+        return { stepId: s.id, label: stepLabel(campaign.steps, s), channel: draft?.channel ?? channel, draft };
+      }),
   };
 }
 

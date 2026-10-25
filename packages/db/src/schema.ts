@@ -730,7 +730,7 @@ export const enrollments = sqliteTable(
 
 export const DRAFT_REVIEW = ["being_written", "not_reviewed", "reviewed", "failed"] as const;
 
-/** A lead's text for one message step, written before they join and editable until it's sent. */
+/** A lead's text for one message step on one channel, written before they join and editable until it's sent. */
 export const messageDrafts = sqliteTable(
   "message_draft",
   {
@@ -742,6 +742,8 @@ export const messageDrafts = sqliteTable(
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
     stepId: text("step_id").notNull(),
+    /** Each message has a LinkedIn version and, when their address is known, an email version. */
+    channel: text("channel", { enum: OUTREACH_CHANNELS }).notNull().default("linkedin"),
     text: text("text").notNull().default(""),
     origin: text("origin", { enum: ["rendered", "generated", "edited"] }).notNull(),
     review: text("review", { enum: DRAFT_REVIEW }).notNull().default("not_reviewed"),
@@ -755,7 +757,7 @@ export const messageDrafts = sqliteTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("draft_campaign_lead_step_idx").on(t.campaignId, t.leadId, t.stepId)],
+  (t) => [uniqueIndex("draft_campaign_lead_step_channel_idx").on(t.campaignId, t.leadId, t.stepId, t.channel)],
 );
 
 export const ACTION_KINDS = ["visit_profile", "follow_profile", "like_post", "invite", "message", "auto_reply"] as const;

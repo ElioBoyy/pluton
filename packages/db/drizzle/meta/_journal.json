@@ -134,6 +134,13 @@
       "when": 1792966408460,
       "tag": "0018_email_channel",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1792970034728,
+      "tag": "0019_draft_channel",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AppRouter } from "@pluton/server/router";
-import { Button } from "../../components/ui.tsx";
+import { Button, Segmented } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
 import { translate, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
@@ -192,14 +192,43 @@ function Messages({ recipient: r, onRegenerate }: { recipient: Recipient; onRege
       {r.steps.length === 0 && <p className="text-sm text-muted">{t("add.noMessageStep")}</p>}
       <ol className="flex flex-col gap-3">
         {r.steps.map((s, i) => (
-          <StepDraft key={s.id} index={i} step={s} draft={r.drafts.find((d) => d.stepId === s.id)} />
+          <StepDrafts key={s.id} index={i} step={s} drafts={r.drafts.filter((d) => d.stepId === s.id)} />
         ))}
       </ol>
     </div>
   );
 }
 
-function StepDraft({ index, step, draft }: { index: number; step: Recipient["steps"][number]; draft?: Recipient["drafts"][number] }) {
+/** A step's versions: LinkedIn, and the email sent instead when LinkedIn isn't available for them. */
+function StepDrafts({ index, step, drafts }: { index: number; step: Recipient["steps"][number]; drafts: Recipient["drafts"] }) {
+  const t = useT("sequence");
+  const [channel, setChannel] = useState(step.channels[0]!);
+  const switcher =
+    step.channels.length > 1 ? (
+      <Segmented
+        size="sm"
+        label={t("add.version")}
+        value={channel}
+        onChange={setChannel}
+        options={step.channels.map((c) => ({ value: c, label: c === "email" ? t("step.channelEmail") : t("step.channelLinkedin") }))}
+      />
+    ) : null;
+  return <StepDraft key={channel} index={index} step={step} channel={channel} switcher={switcher} draft={drafts.find((d) => d.channel === channel)} />;
+}
+
+function StepDraft({
+  index,
+  step,
+  channel,
+  switcher,
+  draft,
+}: {
+  index: number;
+  step: Recipient["steps"][number];
+  channel: Recipient["steps"][number]["channels"][number];
+  switcher: React.ReactNode;
+  draft?: Recipient["drafts"][number];
+}) {
   const t = useT("sequence");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
@@ -213,9 +242,14 @@ function StepDraft({ index, step, draft }: { index: number; step: Recipient["ste
         <span className="font-medium text-muted">
           {index + 1} · {stepWhen(index, step.delayHours)} · {step.label}
           {step.mode === "ai" && <Sparkle size={10} weight="fill" className="ml-1 inline text-accent" />}
+          {!switcher && channel === "email" && ` · ${t("step.channelEmail")}`}
         </span>
-        <span className={cn("shrink-0", REVIEW[state]?.className)}>{draft?.skipReason ? t("add.skipped", { reason: draft.skipReason }) : REVIEW[state]?.label}</span>
+        <span className="flex shrink-0 items-center gap-3">
+          {switcher}
+          <span className={REVIEW[state]?.className}>{draft?.skipReason ? t("add.skipped", { reason: draft.skipReason }) : REVIEW[state]?.label}</span>
+        </span>
       </div>
+      {channel === "email" && draft?.subject && <p className="mb-1.5 text-xs text-muted">{t("add.subject", { subject: draft.subject })}</p>}
       {state === "being_written" ? (
         <p className="flex items-center gap-2 py-3 text-sm text-muted">
           <CircleNotch size={13} className="animate-spin" /> {t("add.writingFromActivity")}

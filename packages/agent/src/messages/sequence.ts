@@ -28,6 +28,8 @@ export default defineMessages({
     emailLimit: "Today's email limit reached ({count})",
     emailBounced: "The email bounced",
     continuedByEmail: "{reason}: continued by email",
+    profileNotFound: "LinkedIn can't find this profile",
+    unreachableOnLinkedin: "LinkedIn won't let this account reach this person",
     noChannel: "No LinkedIn profile and no email for this person",
   },
   fr: {
@@ -56,6 +58,8 @@ export default defineMessages({
     emailLimit: "Limite d’e-mails du jour atteinte ({count})",
     emailBounced: "L’e-mail n’a pas été distribué",
     continuedByEmail: "{reason} : suite par e-mail",
+    profileNotFound: "LinkedIn ne trouve pas ce profil",
+    unreachableOnLinkedin: "LinkedIn ne laisse pas ce compte joindre cette personne",
     noChannel: "Ni profil LinkedIn ni e-mail pour cette personne",
   },
   it: {
@@ -84,6 +88,8 @@ export default defineMessages({
     emailLimit: "Limite di email di oggi raggiunto ({count})",
     emailBounced: "L’email non è stata consegnata",
     continuedByEmail: "{reason}: si continua via email",
+    profileNotFound: "LinkedIn non trova questo profilo",
+    unreachableOnLinkedin: "LinkedIn non permette a questo account di raggiungere questa persona",
     noChannel: "Nessun profilo LinkedIn e nessuna email per questa persona",
   },
   es: {
@@ -112,6 +118,8 @@ export default defineMessages({
     emailLimit: "Límite de correos de hoy alcanzado ({count})",
     emailBounced: "El correo no se entregó",
     continuedByEmail: "{reason}: se sigue por correo",
+    profileNotFound: "LinkedIn no encuentra este perfil",
+    unreachableOnLinkedin: "LinkedIn no deja que esta cuenta contacte a esta persona",
     noChannel: "Ni perfil de LinkedIn ni correo para esta persona",
   },
   de: {
@@ -140,6 +148,8 @@ export default defineMessages({
     emailLimit: "Heutiges E-Mail-Limit erreicht ({count})",
     emailBounced: "Die E-Mail wurde nicht zugestellt",
     continuedByEmail: "{reason}: weiter per E-Mail",
+    profileNotFound: "LinkedIn findet dieses Profil nicht",
+    unreachableOnLinkedin: "LinkedIn lässt dieses Konto diese Person nicht erreichen",
     noChannel: "Weder LinkedIn-Profil noch E-Mail für diese Person",
   },
 });

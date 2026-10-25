@@ -87,10 +87,11 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
           {t("block.journey")}
         </summary>
         <ol className="mt-2 flex flex-col gap-2">
-          {d.drafts.map(({ stepId, label, draft }) => (
+          {d.drafts.map(({ stepId, label, channel, draft }) => (
             <li key={stepId} className="rounded-xl bg-panel px-4 py-3 shadow-card">
               <p className="text-xs text-muted">
-                {label} · {draft?.sentAt ? t("block.sentAt", { when: when(draft.sentAt) }) : draft?.text ? t("block.notSent") : t("block.notWritten")}
+                {label}
+                {channel === "email" && ` · ${t("step.channelEmail")}`} · {draft?.sentAt ? t("block.sentAt", { when: when(draft.sentAt) }) : draft?.text ? t("block.notSent") : t("block.notWritten")}
               </p>
               {draft?.text && <p className="mt-1 whitespace-pre-wrap">{draft.text}</p>}
             </li>

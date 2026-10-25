@@ -327,7 +327,9 @@ function StepLeads({ data, step }: { data: Data; step: Step }) {
   return (
     <ul className="flex flex-col gap-2">
       {here.map((e) => {
-        const draft = e.drafts.find((d) => d.stepId === step.id);
+        // The version this lead gets at this step: email once their sequence went to email or the step goes by email.
+        const channel = e.channel === "email" || step.channel === "email" ? "email" : "linkedin";
+        const draft = e.drafts.find((d) => d.stepId === step.id && d.channel === channel) ?? e.drafts.find((d) => d.stepId === step.id);
         return (
           <li key={e.id} className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
             <div className="flex items-center justify-between gap-2">
