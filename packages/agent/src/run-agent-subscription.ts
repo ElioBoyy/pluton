@@ -39,7 +39,7 @@ export async function runAgentWithSubscription(opts: RunAgentOptions): Promise<R
     for await (const message of query({
       prompt,
       options: {
-        model: MODEL,
+        model: opts.model ?? MODEL,
         effort: "medium",
         systemPrompt: opts.system,
         // Only web research plus our save tools; nothing from the user's own Claude Code setup.

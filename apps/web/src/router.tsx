@@ -9,6 +9,7 @@ import { LEAD_TABS, type LeadTabKey } from "./features/leads/labels.ts";
 import { LeadsPage } from "./features/leads/leads-page.tsx";
 import { PlaysPage } from "./features/plays/plays-page.tsx";
 import { ApiKeysPage } from "./routes/api-keys.tsx";
+import { LinkedinPage } from "./routes/linkedin.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
@@ -74,7 +75,9 @@ const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
           ? DataSourcesPage
           : s.slug === "api-keys"
             ? ApiKeysPage
-            : () => (
+            : s.slug === "linkedin"
+              ? LinkedinPage
+              : () => (
             <div className="rounded-xl border border-dashed border-line px-6 py-16 text-center text-sm text-muted">
               {s.label} arrives in phase {s.phase} of PLAN.md.
             </div>
@@ -85,7 +88,7 @@ const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
 const leadTab = (v: unknown): LeadTabKey | undefined => (LEAD_TABS.some((t) => t.key === v) ? (v as LeadTabKey) : undefined);
 const leadId = (v: unknown) => (typeof v === "string" && v ? v : undefined);
 
-const PLAY_TABS = ["overview", "sourcing", "leads"] as const;
+const PLAY_TABS = ["overview", "sourcing", "leads", "sequence"] as const;
 export type PlayTab = (typeof PLAY_TABS)[number];
 
 const playRoute = createRoute({

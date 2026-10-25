@@ -17,9 +17,10 @@ import {
   type JobHandler,
   type JobType,
 } from "@pluton/core";
-import { createDb, getSetting, prepareDb, watchSettings } from "@pluton/db";
+import { and, createDb, eq, getSetting, inArray, jobs, lt, prepareDb, watchSettings } from "@pluton/db";
 import { brainReview } from "./handlers/brain-review.ts";
 import { onboardingStage } from "./handlers/onboarding-stage.ts";
+import { prepareDrafts, sequenceTick } from "./handlers/campaigns.ts";
 import { leadsFindEmails } from "./handlers/leads.ts";
 import { leadFindingRun, playsPlan } from "./handlers/plays.ts";
 import { systemPing } from "./handlers/system-ping.ts";
@@ -31,6 +32,8 @@ const handlers: Record<JobType, JobHandler> = {
   "plays.plan": playsPlan,
   "lead_finding.run": leadFindingRun,
   "leads.find_emails": leadsFindEmails,
+  "campaigns.prepare_drafts": prepareDrafts,
+  "campaigns.tick": sequenceTick,
 };
 
 const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY ?? 4);
@@ -122,6 +125,26 @@ async function scheduleLoop() {
   }
 }
 
+/**
+ * LinkedIn sequences: a `campaigns.tick` job every 30 s. The slot key makes it one pass per slot
+ * however many workers run; a worker restarted mid-job gets its jobs requeued here too.
+ */
+async function sequenceLoop() {
+  while (!shutdown.signal.aborted) {
+    try {
+      const slot = Math.floor(Date.now() / 30_000);
+      await enqueueJob(db, { type: "campaigns.tick", payload: {}, idempotencyKey: `campaigns-tick:${slot}`, maxAttempts: 1 });
+      const recovered = await recoverStaleJobs(db);
+      if (recovered) console.log(`[worker] requeued ${recovered} orphaned job(s)`);
+      // Ticks are bookkeeping: keep an hour of them.
+      await db.delete(jobs).where(and(eq(jobs.type, "campaigns.tick"), inArray(jobs.status, ["completed", "failed"]), lt(jobs.createdAt, new Date(Date.now() - 3_600_000))));
+    } catch (error) {
+      console.error("[worker] sequence scheduling error", error);
+    }
+    await new Promise((r) => setTimeout(r, 30_000));
+  }
+}
+
 console.log(`[worker] ${workerId} running ${CONCURRENCY} slot(s)`);
-await Promise.all([...Array.from({ length: CONCURRENCY }, (_, i) => runLoop(i)), scheduleLoop()]);
+await Promise.all([...Array.from({ length: CONCURRENCY }, (_, i) => runLoop(i)), scheduleLoop(), sequenceLoop()]);
 console.log("[worker] stopped");

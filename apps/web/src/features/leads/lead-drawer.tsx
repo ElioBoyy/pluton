@@ -25,6 +25,7 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { EMAIL_SOURCE, REASON_LABEL, STAGE_LABELS, STATUS, initials, type RejectReason } from "./labels.ts";
 import { RejectPopover } from "./reject-popover.tsx";
+import { LeadCampaignBlock } from "../sequence/lead-campaign-block.tsx";
 import { useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
 
 type Detail = inferRouterOutputs<AppRouter>["leads"]["get"];
@@ -159,6 +160,10 @@ export function LeadDrawer({
               <Meter value={data.warmness} className="bg-cat-orange" />
             </Field>
           </dl>
+
+          <Section title="Campaign">
+            <LeadCampaignBlock leadId={data.id} status={data.status} />
+          </Section>
 
           <Section title="Why they fit">
             <p className="text-sm font-medium">{data.signalLabel}</p>

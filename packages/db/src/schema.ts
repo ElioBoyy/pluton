@@ -506,6 +506,10 @@ export const LEAD_EVENT_KINDS = [
   "linkedin_found",
   "linkedin_not_found",
   "exported",
+  "campaign_added",
+  "campaign_removed",
+  "outreach",
+  "reply",
 ] as const;
 
 /** A lead's timeline: what happened to it and who did it. */
@@ -529,6 +533,228 @@ export type Person = typeof people.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type LeadFeedback = typeof leadFeedback.$inferSelect;
 export type LeadEvent = typeof leadEvents.$inferSelect;
+
+// ── LinkedIn sequences ───────────────────────────────────────────────────────
+
+/**
+ * How a LinkedIn account sends. `unipile`: Unipile's API acts on the account (real sending).
+ * `manual`: Pluton prepares each action and its text when it's due, and you do it on LinkedIn.
+ */
+export const SENDER_PROVIDERS = ["unipile", "manual"] as const;
+export const SENDER_STATUSES = ["connecting", "connected", "disconnected", "error"] as const;
+export type SenderLimits = { visits: number; invites: number; messages: number };
+
+export const senders = sqliteTable("sender", {
+  id: id(),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  provider: text("provider", { enum: SENDER_PROVIDERS }).notNull(),
+  name: text("name").notNull(),
+  profileUrl: text("profile_url"),
+  /** Unipile account id. */
+  externalId: text("external_id"),
+  status: text("status", { enum: SENDER_STATUSES }).notNull().default("connected"),
+  error: text("error"),
+  /** Per local day. Prudent defaults: LinkedIn restricts accounts that invite too much. */
+  limits: text("limits", { mode: "json" }).$type<SenderLimits>().notNull().default({ visits: 80, invites: 20, messages: 50 }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const STEP_KINDS = ["visit_profile", "follow_profile", "like_post", "invite", "message"] as const;
+export type StepKind = (typeof STEP_KINDS)[number];
+
+export type CampaignStep = {
+  id: string;
+  kind: StepKind;
+  enabled: boolean;
+  /** Hours after the previous step. For the first message: after the invitation is accepted. */
+  delayHours: number;
+  /** Messages only. */
+  mode?: "ai" | "template";
+  guidelines?: string;
+  template?: string;
+  /** Template fallbacks when a lead lacks a detail, and whether to skip the lead instead. */
+  defaults?: { firstName?: string; company?: string };
+  skipIfMissing?: { firstName?: boolean; company?: boolean };
+  /** Bumped on each save: drafts written for an older revision are kept as they are. */
+  revision: number;
+};
+
+export type CampaignObjective = { kind: "book_meeting" | "share_app" | "none"; link?: string; autoReply: boolean };
+export type SendWindow = { days: number[]; startHour: number; endHour: number };
+
+export const CAMPAIGN_STATUSES = ["active", "paused"] as const;
+
+/** A Play's LinkedIn sequence. One per Play. */
+export const campaigns = sqliteTable(
+  "campaign",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    playId: text("play_id")
+      .notNull()
+      .references(() => plays.id, { onDelete: "cascade" }),
+    status: text("status", { enum: CAMPAIGN_STATUSES }).notNull().default("active"),
+    steps: text("steps", { mode: "json" }).$type<CampaignStep[]>().notNull(),
+    /** Optional invitation note (300 characters max on LinkedIn); none by default, like the reference. */
+    inviteNote: text("invite_note"),
+    /** An invitation not accepted after this many days ends the sequence for that lead. */
+    inviteExpiryDays: integer("invite_expiry_days").notNull().default(7),
+    sendWindow: text("send_window", { mode: "json" }).$type<SendWindow>().notNull().default({ days: [1, 2, 3, 4, 5], startHour: 9, endHour: 18 }),
+    /** null: same as the Brain's voice language. */
+    language: text("language"),
+    objective: text("objective", { mode: "json" }).$type<CampaignObjective>().notNull().default({ kind: "none", autoReply: true }),
+    /** Accounts this campaign sends from; empty means every connected account. */
+    senderIds: text("sender_ids", { mode: "json" }).$type<string[]>().notNull().default([]),
+    revision: integer("revision").notNull().default(1),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("campaign_play_idx").on(t.playId)],
+);
+
+/** What last happened to a lead in its sequence (the reference's enrollment states). */
+export const ENROLLMENT_STATUSES = [
+  "enrolled",
+  "profile_visited",
+  "profile_followed",
+  "post_liked",
+  "invite_sent",
+  "invite_accepted",
+  "message_sent",
+  "reply_received",
+  "auto_reply_sent",
+  "marked_lost",
+  "needs_you",
+  "failed",
+  "stopped",
+  "completed",
+] as const;
+export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
+/** Statuses after which the sequence does nothing more for the lead. */
+export const ENDED_ENROLLMENT: EnrollmentStatus[] = ["reply_received", "auto_reply_sent", "marked_lost", "needs_you", "failed", "stopped", "completed"];
+
+export const enrollments = sqliteTable(
+  "enrollment",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    campaignId: text("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    leadId: text("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    /** Sticky: a person keeps the same account for the whole sequence. */
+    senderId: text("sender_id").references(() => senders.id, { onDelete: "set null" }),
+    status: text("status", { enum: ENROLLMENT_STATUSES }).notNull().default("enrolled"),
+    /** Index in the campaign's steps of the next step to run. */
+    stepIndex: integer("step_index").notNull().default(0),
+    nextActionAt: integer("next_action_at", { mode: "timestamp_ms" }),
+    /** Removing the lead within this window cancels everything; nothing runs before it. */
+    undoUntil: integer("undo_until", { mode: "timestamp_ms" }).notNull(),
+    /** First-degree connection: null until known. */
+    connected: integer("connected", { mode: "boolean" }),
+    inviteSentAt: integer("invite_sent_at", { mode: "timestamp_ms" }),
+    acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
+    providerUserId: text("provider_user_id"),
+    chatId: text("chat_id"),
+    lastReplyCheckAt: integer("last_reply_check_at", { mode: "timestamp_ms" }),
+    note: text("note"),
+    endedAt: integer("ended_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("enrollment_campaign_lead_idx").on(t.campaignId, t.leadId), index("enrollment_due_idx").on(t.nextActionAt)],
+);
+
+export const DRAFT_REVIEW = ["being_written", "not_reviewed", "reviewed", "failed"] as const;
+
+/** A lead's text for one message step, written before they join and editable until it's sent. */
+export const messageDrafts = sqliteTable(
+  "message_draft",
+  {
+    id: id(),
+    campaignId: text("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    leadId: text("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    stepId: text("step_id").notNull(),
+    text: text("text").notNull().default(""),
+    origin: text("origin", { enum: ["rendered", "generated", "edited"] }).notNull(),
+    review: text("review", { enum: DRAFT_REVIEW }).notNull().default("not_reviewed"),
+    stepRevision: integer("step_revision").notNull(),
+    /** Set when the template skips this lead (missing first name or company). */
+    skipReason: text("skip_reason"),
+    error: text("error"),
+    sentAt: integer("sent_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("draft_campaign_lead_step_idx").on(t.campaignId, t.leadId, t.stepId)],
+);
+
+export const ACTION_KINDS = ["visit_profile", "follow_profile", "like_post", "invite", "message", "auto_reply"] as const;
+export const ACTION_STATUSES = ["pending_manual", "done", "skipped", "failed"] as const;
+
+/** Every action taken (or to take by hand) on LinkedIn: the journey, the to-do list and the daily quotas. */
+export const outreachActions = sqliteTable(
+  "outreach_action",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    enrollmentId: text("enrollment_id")
+      .notNull()
+      .references(() => enrollments.id, { onDelete: "cascade" }),
+    senderId: text("sender_id").references(() => senders.id, { onDelete: "set null" }),
+    stepId: text("step_id"),
+    kind: text("kind", { enum: ACTION_KINDS }).notNull(),
+    status: text("status", { enum: ACTION_STATUSES }).notNull(),
+    text: text("text"),
+    detail: text("detail"),
+    doneAt: integer("done_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("action_sender_idx").on(t.senderId, t.createdAt), index("action_enrollment_idx").on(t.enrollmentId)],
+);
+
+export const REPLY_LABELS = ["positive", "in_your_hands", "not_interested"] as const;
+
+export const replies = sqliteTable(
+  "reply",
+  {
+    id: id(),
+    enrollmentId: text("enrollment_id")
+      .notNull()
+      .references(() => enrollments.id, { onDelete: "cascade" }),
+    externalId: text("external_id"),
+    text: text("text").notNull(),
+    label: text("label", { enum: REPLY_LABELS }),
+    summary: text("summary"),
+    source: text("source", { enum: ["unipile", "manual"] }).notNull(),
+    receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
+    handledAt: integer("handled_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("reply_enrollment_idx").on(t.enrollmentId), uniqueIndex("reply_external_idx").on(t.enrollmentId, t.externalId)],
+);
+
+export type Sender = typeof senders.$inferSelect;
+export type Campaign = typeof campaigns.$inferSelect;
+export type Enrollment = typeof enrollments.$inferSelect;
+export type MessageDraft = typeof messageDrafts.$inferSelect;
+export type OutreachAction = typeof outreachActions.$inferSelect;
+export type Reply = typeof replies.$inferSelect;
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 

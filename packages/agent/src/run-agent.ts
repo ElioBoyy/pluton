@@ -3,6 +3,10 @@ import { z } from "zod";
 import { getSetting } from "@pluton/db";
 
 export const MODEL = "claude-opus-5-5";
+/** Writing outreach and judging fit. */
+export const WRITER_MODEL = "claude-sonnet-5-5";
+/** Small classification tasks. */
+export const FAST_MODEL = "claude-haiku-5-5";
 
 export type LocalTool = {
   name: string;
@@ -37,6 +41,8 @@ export type RunAgentOptions = {
   maxContinuations?: number;
   maxTurns?: number;
   signal?: AbortSignal;
+  /** Defaults to MODEL. */
+  model?: string;
 };
 
 export type RunAgentResult = { turns: number; missing: string[] };
@@ -81,7 +87,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions): Promise<RunAgen
   for (let turn = 0; turn < (opts.maxTurns ?? 30); turn++) {
     const response = await getClient().beta.messages.create(
       {
-        model: MODEL,
+        model: opts.model ?? MODEL,
         max_tokens: 16000,
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",

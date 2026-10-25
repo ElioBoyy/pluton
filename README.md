@@ -56,6 +56,20 @@ Approve (👍) or reject (👎) with optional reasons (wrong role, seniority, in
 
 Find email checks free sources first (an address quoted in the research, then the company's own contact, legal and team pages), then Hunter when a key is set (1 search, remaining quota shown), and last a guess from the site's address pattern, labelled unverified. Bulk lookups run as a `leads.find_emails` job.
 
+## LinkedIn sequences
+
+Each Play has a sequence (Play → Sequence tab): visit → follow → like a recent post → connection request (no note by default, given up after 7 days; already-connected leads skip it) → three messages, 6 h after acceptance then 3 days apart, each stopped by a reply. Every step can be switched off or re-timed. A message is **AI** (guidelines, with ✦ Sharpen) or a **template** (`{{ person.first_name | "there" }}`, defaults, skip-if-missing, live preview). Saving asks whether leads already in keep their messages or get them rewritten.
+
+Add leads from the Leads table (row ✈ or bulk "Add N to campaign"): each person's messages are written first (Claude, from their signal, recent posts when Apify is set, and the Brain's voice), shown as Not reviewed / Being written / Reviewed and editable, then they join. Nothing runs for 10 minutes (undo). One person is in one live sequence at a time.
+
+Accounts (Settings → LinkedIn accounts):
+- **Unipile** (API key + DSN in Settings → API keys): hosted LinkedIn login, then Pluton visits, invites, likes and messages from the account, detects acceptance and reads replies. Unipile can't follow, so that step is skipped.
+- **Manual**: nothing automated. Due steps land in the Play's to-do with the text ready to copy; tick Done (and say whether you were already connected, or when they accepted).
+
+The engine is a `campaigns.tick` job every 30 s (one per slot even with several workers; each lead is claimed before acting): only inside the send window (Mon–Fri 9–18 in the workspace timezone by default), within each account's daily limits (80 visits/follows/likes, 20 invitations, 50 messages), with random gaps, round-robin across accounts with a sticky account per person.
+
+A reply stops the sequence and is classified (positive / in your hands / not interested). With an objective link (Book a meeting / Share your app) and auto-reply on, a positive reply gets one short answer with the link; everything else waits under "Replies waiting for you". Tone (archetype + guidelines) is saved to the Brain's voice; language follows the Brain unless set per sequence.
+
 ## Conventions
 
 - Query helpers (`eq`, `and`, `sql`…) come from `@pluton/db`, never directly from `drizzle-orm`, so the repo shares one drizzle instance.
