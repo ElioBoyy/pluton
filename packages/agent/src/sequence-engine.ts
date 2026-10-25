@@ -130,6 +130,11 @@ async function runStep(ctx: Ctx, e: Enrollment, campaign: Campaign): Promise<boo
   const person = await personOf(db, e);
   // No LinkedIn profile but an address: the whole sequence goes by email from your mailbox.
   if (e.channel === "email" || (byEmail(person) && !e.providerUserId && mailerConfigured())) return emailStep(ctx, e, campaign, person);
+  // A message set to go by email does, when their address is known; otherwise it stays on LinkedIn.
+  const current = campaign.steps[e.stepIndex];
+  if (current?.enabled && current.kind === "message" && current.channel === "email" && person.email && mailerConfigured()) {
+    return emailStep(ctx, e, campaign, person, { thisStepOnly: true });
+  }
   let sender = e.senderId ? await db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : null;
   if (!sender) {
     sender = await pickSender(db, campaign, person.id);
@@ -218,14 +223,30 @@ async function waitForConnection(ctx: Ctx, e: Enrollment, campaign: Campaign, ch
     return;
   }
   if (!e.inviteSentAt) {
+    if (await continueByEmail(ctx, e, t("noInviteStep"))) return;
     await endEnrollment(db, e.id, "needs_you", t("noInviteStep"));
     return;
   }
   if (now.getTime() - e.inviteSentAt.getTime() > campaign.inviteExpiryDays * 24 * HOUR) {
-    await endEnrollment(db, e.id, "marked_lost", t("inviteExpired", { count: campaign.inviteExpiryDays }));
+    const expired = t("inviteExpired", { count: campaign.inviteExpiryDays });
+    if (await continueByEmail(ctx, e, expired)) return;
+    await endEnrollment(db, e.id, "marked_lost", expired);
     return;
   }
   await defer(db, e.id, new Date(now.getTime() + 4 * HOUR + jitterMs()));
+}
+
+/** LinkedIn is a dead end (no connection) but their address is known: the rest of the sequence goes by email. */
+async function continueByEmail(ctx: Ctx, e: Enrollment, why: string) {
+  const { db, now } = ctx;
+  const person = await personOf(db, e);
+  if (!person.email || !mailerConfigured()) return false;
+  await db
+    .update(enrollments)
+    .set({ channel: "email", senderId: null, note: t("continuedByEmail", { reason: why }), nextActionAt: new Date(now.getTime() + jitterMs(1, 10)) })
+    .where(eq(enrollments.id, e.id));
+  await addLeadEvent(db, e.leadId, "outreach", { kind: "switched_to_email", reason: why });
+  return true;
 }
 
 /** First message after acceptance waits its delay from the acceptance, not from the invitation. */
@@ -383,9 +404,9 @@ async function manualStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Cam
  * People with no LinkedIn profile: message steps go out as emails in one thread from your SMTP
  * mailbox, minutes apart and within its daily limit; the LinkedIn-only steps are skipped.
  */
-async function emailStep(ctx: Ctx, e: Enrollment, campaign: Campaign, person: Person) {
+async function emailStep(ctx: Ctx, e: Enrollment, campaign: Campaign, person: Person, opts: { thisStepOnly?: boolean } = {}) {
   const { db, now } = ctx;
-  if (e.channel !== "email") {
+  if (e.channel !== "email" && !opts.thisStepOnly) {
     // A LinkedIn account picked when they joined has nothing to do here.
     await db.update(enrollments).set({ channel: "email", senderId: null }).where(eq(enrollments.id, e.id));
     e = { ...e, channel: "email", senderId: null };
@@ -436,6 +457,12 @@ async function emailStep(ctx: Ctx, e: Enrollment, campaign: Campaign, person: Pe
     return false;
   }
 
+  // A LinkedIn reply since the last message stops the sequence before this email goes out.
+  if (e.chatId) {
+    await pollReplies(db, e);
+    const fresh = await db.query.enrollments.findFirst({ where: eq(enrollments.id, e.id) });
+    if (!fresh || ENDED_ENROLLMENT.includes(fresh.status)) return false;
+  }
   const { text, subject: written, skipped, reason } = await messageFor(db, e, campaign, step);
   if (!text) {
     await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
@@ -563,7 +590,8 @@ async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: s
     const sender = e.senderId ? await db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : null;
     try {
       const text = await writeAutoReply(db, { campaign, person, reply: reply.text });
-      if (e.channel === "email" && person.email && mailerConfigured()) {
+      // The answer goes back the way their reply came.
+      if ((reply.source === "email" || e.channel === "email") && person.email && mailerConfigured()) {
         const thread = await emailThread(db, e.id);
         const theirs = reply.externalId?.startsWith("<") ? reply.externalId : undefined;
         const { messageId } = await sendOutreachEmail({

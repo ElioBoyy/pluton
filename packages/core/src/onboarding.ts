@@ -70,10 +70,21 @@ export type PlanStep = {
 };
 
 const STAGE_CARDS: Record<OnboardingStage, CardKind[]> = {
-  company: ["company_statement"],
+  company: ["offer", "company_statement"],
   audience: ["company_sizes", "personas"],
   market: ["hiring_roles", "stack_tools"],
 };
+
+/** Sessions started before the offer question have no offer card; they finish the company phase without it. */
+const LATER_CARDS: CardKind[] = ["offer"];
+
+/** Every card a stage raised was answered, or null; otherwise the time of the last answer. */
+function stageCardsAnswered(stage: OnboardingStage, cards: OnboardingCard[]) {
+  const own = cards.filter((c) => STAGE_CARDS[stage].includes(c.kind));
+  const raised = STAGE_CARDS[stage].every((kind) => LATER_CARDS.includes(kind) || own.some((c) => c.kind === kind));
+  if (!raised || own.some((c) => c.status !== "answered")) return null;
+  return Math.max(0, ...own.map((c) => c.answeredAt?.getTime() ?? 0));
+}
 
 // ── Events ───────────────────────────────────────────────────────────────────
 
@@ -245,10 +256,9 @@ function derivePlan(
   const phaseEnd = (stage: OnboardingStage) => {
     const row = stages.find((s) => s.stage === stage);
     if (row?.status !== "done") return null;
-    const kinds = STAGE_CARDS[stage];
-    const own = cards.filter((c) => kinds.includes(c.kind));
-    if (own.length < kinds.length || own.some((c) => c.status !== "answered")) return null;
-    return Math.max(ms(row.finishedAt) ?? 0, ...own.map((c) => ms(c.answeredAt) ?? 0));
+    const answered = stageCardsAnswered(stage, cards);
+    if (answered === null) return null;
+    return Math.max(ms(row.finishedAt) ?? 0, answered);
   };
 
   const ends = [
@@ -285,8 +295,12 @@ export type CardView = {
   statement?: string;
   options?: CardOption[];
   allowCustom?: boolean;
+  /** Exactly one option is picked (radio), instead of any number. */
+  single?: boolean;
   answer: unknown;
 };
+
+const OFFERS = ["services", "product"] as const;
 
 export const toCardView = (c: OnboardingCard): CardView =>
   localizeCard({ id: c.id, kind: c.kind, status: c.status, answer: c.answer ?? null, ...c.body } as CardView);
@@ -304,13 +318,17 @@ const relationOf = (detail: string | undefined) =>
  */
 function localizeCard(card: CardView): CardView {
   const kind = card.kind as CardKind;
-  const subtitled = kind === "personas" || kind === "hiring_roles" || kind === "stack_tools";
+  const subtitled = kind === "offer" || kind === "personas" || kind === "hiring_roles" || kind === "stack_tools";
   return {
     ...card,
     title: t(`card.${kind}.title`),
     ...(subtitled && { subtitle: t(`card.${kind}.subtitle`) }),
     options: card.options?.map((o) => {
       if (kind === "company_sizes") return { ...o, label: t("card.company_sizes.option", { band: o.id }) };
+      if (kind === "offer") {
+        const offer = o.id as (typeof OFFERS)[number];
+        return { ...o, label: t(`card.offer.${offer}`), detail: t(`card.offer.${offer}.detail`) };
+      }
       const relation = kind === "stack_tools" ? relationOf(o.detail) : undefined;
       return relation ? { ...o, detail: t(`relation.${relation}`) } : o;
     }),
@@ -359,6 +377,19 @@ export async function raiseStageCards(db: Db, sessionId: string, stage: Onboardi
   if (stage === "company") {
     const company = await getSingleton(db, ws, "company");
     if (!company) throw new Error("Company research produced no company profile");
+    // Asked first: selling missions or a product changes who every later stage looks for.
+    const detected = company.data.offer ?? "product";
+    await createCard(db, sessionId, "offer", {
+      title: t("card.offer.title"),
+      subtitle: t("card.offer.subtitle"),
+      single: true,
+      options: OFFERS.map((offer) => ({
+        id: offer,
+        label: t(`card.offer.${offer}`),
+        detail: t(`card.offer.${offer}.detail`),
+        selected: offer === detected,
+      })),
+    });
     await createCard(db, sessionId, "company_statement", {
       title: t("card.company_statement.title"),
       heading: `${company.data.name} · ${company.data.oneLiner}`,
@@ -435,6 +466,13 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
 
   let userText: string;
   switch (card.kind) {
+    case "offer": {
+      const offer = OFFERS.find((o) => o === picked[0]?.id) ?? "product";
+      const company = (await getSingleton(db, ws, "company"))!;
+      await emitBrain(db, sid, await saveBrainItems(db, ws, "company", [{ ...company.data, offer }], "user"));
+      userText = t(`card.offer.${offer}`);
+      break;
+    }
     case "company_statement": {
       if ("action" in answer && answer.action === "edit") {
         const company = (await getSingleton(db, ws, "company"))!;
@@ -498,10 +536,15 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
   await emitOnboarding(db, sid, { type: "card_answered", cardId });
   await emitOnboarding(db, sid, { type: "message", role: "user", text: userText });
 
-  if (card.kind === "company_statement") {
+  if (card.kind === "offer") {
+    const company = (await getSingleton(db, ws, "company"))!;
+    await say(db, sid, t(company.data.offer === "services" ? "say.offerServices" : "say.offerProduct"));
+  }
+  const cards = await db.select().from(onboardingCards).where(eq(onboardingCards.sessionId, sid));
+  if (STAGE_CARDS.company.includes(card.kind) && stageCardsAnswered("company", cards) !== null) {
     const company = (await getSingleton(db, ws, "company"))!;
     await emitOnboarding(db, sid, { type: "message", role: "assistant", text: t("say.companyConfirmed", { name: company.data.name }) });
-    // Audience and market research run in parallel once the company is locked in.
+    // Audience and market research run in parallel once the company and what it sells are locked in.
     await startStage(db, sid, "audience");
     await startStage(db, sid, "market");
   } else {

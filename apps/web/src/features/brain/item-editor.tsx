@@ -72,7 +72,8 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
     case "select":
       return (
         <select
-          value={value as string}
+          // Fields added after an item was saved have no value yet; they read as their first option.
+          value={(value as string | undefined) ?? field.options[0]!.value}
           onChange={(e) => onChange(e.target.value)}
           className={selectClass}
         >

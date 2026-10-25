@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { listBrain, newPlaySchema, pipelineCapabilities, playsText, type NewPlay } from "@pluton/core";
+import { listBrain, newPlaySchema, pipelineCapabilities, playsText, sellsServices, type NewPlay } from "@pluton/core";
 import type { Db } from "@pluton/db";
 import { runAgent } from "./backend.ts";
+import { SERVICES_CONTEXT } from "./offer.ts";
 import { localTool } from "./run-agent.ts";
 import { languageInstruction } from "@pluton/i18n/server";
 
@@ -48,7 +49,7 @@ export async function planPlay(opts: { db: Db; workspaceId: string; transcript: 
     required: [],
     prompt: `Brain:
 ${brain.map((i) => `- ${i.section}: ${JSON.stringify(i.data)}`).join("\n")}
-
+${sellsServices(brain) ? `\n${SERVICES_CONTEXT} Plays find clients for its missions; company_hiring on the roles it can fill is often the strongest signal.\n` : ""}
 Pipelines:
 ${capabilities.map((c) => `- ${c.pipeline}: ${c.available ? "available" : `unavailable (${c.reason})`}`).join("\n")}
 

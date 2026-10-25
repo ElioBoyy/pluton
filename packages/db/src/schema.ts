@@ -223,7 +223,7 @@ export const onboardingStages = sqliteTable(
   (t) => [uniqueIndex("onboarding_stage_unique").on(t.sessionId, t.stage)],
 );
 
-export const CARD_KINDS = ["company_statement", "company_sizes", "personas", "hiring_roles", "stack_tools"] as const;
+export const CARD_KINDS = ["offer", "company_statement", "company_sizes", "personas", "hiring_roles", "stack_tools"] as const;
 export type CardKind = (typeof CARD_KINDS)[number];
 
 export const onboardingCards = sqliteTable(
@@ -618,6 +618,8 @@ export type CampaignStep = {
   delayHours: number;
   /** Messages only. */
   mode?: "ai" | "template";
+  /** Messages only: "email" sends this one by email when their address is known, else on LinkedIn. */
+  channel?: OutreachChannel;
   guidelines?: string;
   template?: string;
   /** Template fallbacks when a lead lacks a detail, and whether to skip the lead instead. */

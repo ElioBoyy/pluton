@@ -27,6 +27,7 @@ export default defineMessages({
     emailOnlyStep: "LinkedIn step skipped: reached by email",
     emailLimit: "Today's email limit reached ({count})",
     emailBounced: "The email bounced",
+    continuedByEmail: "{reason}: continued by email",
     noChannel: "No LinkedIn profile and no email for this person",
   },
   fr: {
@@ -54,6 +55,7 @@ export default defineMessages({
     emailOnlyStep: "Étape LinkedIn ignorée : contacté par e-mail",
     emailLimit: "Limite d’e-mails du jour atteinte ({count})",
     emailBounced: "L’e-mail n’a pas été distribué",
+    continuedByEmail: "{reason} : suite par e-mail",
     noChannel: "Ni profil LinkedIn ni e-mail pour cette personne",
   },
   it: {
@@ -81,6 +83,7 @@ export default defineMessages({
     emailOnlyStep: "Passo LinkedIn saltato: contattato via email",
     emailLimit: "Limite di email di oggi raggiunto ({count})",
     emailBounced: "L’email non è stata consegnata",
+    continuedByEmail: "{reason}: si continua via email",
     noChannel: "Nessun profilo LinkedIn e nessuna email per questa persona",
   },
   es: {
@@ -108,6 +111,7 @@ export default defineMessages({
     emailOnlyStep: "Paso de LinkedIn omitido: contactado por correo",
     emailLimit: "Límite de correos de hoy alcanzado ({count})",
     emailBounced: "El correo no se entregó",
+    continuedByEmail: "{reason}: se sigue por correo",
     noChannel: "Ni perfil de LinkedIn ni correo para esta persona",
   },
   de: {
@@ -135,6 +139,7 @@ export default defineMessages({
     emailOnlyStep: "LinkedIn-Schritt übersprungen: per E-Mail kontaktiert",
     emailLimit: "Heutiges E-Mail-Limit erreicht ({count})",
     emailBounced: "Die E-Mail wurde nicht zugestellt",
+    continuedByEmail: "{reason}: weiter per E-Mail",
     noChannel: "Weder LinkedIn-Profil noch E-Mail für diese Person",
   },
 });

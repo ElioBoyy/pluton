@@ -13,6 +13,7 @@ import {
 import type { Db, OnboardingStage } from "@pluton/db";
 import { languageInstruction } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
+import { SERVICES_AUDIENCE, SERVICES_CONTEXT, SERVICES_MARKET } from "./offer.ts";
 import { localTool, type LocalTool } from "./run-agent.ts";
 
 const BASE_SYSTEM = `You are Pluton's research agent. You build the go-to-market "Brain" of a B2B company: who it is, who buys from it, and where to find those buyers.
@@ -52,7 +53,12 @@ const done = (ctx: StageContext, ...keys: ResearchStepKey[]) =>
 
 async function companyContext(ctx: StageContext) {
   const company = await getSingleton(ctx.db, ctx.workspaceId, "company");
-  return company ? `Confirmed company profile:\n${JSON.stringify(company.data, null, 2)}` : "";
+  if (!company) return { text: "", services: false };
+  const services = company.data.offer === "services";
+  return {
+    text: [`Confirmed company profile:\n${JSON.stringify(company.data, null, 2)}`, services ? SERVICES_CONTEXT : ""].filter(Boolean).join("\n\n"),
+    services,
+  };
 }
 
 type StageSpec = { prompt: string; tools: LocalTool[]; required: string[]; webSearchUses?: number };
@@ -67,6 +73,7 @@ const stages: Record<OnboardingStage, (ctx: StageContext) => Promise<StageSpec>>
         name ? `The person onboarding is ${name}.` : "",
         context ? `Extra context from them:\n${context}` : "",
         "Fetch the homepage and the 2-4 pages that explain the offer (product, pricing, about). Then call save_company.",
+        "Set offer to \"services\" when the site sells its owner's or team's work as missions rather than a product: a freelancer's or consultant's personal site, a studio or agency, phrases like \"available for missions\", \"hire me\", a day rate, a portfolio of client projects. Then products lists the services offered (e.g. \"Développement React\", \"Audit SEO\"). The founder confirms this choice next.",
       ]
         .filter(Boolean)
         .join("\n\n"),
@@ -88,10 +95,15 @@ const stages: Record<OnboardingStage, (ctx: StageContext) => Promise<StageSpec>>
   },
 
   async audience(ctx) {
+    const company = await companyContext(ctx);
     return {
-      prompt: `${await companyContext(ctx)}
+      prompt: `${company.text}
 
-Define who buys from this company: the ideal customer profile (organization types, sizes, geographies) and 3 to 6 buyer personas with the exact job titles those people use on LinkedIn. Look at customer logos, case studies, pricing tiers and who the site speaks to. Then call save_audience.`,
+${
+  company.services
+    ? SERVICES_AUDIENCE
+    : "Define who buys from this company: the ideal customer profile (organization types, sizes, geographies) and 3 to 6 buyer personas with the exact job titles those people use on LinkedIn. Look at customer logos, case studies, pricing tiers and who the site speaks to. Then call save_audience."
+}`,
       required: ["save_audience"],
       tools: [
         narrate(ctx),
@@ -111,9 +123,10 @@ Define who buys from this company: the ideal customer profile (organization type
   },
 
   async market(ctx) {
+    const company = await companyContext(ctx);
     return {
-      prompt: `${await companyContext(ctx)}
-
+      prompt: `${company.text}
+${company.services ? `\n${SERVICES_MARKET}\n` : ""}
 Map the market around this company and call each save tool once:
 1. save_market_references: 3-8 direct competitors (real companies, with their site), and 3-8 influencers or experts the buyers follow on LinkedIn (real people you found; LinkedIn URL only if you saw it).
 2. save_voice: how the company sounds (from its own copy), the language for outreach, and 3-4 message pillars.

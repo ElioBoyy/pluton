@@ -27,6 +27,12 @@ export const brainSchemas = {
     category: text(80).describe("Market category in a few words"),
     products: list(6, 80).describe("Main products or offers"),
     geographies: list(6, 60).describe("Countries or regions served"),
+    offer: z
+      .enum(["product", "services"])
+      .optional()
+      .describe(
+        "'services' when the company sells its own time and expertise as missions (a freelancer, consultant, studio or agency, e.g. a developer's personal site offering freelance work); 'product' for software, goods or a platform",
+      ),
   }),
   icp: z.object({
     summary: text(400).describe("One or two sentences describing the organizations that buy"),
@@ -87,6 +93,10 @@ export const brainSchemas = {
 } satisfies Record<BrainSection, z.ZodType>;
 
 export type BrainData<S extends BrainSection> = z.output<(typeof brainSchemas)[S]>;
+
+/** A freelancer or agency sells missions, so Pluton looks for clients who would hire them rather than buyers of a product. */
+export const sellsServices = (items: Array<Pick<BrainItemView, "section" | "data">>) =>
+  items.some((i) => i.section === "company" && (i.data as BrainData<"company">).offer === "services");
 
 /** Sections holding a single object; the others are lists of items. */
 export const SINGLETON_SECTIONS: BrainSection[] = ["company", "icp", "voice", "hiring_signal", "stack_signal"];

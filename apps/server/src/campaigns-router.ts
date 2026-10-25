@@ -58,6 +58,7 @@ const stepInput = z.object({
   enabled: z.boolean(),
   delayHours: z.number().min(0).max(24 * 30),
   mode: z.enum(["ai", "template"]).optional(),
+  channel: z.enum(["linkedin", "email"]).optional(),
   guidelines: z.string().max(2000).optional(),
   template: z.string().max(2000).optional(),
   defaults: z.object({ firstName: z.string().max(60).optional(), company: z.string().max(80).optional() }).optional(),

@@ -164,7 +164,8 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
   const hub = pickedHub ?? hubForSection(state.lastSection);
   const leaves = hub ? (hubLeaves.get(hub) ?? []) : [];
   const pending = pendingCards(state);
-  const questionCards = [...state.cards.values()].filter((c) => c.kind !== "company_statement");
+  // The dots count the audience and market questions; the company phase has its own two cards.
+  const questionCards = [...state.cards.values()].filter((c) => c.kind !== "company_statement" && c.kind !== "offer");
   const current = pending[0];
 
   return (

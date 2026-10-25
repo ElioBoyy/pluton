@@ -6,12 +6,14 @@ import {
   leadOutcomes,
   listBrain,
   listProposals,
+  sellsServices,
   SINGLETON_SECTIONS,
 } from "@pluton/core";
 import { BRAIN_SECTIONS, type Db } from "@pluton/db";
 import { languageInstruction, localized } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
 import messages from "./messages/onboarding.ts";
+import { SERVICES_CONTEXT } from "./offer.ts";
 import { localTool } from "./run-agent.ts";
 
 const t = localized(messages);
@@ -69,7 +71,7 @@ export async function runBrainReview(opts: {
 - ${languageInstruction()} That covers rationales, questions and what you narrate, not the data you propose.`,
     prompt: `Current Brain (id, section, revision, data):
 ${items.map((i) => JSON.stringify({ id: i.id, section: i.section, revision: i.revision, data: i.data })).join("\n")}
-
+${sellsServices(items) ? `\n${SERVICES_CONTEXT}\n` : ""}
 Section data shapes:
 ${sectionShapes()}
 

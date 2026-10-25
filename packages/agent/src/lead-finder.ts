@@ -21,6 +21,7 @@ import {
   playsText,
   recordActivity,
   runChannel,
+  sellsServices,
   setPersonLinkedin,
   updateRun,
   upsertPerson,
@@ -42,6 +43,7 @@ import {
 import { runAgent } from "./backend.ts";
 import { findLinkedinProfiles } from "./linkedin-lookup.ts";
 import { AgentTurnLimitError, localTool } from "./run-agent.ts";
+import { SERVICES_JUDGE, SERVICES_LEADS } from "./offer.ts";
 import { languageInstruction, localized } from "@pluton/i18n/server";
 import messages from "./messages/lead-finding.ts";
 
@@ -103,7 +105,7 @@ function researchBrief(play: Play, pipeline: Pipeline) {
 
   return `Find people for ${company?.name ?? "this company"}'s Play "${play.name}".
 Founder's ask: ${play.ask}
-
+${sellsServices(brainOf(play)) ? `${SERVICES_LEADS}\n` : ""}
 ${who}
 
 How:
@@ -469,7 +471,7 @@ ${brainOf(play)
   .join("\n")}
 
 This Play targets: ${JSON.stringify(play.definition.audience)}
-${ctx.feedback ? `\nThe founder's verdicts on earlier leads. They override the ICP where they disagree: score similar people the same way.\n${ctx.feedback}\n` : ""}
+${sellsServices(brainOf(play)) ? `\n${SERVICES_JUDGE}\n` : ""}${ctx.feedback ? `\nThe founder's verdicts on earlier leads. They override the ICP where they disagree: score similar people the same way.\n${ctx.feedback}\n` : ""}
 Candidates:
 ${batch.map((c, i) => `${i}. ${JSON.stringify({ name: c.name, title: c.title, company: c.company, location: c.location, signal: c.signal })}`).join("\n")}`,
     tools: [

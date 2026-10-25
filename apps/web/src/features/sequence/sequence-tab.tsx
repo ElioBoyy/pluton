@@ -5,6 +5,7 @@ import {
   Circle,
   CircleNotch,
   Copy,
+  EnvelopeSimple,
   Eye,
   GearSix,
   Heart,
@@ -218,7 +219,7 @@ function Canvas({ data, onOpen, selected }: { data: Data; onOpen: (s: Step) => v
 
 function Node({ step, count, selected, onClick, expiry }: { step: Step; count: number; selected: boolean; onClick: () => void; expiry?: number }) {
   const t = useT("sequence");
-  const IconCmp = STEP_ICON[step.kind] ?? Circle;
+  const IconCmp = step.kind === "message" && step.channel === "email" ? EnvelopeSimple : (STEP_ICON[step.kind] ?? Circle);
   const sub =
     step.kind === "message"
       ? step.mode === "template"

@@ -110,6 +110,7 @@ function SelectCard({
 
   const toggle = (id: string) =>
     setSelected((prev) => {
+      if (card.single) return new Set([id]);
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -139,9 +140,9 @@ function SelectCard({
         </div>
         {card.subtitle && <p className="mt-1.5 text-sm text-muted">{card.subtitle}</p>}
 
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
+        <div className={cn("mt-5 grid gap-2.5", card.single ? "grid-cols-1" : "grid-cols-2")}>
           {options.map((o) => (
-            <Tile key={o.id} checked={selected.has(o.id)} onClick={() => toggle(o.id)} label={o.label} detail={o.detail} />
+            <Tile key={o.id} checked={selected.has(o.id)} round={card.single} onClick={() => toggle(o.id)} label={o.label} detail={o.detail} />
           ))}
           {custom.map((c) => (
             <Tile key={`custom:${c}`} checked onClick={() => setCustom(custom.filter((x) => x !== c))} label={c} />
@@ -171,18 +172,20 @@ function SelectCard({
             ))}
         </div>
       </div>
-      <Button disabled={pending} onClick={() => onAnswer([...selected], custom)}>
-        {t("card.useSelected", { count })}
+      <Button disabled={pending || (card.single && count !== 1)} onClick={() => onAnswer([...selected], custom)}>
+        {card.single ? t("card.continue") : t("card.useSelected", { count })}
       </Button>
     </>
   );
 }
 
-function Tile({ checked, onClick, label, detail }: { checked: boolean; onClick: () => void; label: string; detail?: string }) {
+function Tile({ checked, round, onClick, label, detail }: { checked: boolean; round?: boolean; onClick: () => void; label: string; detail?: string }) {
   return (
     <button
       onClick={onClick}
       title={detail}
+      role={round ? "radio" : undefined}
+      aria-checked={round ? checked : undefined}
       className={cn(
         // A tinted tile when picked, a plain raised one otherwise: no outlines.
         "flex items-start gap-2.5 rounded-xl px-3 py-3 text-left text-sm transition-[background-color,box-shadow] duration-150",
@@ -191,7 +194,8 @@ function Tile({ checked, onClick, label, detail }: { checked: boolean; onClick: 
     >
       <span
         className={cn(
-          "mt-px flex size-4 shrink-0 items-center justify-center rounded-[5px] transition-colors duration-150",
+          "mt-px flex size-4 shrink-0 items-center justify-center transition-colors duration-150",
+          round ? "rounded-full" : "rounded-[5px]",
           checked ? "bg-accent text-on-accent" : "bg-canvas shadow-[inset_0_0_0_1px_var(--color-line-strong)]",
         )}
       >

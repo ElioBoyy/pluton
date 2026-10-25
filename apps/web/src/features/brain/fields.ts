@@ -31,6 +31,15 @@ export const SECTION_FIELDS: Record<BrainSection, Field[]> = {
     { key: "statement", label: "field.statement", kind: "textarea" },
     { key: "products", label: "field.products", kind: "list" },
     { key: "geographies", label: "field.geographies", kind: "list" },
+    {
+      key: "offer",
+      label: "field.offer",
+      kind: "select",
+      options: [
+        { value: "product", label: "option.offer.product" },
+        { value: "services", label: "option.offer.services" },
+      ],
+    },
   ],
   icp: [
     { key: "summary", label: "field.summary", kind: "textarea" },

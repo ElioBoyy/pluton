@@ -6,6 +6,7 @@ import {
   getSingleton,
   listBrain,
   renderTemplate,
+  sellsServices,
   stepLabel,
   templateVars,
   upsertDraft,
@@ -15,6 +16,7 @@ import { and, eq, getSetting, inArray, messageDrafts, senders, type Campaign, ty
 import { APIFY_KEY, profilePosts } from "@pluton/providers";
 import { languageInstruction, localized } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
+import { SERVICES_OUTREACH } from "./offer.ts";
 import { FAST_MODEL, WRITER_MODEL, localTool } from "./run-agent.ts";
 import messages from "./messages/sequence.ts";
 
@@ -40,7 +42,7 @@ async function brainContext(db: Db, workspaceId: string) {
   const voice = (await getSingleton(db, workspaceId, "voice"))?.data;
   return {
     voice,
-    text: `Company: ${pick("company", 1)}
+    text: `Company: ${pick("company", 1)}${sellsServices(items) ? `\n${SERVICES_OUTREACH}` : ""}
 Voice: ${voice ? JSON.stringify(voice) : "plain, friendly, concise"}
 Message pillars:
 ${pick("message_pillar")}
@@ -126,7 +128,7 @@ export async function writeDrafts(
           review: texts.get(s.id) ? "not_reviewed" : "failed",
           stepRevision: s.revision,
           error: texts.get(s.id) ? null : t("draftNotWritten"),
-          subject: s.id === steps[0]?.id ? (subject ?? null) : undefined,
+          subject: s.id === emailSteps(row.person, steps)[0]?.id ? (subject ?? null) : undefined,
         });
       }
       written++;
@@ -149,7 +151,8 @@ async function writeForLead(
   const activity = await recentActivity(db, o.person);
   const texts = new Map<string, string>();
   let subject: string | undefined;
-  const firstWritten = o.aiSteps.some((s) => s.id === o.steps[0]?.id);
+  const byMail = emailSteps(o.person, o.steps);
+  const firstEmailWritten = Boolean(byMail[0] && o.aiSteps.some((s) => s.id === byMail[0]!.id));
   await runAgent({
     system: WRITER_SYSTEM,
     model: WRITER_MODEL,
@@ -169,9 +172,9 @@ Signal: ${o.lead.signal}
 Evidence: ${o.lead.evidence.map((e) => e.label).join(" | ") || "none"}
 Their recent LinkedIn posts: ${activity.length ? `\n${activity.join("\n---\n")}` : "unknown"}
 
-${byEmail(o.person) ? `${EMAIL_CHANNEL(o.sender)}${firstWritten ? "\nAlso give the first email a subject: 2 to 6 plain words, specific to them, no clickbait, no capitals for effect." : ""}\n` : ""}
+${byEmail(o.person) ? `${EMAIL_CHANNEL(o.sender)}\n` : byMail.length ? `${MIXED_CHANNEL(o.sender)}\n` : ""}${firstEmailWritten ? "Also give the first email a subject: 2 to 6 plain words, specific to them, no clickbait, no capitals for effect.\n" : ""}
 Write these messages (the sequence sends them in this order, each only if there was no reply):
-${o.aiSteps.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHours} h after the previous step): ${s.guidelines ?? ""}`).join("\n")}`,
+${o.aiSteps.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHours} h after the previous step${byMail.includes(s) && !byEmail(o.person) ? ", by email" : ""}): ${s.guidelines ?? ""}`).join("\n")}`,
     tools: [
       localTool({
         name: "write_messages",
@@ -194,6 +197,13 @@ ${o.aiSteps.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHou
 
 /** No LinkedIn profile but an address: the sequence emails them instead (see the sequence engine). */
 export const byEmail = (person: Pick<Person, "linkedinUrl" | "email">) => !person.linkedinUrl && Boolean(person.email);
+
+/** The message steps that go by email for this person: all of them without LinkedIn, else those set to email. */
+export const emailSteps = (person: Pick<Person, "linkedinUrl" | "email">, steps: CampaignStep[]) =>
+  !person.email ? [] : byEmail(person) ? steps.filter((s) => s.kind === "message") : steps.filter((s) => s.kind === "message" && s.channel === "email");
+
+const MIXED_CHANNEL = (sender?: string) =>
+  `Steps marked "by email" go to their inbox as plain-text emails instead of LinkedIn; the others are LinkedIn messages. Write the emails as short emails: open with their first name, end with the founder's first name${sender ? ` (${sender.split(/\s+/)[0]})` : ""} on its own line. An email may say in a few words that you also wrote on LinkedIn, but never repeats that message.`;
 
 const EMAIL_CHANNEL = (sender?: string) =>
   `This person has no LinkedIn profile: these messages go out as plain-text emails from the founder's own mailbox, replies in one thread. Write them as short emails: open with their first name, never mention LinkedIn or connecting, keep the same length and tone, and end with the founder's first name${sender ? ` (${sender.split(/\s+/)[0]})` : ""} on its own line. No links unless a step's guidelines ask for one.`;
