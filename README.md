@@ -4,6 +4,8 @@
 
 Pluton reads your website, learns who you sell to, finds the people worth talking to and reaches out to them on LinkedIn, while you stay in control of every lead and every message. Everything lives in a local SQLite database; nothing leaves your computer except the calls to the services you connect.
 
+Designed and built by **Mathis Sportiello**.
+
 ## What it does
 
 - **Builds your Brain.** Give it your website (or two sentences about what you build). Pluton researches your company, market, ideal customers, buyer personas, competitors, influencers, keywords and voice, and shows it all as an editable knowledge graph. A daily review proposes improvements; you accept or reject them.
@@ -118,3 +120,7 @@ Conventions for working on the code:
 - Live progress: handlers call `emit(type, payload)`; the UI follows it with `trpc.events.watch` on channel `job:<id>`.
 - Schema change: edit `packages/db/src/schema.ts`, then `pnpm db:generate`. Migrations apply on server/worker start.
 - Updates use a `revision` token; a stale write returns `CONFLICT`.
+
+## Author
+
+Pluton is designed, written and maintained by **Mathis Sportiello**: product, design, architecture and code.
