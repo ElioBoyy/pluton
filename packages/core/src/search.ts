@@ -5,13 +5,19 @@ import {
   and,
   asc,
   brainItems,
+  campaigns,
   copilotConversations,
   copilotMessages,
   enrollments,
   eq,
   inArray,
+  isNull,
+  leadEvents,
+  leadFeedback,
   leads,
+  messageDrafts,
   or,
+  outreachActions,
   people,
   plays,
   replies,
@@ -61,8 +67,8 @@ async function embed(texts: string[]): Promise<number[][]> {
 
 type Doc = { kind: SearchKind; refId: string; title: string; subtitle: string | null; href: string; text: string };
 
-/** Name matches search the whole text; the model only reads its start. */
-const MAX_TEXT = 1500;
+/** Beyond this a document is cut (a very long conversation): the index stays small. */
+const MAX_TEXT = 40_000;
 
 /** `about` holds the words people type for a page, in English and French (the founder may write either). */
 const PAGES: Array<{ ref: string; title: string; href: string; about: string }> = [
@@ -155,49 +161,82 @@ const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCas
 
 const join = (...parts: Array<string | null | undefined | false>) => parts.filter(Boolean).join(" · ");
 
-async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
-  const [leadRows, replyRows, playRows, brainRows, conversationRows, messageRows] = await Promise.all([
-    db
-      .select({
-        id: leads.id,
-        status: leads.status,
-        reason: leads.reason,
-        signal: leads.signal,
-        play: plays.name,
-        name: people.name,
-        title: people.title,
-        company: people.company,
-        companyWebsite: people.companyWebsite,
-        location: people.location,
-      })
-      .from(leads)
-      .innerJoin(people, eq(people.id, leads.personId))
-      .innerJoin(plays, eq(plays.id, leads.playId))
-      .where(eq(leads.workspaceId, workspaceId)),
-    db
-      .select({ leadId: enrollments.leadId, text: replies.text })
-      .from(replies)
-      .innerJoin(enrollments, eq(enrollments.id, replies.enrollmentId))
-      .where(eq(enrollments.workspaceId, workspaceId))
-      .orderBy(asc(replies.receivedAt)),
-    db.select().from(plays).where(eq(plays.workspaceId, workspaceId)),
-    db
-      .select()
-      .from(brainItems)
-      .where(and(eq(brainItems.workspaceId, workspaceId), eq(brainItems.status, "active"))),
-    db.select().from(copilotConversations).where(eq(copilotConversations.workspaceId, workspaceId)),
-    db
-      .select({ conversationId: copilotMessages.conversationId, text: copilotMessages.text })
-      .from(copilotMessages)
-      .innerJoin(copilotConversations, eq(copilotConversations.id, copilotMessages.conversationId))
-      .where(and(eq(copilotConversations.workspaceId, workspaceId), eq(copilotMessages.role, "user")))
-      .orderBy(asc(copilotMessages.createdAt)),
-  ]);
+/** Groups rows by a key, keeping their order. */
+function groupBy<T>(rows: T[], key: (row: T) => string) {
+  const groups = new Map<string, T[]>();
+  for (const r of rows) groups.set(key(r), [...(groups.get(key(r)) ?? []), r]);
+  return (k: string) => groups.get(k) ?? [];
+}
 
-  const repliesByLead = new Map<string, string[]>();
-  for (const r of replyRows) repliesByLead.set(r.leadId, [...(repliesByLead.get(r.leadId) ?? []), r.text]);
-  const asksByConversation = new Map<string, string[]>();
-  for (const m of messageRows) asksByConversation.set(m.conversationId, [...(asksByConversation.get(m.conversationId) ?? []), m.text]);
+/** A labelled block of a document, left out when empty. */
+const section = (label: string, lines: Array<string | null | undefined | false>) => {
+  const kept = lines.filter((l): l is string => Boolean(l && l.trim()));
+  return kept.length ? `${label}:\n${kept.join("\n")}` : null;
+};
+
+const STAGE_LABELS: Record<string, string> = { qualified: "Strong match", needs_review: "Worth a look", disqualified: "Set aside" };
+
+async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
+  const inWorkspace = eq(leads.workspaceId, workspaceId);
+  const [leadRows, feedbackRows, noteRows, replyRows, draftRows, actionRows, playRows, campaignRows, brainRows, conversationRows, messageRows] =
+    await Promise.all([
+      db
+        .select({ lead: leads, person: people, play: plays.name })
+        .from(leads)
+        .innerJoin(people, eq(people.id, leads.personId))
+        .innerJoin(plays, eq(plays.id, leads.playId))
+        .where(inWorkspace),
+      db
+        .select()
+        .from(leadFeedback)
+        .where(and(eq(leadFeedback.workspaceId, workspaceId), isNull(leadFeedback.withdrawnAt)))
+        .orderBy(asc(leadFeedback.createdAt)),
+      db
+        .select({ leadId: leadEvents.leadId, payload: leadEvents.payload })
+        .from(leadEvents)
+        .innerJoin(leads, eq(leads.id, leadEvents.leadId))
+        .where(and(inWorkspace, eq(leadEvents.kind, "note")))
+        .orderBy(asc(leadEvents.id)),
+      db
+        .select({ leadId: enrollments.leadId, text: replies.text, summary: replies.summary, label: replies.label })
+        .from(replies)
+        .innerJoin(enrollments, eq(enrollments.id, replies.enrollmentId))
+        .where(eq(enrollments.workspaceId, workspaceId))
+        .orderBy(asc(replies.receivedAt)),
+      db
+        .select({ leadId: messageDrafts.leadId, text: messageDrafts.text, sentAt: messageDrafts.sentAt })
+        .from(messageDrafts)
+        .innerJoin(leads, eq(leads.id, messageDrafts.leadId))
+        .where(inWorkspace)
+        .orderBy(asc(messageDrafts.createdAt)),
+      db
+        .select({ leadId: enrollments.leadId, kind: outreachActions.kind, text: outreachActions.text, status: outreachActions.status })
+        .from(outreachActions)
+        .innerJoin(enrollments, eq(enrollments.id, outreachActions.enrollmentId))
+        .where(eq(outreachActions.workspaceId, workspaceId))
+        .orderBy(asc(outreachActions.createdAt)),
+      db.select().from(plays).where(eq(plays.workspaceId, workspaceId)),
+      db.select().from(campaigns).where(eq(campaigns.workspaceId, workspaceId)),
+      db
+        .select()
+        .from(brainItems)
+        .where(and(eq(brainItems.workspaceId, workspaceId), eq(brainItems.status, "active"))),
+      db.select().from(copilotConversations).where(eq(copilotConversations.workspaceId, workspaceId)),
+      db
+        .select({ conversationId: copilotMessages.conversationId, role: copilotMessages.role, text: copilotMessages.text })
+        .from(copilotMessages)
+        .innerJoin(copilotConversations, eq(copilotConversations.id, copilotMessages.conversationId))
+        .where(and(eq(copilotConversations.workspaceId, workspaceId), inArray(copilotMessages.role, ["user", "assistant"])))
+        .orderBy(asc(copilotMessages.createdAt)),
+    ]);
+
+  const feedbackOf = groupBy(feedbackRows, (r) => r.leadId);
+  const notesOf = groupBy(noteRows, (r) => r.leadId);
+  const repliesOf = groupBy(replyRows, (r) => r.leadId);
+  const draftsOf = groupBy(draftRows, (r) => r.leadId);
+  const actionsOf = groupBy(actionRows, (r) => r.leadId);
+  const campaignOf = new Map(campaignRows.map((c) => [c.playId, c]));
+  const messagesOf = groupBy(messageRows, (r) => r.conversationId);
 
   const docs: Doc[] = PAGES.map((p) => ({
     kind: "page",
@@ -208,35 +247,68 @@ async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
     text: `${p.title}: ${p.about}`,
   }));
 
-  for (const l of leadRows) {
-    const role = [l.title, l.company].filter(Boolean).join(" at ");
-    const said = repliesByLead.get(l.id);
+  for (const { lead: l, person: p, play } of leadRows) {
+    const role = [p.title, p.company].filter(Boolean).join(" at ");
     docs.push({
       kind: "lead",
       refId: l.id,
-      title: l.name,
-      subtitle: join(l.title, l.company) || null,
+      title: p.name,
+      subtitle: join(p.title, p.company) || null,
       href: `/leads?tab=all&lead=${l.id}`,
+      // Who they are and why they were found first (all the model reads), then everything else.
       text: [
-        join(l.name, role, l.location, l.companyWebsite),
-        l.signal,
-        l.reason,
-        said && `Replied: ${said.join(" / ")}`,
-        `Play: ${l.play}. Status: ${l.status.replace("_", " ")}.`,
+        join(p.name, role, p.location),
+        section("Signal", [l.signal]),
+        section("Why they fit", [l.reason]),
+        section("Evidence", l.evidence.map((e) => e.label)),
+        section(
+          "Founder's verdict",
+          feedbackOf(l.id).map((f) => join(f.verdict === "up" ? "Good lead" : "Not a fit", f.reasons.join(", ").replaceAll("_", " "), f.comment)),
+        ),
+        section("Notes", notesOf(l.id).map((n) => String(n.payload.text ?? ""))),
+        section("Replies", repliesOf(l.id).map((r) => join(r.label?.replaceAll("_", " "), r.summary, r.text))),
+        section("Messages", [
+          ...draftsOf(l.id).map((d) => d.text && `${d.sentAt ? "Sent" : "Draft"}: ${d.text}`),
+          ...actionsOf(l.id).map((a) => a.text && a.status === "done" && `Sent (${a.kind.replace("_", " ")}): ${a.text}`),
+        ]),
+        `Play: ${play}. Status: ${l.status.replace("_", " ")}. ${STAGE_LABELS[l.stage] ?? l.stage}, fit ${l.fit}/100, warmness ${l.warmness}/100.`,
+        join(p.companyWebsite, p.linkedinUrl, p.email),
       ]
         .filter(Boolean)
-        .join("\n"),
+        .join("\n\n"),
     });
   }
 
   for (const p of playRows) {
+    const a = p.definition.audience;
+    const campaign = campaignOf.get(p.id);
     docs.push({
       kind: "play",
       refId: p.id,
       title: p.name,
       subtitle: p.status === "active" ? p.summary.who : join(p.status, p.summary.who),
       href: `/plays/${p.id}`,
-      text: [p.name, p.ask, p.summary.who, p.summary.how].join("\n"),
+      text: [
+        p.name,
+        p.ask,
+        section("Who", [p.summary.who]),
+        section("How", [p.summary.how, p.summary.howMany]),
+        section("Audience", [
+          a.personas.length > 0 && `Personas: ${a.personas.join(", ")}`,
+          a.industries.length > 0 && `Industries: ${a.industries.join(", ")}`,
+          a.geographies.length > 0 && `Geographies: ${a.geographies.join(", ")}`,
+          a.companySizes.length > 0 && `Company sizes: ${a.companySizes.join(", ")}`,
+          a.keywords.length > 0 && `Keywords: ${a.keywords.join(", ")}`,
+          a.hiringRoles.length > 0 && `Hiring: ${a.hiringRoles.join(", ")}`,
+          a.technologies.length > 0 && `Technologies: ${a.technologies.join(", ")}`,
+          a.exclusions.length > 0 && `Excluded: ${a.exclusions.join(", ")}`,
+          p.definition.criteria,
+          !!p.definition.referenceCompanies?.length && `Like: ${p.definition.referenceCompanies.join(", ")}`,
+        ]),
+        campaign && section("LinkedIn sequence", [campaign.inviteNote, ...strings(campaign.steps)]),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
     });
   }
 
@@ -261,7 +333,7 @@ async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
       title: c.title,
       subtitle: "Agent conversation",
       href: `/agent/${c.id}`,
-      text: [c.title, ...(asksByConversation.get(c.id) ?? [])].join("\n"),
+      text: [c.title, ...messagesOf(c.id).map((m) => `${m.role === "user" ? "You" : "Pluton"}: ${m.text}`)].join("\n\n"),
     });
   }
 
@@ -278,8 +350,9 @@ const EMBED_BATCH = 16;
 const WRITE_CHUNK = 200;
 
 /**
- * Brings search_document in line with the source tables: new and changed rows are written at once
- * (so ⌘K finds them by name straight away), then embedded; rows whose source is gone are deleted.
+ * Brings the workspace's search index in line with its source tables: new and changed rows are
+ * written at once (so ⌘K finds them by name straight away), then embedded; rows whose source is
+ * gone are deleted. Every read and write stays inside the workspace.
  */
 export async function syncSearchIndex(db: Db, workspaceId: string) {
   // Ids carry the workspace: the same page (or anything else) indexed in two workspaces is two rows.
