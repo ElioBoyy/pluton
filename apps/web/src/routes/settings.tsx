@@ -6,6 +6,7 @@ import { useTRPC } from "../lib/trpc.ts";
 
 export const SETTINGS_SECTIONS = [
   { slug: "settings", label: "General" },
+  { slug: "appearance", label: "Appearance" },
   { slug: "notifications", label: "Notifications" },
   { slug: "linkedin", label: "LinkedIn accounts" },
   { slug: "mcp", label: "Connect your AI" },

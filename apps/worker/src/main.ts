@@ -21,6 +21,7 @@ import {
   type JobType,
 } from "@pluton/core";
 import { and, createDb, eq, getSetting, inArray, jobs, lt, prepareDb, watchSettings, withCostScope, type CostPurpose } from "@pluton/db";
+import { generateWallpaper } from "./handlers/appearance.ts";
 import { brainReview } from "./handlers/brain-review.ts";
 import { copilotTurn } from "./handlers/copilot.ts";
 import { onboardingStage } from "./handlers/onboarding-stage.ts";
@@ -34,6 +35,7 @@ import { systemPing } from "./handlers/system-ping.ts";
 
 const handlers: Record<JobType, JobHandler> = {
   "system.ping": systemPing,
+  "appearance.generate_wallpaper": generateWallpaper,
   "onboarding.stage": onboardingStage,
   "brain.review": brainReview,
   "copilot.turn": copilotTurn,
@@ -50,6 +52,7 @@ const handlers: Record<JobType, JobHandler> = {
 /** What each job's provider and Claude calls are charged to in the ledger. */
 const PURPOSE: Record<JobType, CostPurpose> = {
   "system.ping": "other",
+  "appearance.generate_wallpaper": "other",
   "onboarding.stage": "onboarding",
   "brain.review": "brain",
   "copilot.turn": "agent",

@@ -8,6 +8,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
-    proxy: { "/rpc": `http://localhost:${serverPort}` },
+    proxy: { "/rpc": `http://localhost:${serverPort}`, "/api": `http://localhost:${serverPort}` },
   },
 });

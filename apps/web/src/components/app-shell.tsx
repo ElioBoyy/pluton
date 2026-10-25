@@ -20,8 +20,10 @@ import { useTRPC } from "../lib/trpc.ts";
 import { AppLink } from "./app-link.tsx";
 import { AppearanceControl } from "./appearance-control.tsx";
 import { CommandPalette } from "./command-palette.tsx";
+import { LiquidGlassFilter, refractionSupported } from "./liquid-glass.tsx";
 import { NotificationBell } from "./notification-bell.tsx";
 import { Toaster } from "./toast.tsx";
+import { Wallpaper } from "./wallpaper.tsx";
 
 const NAV: Array<{ to: string; label: string; icon: Icon }> = [
   { to: "/home", label: "Home", icon: House },
@@ -61,6 +63,7 @@ export function AppShell() {
 
   return (
     <div className="flex h-full">
+      <Wallpaper />
       {navOpen && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />}
       {/* macOS 27 sidebar: opaque, full height and flush with the window edge. A drawer on phones. */}
       <aside
@@ -182,11 +185,13 @@ export function AppShell() {
           {askBar && (
             <button
               onClick={() => setPaletteOpen(true)}
+              style={refractionSupported ? ({ "--glass-refraction": "url(#ask-glass)" } as React.CSSProperties) : undefined}
               className="glass glass-thin fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-[color,scale] duration-200 ease-out hover:text-ink max-md:hidden motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]"
             >
               <MagnifyingGlass size={18} />
               Ask Pluton anything
               <kbd className="ml-auto font-sans text-xs text-faint">⌘K</kbd>
+              {refractionSupported && <LiquidGlassFilter id="ask-glass" width={320} height={44} radius={22} />}
             </button>
           )}
         </main>

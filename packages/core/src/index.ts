@@ -14,3 +14,4 @@ export * from "./credits.ts";
 export * from "./digest.ts";
 export * from "./integrations.ts";
 export * from "./copilot.ts";
+export * from "./appearance.ts";

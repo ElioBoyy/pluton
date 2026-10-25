@@ -19,6 +19,7 @@ import { WhatsNewPage } from "./routes/whats-new.tsx";
 import { LinkedinPage } from "./routes/linkedin.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
+import { AppearancePage } from "./routes/appearance.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
 
 const rootRoute = createRootRoute({
@@ -66,6 +67,7 @@ const workspaceIndexRoute = createRoute({
 });
 const SETTINGS_PAGES: Record<(typeof SETTINGS_SECTIONS)[number]["slug"], () => React.ReactNode> = {
   settings: GeneralSettingsPage,
+  appearance: AppearancePage,
   "data-sources": DataSourcesPage,
   "api-keys": ApiKeysPage,
   linkedin: LinkedinPage,
