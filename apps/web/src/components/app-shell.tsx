@@ -10,7 +10,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTRPC } from "../lib/trpc.ts";
 import { CommandPalette } from "./command-palette.tsx";
@@ -29,6 +29,7 @@ export function AppShell() {
   const trpc = useTRPC();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -92,6 +93,8 @@ export function AppShell() {
 
       <main className="relative flex-1 overflow-y-auto">
         <Outlet />
+        {/* Pages with their own composer would be covered by the floating bar. */}
+        {!pathname.startsWith("/plays/new") && (
         <button
           onClick={() => setPaletteOpen(true)}
           className="fixed bottom-5 left-[calc(50%+7.5rem)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-panel/90 px-4 py-2 text-sm text-muted shadow-lg backdrop-blur hover:text-ink"
@@ -100,6 +103,7 @@ export function AppShell() {
           Ask Pluton anything
           <kbd className="ml-2 rounded border border-line px-1.5 text-[11px] text-faint">⌘K</kbd>
         </button>
+        )}
       </main>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

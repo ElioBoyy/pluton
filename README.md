@@ -38,6 +38,14 @@ Uses your Claude subscription through the Claude Agent SDK (needs Claude Code in
 
 Settings → Data sources lists every source, its status and a "Try it" box. Free now: French company registry, company careers boards (Greenhouse/Lever/Ashby/Recruitee), website tech detection, Claude web search (subscription). `THEIRSTACK_API_KEY` and `APIFY_TOKEN` in `.env` switch on market-wide job search and LinkedIn engagement. Provider responses are cached in `provider_cache`; real calls go to `provider_call`.
 
+## Plays
+
+`/plays/new`: describe who you want to reach. The planner (`plays.plan` job) asks one question with options or proposes a Play (Who / How we find them / How many / When). A Play snapshots the Brain when created.
+
+A run (`lead_finding.run` job, live on `run:<id>`) has three steps: a research agent finds candidates with web search plus the registry, careers and stack tools; code checks drop incomplete profiles, your company, competitors, exclusions and duplicates; a judge scores each remaining candidate 0–100 against the ICP (qualified ≥ 70, to review 45–69). If research stops short of the target, the agent is nudged up to twice to try new angles. The report records the funnel, the reasons people were set aside, and why the run stopped. The worker queues scheduled Plays (daily, weekdays, Mondays) once per local day after 07:00.
+
+Free pipelines: Role match, Companies hiring, Tech stack, Web evidence. LinkedIn-engagement pipelines are not wired yet (Apify).
+
 ## Conventions
 
 - Query helpers (`eq`, `and`, `sql`…) come from `@pluton/db`, never directly from `drizzle-orm`, so the repo shares one drizzle instance.

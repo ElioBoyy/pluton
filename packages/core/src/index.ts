@@ -5,3 +5,4 @@ export * from "./job-types.ts";
 export * from "./brain.ts";
 export * from "./onboarding.ts";
 export * from "./proposals.ts";
+export * from "./plays.ts";

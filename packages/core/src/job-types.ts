@@ -10,6 +10,14 @@ export const jobPayloads = {
     sessionId: z.string(),
     stage: z.enum(["company", "audience", "market"]),
   }),
+  "plays.plan": z.object({
+    workspaceId: z.string(),
+    transcript: z
+      .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(2000) }))
+      .min(1)
+      .max(20),
+  }),
+  "lead_finding.run": z.object({ runId: z.string() }),
   "brain.review": z.object({
     workspaceId: z.string(),
     focus: z.string().trim().max(500).optional(),

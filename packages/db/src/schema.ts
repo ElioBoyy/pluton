@@ -270,3 +270,155 @@ export const providerCalls = sqliteTable(
   },
   (t) => [index("provider_call_provider_idx").on(t.provider, t.createdAt)],
 );
+
+// ── Plays & leads ────────────────────────────────────────────────────────────
+
+/** How a Play finds people. The post_* pipelines need Apify; the others run on free sources. */
+export const PIPELINES = [
+  "persona_sweep",
+  "company_hiring",
+  "company_stack",
+  "web_evidence",
+  "post_watchlist",
+  "post_keyword",
+] as const;
+export type Pipeline = (typeof PIPELINES)[number];
+
+export const PLAY_STATUSES = ["draft", "active", "paused", "archived"] as const;
+export const SCHEDULES = ["off", "daily", "weekdays", "weekly"] as const;
+
+export type PlayDefinition = {
+  /** Who to find. Each list narrows the search; empty means "no constraint". */
+  audience: {
+    personas: string[];
+    industries: string[];
+    companySizes: string[];
+    geographies: string[];
+    keywords: string[];
+    hiringRoles: string[];
+    technologies: string[];
+    exclusions: string[];
+  };
+  /** Free-text criteria for web_evidence ("hotel groups that publish a sustainability report"). */
+  criteria?: string;
+  /** Qualified leads wanted per run. */
+  target: number;
+};
+
+export const plays = sqliteTable("play", {
+  id: id(),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  /** The founder's own words, kept verbatim. */
+  ask: text("ask").notNull(),
+  summary: text("summary", { mode: "json" }).$type<{ who: string; how: string; howMany: string }>().notNull(),
+  pipeline: text("pipeline", { enum: PIPELINES }).notNull(),
+  definition: text("definition", { mode: "json" }).$type<PlayDefinition>().notNull(),
+  /** Brain as it was when the Play was created, so later Brain edits never change a running Play. */
+  brainSnapshot: text("brain_snapshot", { mode: "json" }).$type<unknown[]>().notNull(),
+  status: text("status", { enum: PLAY_STATUSES }).notNull().default("active"),
+  schedule: text("schedule", { enum: SCHEDULES }).notNull().default("off"),
+  revision: integer("revision").notNull().default(1),
+  lastRunAt: integer("last_run_at", { mode: "timestamp_ms" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const RUN_STATUSES = ["queued", "running", "completed", "failed", "cancelled"] as const;
+export const STOP_REASONS = ["target_met", "budget", "sources_dry", "error", "cancelled"] as const;
+
+export type RunReport = {
+  discovered: number;
+  gated: number;
+  judged: number;
+  qualified: number;
+  needsReview: number;
+  disqualified: number;
+  duplicates: number;
+  /** Why candidates were set aside, with a few examples each. */
+  rejections: Record<string, { count: number; examples: string[] }>;
+};
+
+export const leadFindingRuns = sqliteTable(
+  "lead_finding_run",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    playId: text("play_id")
+      .notNull()
+      .references(() => plays.id, { onDelete: "cascade" }),
+    jobId: text("job_id"),
+    status: text("status", { enum: RUN_STATUSES }).notNull().default("queued"),
+    stopReason: text("stop_reason", { enum: STOP_REASONS }),
+    target: integer("target").notNull(),
+    report: text("report", { mode: "json" }).$type<RunReport>(),
+    error: text("error"),
+    trigger: text("trigger", { enum: ["manual", "schedule"] }).notNull().default("manual"),
+    createdAt: createdAt(),
+    startedAt: integer("started_at", { mode: "timestamp_ms" }),
+    finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("run_play_idx").on(t.playId, t.createdAt)],
+);
+
+export type Evidence = { label: string; url?: string };
+
+export const people = sqliteTable(
+  "person",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** linkedin URL when known, else normalized "name|company": one row per real person. */
+    dedupeKey: text("dedupe_key").notNull(),
+    name: text("name").notNull(),
+    title: text("title"),
+    company: text("company"),
+    companyWebsite: text("company_website"),
+    linkedinUrl: text("linkedin_url"),
+    location: text("location"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("person_dedupe_idx").on(t.workspaceId, t.dedupeKey)],
+);
+
+export const LEAD_STAGES = ["qualified", "needs_review", "disqualified"] as const;
+export const LEAD_STATUSES = ["new", "to_review", "approved", "in_campaign", "contacted", "rejected"] as const;
+
+export const leads = sqliteTable(
+  "lead",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    playId: text("play_id")
+      .notNull()
+      .references(() => plays.id, { onDelete: "cascade" }),
+    personId: text("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    runId: text("run_id").references(() => leadFindingRuns.id, { onDelete: "set null" }),
+    stage: text("stage", { enum: LEAD_STAGES }).notNull(),
+    status: text("status", { enum: LEAD_STATUSES }).notNull().default("new"),
+    /** ICP fit 0–100 from the judge. */
+    fit: integer("fit").notNull(),
+    reason: text("reason").notNull(),
+    signal: text("signal").notNull(),
+    evidence: text("evidence", { mode: "json" }).$type<Evidence[]>().notNull().default([]),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("lead_play_person_idx").on(t.playId, t.personId), index("lead_workspace_idx").on(t.workspaceId, t.status)],
+);
+
+export type Play = typeof plays.$inferSelect;
+export type LeadFindingRun = typeof leadFindingRuns.$inferSelect;
+export type Person = typeof people.$inferSelect;
+export type Lead = typeof leads.$inferSelect;

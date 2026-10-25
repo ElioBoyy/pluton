@@ -26,6 +26,14 @@ export type RunAgentOptions = {
   required?: string[];
   webSearchUses?: number;
   webFetchUses?: number;
+  /** Planning-style tasks that must not browse. */
+  noWeb?: boolean;
+  /**
+   * Asked when the agent stops: a message sends it back to work (at most `maxContinuations` times),
+   * null lets it stop. Used when a search ends short of its target.
+   */
+  continueWhile?: () => string | null;
+  maxContinuations?: number;
   maxTurns?: number;
   signal?: AbortSignal;
 };
@@ -50,14 +58,20 @@ function toInputSchema(schema: z.ZodType): Anthropic.Beta.BetaTool.InputSchema {
  */
 export async function runAgentWithApiKey(opts: RunAgentOptions): Promise<RunAgentResult> {
   const byName = new Map(opts.tools.map((t) => [t.name, t]));
+  const webTools: Anthropic.Beta.BetaToolUnion[] = opts.noWeb
+    ? []
+    : [
+        { type: "web_search_20260209", name: "web_search", max_uses: opts.webSearchUses ?? 6 },
+        { type: "web_fetch_20260209", name: "web_fetch", max_uses: opts.webFetchUses ?? 6 },
+      ];
   const tools: Anthropic.Beta.BetaToolUnion[] = [
-    { type: "web_search_20260209", name: "web_search", max_uses: opts.webSearchUses ?? 6 },
-    { type: "web_fetch_20260209", name: "web_fetch", max_uses: opts.webFetchUses ?? 6 },
+    ...webTools,
     ...opts.tools.map((t) => ({ name: t.name, description: t.description, input_schema: toInputSchema(t.schema) })),
   ];
   const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: opts.prompt }];
   const called = new Set<string>();
   let reminded = false;
+  let continuations = 0;
 
   for (let turn = 0; turn < (opts.maxTurns ?? 30); turn++) {
     const response = await getClient().beta.messages.create(
@@ -86,9 +100,15 @@ export async function runAgentWithApiKey(opts: RunAgentOptions): Promise<RunAgen
     const toolUses = response.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
     if (toolUses.length === 0) {
       const missing = (opts.required ?? []).filter((n) => !called.has(n));
-      if (missing.length === 0 || reminded) return { turns: turn + 1, missing };
-      reminded = true;
-      messages.push({ role: "user", content: `You have not called ${missing.join(", ")} yet. Call it now with what you found.` });
+      if (missing.length && !reminded) {
+        reminded = true;
+        messages.push({ role: "user", content: `You have not called ${missing.join(", ")} yet. Call it now with what you found.` });
+        continue;
+      }
+      const nudge = continuations < (opts.maxContinuations ?? 2) ? opts.continueWhile?.() : null;
+      if (!nudge) return { turns: turn + 1, missing };
+      continuations++;
+      messages.push({ role: "user", content: nudge });
       continue;
     }
     if (response.stop_reason === "max_tokens") throw new Error("Agent output was truncated (max_tokens)");
