@@ -13,6 +13,8 @@ import { PIPELINE_LABELS, REJECTION_LABELS, SCHEDULE_LABELS, STOP_LABELS } from 
 import { initials, STATUS, type LeadTabKey } from "../leads/labels.ts";
 import { LeadsView } from "../leads/leads-view.tsx";
 import { SequenceTab } from "../sequence/sequence-tab.tsx";
+import { ActivityFeed } from "../activity/activity-feed.tsx";
+import { usd } from "../../lib/format.ts";
 
 type PlayData = inferRouterOutputs<AppRouter>["plays"]["get"];
 type Run = PlayData["runs"][number];
@@ -49,6 +51,7 @@ export function PlayPage({
       queryClient.invalidateQueries({ queryKey: trpc.plays.list.queryKey() }),
       queryClient.invalidateQueries({ queryKey: trpc.plays.activity.pathKey() }),
       queryClient.invalidateQueries({ queryKey: trpc.plays.leadsPerDay.pathKey() }),
+      queryClient.invalidateQueries({ queryKey: trpc.credits.pathKey() }),
     ]);
   const runNow = useMutation(trpc.plays.run.mutationOptions({ onSuccess: refresh }));
   const cancel = useMutation(trpc.plays.cancelRun.mutationOptions({ onSuccess: refresh }));
@@ -72,6 +75,7 @@ export function PlayPage({
             {play.status !== "active" && <span className="ml-2 rounded-md bg-raised px-1.5 py-0.5 text-xs capitalize">{play.status}</span>}
           </p>
         </div>
+        <div className="flex flex-col items-end gap-1.5">
         <div className="flex items-center gap-2">
           <select
             value={play.schedule}
@@ -100,6 +104,8 @@ export function PlayPage({
               <PlayIcon size={14} weight="fill" /> Run search
             </Button>
           )}
+        </div>
+        {!active && <RunEstimate playId={play.id} />}
         </div>
       </div>
       {(runNow.error ?? update.error ?? cancel.error) && (
@@ -319,52 +325,46 @@ function NewestLeads({ playId, onOpen, onReviewAll }: { playId: string; onOpen: 
   );
 }
 
-const ACTIVITY_TEXT: Record<string, (p: Record<string, unknown>) => string> = {
-  "play.created": () => "You created this Play",
-  "lead_finding.started": (p) => (p.trigger === "schedule" ? "A scheduled search started" : "You started a search"),
-  "lead_finding.completed": (p) => {
-    const n = Number(p.qualified ?? 0) + Number(p.needsReview ?? 0);
-    return n === 0 ? "A search finished with no new leads" : `Pluton found ${n} lead${n === 1 ? "" : "s"}`;
-  },
-  "lead_finding.failed": () => "A search stopped on an error",
-  "lead_finding.cancelled": () => "You stopped a search",
-  "leads.approved": (p) => `You approved ${p.count} lead${p.count === 1 ? "" : "s"}`,
-  "leads.rejected": (p) => `You rejected ${p.count} lead${p.count === 1 ? "" : "s"}`,
-};
-
 function Activity({ playId }: { playId: string }) {
   const trpc = useTRPC();
   const activity = useQuery(trpc.plays.activity.queryOptions({ id: playId }));
-  const rows = (activity.data ?? []).filter((a) => ACTIVITY_TEXT[a.kind]);
-  const groups = new Map<string, typeof rows>();
-  for (const a of rows) {
-    const d = new Date(a.createdAt);
-    const today = new Date().toDateString() === d.toDateString();
-    const key = today ? "Today" : d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
-    groups.set(key, [...(groups.get(key) ?? []), a]);
-  }
+  const spend = useQuery(trpc.credits.play.queryOptions({ playId }));
   return (
     <Card className="self-start">
       <h2 className="mb-3 text-sm font-semibold">Activity</h2>
-      {rows.length === 0 ? (
-        <p className="text-sm text-faint">Nothing yet.</p>
-      ) : (
-        [...groups].map(([day, items]) => (
-          <div key={day} className="mb-3 last:mb-0">
-            <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-faint uppercase">{day}</p>
-            <ul className="flex flex-col gap-1.5">
-              {items.map((a) => (
-                <li key={a.id} className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="text-muted">{ACTIVITY_TEXT[a.kind]!(a.payload as Record<string, unknown>)}</span>
-                  <span className="shrink-0 text-xs text-faint">{new Date(a.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))
+      {activity.data?.length ? <ActivityFeed items={activity.data} compact /> : <p className="text-sm text-faint">Nothing yet.</p>}
+      {spend.data && (spend.data.allTime.billed > 0 || spend.data.allTime.unbilled > 0) && (
+        <div className="mt-4 border-t border-line pt-3 text-xs text-muted">
+          <p>
+            Spent {usd(spend.data.periodSpend.billed, { precise: true })} this period, {usd(spend.data.allTime.billed, { precise: true })} in all
+            {spend.data.perLeadMicroUsd !== null && ` · ${usd(spend.data.perLeadMicroUsd, { precise: true })} per lead`}
+          </p>
+          {spend.data.allTime.unbilled > 0 && <p className="mt-0.5 text-faint">+ {usd(spend.data.allTime.unbilled, { precise: true })} of Claude covered by your subscription</p>}
+          <Link to="/workspace/usage" className="mt-1 inline-block text-accent hover:underline">
+            Usage →
+          </Link>
+        </div>
       )}
     </Card>
   );
+}
+
+/** Shown under "Run search": what a run is expected to cost, from past runs, and what's left. */
+function RunEstimate({ playId }: { playId: string }) {
+  const trpc = useTRPC();
+  const e = useQuery(trpc.credits.estimateRun.queryOptions({ playId }));
+  if (!e.data) return null;
+  const { estimateMicroUsd, capMicroUsd, availableMicroUsd, basis } = e.data;
+  const parts = [
+    estimateMicroUsd === null
+      ? "No cost history yet"
+      : estimateMicroUsd === 0
+        ? "Past runs cost nothing billed"
+        : `About ${usd(estimateMicroUsd, { precise: true })} per run${basis === "workspace" ? " (workspace average)" : ""}`,
+    `cap ${usd(capMicroUsd)}`,
+    availableMicroUsd === null ? null : `${usd(availableMicroUsd)} left this period`,
+  ].filter(Boolean);
+  return <p className={cn("text-right text-xs", availableMicroUsd !== null && availableMicroUsd < 10_000 ? "text-cat-orange" : "text-faint")}>{parts.join(" · ")}</p>;
 }
 
 function RunHistory({ runs }: { runs: Run[] }) {

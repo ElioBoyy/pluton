@@ -13,7 +13,7 @@ export type SettingDef = {
   secret: boolean;
   options?: Array<{ value: string; label: string }>;
   defaultValue?: string;
-  group: "claude" | "data" | "outreach" | "automation";
+  group: "claude" | "data" | "outreach" | "email" | "automation";
 };
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -47,6 +47,11 @@ export const SETTING_DEFS: SettingDef[] = [
     secret: false,
     group: "outreach",
   },
+  { key: "smtp_host", label: "SMTP host", description: "Mail server for the morning digest, e.g. smtp.gmail.com or smtp.fastmail.com.", secret: false, group: "email" },
+  { key: "smtp_port", label: "SMTP port", description: "465 (TLS) or 587 (STARTTLS).", secret: false, defaultValue: "465", group: "email" },
+  { key: "smtp_user", label: "SMTP user", description: "Usually your email address.", secret: false, group: "email" },
+  { key: "smtp_password", label: "SMTP password", description: "An app password, not your main password.", secret: true, group: "email" },
+  { key: "smtp_from", label: "From address", description: "Sender of the digest. Defaults to the SMTP user.", secret: false, group: "email" },
   {
     key: "daily_brain_review",
     label: "Daily Brain review",

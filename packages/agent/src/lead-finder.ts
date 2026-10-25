@@ -12,6 +12,10 @@ import {
   insertLead,
   isLeadOfPlay,
   rejectedPersonIds,
+  budgetSettings,
+  getRunHold,
+  settleRunHold,
+  watchRunSpend,
   pipelineCapabilities,
   recordActivity,
   runChannel,
@@ -360,8 +364,20 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
     await detachOnboarding(db, play.id);
   };
   const target = play.definition.target;
-  // The time budget only stops research; scoring what was found still happens.
-  const deadline = AbortSignal.timeout((play.definition.policy?.maxMinutes ?? 15) * 60_000);
+  // The time limit and the spend cap only stop research; scoring what was found still happens.
+  const timeUp = AbortSignal.timeout((play.definition.policy?.maxMinutes ?? 15) * 60_000);
+  const spendCap = new AbortController();
+  const hold = await getRunHold(db, runId);
+  const ws = await db.query.workspaces.findFirst({ where: (w, { eq }) => eq(w.id, play.workspaceId) });
+  const unwatch =
+    hold && ws && budgetSettings(ws).mode === "enforce"
+      ? watchRunSpend(runId, hold.reservedMicroUsd, () => {
+          void ctx.say("This search reached its spend cap; scoring what it found so far.");
+          spendCap.abort();
+        })
+      : () => {};
+  const deadline = AbortSignal.any([timeUp, spendCap.signal]);
+  const limitReason = () => (spendCap.signal.aborted ? "budget" : "deadline");
 
   await updateRun(db, runId, { status: "running", startedAt: new Date() });
   await emit(db, runId, "status", { status: "running" });
@@ -377,7 +393,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
           continue;
         }
         if (!available.has(pipeline) || deadline.aborted) {
-          report.stages.push({ pipeline, qualified: 0, discovered: 0, skipped: deadline.aborted ? "budget" : "unavailable" });
+          report.stages.push({ pipeline, qualified: 0, discovered: 0, skipped: deadline.aborted ? limitReason() : "unavailable" });
           continue;
         }
         const discoveredBefore = report.discovered;
@@ -390,7 +406,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
       await runPipeline(ctx, play.pipeline, Math.min(target * 2, 40), deadline);
     }
 
-    const stopReason = report.qualified >= target ? "target_met" : deadline.aborted ? "budget" : "sources_dry";
+    const stopReason = report.qualified >= target ? "target_met" : deadline.aborted ? limitReason() : "sources_dry";
     await updateRun(db, runId, { status: "completed", stopReason, report, finishedAt: new Date() });
     await recordActivity(db, play.workspaceId, "leads", "lead_finding.completed", { runId, playId: play.id, ...report });
     await emit(db, runId, "done", { stopReason, report });
@@ -410,6 +426,9 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
     await emit(db, runId, cancelled ? "cancelled" : "error", { message });
     await tellOnboarding(false);
     throw error;
+  } finally {
+    unwatch();
+    await settleRunHold(db, runId).catch((error) => console.error("[lead-finder] could not settle the hold", error));
   }
 }
 

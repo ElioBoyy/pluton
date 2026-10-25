@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { eq, getSetting, providerCache, providerCalls, type Db } from "@pluton/db";
+import { eq, getSetting, providerCache, providerCalls, recordCost, type Db } from "@pluton/db";
 
 export class ProviderError extends Error {
   constructor(
@@ -83,6 +83,7 @@ export async function providerCall<T>(
   try {
     const { value, items = 0, costMicroUsd = 0, ttlMs } = await fn();
     await db.insert(providerCalls).values({ provider, operation, ok: true, items, costMicroUsd, durationMs: Date.now() - started });
+    await recordCost({ source: provider, operation, costMicroUsd, detail: { items } }, db);
     const expiresAt = new Date(Date.now() + (ttlMs ?? opts.ttlMs ?? 24 * 3600_000));
     await db
       .insert(providerCache)
@@ -120,6 +121,10 @@ export function toDomain(input: string) {
 
 /** Checks a data-source key against its provider's account endpoint. */
 export async function checkProviderKey(settingKey: string): Promise<string> {
+  if (settingKey.startsWith("smtp_")) {
+    const { verifyMailer } = await import("./mailer.ts");
+    return verifyMailer();
+  }
   if (settingKey === "unipile_api_key" || settingKey === "unipile_dsn") {
     // Loaded lazily: the Unipile adapter itself builds on this module.
     const { unipileAccounts } = await import("./unipile.ts");

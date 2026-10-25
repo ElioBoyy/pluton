@@ -28,10 +28,12 @@ import {
   eq,
   leads,
   messageDrafts,
+  ne,
   outreachActions,
   people,
   replies,
   senders,
+  withinCostScope,
   type Campaign,
   type CampaignStep,
   type Db,
@@ -364,6 +366,10 @@ async function pollReplies(db: Db, e: Enrollment) {
  * and the objective has a link (and auto-reply is on). Otherwise it waits for you.
  */
 export async function handleReply(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "manual"; externalId?: string; at?: Date }) {
+  return withinCostScope({ db, purpose: "replies" }, () => handleReplyInScope(db, enrollmentId, reply));
+}
+
+async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "manual"; externalId?: string; at?: Date }) {
   const e = await db.query.enrollments.findFirst({ where: eq(enrollments.id, enrollmentId) });
   if (!e) throw new Error("Not in a sequence");
   const [row] = await db
@@ -433,7 +439,12 @@ async function onError(ctx: Ctx, e: Enrollment, campaign: Campaign, error: Error
   });
   if (error instanceof UnipileError) {
     if (error.status === 401 && e.senderId) {
-      await db.update(senders).set({ status: "disconnected", error: error.message.slice(0, 300) }).where(eq(senders.id, e.senderId));
+      const [was] = await db
+        .update(senders)
+        .set({ status: "disconnected", error: error.message.slice(0, 300) })
+        .where(and(eq(senders.id, e.senderId), ne(senders.status, "disconnected")))
+        .returning();
+      if (was) await recordActivity(db, e.workspaceId, "campaigns", "sender.disconnected", { senderId: was.id, name: was.name });
       await defer(db, e.id, new Date(now.getTime() + HOUR), "LinkedIn account disconnected; reconnect it in Settings → LinkedIn");
       return;
     }

@@ -1,6 +1,6 @@
 import os from "node:os";
 import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk";
-import { MODEL, type RunAgentOptions, type RunAgentResult } from "./run-agent.ts";
+import { MODEL, newMeter, type AgentMeter, type RunAgentOptions, type RunAgentResult } from "./run-agent.ts";
 
 const SERVER = "pluton";
 
@@ -8,7 +8,7 @@ const SERVER = "pluton";
  * Runs the agent through the Claude Agent SDK, which signs in with the local Claude Code login
  * (your Claude subscription) instead of an API key. Personal, local use only.
  */
-export async function runAgentWithSubscription(opts: RunAgentOptions): Promise<RunAgentResult> {
+export async function runAgentWithSubscription(opts: RunAgentOptions, meter: AgentMeter = newMeter()): Promise<RunAgentResult> {
   const called = new Set<string>();
   const server = createSdkMcpServer({
     name: SERVER,
@@ -34,6 +34,8 @@ export async function runAgentWithSubscription(opts: RunAgentOptions): Promise<R
   const web = opts.noWeb ? [] : ["WebSearch", "WebFetch"];
 
   const run = async (prompt: string, resume?: string) => {
+    const baseline = meter.costUsd;
+    const baselineTokens = { input: meter.inputTokens, output: meter.outputTokens, read: meter.cacheReadTokens };
     let sessionId: string | undefined;
     let turns = 0;
     for await (const message of query({
@@ -58,6 +60,13 @@ export async function runAgentWithSubscription(opts: RunAgentOptions): Promise<R
       if (message.type !== "result") continue;
       sessionId = message.session_id;
       turns = message.num_turns;
+      // The SDK's own estimate at API prices. A resumed session usually carries the earlier total
+      // forward; when it starts from zero instead, add to what was counted so far.
+      const total = message.total_cost_usd ?? 0;
+      meter.costUsd = resume && total >= baseline ? total : baseline + total;
+      meter.inputTokens = baselineTokens.input + (message.usage?.input_tokens ?? 0);
+      meter.outputTokens = baselineTokens.output + (message.usage?.output_tokens ?? 0);
+      meter.cacheReadTokens = baselineTokens.read + (message.usage?.cache_read_input_tokens ?? 0);
       if (message.subtype !== "success") throw new Error(`Agent stopped: ${message.errors.join("; ") || message.subtype}`);
       if (message.is_error) throw new Error(message.result || "Claude returned an error");
     }

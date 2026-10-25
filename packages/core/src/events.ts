@@ -1,3 +1,4 @@
+import { notifyForActivity } from "./activity.ts";
 import {
   activityEvents,
   and,
@@ -53,7 +54,10 @@ export async function recordActivity(
   kind: string,
   payload: unknown = {},
 ) {
-  await db.insert(activityEvents).values({ workspaceId, context, kind, payload });
+  const [event] = await db.insert(activityEvents).values({ workspaceId, context, kind, payload }).returning();
+  // A notification is a side effect: never let it fail the action that was recorded.
+  await notifyForActivity(db, event!).catch((error) => console.error("[activity] notification failed", error));
+  return event!;
 }
 
 function sleep(ms: number, signal?: AbortSignal) {

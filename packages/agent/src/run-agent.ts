@@ -47,6 +47,42 @@ export type RunAgentOptions = {
 
 export type RunAgentResult = { turns: number; missing: string[] };
 
+/** Filled in by the backends as the agent runs, so a failed run still records what it cost. */
+export type AgentMeter = {
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  webSearches: number;
+};
+
+export const newMeter = (): AgentMeter => ({ costUsd: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, webSearches: 0 });
+
+/** USD per million tokens (Anthropic first-party list prices). Cache writes are 1.25× input (5-minute TTL). */
+const PRICES: Record<string, { input: number; output: number; cacheRead: number }> = {
+  "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.2 },
+  "claude-sonnet-5-5": { input: 2, output: 10, cacheRead: 0.2 },
+  "claude-haiku-5-5": { input: 0.1, output: 0.5, cacheRead: 0.01 },
+};
+/** Web search is billed per search; web fetch only through the tokens it adds. */
+const WEB_SEARCH_USD = 10 / 1000;
+
+function meterUsage(meter: AgentMeter, model: string, usage: Anthropic.Beta.BetaUsage) {
+  const p = PRICES[model] ?? PRICES[MODEL]!;
+  const input = usage.input_tokens ?? 0;
+  const output = usage.output_tokens ?? 0;
+  const read = usage.cache_read_input_tokens ?? 0;
+  const write = usage.cache_creation_input_tokens ?? 0;
+  const searches = usage.server_tool_use?.web_search_requests ?? 0;
+  meter.inputTokens += input;
+  meter.outputTokens += output;
+  meter.cacheReadTokens += read;
+  meter.cacheWriteTokens += write;
+  meter.webSearches += searches;
+  meter.costUsd += (input * p.input + output * p.output + read * p.cacheRead + write * p.input * 1.25) / 1e6 + searches * WEB_SEARCH_USD;
+}
+
 export class AgentRefusalError extends Error {}
 
 // Created on first use (and again when the key changes in Settings) so the worker boots without credentials.
@@ -67,7 +103,7 @@ function toInputSchema(schema: z.ZodType): Anthropic.Beta.BetaTool.InputSchema {
  * Manual rather than the beta tool runner because the runner does not resume `pause_turn`,
  * which long web-search turns hit.
  */
-export async function runAgentWithApiKey(opts: RunAgentOptions): Promise<RunAgentResult> {
+export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMeter = newMeter()): Promise<RunAgentResult> {
   const byName = new Map(opts.tools.map((t) => [t.name, t]));
   const webTools: Anthropic.Beta.BetaToolUnion[] = opts.noWeb
     ? []
@@ -99,6 +135,8 @@ export async function runAgentWithApiKey(opts: RunAgentOptions): Promise<RunAgen
       },
       { signal: opts.signal },
     );
+
+    meterUsage(meter, response.model ?? opts.model ?? MODEL, response.usage);
 
     if (response.stop_reason === "refusal") {
       throw new AgentRefusalError(response.stop_details?.explanation ?? "The model declined this request");

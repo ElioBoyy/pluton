@@ -14,14 +14,18 @@ import {
   jobChannel,
   markJobCancelled,
   recoverStaleJobs,
+  digestDue,
+  settleOrphanHolds,
+  watchBudgetThresholds,
   type JobHandler,
   type JobType,
 } from "@pluton/core";
-import { and, createDb, eq, getSetting, inArray, jobs, lt, prepareDb, watchSettings } from "@pluton/db";
+import { and, createDb, eq, getSetting, inArray, jobs, lt, prepareDb, watchSettings, withCostScope, type CostPurpose } from "@pluton/db";
 import { brainReview } from "./handlers/brain-review.ts";
 import { onboardingStage } from "./handlers/onboarding-stage.ts";
 import { prepareDrafts, sequenceTick } from "./handlers/campaigns.ts";
 import { leadsFindEmails } from "./handlers/leads.ts";
+import { sendDigest } from "./handlers/notifications.ts";
 import { leadFindingRun, playsPlan } from "./handlers/plays.ts";
 import { systemPing } from "./handlers/system-ping.ts";
 
@@ -34,6 +38,20 @@ const handlers: Record<JobType, JobHandler> = {
   "leads.find_emails": leadsFindEmails,
   "campaigns.prepare_drafts": prepareDrafts,
   "campaigns.tick": sequenceTick,
+  "notifications.digest": sendDigest,
+};
+
+/** What each job's provider and Claude calls are charged to in the ledger. */
+const PURPOSE: Record<JobType, CostPurpose> = {
+  "system.ping": "other",
+  "onboarding.stage": "onboarding",
+  "brain.review": "brain",
+  "plays.plan": "planning",
+  "lead_finding.run": "lead_finding",
+  "leads.find_emails": "email_finding",
+  "campaigns.prepare_drafts": "outreach",
+  "campaigns.tick": "outreach",
+  "notifications.digest": "other",
 };
 
 const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY ?? 4);
@@ -43,6 +61,7 @@ const workerId = `${os.hostname()}:${process.pid}`;
 const db = createDb();
 await prepareDb(db);
 await watchSettings(db);
+watchBudgetThresholds();
 
 const shutdown = new AbortController();
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
@@ -78,7 +97,10 @@ async function runLoop(slot: number) {
     }, 2000);
     try {
       if (!handler) throw new Error(`No handler for job type "${job.type}"`);
-      const result = await handler({ db, job, emit, signal: jobAbort.signal });
+      const workspaceId = job.workspaceId ?? (await getOrCreateDefaultWorkspace(db)).id;
+      const result = await withCostScope({ db, workspaceId, purpose: PURPOSE[job.type as JobType] ?? "other", jobId: job.id }, () =>
+        handler({ db, job, emit, signal: jobAbort.signal }),
+      );
       await completeJob(db, job.id, result);
       console.log(`[worker] ${job.type} ${job.id} done in ${Date.now() - started}ms`);
     } catch (error) {
@@ -104,8 +126,13 @@ async function scheduleLoop() {
     try {
       const workspace = await getOrCreateDefaultWorkspace(db);
       for (const { play } of await duePlays(db, workspace.timezone)) {
-        const run = await startRun(db, play.id, "schedule");
-        console.log(`[worker] scheduled run ${run.id} for play "${play.name}"`);
+        try {
+          const run = await startRun(db, play.id, "schedule");
+          console.log(`[worker] scheduled run ${run.id} for play "${play.name}"`);
+        } catch (error) {
+          // Refused for budget (already in Activity and notifications): the other Plays still get their turn.
+          console.warn(`[worker] scheduled run for "${play.name}" not started: ${(error as Error).message}`);
+        }
       }
       // Daily Brain review after 06:00 local; the per-day key makes repeated ticks a no-op.
       const { day, hour } = localDay(new Date(), workspace.timezone);
@@ -118,6 +145,19 @@ async function scheduleLoop() {
           maxAttempts: 1,
         });
       }
+      // Morning digest at its local time; the per-day key sends it once.
+      const digestDay = digestDue(workspace);
+      if (digestDay) {
+        await enqueueJob(db, {
+          type: "notifications.digest",
+          workspaceId: workspace.id,
+          payload: { workspaceId: workspace.id, manual: false },
+          idempotencyKey: `digest:${workspace.id}:${digestDay}`,
+          maxAttempts: 1,
+        });
+      }
+      const settled = await settleOrphanHolds(db);
+      if (settled) console.log(`[worker] settled ${settled} orphaned budget hold(s)`);
     } catch (error) {
       console.error("[worker] scheduler error", error);
     }

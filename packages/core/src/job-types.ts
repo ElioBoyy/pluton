@@ -25,6 +25,11 @@ export const jobPayloads = {
     force: z.boolean().default(false),
   }),
   "leads.find_emails": z.object({ workspaceId: z.string(), leadIds: z.array(z.string()).min(1).max(200) }),
+  "notifications.digest": z.object({
+    workspaceId: z.string(),
+    /** Sent from Settings: goes out even if nothing changed and ignores the schedule. */
+    manual: z.boolean().default(false),
+  }),
   "brain.review": z.object({
     workspaceId: z.string(),
     focus: z.string().trim().max(500).optional(),

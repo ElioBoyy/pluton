@@ -19,7 +19,8 @@ export const SCHEDULE_LABELS: Record<string, string> = {
 
 export const STOP_LABELS: Record<string, string> = {
   target_met: "Target reached",
-  budget: "Research budget used up",
+  deadline: "Time limit reached",
+  budget: "Spend cap reached",
   sources_dry: "Sources ran dry before the target",
   error: "Stopped on an error",
   cancelled: "Cancelled",
