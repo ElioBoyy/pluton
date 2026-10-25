@@ -33,7 +33,7 @@ Optional keys unlock more sources and automation, all added in the app (Settings
 ## Download and install
 
 ```bash
-git clone https://github.com/<owner>/pluton.git
+git clone https://github.com/ElioBoyy/pluton.git
 cd pluton
 corepack enable
 pnpm install
