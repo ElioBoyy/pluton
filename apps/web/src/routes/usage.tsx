@@ -135,7 +135,7 @@ function ByPlay({ usage }: { usage: Usage }) {
   return (
     <section>
       <h2 className="mb-2 text-sm font-semibold">By Play</h2>
-      <div className="overflow-x-auto rounded-xl border border-line">
+      <div className="overflow-x-auto rounded-2xl bg-panel shadow-card">
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-muted">
             <tr className="border-b border-line">
@@ -234,7 +234,7 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
         </select>
       </div>
       <AddExpense onAdded={refresh} />
-      <div className="mt-3 overflow-x-auto rounded-xl border border-line">
+      <div className="mt-3 overflow-x-auto rounded-2xl bg-panel shadow-card">
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-muted">
             <tr className="border-b border-line">

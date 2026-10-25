@@ -142,7 +142,7 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
   const remove = useMutation(trpc.linkedin.remove.mutationOptions({ ...opts, onSuccess: (r) => (toast(r.stopped ? `Removed; ${r.stopped} sequences stopped` : "Removed"), onChanged()) }));
   const changed = JSON.stringify(limits) !== JSON.stringify(s.limits);
   return (
-    <li className="rounded-2xl border border-line bg-panel p-4">
+    <li className="rounded-2xl bg-panel p-4 shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <LinkedinLogo size={20} weight="fill" className="text-system-blue" />

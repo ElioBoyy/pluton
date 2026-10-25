@@ -50,7 +50,7 @@ export function ChatPanel({
 
   return (
     <div ref={scrollRef} className="flex h-full flex-col gap-3 overflow-y-auto px-4 py-5">
-      <div className="rounded-xl border border-line bg-raised/60 p-3.5">
+      <div className="rounded-xl bg-raised p-3.5">
         <p className="text-sm font-semibold">Start with your website</p>
         <p className="mt-1 text-sm leading-relaxed text-muted">
           Pluton will map your market and draft your Brain. Your first result appears quickly while deeper research
@@ -91,14 +91,14 @@ function Bubble({ role, text }: { role: "assistant" | "user"; text: string }) {
       </div>
     );
   }
-  return <div className="rounded-xl border border-line bg-raised/40 px-3 py-2 text-sm leading-relaxed">{text}</div>;
+  return <div className="rounded-xl bg-raised px-3 py-2 text-sm leading-relaxed">{text}</div>;
 }
 
 function PlanBox({ plan, now }: { plan: PlanStep[]; now: number }) {
   const done = plan.filter((p) => p.status === "done").length;
   return (
-    <div className="rounded-xl border border-line bg-panel p-2">
-      <div className="flex items-center justify-between px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
+    <div className="rounded-2xl bg-panel p-2 shadow-card">
+      <div className="flex items-center justify-between px-2 py-1.5 text-sm font-semibold text-muted">
         <span>Plan</span>
         <span className="tabular-nums">
           {done}/{plan.length}
@@ -183,7 +183,7 @@ function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; sta
   ] as const;
 
   return (
-    <div className="rounded-xl border border-line-strong bg-panel p-4">
+    <div className="rounded-2xl bg-panel p-4 shadow-card ring-1 ring-accent/35">
       <p className="flex items-center gap-2 text-sm font-semibold">
         <Sparkle size={15} className="text-cat-pink" /> Your Brain is ready
       </p>
@@ -205,7 +205,7 @@ function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; sta
 function CompletedBox() {
   const navigate = useNavigate();
   return (
-    <div className="rounded-xl border border-line bg-panel p-4 text-sm">
+    <div className="rounded-2xl bg-panel p-4 text-sm shadow-card">
       <p className="font-semibold">Onboarding complete</p>
       <div className="mt-3 flex gap-2">
         <Button onClick={() => void navigate({ to: "/home" })}>Open Pluton</Button>

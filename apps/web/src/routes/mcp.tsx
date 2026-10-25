@@ -103,7 +103,7 @@ export function McpPage() {
         {clients.length === 0 ? (
           <Card className="text-sm text-muted">No clients yet. The first one to connect appears here.</Card>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-line">
+          <div className="overflow-x-auto rounded-2xl bg-panel shadow-card">
             <table className="w-full text-sm">
               <tbody className="divide-y divide-line">
                 {clients.map((c) => (

@@ -17,7 +17,7 @@ export function ActivityFeed({ items, compact }: { items: ActivityItem[]; compac
     <div className="flex flex-col gap-4">
       {[...groups].map(([day, rows]) => (
         <section key={day}>
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-faint uppercase">{day}</p>
+          <p className="mb-1.5 text-sm font-semibold text-muted">{day}</p>
           <ul className={cn("flex flex-col", compact ? "gap-1.5" : "gap-0.5")}>
             {rows.map((a) => (
               <li key={a.id}>

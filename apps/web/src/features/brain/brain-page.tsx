@@ -108,7 +108,7 @@ export function BrainPage() {
               </>
             )}
             {tab === "Graph" && (
-              <div className="h-[620px] overflow-hidden rounded-xl border border-line bg-panel">
+              <div className="h-[620px] overflow-hidden rounded-2xl bg-panel shadow-card">
                 <BrainGraph items={items} rootLabel={companyName} selectedHub={null} onSelectHub={() => {}} />
               </div>
             )}

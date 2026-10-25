@@ -1,5 +1,6 @@
 import {
   Brain,
+  CaretRight,
   CheckCircle,
   Circle,
   Gear,
@@ -41,6 +42,7 @@ export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => setNavOpen(false), [pathname]);
+  const [playsOpen, setPlaysOpen] = usePlaysOpen();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -77,15 +79,17 @@ export function AppShell() {
 
         <nav className="flex min-h-0 flex-col gap-px overflow-y-auto px-2.5">
           {NAV.map(({ to, label, icon: IconCmp }) => (
-            <div key={to}>
+            <div key={to} className="group/nav relative">
               <Link
                 to={to}
-                className="flex h-7 items-center gap-2 rounded-md px-2 text-sm text-ink hover:bg-raised"
+                className="flex h-7 items-center gap-2 rounded-md px-2 text-sm text-ink transition-colors duration-150 hover:bg-raised"
                 activeProps={{ className: "!bg-selected" }}
                 activeOptions={{ exact: to === "/plays" }}
               >
                 <IconCmp size={16} className="text-accent" />
                 <span className="flex-1">{label}</span>
+                {/* Room for the collapse toggle, which sits over the row's right edge. */}
+                {to === "/plays" && <span className="w-5" aria-hidden />}
                 {to === "/leads" && toReview > 0 && (
                   <span className="text-xs tabular-nums text-muted" title={`${toReview} to review`}>
                     {toReview}
@@ -93,7 +97,25 @@ export function AppShell() {
                 )}
               </Link>
               {to === "/plays" && (
-                <ul className="mt-px mb-1 ml-4 flex flex-col gap-px pl-2">
+                <button
+                  onClick={() => setPlaysOpen(!playsOpen)}
+                  aria-expanded={playsOpen}
+                  aria-label={playsOpen ? "Hide Plays" : "Show Plays"}
+                  className="absolute top-1 right-1.5 flex size-5 items-center justify-center rounded text-faint transition-colors duration-150 hover:bg-raised hover:text-ink"
+                >
+                  <CaretRight size={11} weight="bold" className={cn("transition-transform duration-200 ease-out", playsOpen && "rotate-90")} />
+                </button>
+              )}
+              {to === "/plays" && (
+                // grid-rows 0fr → 1fr animates the height of a list we don't measure.
+                <div
+                  className={cn(
+                    "grid transition-[grid-template-rows,opacity] duration-250 ease-[var(--ease-drawer)] motion-reduce:transition-none",
+                    playsOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                  )}
+                  inert={!playsOpen}
+                >
+                <ul className="mt-px mb-1 ml-4 flex min-h-0 flex-col gap-px overflow-hidden pl-2">
                   {(plays.data ?? [])
                     .filter((p) => p.status !== "archived")
                     .map((p) => (
@@ -110,6 +132,7 @@ export function AppShell() {
                       </li>
                     ))}
                 </ul>
+                </div>
               )}
             </div>
           ))}
@@ -202,4 +225,26 @@ function GetStarted() {
       </ul>
     </div>
   );
+}
+
+const PLAYS_OPEN_KEY = "pluton.sidebar.playsOpen";
+
+/** Whether the Plays list under the sidebar link is expanded, remembered on this device. */
+function usePlaysOpen() {
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(PLAYS_OPEN_KEY) !== "false";
+    } catch {
+      return true;
+    }
+  });
+  const set = (value: boolean) => {
+    setOpen(value);
+    try {
+      localStorage.setItem(PLAYS_OPEN_KEY, String(value));
+    } catch {
+      // Private windows may refuse storage; the toggle still works for this visit.
+    }
+  };
+  return [open, set] as const;
 }

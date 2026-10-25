@@ -168,7 +168,7 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
         <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />
 
         {hub && leaves.length > 0 && (
-          <div className="absolute right-5 top-5 w-60 rounded-xl border border-line bg-panel/95 p-4 shadow-xl backdrop-blur">
+          <div className="absolute right-5 top-5 w-60 rounded-2xl glass p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">{hubMeta(hub)?.label}</h3>
               {pickedHub && (
@@ -190,7 +190,7 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
 
         {celebrating && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas/80 backdrop-blur-sm motion-safe:animate-[fadeIn_600ms_ease-out]">
-            <span className="flex size-14 items-center justify-center rounded-full border border-line bg-panel shadow-2xl">
+            <span className="flex size-14 items-center justify-center rounded-full bg-panel shadow-window">
               <Sparkle size={26} weight="fill" className="text-ink motion-safe:animate-pulse" />
             </span>
             <p className="mt-5 text-lg font-semibold">Your Brain is live</p>

@@ -64,7 +64,7 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
         <summary className="cursor-pointer text-xs text-muted">Messages and journey</summary>
         <ol className="mt-2 flex flex-col gap-2">
           {d.drafts.map(({ stepId, label, draft }) => (
-            <li key={stepId} className="rounded-lg border border-line px-3 py-2">
+            <li key={stepId} className="rounded-xl bg-raised px-3 py-2">
               <p className="text-xs text-faint">
                 {label} · {draft?.sentAt ? `sent ${when(draft.sentAt)}` : draft?.text ? "not sent yet" : "not written yet"}
               </p>

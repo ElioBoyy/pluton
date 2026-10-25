@@ -88,7 +88,7 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
             ["Won", stats.won],
           ] as const
         ).map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-line bg-panel p-4">
+          <div key={label} className="rounded-2xl bg-panel p-4 shadow-card">
             <p className="text-xs text-muted">{label}</p>
             <p className="mt-1 text-xl font-bold tabular-nums">{value}</p>
           </div>
@@ -175,7 +175,7 @@ function Canvas({ data, onOpen, selected }: { data: Data; onOpen: (s: Step) => v
   const firstMessage = steps.findIndex((s) => s.kind === "message");
 
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-line bg-panel/60 px-4 py-6">
+    <div className="flex flex-col items-center rounded-2xl bg-panel/60 px-4 py-6 shadow-card">
       <Pill>Campaign start</Pill>
       {steps.map((s, i) => (
         <div key={s.id} className="flex w-full flex-col items-center">

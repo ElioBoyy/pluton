@@ -86,8 +86,7 @@ export function LeadDrawer({
 
   return (
     <aside
-      className="fixed top-0 right-0 bottom-0 z-40 flex w-[min(520px,100vw)] flex-col border-l border-line bg-panel shadow-2xl"
-      style={{ animation: "fadeIn 120ms ease-out" }}
+      className="drawer fixed top-0 right-0 bottom-0 z-40 flex w-[min(520px,100vw)] flex-col bg-panel shadow-window"
       aria-label="Lead details"
     >
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
@@ -121,7 +120,7 @@ export function LeadDrawer({
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS[data.status]?.className)}>• {STATUS[data.status]?.label}</span>
-                <span className="rounded-full border border-line px-2 py-0.5 text-xs text-muted">{STAGE_LABELS[data.stage]}</span>
+                <span className="rounded-full bg-raised px-2 py-0.5 text-xs text-muted">{STAGE_LABELS[data.stage]}</span>
               </div>
             </div>
           </div>
@@ -241,7 +240,7 @@ function Verdict({
   return (
     <div className="relative mt-4 flex flex-wrap items-center gap-2">
       {fb ? (
-        <div className="flex flex-1 items-center justify-between gap-3 rounded-lg border border-line bg-raised/50 px-3 py-2 text-sm">
+        <div className="flex flex-1 items-center justify-between gap-3 rounded-xl bg-raised px-3 py-2 text-sm">
           <span className="flex items-center gap-2">
             {fb.verdict === "up" ? <ThumbsUp size={15} className="text-cat-green" weight="fill" /> : <ThumbsDown size={15} className="text-faint" weight="fill" />}
             {fb.verdict === "up" ? "You marked this a good lead" : "You marked this not a fit"}
@@ -438,7 +437,7 @@ function CrmSection({ leadId }: { leadId: string }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-6 border-t border-line pt-5">
-      <h3 className="mb-2.5 text-xs font-semibold tracking-wide text-faint uppercase">{title}</h3>
+      <h3 className="mb-2.5 text-sm font-semibold text-muted">{title}</h3>
       {children}
     </section>
   );

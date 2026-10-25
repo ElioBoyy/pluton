@@ -92,7 +92,7 @@ function NewConversation() {
                 key={s}
                 disabled={send.isPending}
                 onClick={() => ask(s)}
-                className="rounded-lg border border-line px-3 py-2.5 text-left text-sm text-muted hover:bg-raised hover:text-ink disabled:opacity-50"
+                className="rounded-xl bg-raised px-3 py-2.5 text-left text-sm text-muted transition-colors duration-150 hover:bg-control-hover hover:text-ink disabled:opacity-50"
               >
                 {s}
               </button>
@@ -102,7 +102,7 @@ function NewConversation() {
           {/* The list is beside the chat from md up; below, recent conversations sit here. */}
           {(list.data?.length ?? 0) > 0 && (
             <div className="mt-8 md:hidden">
-              <p className="mb-2 text-xs font-medium tracking-wider text-faint uppercase">Recent</p>
+              <p className="mb-2 text-sm font-semibold text-muted">Recent</p>
               <ul className="flex flex-col gap-px">
                 {list.data!.slice(0, 8).map((c) => (
                   <li key={c.id}>
@@ -293,7 +293,7 @@ function ActionCard({ action }: { action: Action }) {
   );
   const status = STATUS[action.status];
   return (
-    <div className={cn("rounded-xl border bg-panel p-3.5", action.status === "proposed" ? "border-line-strong" : "border-line")}>
+    <div className={cn("rounded-2xl bg-panel p-4 shadow-card", action.status === "proposed" && "ring-1 ring-accent/35")}>
       <div className="flex items-center gap-2 text-xs">
         <Lightning size={13} weight="fill" className="text-cat-pink" />
         <span className="font-medium text-muted">{toolLabel(action.tool)}</span>

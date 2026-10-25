@@ -170,9 +170,9 @@ function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onCh
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={cn("relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors disabled:opacity-50", checked ? "bg-system-green" : "bg-control-pressed")}
+      className={cn("relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50", checked ? "bg-system-green" : "bg-control-pressed")}
     >
-      <span className={cn("absolute top-[2px] size-[18px] rounded-full bg-white shadow-control transition-[left]", checked ? "left-[18px]" : "left-[2px]")} />
+      <span className={cn("absolute top-[2px] size-[18px] rounded-full bg-white shadow-control left-[2px] transition-[translate] duration-200 ease-[var(--ease-drawer)]", checked && "translate-x-4")} />
     </button>
   );
 }

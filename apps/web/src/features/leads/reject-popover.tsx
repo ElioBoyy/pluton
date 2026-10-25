@@ -64,7 +64,7 @@ export function RejectPopover({
       aria-label="Reject"
       onClick={(e) => e.stopPropagation()}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
-      className="fixed z-50 rounded-xl border border-line bg-panel p-4 text-left shadow-xl"
+      className="popover fixed z-50 rounded-xl p-4 text-left"
     >
       <p className="text-sm font-medium">{count > 1 ? `Reject ${count} leads` : "Not a fit"}</p>
       <p className="mt-0.5 text-xs text-muted">Add a reason? (optional) It updates your Brain, so the next search is better.</p>

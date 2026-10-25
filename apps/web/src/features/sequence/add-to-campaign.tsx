@@ -195,9 +195,9 @@ function StepDraft({ index, step, draft }: { index: number; step: Recipient["ste
   const edit = useMutation(trpc.campaigns.drafts.edit.mutationOptions({ onSuccess: () => refresh(), onError: (e) => toast(e.message, { tone: "error" }) }));
   const state = draft?.review ?? "missing";
   return (
-    <li className="rounded-xl border border-line p-3">
+    <li className="rounded-xl bg-raised p-3">
       <div className="mb-2 flex items-center justify-between text-xs">
-        <span className="font-semibold tracking-wide text-faint uppercase">
+        <span className="font-semibold text-muted">
           {index + 1} · {stepWhen(index, step.delayHours)} · {step.label}
           {step.mode === "ai" && <Sparkle size={10} weight="fill" className="ml-1 inline text-accent" />}
         </span>

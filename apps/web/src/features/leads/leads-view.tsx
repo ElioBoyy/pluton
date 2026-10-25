@@ -229,7 +229,7 @@ export function LeadsView({
           {search || pipeline ? "No lead matches these filters." : tab === "all" ? "No leads yet. Run a search from a Play." : "No leads here."}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line">
+        <div className="overflow-x-auto rounded-2xl bg-panel shadow-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs text-faint">
@@ -494,7 +494,7 @@ function BulkBar({
   };
 
   return (
-    <div className="sticky top-2 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-line-strong bg-panel px-3 py-2 text-sm shadow-lg">
+    <div className="sticky top-2 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-panel px-3 py-2 text-sm shadow-[var(--shadow-popover)]">
       <span className="font-medium">{count} selected</span>
       {canSelectAll && (
         <button onClick={onSelectAll} className="text-muted underline underline-offset-2 hover:text-ink">
@@ -636,7 +636,7 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
         <GearSix size={14} /> Columns
       </Button>
       {open && (
-        <div className="absolute top-full right-0 z-30 mt-1.5 w-48 rounded-xl border border-line bg-panel p-2 shadow-xl">
+        <div className="popover absolute top-full right-0 z-30 mt-1.5 w-48 origin-top-right rounded-xl p-2">
           {COLUMNS.map((c) => (
             <label key={c.key} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-raised">
               <input
