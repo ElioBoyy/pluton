@@ -1,6 +1,10 @@
 import { executeCopilotAction, runCopilotTurn } from "@pluton/agent";
 import { copilotChannel, emitStreamEvent, getCopilotAction, jobPayloads, type JobHandler } from "@pluton/core";
 import { buildPlutonTools } from "@pluton/server/agent-tools";
+import { localized } from "@pluton/i18n/server";
+import messages from "../messages/copilot.ts";
+
+const t = localized(messages);
 
 /** One agent turn on a conversation; an approved action runs first and the agent reports on it. */
 export const copilotTurn: JobHandler = async ({ db, job, signal }) => {
@@ -16,7 +20,7 @@ export const copilotTurn: JobHandler = async ({ db, job, signal }) => {
     // Said on the conversation's own channel, before turn_end, so the chat can't miss it.
     // Only a Stop the founder pressed goes unexplained; a worker restart also ends the turn for good.
     if (signal.reason !== "cancel") {
-      const message = signal.reason === "shutdown" ? "Pluton restarted during this answer; send your message again." : (error as Error).message;
+      const message = signal.reason === "shutdown" ? t("restarted") : (error as Error).message;
       await emitStreamEvent(db, copilotChannel(conversationId), "error", { message });
     }
     throw error;

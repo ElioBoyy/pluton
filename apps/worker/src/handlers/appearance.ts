@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { jobPayloads, saveWallpaper, type JobHandler } from "@pluton/core";
+import { appearanceText as t, jobPayloads, saveWallpaper, type JobHandler } from "@pluton/core";
 
 /** Codex's image tool can take a couple of minutes per image. */
 const CODEX_TIMEOUT_MS = 6 * 60_000;
@@ -17,7 +17,7 @@ export const generateWallpaper: JobHandler = async ({ job, emit, signal }) => {
   const { prompt } = jobPayloads["appearance.generate_wallpaper"].parse(job.payload);
   const work = await fs.mkdtemp(path.join(os.tmpdir(), "pluton-wallpaper-"));
   try {
-    await emit("progress", { theme: "light", message: "Drawing the light version…" });
+    await emit("progress", { theme: "light", message: t("drawingLight") });
     const light = await codexImage(
       `$imagegen Generate one wide 16:9 desktop wallpaper, at least 1920×1080: ${prompt}. ` +
         "Daylight version: bright, airy, soft light tones that sit well behind a light interface. " +
@@ -29,7 +29,7 @@ export const generateWallpaper: JobHandler = async ({ job, emit, signal }) => {
     await saveWallpaper("light", light);
     await emit("saved", { theme: "light" });
 
-    await emit("progress", { theme: "dark", message: "Drawing the dark version…" });
+    await emit("progress", { theme: "dark", message: t("drawingDark") });
     const lightFile = path.join(work, "light.png");
     await fs.writeFile(lightFile, light);
     const dark = await codexImage(
@@ -63,19 +63,19 @@ async function codexImage(instruction: string, images: string[], cwd: string, si
     signal.addEventListener("abort", stop);
     const timer = setTimeout(stop, CODEX_TIMEOUT_MS);
     child.on("error", (error) =>
-      reject((error as NodeJS.ErrnoException).code === "ENOENT" ? new Error("Codex is not installed on this computer.") : error),
+      reject((error as NodeJS.ErrnoException).code === "ENOENT" ? new Error(t("codexMissing")) : error),
     );
     child.on("close", (code) => {
       clearTimeout(timer);
       signal.removeEventListener("abort", stop);
-      if (signal.aborted) reject(new Error("Stopped."));
+      if (signal.aborted) reject(new Error(t("stopped")));
       else if (code === 0) resolve(text);
-      else reject(new Error(`Codex stopped (exit ${code}): ${lastLines(text)}`));
+      else reject(new Error(t("codexFailed", { code: String(code), output: lastLines(text) })));
     });
   });
 
   const fresh = await newestImage(outDir, started);
-  if (!fresh) throw new Error(`Codex finished without saving an image. Is image generation on for your ChatGPT plan? ${lastLines(output)}`);
+  if (!fresh) throw new Error(t("codexNoImage", { output: lastLines(output) }));
   return fs.readFile(fresh);
 }
 

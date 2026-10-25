@@ -1,4 +1,6 @@
 import { getSetting } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/providers.ts";
 
 export * from "./types.ts";
 export * from "./runtime.ts";
@@ -19,81 +21,83 @@ export type ProviderInfo = {
   configured: boolean;
 };
 
+const t = localized(messages);
+
 /** Catalog shown on the Data sources page. `web` is served by the agent package (Claude web search). */
 export function providerCatalog(): ProviderInfo[] {
   const has = (key: string) => Boolean(getSetting(key)?.trim());
   return [
     {
       id: "registry",
-      label: "French company registry",
-      description: "Every French company by keyword, sector (NAF), headcount and department, with its executives. recherche-entreprises.api.gouv.fr",
-      powers: ["Role match (persona sweep)", "Lookalikes (same sector and size as a customer)"],
+      label: t("registry.label"),
+      description: t("registry.description"),
+      powers: [t("power.roleMatch"), t("power.lookalikes")],
       access: "free",
       configured: true,
     },
     {
       id: "careers",
-      label: "Company careers pages",
-      description: "Open roles of a given company, read from its Greenhouse, Lever, Ashby or Recruitee board.",
-      powers: ["Hiring signal (per company)"],
+      label: t("careers.label"),
+      description: t("careers.description"),
+      powers: [t("power.hiringCompany")],
       access: "free",
       configured: true,
     },
     {
       id: "stack",
-      label: "Website tech detection",
-      description: "Marketing and front-end tools a company runs, detected from its homepage.",
-      powers: ["Stack signal (per company)"],
+      label: t("stack.label"),
+      description: t("stack.description"),
+      powers: [t("power.stackCompany")],
       access: "free",
       configured: true,
     },
     {
       id: "website",
-      label: "Company website emails",
-      description: "Addresses on a company's own contact, legal and team pages. Finds a person's address, or guesses it from the pattern the site uses (marked as a guess).",
-      powers: ["Find email (free)"],
+      label: t("website.label"),
+      description: t("website.description"),
+      powers: [t("power.findEmailFree")],
       access: "free",
       configured: true,
     },
     {
       id: "web",
-      label: "Web search (Claude)",
-      description: "Claude searches the web and reads pages: companies, people, public evidence, funding news. Uses your Claude subscription.",
-      powers: ["Web evidence", "Recent funding (press)", "Finding people"],
+      label: t("web.label"),
+      description: t("web.description"),
+      powers: [t("power.webEvidence"), t("power.funding"), t("power.findingPeople")],
       access: "subscription",
       configured: true,
     },
     {
       id: "linkedin_lookup",
-      label: "LinkedIn profile lookup (Claude)",
-      description: "Finds a person's LinkedIn profile URL through web search, using your Claude subscription. Needed before LinkedIn outreach.",
-      powers: ["Lead enrichment"],
+      label: t("linkedin_lookup.label"),
+      description: t("linkedin_lookup.description"),
+      powers: [t("power.enrichment")],
       access: "subscription",
       configured: true,
     },
     {
       id: "hunter",
-      label: "Hunter",
-      description: "Work email from name and company domain. Free plan: 25 searches a month. Without it, Find email only checks public pages and the company site.",
-      powers: ["Find email"],
+      label: t("hunter.label"),
+      description: t("hunter.description"),
+      powers: [t("power.findEmail")],
       access: "api_key",
       settingKey: "hunter_api_key",
       configured: has("hunter_api_key"),
     },
     {
       id: "theirstack",
-      label: "TheirStack",
-      description: "Job posts across the whole market by title, country and technologies. 1 credit per job.",
-      powers: ["Hiring signal (market-wide)", "Stack signal (market-wide)"],
+      label: t("theirstack.label"),
+      description: t("theirstack.description"),
+      powers: [t("power.hiringMarket"), t("power.stackMarket")],
       access: "api_key",
       settingKey: "theirstack_api_key",
       configured: has("theirstack_api_key"),
     },
     {
       id: "apify",
-      label: "Apify (LinkedIn)",
-      description: "Recent posts of tracked profiles and the people who react to or comment on them. No LinkedIn cookies used.",
-      powers: ["Competitor / influencer / own-brand engagement", "Keyword posts"],
+      label: t("apify.label"),
+      description: t("apify.description"),
+      powers: [t("power.engagement"), t("power.keywordPosts")],
       access: "api_key",
       settingKey: "apify_token",
       configured: has("apify_token"),

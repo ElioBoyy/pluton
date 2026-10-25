@@ -18,6 +18,7 @@
     "@pluton/agent": "workspace:*",
     "@pluton/core": "workspace:*",
     "@pluton/db": "workspace:*",
+    "@pluton/i18n": "workspace:*",
     "@pluton/providers": "workspace:*",
     "@trpc/server": "^11.19.0",
     "hono": "^4.13.13",

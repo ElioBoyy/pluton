@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../../components/ui.tsx";
+import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
-import { REJECT_REASONS, type RejectReason } from "./labels.ts";
+import { REJECT_REASONS, reasonLabel, type RejectReason } from "./labels.ts";
 
 const WIDTH = 320;
 
@@ -23,6 +24,8 @@ export function RejectPopover({
   onClose: () => void;
   align?: "right" | "left";
 }) {
+  const t = useT("leads");
+  const tc = useT("common");
   const [reasons, setReasons] = useState<RejectReason[]>([]);
   const [comment, setComment] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -61,44 +64,44 @@ export function RejectPopover({
     <div
       ref={ref}
       role="dialog"
-      aria-label="Reject"
+      aria-label={tc("reject")}
       onClick={(e) => e.stopPropagation()}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
       className="popover fixed z-50 rounded-2xl p-4 text-left"
     >
-      <p className="text-sm font-semibold">{count > 1 ? `Reject ${count} leads` : "Not a fit"}</p>
-      <p className="mt-1 text-xs text-muted">Add a reason? (optional) It updates your Brain, so the next search is better.</p>
+      <p className="text-sm font-semibold">{count > 1 ? t("reject.title", { count }) : t("action.notFit")}</p>
+      <p className="mt-1 text-xs text-muted">{t("reject.hint")}</p>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {REJECT_REASONS.map((r) => (
           <button
-            key={r.key}
+            key={r}
             type="button"
-            onClick={() => toggle(r.key)}
-            aria-pressed={reasons.includes(r.key)}
+            onClick={() => toggle(r)}
+            aria-pressed={reasons.includes(r)}
             // Tinted capsules: a quiet fill until picked, then the accent.
             className={cn(
               "inline-flex h-6 items-center rounded-full px-2.5 text-xs transition-[background-color,color,scale] duration-150 ease-out motion-safe:active:scale-95",
-              reasons.includes(r.key) ? "bg-accent font-medium text-on-accent" : "bg-control text-ink hover:bg-control-hover",
+              reasons.includes(r) ? "bg-accent font-medium text-on-accent" : "bg-control text-ink hover:bg-control-hover",
             )}
           >
-            {r.label}
+            {reasonLabel(r)}
           </button>
         ))}
       </div>
       <textarea
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="Anything else?"
+        placeholder={t("reject.placeholder")}
         rows={2}
         maxLength={1000}
         className="mt-3 block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
       />
       <div className="mt-3 flex justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>
-          Cancel
+          {tc("cancel")}
         </Button>
         <Button onClick={() => onSubmit(reasons, comment)}>
-          Submit
+          {t("reject.submit")}
         </Button>
       </div>
     </div>,

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  campaignsText,
   getCampaign,
   getLeadWithPerson,
   getSingleton,
@@ -12,8 +13,12 @@ import {
 } from "@pluton/core";
 import { and, eq, getSetting, inArray, messageDrafts, senders, type Campaign, type CampaignStep, type Db, type Lead, type Person } from "@pluton/db";
 import { APIFY_KEY, profilePosts } from "@pluton/providers";
+import { languageInstruction, localized } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
 import { FAST_MODEL, WRITER_MODEL, localTool } from "./run-agent.ts";
+import messages from "./messages/sequence.ts";
+
+const t = localized(messages);
 
 const WRITER_SYSTEM = `You write LinkedIn outreach for a founder, in their voice, one person at a time.
 Rules:
@@ -77,7 +82,7 @@ export async function writeDrafts(
   opts: { campaignId: string; leadIds: string[]; force?: boolean; signal?: AbortSignal; onLead?: (leadId: string, ok: boolean) => Promise<void> },
 ) {
   const campaign = await getCampaign(db, opts.campaignId);
-  if (!campaign) throw new Error("Sequence not found");
+  if (!campaign) throw new Error(campaignsText("notFound"));
   const steps = campaign.steps.filter((s) => s.kind === "message" && s.enabled);
   const brain = await brainContext(db, campaign.workspaceId);
   const language = await campaignLanguage(db, campaign);
@@ -112,7 +117,7 @@ export async function writeDrafts(
     try {
       const texts = await writeForLead(db, { campaign, steps, aiSteps, lead: row.lead, person: row.person, brain: brain.text, language, signal: opts.signal });
       for (const s of aiSteps) {
-        await upsertDraft(db, { campaignId: campaign.id, leadId, stepId: s.id, text: texts.get(s.id) ?? "", origin: "generated", review: texts.get(s.id) ? "not_reviewed" : "failed", stepRevision: s.revision, error: texts.get(s.id) ? null : "Not written" });
+        await upsertDraft(db, { campaignId: campaign.id, leadId, stepId: s.id, text: texts.get(s.id) ?? "", origin: "generated", review: texts.get(s.id) ? "not_reviewed" : "failed", stepRevision: s.revision, error: texts.get(s.id) ? null : t("draftNotWritten") });
       }
       written++;
       await opts.onLead?.(leadId, true);
@@ -174,11 +179,11 @@ ${o.aiSteps.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHou
 export async function sharpenGuidelines(db: Db, campaignId: string, stepId: string, guidelines: string) {
   const campaign = await getCampaign(db, campaignId);
   const step = campaign?.steps.find((s) => s.id === stepId);
-  if (!campaign || !step) throw new Error("Step not found");
+  if (!campaign || !step) throw new Error(campaignsText("stepNotFound"));
   const brain = await brainContext(db, campaign.workspaceId);
   let suggestion = "";
   await runAgent({
-    system: "You improve the guidelines an AI follows to write one LinkedIn outreach message. Keep the founder's intent; make them concrete, checkable and short (a few bullet lines). Include what to avoid. Plain text, no preamble.",
+    system: `You improve the guidelines an AI follows to write one LinkedIn outreach message. Keep the founder's intent; make them concrete, checkable and short (a few bullet lines). Include what to avoid. Plain text, no preamble.\n${languageInstruction()}`,
     model: WRITER_MODEL,
     noWeb: true,
     maxTurns: 3,
@@ -213,7 +218,8 @@ export async function classifyReply(opts: { reply: string; lastMessage?: string 
     system: `Classify a reply to a LinkedIn outreach message.
 - positive: interested, wants to talk, asks for the link or a time.
 - not_interested: declines, asks to stop, wrong person with no lead.
-- in_your_hands: anything else (a question, a referral, an out-of-office, ambiguity). When unsure, in_your_hands.`,
+- in_your_hands: anything else (a question, a referral, an out-of-office, ambiguity). When unsure, in_your_hands.
+The summary is for the founder: ${languageInstruction()}`,
     model: FAST_MODEL,
     noWeb: true,
     maxTurns: 2,

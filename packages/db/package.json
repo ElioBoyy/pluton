@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
+    "@pluton/i18n": "workspace:*",
     "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {

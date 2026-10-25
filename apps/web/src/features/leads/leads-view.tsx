@@ -26,6 +26,8 @@ import { useDeleteLeads, useLeadMenu } from "./lead-menu.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
+import { formatDate } from "../../lib/format.ts";
+import { translate, useT } from "../../i18n/index.ts";
 import { PIPELINE_LABELS } from "../plays/labels.ts";
 import { COLUMNS, LEAD_TABS, STATUS, initials, type ColumnKey, type LeadTabKey, type RejectReason } from "./labels.ts";
 import { LeadDrawer } from "./lead-drawer.tsx";
@@ -37,11 +39,12 @@ import { BulkCrmExport } from "../integrations/crm-export.tsx";
 
 /** "Add N to campaign": opens the message review before they join their Play's sequence. */
 function BulkAddToCampaign({ resolveIds, count, onDone }: { resolveIds: () => Promise<string[]>; count: number; onDone: () => void }) {
+  const t = useT("leads");
   const [ids, setIds] = useState<string[] | null>(null);
   return (
     <>
       <Button className="h-8" disabled={count > 500} onClick={async () => setIds(await resolveIds())}>
-        <PaperPlaneTilt size={14} /> Add {count} to campaign
+        <PaperPlaneTilt size={14} /> {t("bulk.addToCampaign", { count })}
       </Button>
       {ids && (
         <AddToCampaignModal
@@ -90,6 +93,7 @@ export function LeadsView({
   openLeadId?: string;
   onOpenLead: (leadId: string | undefined) => void;
 }) {
+  const t = useT("leads");
   const trpc = useTRPC();
   const showPlay = !playId;
   const [searchInput, setSearchInput] = useState("");
@@ -103,8 +107,8 @@ export function LeadsView({
   const [noteFocus, setNoteFocus] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setSearch(searchInput.trim()), 250);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 250);
+    return () => clearTimeout(timer);
   }, [searchInput]);
 
   const filter = { playId, tab, search: search || undefined, pipeline: (pipeline || undefined) as LeadRow["pipeline"] & {} | undefined };
@@ -162,25 +166,25 @@ export function LeadsView({
         <div className="-m-1 max-w-full min-w-0 overflow-x-auto p-1 [scrollbar-width:none]">
           {/* Keyed on the counts: Segmented measures its thumb only when the value changes, and the counts widen the labels. */}
           <Segmented
-            key={LEAD_TABS.map((t) => counts.data?.counts[t.key] ?? "").join(",")}
-            label="Lead status"
+            key={LEAD_TABS.map((tab) => counts.data?.counts[tab.key] ?? "").join(",")}
+            label={t("view.statusLabel")}
             value={tab}
             onChange={onTab}
-            options={LEAD_TABS.map((t) => ({
-              value: t.key,
+            options={LEAD_TABS.map((tab) => ({
+              value: tab.key,
               label: (
                 <>
-                  {t.label}
-                  <span className="ml-1.5 font-normal tabular-nums text-muted">{counts.data?.counts[t.key] ?? "·"}</span>
+                  {t(`tab.${tab.key}`)}
+                  <span className="ml-1.5 font-normal tabular-nums text-muted">{counts.data?.counts[tab.key] ?? "·"}</span>
                 </>
               ),
             }))}
           />
         </div>
         {progress && progress.total > 0 && (
-          <div className="flex items-center gap-2.5 text-xs whitespace-nowrap text-muted tabular-nums" title="Leads with your verdict, or already in a campaign">
+          <div className="flex items-center gap-2.5 text-xs whitespace-nowrap text-muted tabular-nums" title={t("view.reviewedTitle")}>
             <Progress value={progress.reviewed / progress.total} tone="green" className="w-28" />
-            {progress.reviewed} of {progress.total} reviewed
+            {t("view.reviewed", { reviewed: progress.reviewed, total: progress.total })}
           </div>
         )}
       </div>
@@ -191,12 +195,12 @@ export function LeadsView({
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search name, title, company, location"
+            placeholder={t("view.searchPlaceholder")}
             className="capsule h-8 w-full min-w-48 pr-4 pl-9 text-sm outline-none transition-[background-color,box-shadow] duration-150 placeholder:text-muted hover:bg-(--capsule-bg-hover) focus:shadow-[var(--capsule-shadow),0_0_0_3px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]"
           />
         </label>
-        <select value={pipeline} onChange={(e) => setPipeline(e.target.value)} aria-label="Signal" className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)">
-          <option value="">Every signal</option>
+        <select value={pipeline} onChange={(e) => setPipeline(e.target.value)} aria-label={t("view.signal")} className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)">
+          <option value="">{t("view.everySignal")}</option>
           {Object.entries(PIPELINE_LABELS)
             .filter(([k]) => k !== "waterfall")
             .map(([k, label]) => (
@@ -205,10 +209,10 @@ export function LeadsView({
               </option>
             ))}
         </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort" className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)">
-          <option value="newest">Newest first</option>
-          <option value="fit">Best fit first</option>
-          <option value="warmness">Warmest first</option>
+        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label={t("view.sort")} className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)">
+          <option value="newest">{t("sort.newest")}</option>
+          <option value="fit">{t("sort.fit")}</option>
+          <option value="warmness">{t("sort.warmness")}</option>
         </select>
         {/* One capsule for the view actions, as in the Finder toolbar. */}
         <ButtonGroup divided>
@@ -239,7 +243,7 @@ export function LeadsView({
       ) : items.length === 0 ? (
         <Group>
           <p className="py-12 text-center text-sm text-muted">
-            {search || pipeline ? "No lead matches these filters." : tab === "all" ? "No leads yet. Run a search from a Play." : "No leads here."}
+            {search || pipeline ? t("view.emptyFiltered") : tab === "all" ? t("view.emptyAll") : t("view.emptyTab")}
           </p>
         </Group>
       ) : (
@@ -249,16 +253,16 @@ export function LeadsView({
             <thead>
               <tr className="text-left text-xs whitespace-nowrap text-muted">
                 <th className="w-10 pt-2 pr-1 pb-1.5 pl-4">
-                  <input type="checkbox" checked={pageAllSelected || allMatching} onChange={togglePage} aria-label="Select all on this page" className="block accent-accent" />
+                  <input type="checkbox" checked={pageAllSelected || allMatching} onChange={togglePage} aria-label={t("table.selectPage")} className="block accent-accent" />
                 </th>
-                <th className="px-3 pt-2 pb-1.5 font-medium">Lead</th>
-                {COLUMNS.filter((c) => has(c.key)).map((c) => (
-                  <th key={c.key} className={cn("px-3 pt-2 pb-1.5 font-medium", (c.key === "fit" || c.key === "warmness") && "text-right")}>
-                    {c.label}
+                <th className="px-3 pt-2 pb-1.5 font-medium">{t("table.lead")}</th>
+                {COLUMNS.filter((c) => has(c)).map((c) => (
+                  <th key={c} className={cn("px-3 pt-2 pb-1.5 font-medium", (c === "fit" || c === "warmness") && "text-right")}>
+                    {t(`column.${c}`)}
                   </th>
                 ))}
                 <th className="w-0 p-0 [@media(hover:none)]:w-auto">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("table.actions")}</span>
                 </th>
               </tr>
             </thead>
@@ -283,7 +287,7 @@ export function LeadsView({
             <div className="flex justify-center px-4 py-3">
               <Button variant="ghost" disabled={list.isFetching} onClick={() => setLimit((n) => n + PAGE)}>
                 {list.isFetching && <CircleNotch size={13} className="animate-spin" />}
-                Show more ({total - items.length} left)
+                {t("view.showMore", { count: total - items.length })}
               </Button>
             </div>
           )}
@@ -310,6 +314,7 @@ function Row({
   onToggle: () => void;
   onOpen: (note?: boolean) => void;
 }) {
+  const t = useT("leads");
   const review = useReviewLeads();
   const [rejecting, setRejecting] = useState(false);
   const rejectRef = useRef<HTMLButtonElement>(null);
@@ -341,13 +346,13 @@ function Row({
       )}
     >
       <td className="w-10 py-2 pr-1 pl-4" onClick={stop}>
-        <input type="checkbox" checked={selected} onChange={onToggle} aria-label={`Select ${l.person.name}`} className="block accent-accent" />
+        <input type="checkbox" checked={selected} onChange={onToggle} aria-label={t("row.select", { name: l.person.name })} className="block accent-accent" />
       </td>
       <td className="max-w-56 min-w-40 px-3 py-2">
         <div className="flex items-center gap-2.5">
           <span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-control text-[11px] font-semibold text-muted">
             {initials(l.person.name)}
-            {l.isNew && <span className="absolute -top-px -right-px size-2.5 rounded-full bg-system-blue ring-2 ring-canvas" aria-label="New" />}
+            {l.isNew && <span className="absolute -top-px -right-px size-2.5 rounded-full bg-system-blue ring-2 ring-canvas" aria-label={t("status.new")} />}
           </span>
           <span className="min-w-0">
             <span className="flex items-start gap-1.5">
@@ -355,7 +360,7 @@ function Row({
                 {l.person.name}
               </span>
               {l.person.linkedinUrl && (
-                <a href={l.person.linkedinUrl} target="_blank" rel="noreferrer" onClick={stop} aria-label="LinkedIn profile" className="mt-px shrink-0 text-muted hover:text-system-blue">
+                <a href={l.person.linkedinUrl} target="_blank" rel="noreferrer" onClick={stop} aria-label={t("row.linkedin")} className="mt-px shrink-0 text-muted hover:text-system-blue">
                   <LinkedinLogo size={14} weight="fill" />
                 </a>
               )}
@@ -381,7 +386,7 @@ function Row({
                 target="_blank"
                 rel="noreferrer"
                 onClick={stop}
-                aria-label="Company website"
+                aria-label={t("row.companyWebsite")}
                 className="ml-1 inline-flex align-[-1px] text-muted hover:text-ink"
               >
                 <ArrowSquareOut size={12} />
@@ -411,14 +416,14 @@ function Row({
       {has("email") && (
         <td className="max-w-52 truncate px-3 py-2 text-muted">
           {l.person.email ? (
-            <span className={cn(l.person.emailSource === "pattern" && "text-[color-mix(in_srgb,var(--color-system-yellow),black_45%)] dark:text-system-yellow")} title={l.person.emailSource === "pattern" ? "Guessed, unverified" : undefined}>
+            <span className={cn(l.person.emailSource === "pattern" && "text-[color-mix(in_srgb,var(--color-system-yellow),black_45%)] dark:text-system-yellow")} title={l.person.emailSource === "pattern" ? t("row.emailGuessed") : undefined}>
               {l.person.email}
             </span>
           ) : l.person.emailCheckedAt ? (
-            <span>None found</span>
+            <span>{t("row.emailNone")}</span>
           ) : (
             <span className="inline-flex items-center gap-1">
-              <Envelope size={12} /> Open to find
+              <Envelope size={12} /> {t("row.emailOpen")}
             </span>
           )}
         </td>
@@ -428,7 +433,7 @@ function Row({
           <p className="line-clamp-2">{l.playName}</p>
         </td>
       )}
-      {has("found") && <td className="px-3 py-2 whitespace-nowrap text-muted tabular-nums">{new Date(l.createdAt).toLocaleDateString()}</td>}
+      {has("found") && <td className="px-3 py-2 whitespace-nowrap text-muted tabular-nums">{formatDate(l.createdAt)}</td>}
       {/*
         * With a pointer, the actions float over the row's trailing edge in a small capsule, on hover or
         * keyboard focus, as in Mail, so they take no column. On touch screens they sit in their own column.
@@ -443,7 +448,7 @@ function Row({
           )}
         >
           <RowAction
-            label="Good lead"
+            label={t("action.good")}
             active={l.status === "approved"}
             tone="green"
             onClick={() => void review.run({ leadIds: [l.id], verdict: "up", label: l.person.name })}
@@ -451,15 +456,15 @@ function Row({
           >
             <ThumbsUp size={15} weight={l.status === "approved" ? "fill" : "regular"} />
           </RowAction>
-          <RowAction ref={rejectRef} label="Not a fit" active={l.status === "rejected"} onClick={() => setRejecting(true)} disabled={review.isPending}>
+          <RowAction ref={rejectRef} label={t("action.notFit")} active={l.status === "rejected"} onClick={() => setRejecting(true)} disabled={review.isPending}>
             <ThumbsDown size={15} weight={l.status === "rejected" ? "fill" : "regular"} />
           </RowAction>
           {!l.sequenceStatus && l.status !== "rejected" && (
-            <RowAction label="Add to campaign" onClick={() => setAdding(true)}>
+            <RowAction label={t("action.addToCampaign")} onClick={() => setAdding(true)}>
               <PaperPlaneTilt size={15} />
             </RowAction>
           )}
-          <RowAction label="Add a note" onClick={() => onOpen(true)}>
+          <RowAction label={t("action.addNote")} onClick={() => onOpen(true)}>
             <ChatCircle size={15} />
           </RowAction>
           {adding && <AddToCampaignModal leadIds={[l.id]} onClose={() => setAdding(false)} />}
@@ -536,6 +541,8 @@ function BulkBar({
   onSelectAll: () => void;
   onClear: () => void;
 }) {
+  const t = useT("leads");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const review = useReviewLeads();
@@ -544,7 +551,7 @@ function BulkBar({
   const exportCsv = useMutation(trpc.leads.exportCsv.mutationOptions());
   const deleteLeads = useDeleteLeads(onClear);
   const resolveIds = async () => ids ?? (await queryClient.fetchQuery(trpc.leads.ids.queryOptions(filter)));
-  const label = `${count} lead${count === 1 ? "" : "s"}`;
+  const label = t("leadCount", { count });
 
   const act = async (verdict: "up" | "down", reasons?: RejectReason[], comment?: string) => {
     const leadIds = await resolveIds();
@@ -555,15 +562,15 @@ function BulkBar({
   return (
     // A floating Liquid Glass bar, like the Finder's selection toolbar; it stays in view while the table scrolls.
     <div className="glass sticky top-2 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-[22px] py-1.5 pr-1.5 pl-4 text-sm">
-      <span className="font-medium tabular-nums">{count} selected</span>
-      {canSelectAll && <TextButton onClick={onSelectAll}>Select all {total}</TextButton>}
+      <span className="font-medium tabular-nums">{t("bulk.selected", { count })}</span>
+      {canSelectAll && <TextButton onClick={onSelectAll}>{t("bulk.selectAll", { count: total })}</TextButton>}
       <span className="flex-1" />
       <Button className="h-8" disabled={review.isPending} onClick={() => void act("up")}>
-        <ThumbsUp size={14} /> Approve {count}
+        <ThumbsUp size={14} /> {t("bulk.approve", { count })}
       </Button>
       <div ref={rejectRef}>
         <Button variant="ghost" className="h-8" disabled={review.isPending} onClick={() => setRejecting(true)}>
-          <ThumbsDown size={14} /> Reject {count}
+          <ThumbsDown size={14} /> {t("bulk.reject", { count })}
         </Button>
         {rejecting && (
           <RejectPopover
@@ -582,9 +589,9 @@ function BulkBar({
       <Button
         variant="ghost"
         className="h-8 text-system-red"
-        onClick={async () => void deleteLeads(await resolveIds(), `${count} lead${count === 1 ? "" : "s"}`)}
+        onClick={async () => void deleteLeads(await resolveIds(), label)}
       >
-        <Trash size={14} /> Delete
+        <Trash size={14} /> {tc("delete")}
       </Button>
       <BulkCrmExport resolveIds={resolveIds} count={count} />
       <Button
@@ -595,15 +602,15 @@ function BulkBar({
           const leadIds = await resolveIds();
           const r = await exportCsv.mutateAsync({ ...filter, leadIds });
           downloadText(r.filename, r.csv);
-          toast(`Exported ${r.count} leads`);
+          toast(t("exported", { count: r.count }));
         }}
       >
-        <DownloadSimple size={14} /> Export {count}
+        <DownloadSimple size={14} /> {t("bulk.export", { count })}
       </Button>
       <button
         onClick={onClear}
-        aria-label="Clear selection"
-        title="Clear selection"
+        aria-label={t("bulk.clear")}
+        title={t("bulk.clear")}
         className="flex size-8 items-center justify-center rounded-full text-muted transition-[background-color,color,scale] duration-150 hover:bg-control hover:text-ink motion-safe:active:scale-90"
       >
         <X size={14} />
@@ -614,6 +621,7 @@ function BulkBar({
 
 /** Bulk email lookup runs as a job; this follows it (and picks it up again after a reload). */
 function BulkFindEmails({ resolveIds, count }: { resolveIds: () => Promise<string[]>; count: number }) {
+  const t = useT("leads");
   const trpc = useTRPC();
   const refresh = useRefreshLeads();
   const active = useQuery(trpc.leads.activeEmailJob.queryOptions());
@@ -637,19 +645,19 @@ function BulkFindEmails({ resolveIds, count }: { resolveIds: () => Promise<strin
       setJobId(null);
       setProgress(null);
       void refresh();
-      toast(`Found ${p.found} email${p.found === 1 ? "" : "s"} for ${p.checked} leads${p.errors?.length ? ` · ${p.errors[0]}` : ""}`, { tone: p.errors?.length ? "error" : undefined });
+      toast(`${translate("leads", "emails.done", { count: p.found ?? 0, checked: p.checked ?? 0 })}${p.errors?.length ? ` · ${p.errors[0]}` : ""}`, { tone: p.errors?.length ? "error" : undefined });
     }
   });
 
   const q = quota.data;
   const hint =
-    q && q.hunter && "used" in q ? `Free sources first, then up to ${count} Hunter searches (${Math.max(0, q.available - q.used)} left this month)` : "Free sources only (no Hunter key)";
+    q && q.hunter && "used" in q ? t("emails.hintHunter", { count, left: Math.max(0, q.available - q.used) }) : t("emails.hintFree");
 
   if (running)
     return (
       <span className="flex items-center gap-1.5 px-2 text-xs text-muted">
         <CircleNotch size={13} className="animate-spin" />
-        <span className="ai-text">Finding emails {progress ? `${progress.done}/${progress.total}` : "…"}</span>
+        <span className="ai-text">{t("emails.finding")} {progress ? `${progress.done}/${progress.total}` : "…"}</span>
       </span>
     );
   return (
@@ -659,36 +667,38 @@ function BulkFindEmails({ resolveIds, count }: { resolveIds: () => Promise<strin
       title={hint}
       disabled={start.isPending || count > 200}
       onClick={async () => {
-        if (!window.confirm(`Find emails for ${count} leads?\n${hint}.`)) return;
+        if (!window.confirm(`${t("emails.confirm", { count })}\n${hint}.`)) return;
         start.mutate({ leadIds: (await resolveIds()).slice(0, 200) });
       }}
     >
-      <Envelope size={14} /> Find emails
+      <Envelope size={14} /> {t("emails.find")}
     </Button>
   );
 }
 
 function ExportButton({ filter, count }: { filter: Filter; count: number }) {
+  const t = useT("leads");
   const trpc = useTRPC();
   const exportCsv = useMutation(trpc.leads.exportCsv.mutationOptions());
   return (
     <GroupButton
       className="gap-1.5 px-3 text-sm"
       disabled={exportCsv.isPending || count === 0}
-      title="Leads in this tab and filter, as CSV"
+      title={t("export.title")}
       onClick={async () => {
         const r = await exportCsv.mutateAsync(filter);
         downloadText(r.filename, r.csv);
-        toast(`Exported ${r.count} leads`);
+        toast(t("exported", { count: r.count }));
       }}
     >
       {exportCsv.isPending ? <CircleNotch size={14} className="animate-spin" /> : <DownloadSimple size={14} />}
-      Export
+      {t("export.label")}
     </GroupButton>
   );
 }
 
 function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c: ColumnKey[]) => void }) {
+  const t = useT("leads");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -709,11 +719,11 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
       window.removeEventListener("resize", close);
     };
   }, [open]);
-  const ordered = useMemo(() => (c: ColumnKey[]) => COLUMNS.map((x) => x.key).filter((k) => c.includes(k)), []);
+  const ordered = useMemo(() => (c: ColumnKey[]) => COLUMNS.filter((k) => c.includes(k)), []);
   return (
     <div ref={ref} className="relative">
       <GroupButton className="gap-1.5 px-3 text-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <GearSix size={14} /> Columns
+        <GearSix size={14} /> {t("columns")}
       </GroupButton>
       {open &&
         pos &&
@@ -722,24 +732,24 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
           <div
             ref={menu}
             role="menu"
-            aria-label="Columns"
+            aria-label={t("columns")}
             style={{ top: pos.top, right: pos.right }}
             className="popover fixed z-50 w-48 origin-top-right rounded-xl p-1.5"
           >
             {/* A macOS menu: checkmarks in the leading gutter, rounded highlights inset from the edge. */}
             {COLUMNS.map((c) => {
-              const on = columns.includes(c.key);
+              const on = columns.includes(c);
               return (
                 <button
-                  key={c.key}
+                  key={c}
                   type="button"
                   role="menuitemcheckbox"
                   aria-checked={on}
-                  onClick={() => onChange(ordered(on ? columns.filter((x) => x !== c.key) : [...columns, c.key]))}
+                  onClick={() => onChange(ordered(on ? columns.filter((x) => x !== c) : [...columns, c]))}
                   className="flex h-7 w-full items-center gap-1.5 rounded-md pr-3 pl-1.5 text-left text-sm text-ink hover:bg-raised"
                 >
                   <span className="flex w-4 justify-center">{on && <Check size={12} weight="bold" />}</span>
-                  {c.label}
+                  {t(`column.${c}`)}
                 </button>
               );
             })}

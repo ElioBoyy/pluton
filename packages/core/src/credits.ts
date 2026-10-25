@@ -14,6 +14,7 @@ import {
   plays,
   sql,
   workspaces,
+  COST_PURPOSES,
   type BudgetSettings,
   type CostPurpose,
   type Db,
@@ -21,8 +22,14 @@ import {
   type RunTrigger,
   type Workspace,
 } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
 import { recordActivity } from "./events.ts";
-import { notify } from "./notifications.ts";
+import messages from "./messages/credits.ts";
+import { budgetRefusal, notifyDescribed } from "./notifications.ts";
+
+export { fmtUsd } from "./money.ts";
+
+const t = localized(messages);
 
 /**
  * Local spend tracking. The unit is the dollar itself, in micro-USD integers, and the "billing"
@@ -33,18 +40,12 @@ const toMicro = (usd: number) => Math.round(usd * MICRO);
 
 export const DEFAULT_BUDGET: BudgetSettings = { monthlyUsd: 0, periodStartDay: 1, dailyUsd: 0, mode: "enforce", runCapUsd: 2 };
 
-export const PURPOSE_LABELS: Record<CostPurpose, string> = {
-  lead_finding: "Lead finding",
-  planning: "Play planning",
-  onboarding: "Onboarding research",
-  brain: "Brain review",
-  email_finding: "Email finding",
-  outreach: "Message writing",
-  replies: "Reply handling",
-  agent: "Agent",
-  setup: "Source checks",
-  other: "Other",
-};
+/** Shown when an expense of 0 is added (checked by the router's input schema). */
+export const amountNotZeroMessage = () => t("amountNotZero");
+
+/** What each cost is for, as Usage names it, in the current language. */
+export const purposeLabels = (): Record<CostPurpose, string> =>
+  Object.fromEntries(COST_PURPOSES.map((p) => [p, t(`purpose.${p}`)])) as Record<CostPurpose, string>;
 
 export function budgetSettings(ws: Pick<Workspace, "budget">): BudgetSettings {
   return { ...DEFAULT_BUDGET, ...ws.budget };
@@ -54,8 +55,8 @@ export async function saveBudget(db: Db, workspaceId: string, patch: Partial<Bud
   const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId) });
   if (!ws) throw new Error("Workspace not found");
   const next = { ...budgetSettings(ws), ...patch };
-  if (next.periodStartDay < 1 || next.periodStartDay > 28) throw new Error("The period must start between day 1 and 28");
-  if (next.monthlyUsd < 0 || next.dailyUsd < 0 || next.runCapUsd <= 0) throw new Error("Amounts must be positive");
+  if (next.periodStartDay < 1 || next.periodStartDay > 28) throw new Error(t("periodStartDay"));
+  if (next.monthlyUsd < 0 || next.dailyUsd < 0 || next.runCapUsd <= 0) throw new Error(t("amountsPositive"));
   await db.update(workspaces).set({ budget: next }).where(eq(workspaces.id, workspaceId));
   await recordActivity(db, workspaceId, "credits", "budget.updated", { monthlyUsd: next.monthlyUsd, mode: next.mode });
   return next;
@@ -188,18 +189,17 @@ export async function planReservation(db: Db, play: Play, trigger: RunTrigger) {
   if (status.settings.mode === "track" || status.availableMicroUsd === null) return cap;
   if (status.availableMicroUsd < MIN_RESERVE) {
     const which = status.dailyLimitMicroUsd !== null && status.spentTodayMicroUsd + status.heldMicroUsd >= status.dailyLimitMicroUsd ? "daily" : "monthly";
-    const message = `The ${which} budget is used up${which === "monthly" ? ` until ${status.period.end.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : " for today"}. Raise it in Settings → Budget.`;
+    const until = status.period.end.toISOString();
     await recordActivity(db, play.workspaceId, "credits", "run.refused", { playId: play.id, trigger, which });
-    await notify(db, play.workspaceId, {
+    await notifyDescribed(db, play.workspaceId, {
       category: "runs",
       kind: "run.refused",
       tone: "warning",
-      title: `Search for ${play.name} not started`,
-      body: message,
       link: "/workspace/billing",
+      payload: { play: play.name, which, until },
       dedupeKey: `refused:${play.id}:${localDayStart(new Date(), ws.timezone).toISOString()}`,
     });
-    throw new BudgetError(message);
+    throw new BudgetError(budgetRefusal(which, until));
   }
   return Math.min(cap, status.availableMicroUsd);
 }
@@ -269,16 +269,11 @@ export async function checkBudgetThresholds(db: Db, workspaceId: string) {
   for (const threshold of [1, 0.8]) {
     if (share < threshold) continue;
     const full = threshold === 1;
-    const sent = await notify(db, workspaceId, {
+    const sent = await notifyDescribed(db, workspaceId, {
       category: "budget",
       kind: full ? "budget.exhausted" : "budget.warning",
       tone: "warning",
-      title: full ? "Monthly budget used up" : "80% of the monthly budget spent",
-      body: full
-        ? status.settings.mode === "enforce"
-          ? "New searches won't start until the next period or until you raise the budget."
-          : "Tracking only: searches keep running."
-        : `${fmtUsd(status.spentMicroUsd)} of ${fmtUsd(status.limitMicroUsd)} spent this period.`,
+      payload: { mode: status.settings.mode, spentMicroUsd: status.spentMicroUsd, limitMicroUsd: status.limitMicroUsd },
       link: "/workspace/billing",
       dedupeKey: `budget${threshold * 100}:${workspaceId}:${key}`,
     });
@@ -286,11 +281,6 @@ export async function checkBudgetThresholds(db: Db, workspaceId: string) {
     break;
   }
 }
-
-export const fmtUsd = (micro: number) => {
-  const usd = micro / MICRO;
-  return `$${usd >= 100 ? usd.toFixed(0) : usd >= 0.1 || usd === 0 ? usd.toFixed(2) : usd.toFixed(3)}`;
-};
 
 /**
  * Stops a run when its billed spend reaches the hold. Returns an unsubscribe function.

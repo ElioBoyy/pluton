@@ -13,7 +13,10 @@ import {
   type ActivityEvent,
   type Db,
 } from "@pluton/db";
-import { notify } from "./notifications.ts";
+import { currentLocale, localized } from "@pluton/i18n/server";
+import messages from "./messages/activity.ts";
+import { fmtUsd } from "./money.ts";
+import { notifyDescribed } from "./notifications.ts";
 
 /** Who did it, as the feed says it: "You approved…", "Pluton found…". */
 export type Actor = "you" | "pluton";
@@ -32,88 +35,101 @@ export type DescribedActivity = {
 type P = Record<string, unknown>;
 type Names = Map<string, string>;
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-const usd = (micro: unknown) => {
-  const v = Number(micro ?? 0) / 1_000_000;
-  return `$${v >= 0.1 || v === 0 ? v.toFixed(2) : v.toFixed(3)}`;
-};
-const REPLY_TEXT: Record<string, string> = {
-  positive: "interested",
-  in_your_hands: "needs your answer",
-  not_interested: "not interested",
-};
-const VIA: Record<string, string> = { slack: " from Slack", mcp: " from your AI client" };
+const t = localized(messages);
+const n = (v: unknown) => Number(v ?? 0);
+const VIA = (p: P) => (p.via === "slack" ? ".slack" : p.via === "mcp" ? ".mcp" : "") as "" | ".slack" | ".mcp";
 const CRM_NAMES: Record<string, string> = { hubspot: "HubSpot", attio: "Attio", pipedrive: "Pipedrive", slack: "Slack" };
-const found = (p: P) => Number(p.qualified ?? 0) + Number(p.needsReview ?? 0);
+const crmName = (provider: unknown) => CRM_NAMES[String(provider)] ?? String(provider);
+const REPLY_LABELS = ["positive", "in_your_hands", "not_interested"] as const;
+const replyLabel = (label: unknown) =>
+  REPLY_LABELS.includes(label as (typeof REPLY_LABELS)[number]) ? t(`reply.${label as (typeof REPLY_LABELS)[number]}`) : t("reply.unclassified");
+const found = (p: P) => n(p.qualified) + n(p.needsReview);
 const playLink = (id: unknown, tab?: string) => (typeof id === "string" ? `/plays/${id}${tab ? `?tab=${tab}` : ""}` : undefined);
 
-/** One sentence per event kind. Unknown kinds are left out of the feed rather than shown raw. */
+/** "You exported 3 leads to HubSpot (1 already there, 2 failed)": the details only when there are some. */
+function crmExported(p: P) {
+  const sentence = t(p.trigger === "auto" ? "crm.exportedByPluton" : "crm.exportedByYou", { count: n(p.created), crm: crmName(p.provider) });
+  const details = [
+    ...(n(p.exists) ? [t("crm.alreadyThere", { count: n(p.exists) })] : []),
+    ...(n(p.failed) ? [t("crm.failed", { count: n(p.failed) })] : []),
+  ];
+  return details.length ? t("crm.withDetails", { sentence, details: new Intl.ListFormat(currentLocale(), { type: "unit" }).format(details) }) : sentence;
+}
+
+/** One sentence per event kind, in the current language. Unknown kinds are left out of the feed rather than shown raw. */
 const DESCRIBE: Record<string, (p: P, play: string, names: Names) => { actor: Actor; text: string; link?: string } | null> = {
-  "play.created": (p, play) => ({ actor: "you", text: `You created the Play ${play}`, link: playLink(p.playId) }),
+  "play.created": (p, play) => ({ actor: "you", text: t("play.created", { play }), link: playLink(p.playId) }),
   "lead_finding.started": (p, play) =>
     p.trigger === "schedule"
-      ? { actor: "pluton", text: `A scheduled search started for ${play}`, link: playLink(p.playId) }
-      : { actor: "you", text: `You started a search for ${play}${p.trigger === "agent" ? " from your AI client" : ""}`, link: playLink(p.playId) },
-  "lead_finding.completed": (p, play) => {
-    const n = found(p);
-    return n === 0
-      ? { actor: "pluton", text: `A search for ${play} found no new leads`, link: playLink(p.playId) }
-      : { actor: "pluton", text: `Pluton found ${plural(n, "lead")} for ${play}`, link: playLink(p.playId, "leads") };
-  },
-  "lead_finding.failed": (p, play) => ({ actor: "pluton", text: `A search for ${play} stopped on an error`, link: playLink(p.playId) }),
-  "lead_finding.cancelled": (p, play) => ({ actor: "you", text: `You stopped a search for ${play}`, link: playLink(p.playId) }),
-  "leads.approved": (p, play) => ({ actor: "you", text: `You approved ${plural(Number(p.count), "lead")} in ${play}${VIA[String(p.via)] ?? ""}`, link: playLink(p.playId, "leads") }),
-  "leads.rejected": (p, play) => ({ actor: "you", text: `You rejected ${plural(Number(p.count), "lead")} in ${play}${VIA[String(p.via)] ?? ""}`, link: playLink(p.playId, "leads") }),
-  "slack.posted": (p, play) => ({ actor: "pluton", text: `Pluton posted ${plural(Number(p.count), "lead")} from ${play} to Slack`, link: "/workspace/integrations/slack" }),
-  "crm.exported": (p) => ({
-    actor: p.trigger === "auto" ? "pluton" : "you",
-    text: `${p.trigger === "auto" ? "Pluton exported" : "You exported"} ${plural(Number(p.created), "lead")} to ${CRM_NAMES[String(p.provider)] ?? p.provider}${Number(p.exists) ? ` (${p.exists} already there)` : ""}${Number(p.failed) ? `, ${p.failed} failed` : ""}`,
-    link: `/workspace/integrations/${p.provider}`,
+      ? { actor: "pluton", text: t("search.scheduled", { play }), link: playLink(p.playId) }
+      : { actor: "you", text: t(p.trigger === "agent" ? "search.startedFromAi" : "search.started", { play }), link: playLink(p.playId) },
+  "lead_finding.completed": (p, play) =>
+    found(p) === 0
+      ? { actor: "pluton", text: t("search.foundNone", { play }), link: playLink(p.playId) }
+      : { actor: "pluton", text: t("search.found", { count: found(p), play }), link: playLink(p.playId, "leads") },
+  "lead_finding.failed": (p, play) => ({ actor: "pluton", text: t("search.failed", { play }), link: playLink(p.playId) }),
+  "lead_finding.cancelled": (p, play) => ({ actor: "you", text: t("search.cancelled", { play }), link: playLink(p.playId) }),
+  "leads.approved": (p, play) => ({ actor: "you", text: t(`approved${VIA(p)}`, { count: n(p.count), play }), link: playLink(p.playId, "leads") }),
+  "leads.rejected": (p, play) => ({ actor: "you", text: t(`rejected${VIA(p)}`, { count: n(p.count), play }), link: playLink(p.playId, "leads") }),
+  "slack.posted": (p, play) => ({ actor: "pluton", text: t("slack.posted", { count: n(p.count), play }), link: "/workspace/integrations/slack" }),
+  "crm.exported": (p) => ({ actor: p.trigger === "auto" ? "pluton" : "you", text: crmExported(p), link: `/workspace/integrations/${p.provider}` }),
+  "integration.connected": (p) => ({ actor: "you", text: t("integration.connected", { provider: crmName(p.provider) }), link: `/workspace/integrations/${p.provider}` }),
+  "integration.disconnected": (p) => ({ actor: "you", text: t("integration.disconnected", { provider: crmName(p.provider) }), link: "/workspace/integrations" }),
+  "agent.action_completed": (p) => ({ actor: "you", text: t("agent.actionCompleted", { summary: String(p.summary) }), link: `/agent/${p.conversationId}` }),
+  "mcp.client_connected": (p) => ({ actor: "you", text: t("mcp.connected", { name: String(p.name) }), link: "/workspace/mcp" }),
+  "leads.emails_found": (p) => ({
+    actor: "pluton",
+    text: n(p.checked) === 1 ? t("emails.foundForOne", { count: n(p.found) }) : t("emails.found", { count: n(p.found), checked: n(p.checked) }),
+    link: "/leads",
   }),
-  "integration.connected": (p) => ({ actor: "you", text: `You connected ${CRM_NAMES[String(p.provider)] ?? p.provider}`, link: `/workspace/integrations/${p.provider}` }),
-  "integration.disconnected": (p) => ({ actor: "you", text: `You disconnected ${CRM_NAMES[String(p.provider)] ?? p.provider}`, link: "/workspace/integrations" }),
-  "agent.action_completed": (p) => ({ actor: "you", text: `You approved for the agent: ${p.summary}`, link: `/agent/${p.conversationId}` }),
-  "mcp.client_connected": (p) => ({ actor: "you", text: `${p.name} connected to Pluton over MCP`, link: "/workspace/mcp" }),
-  "leads.emails_found": (p) => ({ actor: "pluton", text: `Pluton found ${plural(Number(p.found), "work email")} for ${plural(Number(p.checked), "lead")}`, link: "/leads" }),
-  "proposal.accepted": () => ({ actor: "you", text: "You accepted a Brain suggestion", link: "/brain" }),
-  "proposal.rejected": () => ({ actor: "you", text: "You rejected a Brain suggestion", link: "/brain" }),
-  "proposal.answered": () => ({ actor: "you", text: "You answered a question from the Brain review", link: "/brain" }),
+  "proposal.accepted": () => ({ actor: "you", text: t("proposal.accepted"), link: "/brain" }),
+  "proposal.rejected": () => ({ actor: "you", text: t("proposal.rejected"), link: "/brain" }),
+  "proposal.answered": () => ({ actor: "you", text: t("proposal.answered"), link: "/brain" }),
   "proposal.superseded": () => null,
   "review.completed": (p) => ({
     actor: "pluton",
-    text: Number(p.proposals) > 0 ? `The Brain review left ${plural(Number(p.proposals), "suggestion")}` : "The Brain review found nothing to change",
+    text: n(p.proposals) > 0 ? t("review.suggestions", { count: n(p.proposals) }) : t("review.nothing"),
     link: "/brain",
   }),
-  "review.failed": () => ({ actor: "pluton", text: "The Brain review stopped on an error", link: "/brain" }),
-  "campaign.paused": (p, play) => ({ actor: "you", text: `You paused the sequence of ${play}`, link: playLink(p.playId, "sequence") }),
-  "campaign.resumed": (p, play) => ({ actor: "you", text: `You resumed the sequence of ${play}`, link: playLink(p.playId, "sequence") }),
-  "sender.added": (p) => ({ actor: "you", text: `You added the LinkedIn account ${p.name}`, link: "/workspace/linkedin" }),
-  "sender.disconnected": (p) => ({ actor: "pluton", text: `The LinkedIn account ${p.name} disconnected; sending paused`, link: "/workspace/linkedin" }),
+  "review.failed": () => ({ actor: "pluton", text: t("review.failed"), link: "/brain" }),
+  "campaign.paused": (p, play) => ({ actor: "you", text: t("campaign.paused", { play }), link: playLink(p.playId, "sequence") }),
+  "campaign.resumed": (p, play) => ({ actor: "you", text: t("campaign.resumed", { play }), link: playLink(p.playId, "sequence") }),
+  "sender.added": (p) => ({ actor: "you", text: t("sender.added", { name: String(p.name) }), link: "/workspace/linkedin" }),
+  "sender.disconnected": (p) => ({ actor: "pluton", text: t("sender.disconnected", { name: String(p.name) }), link: "/workspace/linkedin" }),
   "leads.added": (p, _play, names) => {
     const ids = Array.isArray(p.playIds) ? (p.playIds as string[]) : [];
-    const where = ids.length === 1 ? ` of ${names.get(ids[0]!) ?? "a Play"}` : "";
-    return { actor: "you", text: `You added ${plural(Number(p.count), "person")} to the sequence${where}`.replace("persons", "people"), link: playLink(ids[0], "sequence") };
+    const play = ids.length === 1 ? names.get(ids[0]!) : undefined;
+    const text = play ? t("leads.addedTo", { count: n(p.count), play }) : t("leads.added", { count: n(p.count) });
+    return { actor: "you", text, link: playLink(ids[0], "sequence") };
   },
   "reply.received": (p) => ({
     actor: "pluton",
-    text: `${p.name} replied (${REPLY_TEXT[String(p.label)] ?? "to classify"})`,
+    text: t("reply.received", { name: String(p.name), label: replyLabel(p.label) }),
     link: typeof p.playId === "string" ? `/plays/${p.playId}?tab=sequence` : undefined,
   }),
   "run.settled": (p, play) => ({
     actor: "pluton",
-    text: `The search for ${play} cost ${usd(p.spentMicroUsd)}; ${usd(Math.max(Number(p.reservedMicroUsd) - Number(p.spentMicroUsd), 0))} of its hold went back to the budget`,
+    text: t("run.settled", {
+      play,
+      spent: fmtUsd(n(p.spentMicroUsd)),
+      returned: fmtUsd(Math.max(n(p.reservedMicroUsd) - n(p.spentMicroUsd), 0)),
+    }),
     link: "/workspace/usage",
   }),
-  "run.refused": (p, play) => ({ actor: "pluton", text: `A search for ${play} was not started: the ${p.which ?? "monthly"} budget is used up`, link: "/workspace/billing" }),
+  "run.refused": (p, play) => ({ actor: "pluton", text: t(p.which === "daily" ? "run.refused.daily" : "run.refused.monthly", { play }), link: "/workspace/billing" }),
   "budget.updated": (p) => ({
     actor: "you",
-    text: Number(p.monthlyUsd) > 0 ? `You set the monthly budget to $${Number(p.monthlyUsd).toFixed(2)}` : "You removed the monthly spend limit",
+    text: n(p.monthlyUsd) > 0 ? t("budget.set", { amount: fmtUsd(n(p.monthlyUsd) * 1_000_000) }) : t("budget.removed"),
     link: "/workspace/billing",
   }),
-  "budget.warning": (p) => ({ actor: "pluton", text: `80% of the monthly budget is spent (${usd(p.spentMicroUsd)} of ${usd(p.limitMicroUsd)})`, link: "/workspace/billing" }),
-  "budget.exhausted": () => ({ actor: "pluton", text: "The monthly budget is used up", link: "/workspace/billing" }),
-  "adjustment.added": (p) => ({ actor: "you", text: `You added an expense of ${usd(p.amountMicroUsd)}${p.note ? `: ${p.note}` : ""}`, link: "/workspace/usage" }),
-  "digest.sent": (p) => ({ actor: "pluton", text: p.emailed ? "Pluton sent your digest by email" : "Your digest is ready", link: "/home" }),
+  "budget.warning": (p) => ({ actor: "pluton", text: t("budget.warning", { spent: fmtUsd(n(p.spentMicroUsd)), limit: fmtUsd(n(p.limitMicroUsd)) }), link: "/workspace/billing" }),
+  "budget.exhausted": () => ({ actor: "pluton", text: t("budget.exhausted"), link: "/workspace/billing" }),
+  "adjustment.added": (p) => ({
+    actor: "you",
+    text: p.note ? t("adjustment.addedWithNote", { amount: fmtUsd(n(p.amountMicroUsd)), note: String(p.note) }) : t("adjustment.added", { amount: fmtUsd(n(p.amountMicroUsd)) }),
+    link: "/workspace/usage",
+  }),
+  "digest.sent": (p) => ({ actor: "pluton", text: p.emailed ? t("digest.emailed") : t("digest.ready"), link: "/home" }),
 };
 
 const playIdsOf = (p: P) => [p.playId, ...(Array.isArray(p.playIds) ? p.playIds : [])].filter((v): v is string => typeof v === "string");
@@ -129,7 +145,7 @@ export function describeActivity(event: ActivityEvent, names: Names): DescribedA
   const p = (event.payload ?? {}) as P;
   const describe = DESCRIBE[event.kind];
   const playId = typeof p.playId === "string" ? p.playId : undefined;
-  const result = describe?.(p, (playId && names.get(playId)) || "a deleted Play", names);
+  const result = describe?.(p, (playId && names.get(playId)) || t("deletedPlay"), names);
   if (!result) return null;
   return { id: event.id, context: event.context, kind: event.kind, createdAt: event.createdAt, playId, ...result };
 }
@@ -165,66 +181,60 @@ export async function listActivity(
   return { items: page, nextCursor: more && page.length ? page.at(-1)!.id : null };
 }
 
-/** Events that also deserve a notification. Called by recordActivity after the event is stored. */
+/**
+ * Events that also deserve a notification. Called by recordActivity after the event is stored. The
+ * payload carries what the notification's wording needs (see describeNotification), so it reads in
+ * the founder's language whenever it is shown.
+ */
 export async function notifyForActivity(db: Db, event: ActivityEvent) {
   const p = (event.payload ?? {}) as P;
   const names = await playNames(db, [event]);
-  const play = (typeof p.playId === "string" && names.get(p.playId)) || "a Play";
+  // Left out when the Play is gone: the wording names it a deleted Play in the reader's language.
+  const play = (typeof p.playId === "string" && names.get(p.playId)) || undefined;
+  const base = { kind: event.kind } as const;
   switch (event.kind) {
-    case "lead_finding.completed": {
-      const n = found(p);
-      if (n === 0) return;
-      await notify(db, event.workspaceId, {
+    case "lead_finding.completed":
+      if (found(p) === 0) return;
+      await notifyDescribed(db, event.workspaceId, {
+        ...base,
         category: "leads",
-        kind: event.kind,
         tone: "success",
-        title: `${plural(n, "new lead")} for ${play}`,
-        body: `${Number(p.qualified ?? 0)} qualified, ${Number(p.needsReview ?? 0)} to double-check.`,
+        payload: { play, qualified: n(p.qualified), needsReview: n(p.needsReview) },
         link: `/plays/${p.playId}?tab=leads&status=to_review`,
         dedupeKey: `run-done:${p.runId}`,
       });
       return;
-    }
     case "lead_finding.failed":
-      await notify(db, event.workspaceId, {
+      await notifyDescribed(db, event.workspaceId, {
+        ...base,
         category: "runs",
-        kind: event.kind,
         tone: "warning",
-        title: `The search for ${play} stopped`,
-        body: String(p.message ?? "").slice(0, 240),
+        payload: { play, message: String(p.message ?? "").slice(0, 240) },
         link: playLink(p.playId),
         dedupeKey: `run-failed:${p.runId}`,
       });
       return;
     case "reply.received":
-      await notify(db, event.workspaceId, {
+      await notifyDescribed(db, event.workspaceId, {
+        ...base,
         category: "replies",
-        kind: event.kind,
         tone: p.label === "positive" ? "success" : "info",
-        title: `${p.name} replied`,
-        body: p.label === "not_interested" ? "Not interested: the sequence stopped." : p.label === "positive" ? "Interested." : "They asked something only you can answer.",
+        payload: { name: String(p.name), label: String(p.label) },
         link: `/plays/${p.playId}?tab=sequence`,
       });
       return;
     case "sender.disconnected":
-      await notify(db, event.workspaceId, {
+      await notifyDescribed(db, event.workspaceId, {
+        ...base,
         category: "linkedin",
-        kind: event.kind,
         tone: "warning",
-        title: `${p.name} disconnected`,
-        body: "Sending from this account is paused until you reconnect it.",
+        payload: { name: String(p.name) },
         link: "/workspace/linkedin",
       });
       return;
     case "review.completed":
-      if (Number(p.proposals) > 0) {
-        await notify(db, event.workspaceId, {
-          category: "brain",
-          kind: event.kind,
-          title: `The Brain has ${plural(Number(p.proposals), "suggestion")}`,
-          body: "Accept or reject them on the Brain page.",
-          link: "/brain",
-        });
+      if (n(p.proposals) > 0) {
+        await notifyDescribed(db, event.workspaceId, { ...base, category: "brain", payload: { proposals: n(p.proposals) }, link: "/brain" });
       }
       return;
   }

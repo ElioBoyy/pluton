@@ -13,6 +13,7 @@
     "@anthropic-ai/sdk": "^1.2.0",
     "@pluton/core": "workspace:*",
     "@pluton/db": "workspace:*",
+    "@pluton/i18n": "workspace:*",
     "@pluton/providers": "workspace:*",
     "zod": "^4.6.7"
   },

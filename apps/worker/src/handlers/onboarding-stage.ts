@@ -10,6 +10,10 @@ import {
   setStep,
   type JobHandler,
 } from "@pluton/core";
+import { localized } from "@pluton/i18n/server";
+import messages from "../messages/onboarding.ts";
+
+const t = localized(messages);
 
 /** Runs one research stage of an onboarding session, then raises the cards the user must confirm. */
 export const onboardingStage: JobHandler = async ({ db, job, signal }) => {
@@ -38,13 +42,13 @@ export const onboardingStage: JobHandler = async ({ db, job, signal }) => {
 
 function describeFailure(error: unknown) {
   if (error instanceof Anthropic.AuthenticationError) {
-    return "I can't reach Claude: the API key is invalid. Fix it in Settings → API keys, then retry.";
+    return t("invalidKey");
   }
-  if (error instanceof Anthropic.RateLimitError) return "Claude is rate-limiting me right now. Retry in a minute.";
-  if (error instanceof Anthropic.APIError) return `Claude returned an error (${error.status}). You can retry this step.`;
+  if (error instanceof Anthropic.RateLimitError) return t("rateLimited");
+  if (error instanceof Anthropic.APIError) return t("apiError", { status: String(error.status) });
   // Raised by the SDK before any request, e.g. when no credentials are configured.
   if (error instanceof Anthropic.AnthropicError) {
-    return "I can't reach Claude: no API key is configured. Add it in Settings → API keys (or switch to your Claude subscription there), then retry.";
+    return t("noKey");
   }
-  return `This step failed: ${error instanceof Error ? error.message : String(error)}`;
+  return t("failed", { error: error instanceof Error ? error.message : String(error) });
 }

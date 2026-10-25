@@ -24,10 +24,16 @@ import {
 } from "@pluton/db";
 import { createHold, planReservation } from "./credits.ts";
 import { getSetting } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/plays.ts";
 import { getSingleton, listBrain } from "./brain.ts";
 import { recordActivity } from "./events.ts";
 import { enqueueJob, requestJobCancel } from "./jobs.ts";
 import { addLeadEvent, describeFeedback, feedbackDigest, warmnessFor } from "./leads.ts";
+
+const t = localized(messages);
+/** The Plays area's strings, for the RPC layer's errors. */
+export const playsText = t;
 
 export const runChannel = (runId: string) => `run:${runId}`;
 
@@ -72,17 +78,8 @@ export const newPlaySchema = z.object({
 });
 export type NewPlay = z.input<typeof newPlaySchema>;
 
-export const PIPELINE_LABELS: Record<Pipeline, string> = {
-  persona_sweep: "Role match",
-  company_hiring: "Companies hiring",
-  company_stack: "Tech stack",
-  web_evidence: "Web evidence",
-  lookalikes: "Lookalikes of your customers",
-  funding: "Recently funded",
-  post_watchlist: "Engagement on tracked profiles",
-  post_keyword: "People posting about keywords",
-  waterfall: "Main Play (every signal in turn)",
-};
+/** "Role match", "Companies hiring"…, in the founder's language. */
+export const pipelineLabel = (p: Pipeline) => t(`pipeline.${p}`);
 
 /** Main Play order: warmest signals first, the broad role match last. */
 export const WATERFALL_ORDER: Pipeline[] = ["post_watchlist", "post_keyword", "company_stack", "company_hiring", "funding", "persona_sweep"];
@@ -92,18 +89,18 @@ export function pipelineCapabilities() {
   const apify = Boolean(getSetting("apify_token"));
   return PIPELINES.map((p) => ({
     pipeline: p,
-    label: PIPELINE_LABELS[p],
+    label: pipelineLabel(p),
     available: p.startsWith("post_") ? apify : true,
-    reason: p.startsWith("post_") && !apify ? "Needs an Apify token (Settings → API keys)" : undefined,
+    reason: p.startsWith("post_") && !apify ? t("needsApify") : undefined,
   }));
 }
 
 export async function createPlay(db: Db, workspaceId: string, input: NewPlay) {
   const parsed = newPlaySchema.parse(input);
   const capability = pipelineCapabilities().find((c) => c.pipeline === parsed.pipeline)!;
-  if (!capability.available) throw new Error(`${capability.label}: ${capability.reason}`);
+  if (!capability.available) throw new Error(t("unavailable", { pipeline: capability.label, reason: capability.reason ?? "" }));
   if (parsed.pipeline === "lookalikes" && parsed.definition.referenceCompanies.length === 0) {
-    throw new Error("Lookalikes needs at least one reference customer");
+    throw new Error(t("lookalikesNeedsReference"));
   }
   const brainSnapshot = await listBrain(db, workspaceId);
   const [play] = await db
@@ -123,14 +120,14 @@ export async function updatePlay(
   patch: Partial<Pick<Play, "name" | "status" | "schedule">> & { definition?: z.input<typeof playDefinitionSchema> },
 ) {
   const { definition: rawDefinition, ...rest } = patch;
-  if (rest.status === "archived" && (await getPlay(db, playId))?.isMain) throw new Error("The Main Play can't be archived; pause it instead");
+  if (rest.status === "archived" && (await getPlay(db, playId))?.isMain) throw new Error(t("mainCantArchive"));
   const definition = rawDefinition ? playDefinitionSchema.parse(rawDefinition) : undefined;
   const [updated] = await db
     .update(plays)
     .set({ ...rest, ...(definition ? { definition } : {}), revision: sql`${plays.revision} + 1` })
     .where(and(eq(plays.id, playId), eq(plays.revision, revision)))
     .returning();
-  if (!updated) throw new PlayConflictError("This Play changed since you opened it; reload and retry");
+  if (!updated) throw new PlayConflictError(t("changed"));
   return updated;
 }
 
@@ -185,8 +182,8 @@ export async function activeRun(db: Db, playId: string) {
 /** Queues a run. One active run per Play: a second request returns the one in flight. */
 export async function startRun(db: Db, playId: string, trigger: RunTrigger = "manual") {
   const play = await getPlay(db, playId);
-  if (!play) throw new Error("Play not found");
-  if (play.status === "archived") throw new Error("This Play is archived");
+  if (!play) throw new Error(t("notFound"));
+  if (play.status === "archived") throw new Error(t("archived"));
   const existing = await activeRun(db, playId);
   if (existing) return existing;
   // Throws BudgetError when nothing is left; otherwise the run starts with this much set aside.
@@ -392,12 +389,13 @@ export async function ensureMainPlay(db: Db, workspaceId: string, opts: { onboar
       name: "Main",
       isMain: true,
       onboardingSessionId: opts.onboardingSessionId ?? null,
-      ask: "Find the best-fit people for my company using every signal in the Brain.",
+      // Written once, in the founder's language when the Main Play is created.
+      ask: t("main.ask"),
       pipeline: "waterfall",
       summary: {
         who: personas.slice(0, 3).join(", ") + (icp ? ` · ${icp.data.summary}` : ""),
-        how: "Every signal in turn: engagement, keywords, tech stack, hiring, funding, then role match.",
-        howMany: `${target} qualified leads per run`,
+        how: t("main.how"),
+        howMany: t("main.howMany", { count: target }),
       },
       definition: playDefinitionSchema.parse({
         audience: {
@@ -436,7 +434,7 @@ export async function estimatePlay(db: Db, workspaceId: string, pipeline: Pipeli
     .where(and(eq(leadFindingRuns.workspaceId, workspaceId), eq(plays.pipeline, pipeline), eq(leadFindingRuns.status, "completed")))
     .orderBy(desc(leadFindingRuns.createdAt))
     .limit(20);
-  const paid = pipeline.startsWith("post_") || pipeline === "waterfall" ? ["Apify actor runs (billed by Apify)"] : [];
+  const paid = pipeline.startsWith("post_") || pipeline === "waterfall" ? [t("paidApify")] : [];
   if (past.length < 2) {
     return {
       basis: "default" as const,
@@ -537,7 +535,7 @@ export async function leadOutcomes(db: Db, workspaceId: string) {
 export async function deletePlay(db: Db, playId: string) {
   const play = await getPlay(db, playId);
   if (!play) return null;
-  if (play.isMain) throw new PlayConflictError("The Main Play can't be deleted. Pause it instead.");
+  if (play.isMain) throw new PlayConflictError(t("mainCantDelete"));
   const live = await activeRun(db, playId);
   if (live?.jobId) await requestJobCancel(db, live.jobId);
   await db.delete(plays).where(eq(plays.id, playId));

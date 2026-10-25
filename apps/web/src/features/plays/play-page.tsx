@@ -17,18 +17,14 @@ import { initials, STATUS, type LeadTabKey } from "../leads/labels.ts";
 import { LeadsView } from "../leads/leads-view.tsx";
 import { SequenceTab } from "../sequence/sequence-tab.tsx";
 import { ActivityFeed } from "../activity/activity-feed.tsx";
-import { usd } from "../../lib/format.ts";
+import { formatDate, formatDateTime, usd } from "../../lib/format.ts";
+import { useT } from "../../i18n/index.ts";
 
 type PlayData = inferRouterOutputs<AppRouter>["plays"]["get"];
 type Run = PlayData["runs"][number];
 type Report = NonNullable<Run["report"]>;
 
-const TABS: Array<{ key: PlayTab; label: string }> = [
-  { key: "overview", label: "Overview" },
-  { key: "sourcing", label: "Sourcing" },
-  { key: "leads", label: "Leads" },
-  { key: "sequence", label: "Sequence" },
-];
+const TABS: PlayTab[] = ["overview", "sourcing", "leads", "sequence"];
 
 export function PlayPage({
   playId,
@@ -43,6 +39,7 @@ export function PlayPage({
   leadId?: string;
   onChange: (next: { tab?: PlayTab; status?: LeadTabKey; lead?: string }) => void;
 }) {
+  const t = useT("plays");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const data = useQuery(trpc.plays.get.queryOptions({ id: playId }));
@@ -69,7 +66,7 @@ export function PlayPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10">
       <Link to="/plays" className="mb-3 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-ink">
-        <CaretLeft size={12} weight="bold" /> Plays
+        <CaretLeft size={12} weight="bold" /> {t("list.title")}
       </Link>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div className="min-w-0">
@@ -79,8 +76,8 @@ export function PlayPage({
             </span>
             {/* The same actions as the right-click menu, for those who don't right-click. */}
             <button
-              aria-label="More actions"
-              title="More actions"
+              aria-label={t("play.moreActions")}
+              title={t("play.moreActions")}
               onClick={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
                 openContextMenu(r.left, r.bottom + 4, playMenu(play));
@@ -89,10 +86,10 @@ export function PlayPage({
             >
               <DotsThree size={18} weight="bold" />
             </button>
-            {play.status !== "active" && <span className={cn(PILL_BASE, PILL.gray, "capitalize")}>{play.status}</span>}
+            {play.status !== "active" && <span className={cn(PILL_BASE, PILL.gray)}>{t(`playStatus.${play.status}`)}</span>}
           </h1>
           <p className="mt-1.5 text-base text-muted">
-            {PIPELINE_LABELS[play.pipeline]} · {play.definition.target} leads per run
+            {t("play.subtitle", { pipeline: PIPELINE_LABELS[play.pipeline] ?? play.pipeline, count: play.definition.target })}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 max-sm:items-start">
@@ -101,7 +98,7 @@ export function PlayPage({
               value={play.schedule}
               onChange={(e) => update.mutate({ id: play.id, revision: play.revision, patch: { schedule: e.target.value as typeof play.schedule } })}
               className="capsule h-7 pl-3 text-sm outline-none focus:focus-ring"
-              aria-label="Schedule"
+              aria-label={t("play.schedule")}
             >
               {Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>
@@ -114,15 +111,15 @@ export function PlayPage({
               onClick={() => update.mutate({ id: play.id, revision: play.revision, patch: { status: play.status === "paused" ? "active" : "paused" } })}
             >
               {play.status === "paused" ? <PlayIcon size={14} /> : <Pause size={14} />}
-              {play.status === "paused" ? "Resume" : "Pause"}
+              {play.status === "paused" ? t("resume") : t("pause")}
             </Button>
             {active ? (
               <Button variant="ghost" disabled={cancel.isPending} onClick={() => cancel.mutate({ runId: active.id })}>
-                <Stop size={14} weight="fill" /> Stop search
+                <Stop size={14} weight="fill" /> {t("play.stopSearch")}
               </Button>
             ) : (
               <Button disabled={runNow.isPending || play.status !== "active"} onClick={() => runNow.mutate({ id: play.id })}>
-                <PlayIcon size={14} weight="fill" /> Run search
+                <PlayIcon size={14} weight="fill" /> {t("play.runSearch")}
               </Button>
             )}
           </div>
@@ -136,30 +133,30 @@ export function PlayPage({
 
       <div className="mb-8">
         <Segmented
-          label="Play sections"
-          options={TABS.map((t) => ({
-            value: t.key,
+          label={t("play.sections")}
+          options={TABS.map((key) => ({
+            value: key,
             label:
-              t.key === "leads" && counts.data ? (
+              key === "leads" && counts.data ? (
                 <>
-                  {t.label}
+                  {t(`tab.${key}`)}
                   <span className="ml-1.5 font-normal text-muted tabular-nums">{counts.data.counts.all}</span>
                 </>
               ) : (
-                t.label
+                t(`tab.${key}`)
               ),
           }))}
           value={tab}
-          onChange={(t) => onChange({ tab: t, lead: undefined })}
+          onChange={(next) => onChange({ tab: next, lead: undefined })}
         />
       </div>
 
       {tab === "overview" && (
         <div className="flex flex-col gap-8">
           <Group>
-            <Summary label="Who" text={play.summary.who} />
-            <Summary label="How we find them" text={play.summary.how} />
-            <Summary label="How many" text={play.summary.howMany} />
+            <Summary label={t("summary.who")} text={play.summary.who} />
+            <Summary label={t("summary.how")} text={play.summary.how} />
+            <Summary label={t("summary.howMany")} text={play.summary.howMany} />
           </Group>
           {latest && <RunPanel key={latest.id} run={latest} live={latest.id === active?.id} onFinished={refresh} />}
           <div className="grid gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -181,27 +178,19 @@ export function PlayPage({
   );
 }
 
-/** Why the last search fell short, and the one thing that fixes it. */
-const ATTENTION: Partial<Record<string, { title: string; fix: string; to?: string; cta?: string }>> = {
-  budget: {
-    title: "The last search hit its spend cap",
-    fix: "Raise the cap per search or the monthly budget, then run it again.",
-    to: "/workspace/billing",
-    cta: "Budget",
-  },
-  sources_dry: {
-    title: "The last search ran out of people before the target",
-    fix: "Widen the audience (more titles, sizes or regions) or add a data source.",
-    to: "/workspace/data-sources",
-    cta: "Data sources",
-  },
-  error: { title: "The last search stopped on an error", fix: "Check the error below; a key that expired is the usual cause.", to: "/workspace/api-keys", cta: "API keys" },
-};
+/** Why the last search fell short, and the one place that fixes it; the words are attention.<reason>.* strings. */
+const ATTENTION = {
+  budget: "/workspace/billing",
+  sources_dry: "/workspace/data-sources",
+  error: "/workspace/api-keys",
+} as const;
 
 function NeedsAttention({ run }: { run: Run }) {
+  const t = useT("plays");
   const reason = run.status === "failed" ? "error" : run.stopReason;
-  const info = reason ? ATTENTION[reason] : undefined;
-  if (!info) return null;
+  if (!reason || !(reason in ATTENTION)) return null;
+  const key = reason as keyof typeof ATTENTION;
+  const info = { title: t(`attention.${key}.title`), fix: t(`attention.${key}.fix`), to: ATTENTION[key], cta: t(`attention.${key}.cta`) };
   return (
     <div className="mb-6 flex items-start gap-3 rounded-xl bg-system-orange/10 px-4 py-3 text-sm max-sm:flex-col">
       <WarningCircle size={18} weight="fill" className="mt-px shrink-0 text-system-orange" />
@@ -240,6 +229,7 @@ type LiveLead = { name: string; title?: string; company?: string; stage: string;
 
 /** Latest run: live narration while it runs, the funnel afterwards. */
 function RunPanel({ run, live, onFinished }: { run: Run; live: boolean; onFinished: () => void }) {
+  const t = useT("plays");
   const [log, setLog] = useState<string[]>([]);
   const [found, setFound] = useState<LiveLead[]>([]);
   const [report, setReport] = useState<Report | null>(run.report ?? null);
@@ -260,14 +250,14 @@ function RunPanel({ run, live, onFinished }: { run: Run; live: boolean; onFinish
       title={
         <span className="flex items-center gap-2">
           {live && <CircleNotch size={13} className="animate-spin text-muted" />}
-          {live ? <span className="ai-text">Searching now</span> : "Latest search"}
+          {live ? <span className="ai-text">{t("run.searchingNow")}</span> : t("run.latest")}
         </span>
       }
       actions={
         <span className="text-xs text-muted tabular-nums">
-          {new Date(run.createdAt).toLocaleString()}
+          {formatDateTime(run.createdAt)}
           {run.stopReason && ` · ${STOP_LABELS[run.stopReason]}`}
-          {run.status === "failed" && " · failed"}
+          {run.status === "failed" && ` · ${t("run.failed")}`}
         </span>
       }
     >
@@ -276,7 +266,7 @@ function RunPanel({ run, live, onFinished }: { run: Run; live: boolean; onFinish
           {report && <Funnel report={report} />}
           {live && (
             <div className="relative flex flex-col gap-1.5 px-4 py-3 text-sm text-muted">
-              {log.length === 0 && <p>Starting the research…</p>}
+              {log.length === 0 && <p>{t("run.starting")}</p>}
               {log.map((line, i) => (
                 <p key={i}>{line}</p>
               ))}
@@ -308,12 +298,13 @@ function RunPanel({ run, live, onFinished }: { run: Run; live: boolean; onFinish
 
 /** The run's funnel as one strip of figures, set apart by spacing alone. */
 function Funnel({ report: r }: { report: Report }) {
+  const t = useT("plays");
   const steps = [
-    { label: "Discovered", value: r.discovered },
-    { label: "Kept after checks", value: r.gated },
-    { label: "LinkedIn found", value: r.linkedinFound ?? 0 },
-    { label: "Qualified", value: r.qualified, accent: "text-system-green" },
-    { label: "To review", value: r.needsReview, accent: "text-system-orange" },
+    { label: t("funnel.discovered"), value: r.discovered },
+    { label: t("funnel.kept"), value: r.gated },
+    { label: t("funnel.linkedinFound"), value: r.linkedinFound ?? 0 },
+    { label: t("funnel.qualified"), value: r.qualified, accent: "text-system-green" },
+    { label: t("funnel.toReview"), value: r.needsReview, accent: "text-system-orange" },
   ];
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5">
@@ -332,6 +323,7 @@ function Funnel({ report: r }: { report: Report }) {
 
 /** Leads added per day over the last 30 days, strong matches stacked on worth-a-look. */
 function LeadsChart({ playId, onView }: { playId: string; onView: () => void }) {
+  const t = useT("plays");
   const trpc = useTRPC();
   const perDay = useQuery(trpc.plays.leadsPerDay.queryOptions({ id: playId }));
   const days = useMemo(() => {
@@ -349,25 +341,25 @@ function LeadsChart({ playId, onView }: { playId: string; onView: () => void }) 
 
   return (
     <Section
-      title="Leads over time"
-      description={`${total} leads in the last 30 days`}
+      title={t("chart.title")}
+      description={t("chart.total", { count: total })}
       actions={
         <TextButton onClick={onView}>
-          View leads <CaretRight size={11} weight="bold" />
+          {t("chart.view")} <CaretRight size={11} weight="bold" />
         </TextButton>
       }
     >
       <Group className="px-4 pt-4 pb-3">
         {total === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">No leads in the last 30 days.</p>
+          <p className="py-8 text-center text-sm text-muted">{t("chart.empty")}</p>
         ) : (
           <>
-            <div className="flex h-28 items-end gap-[3px]" role="img" aria-label={`${total} leads in the last 30 days`}>
+            <div className="flex h-28 items-end gap-[3px]" role="img" aria-label={t("chart.total", { count: total })}>
               {days.map((d) => (
                 <div
                   key={d.day}
                   className="flex h-full flex-1 flex-col justify-end rounded-[3px] transition-colors hover:bg-raised"
-                  title={`${d.day}: ${d.qualified} strong, ${d.review} worth a look`}
+                  title={t("chart.bar", { day: formatDate(`${d.day}T12:00:00`, { day: "numeric", month: "short" }), strong: d.qualified, review: d.review })}
                 >
                   <div className="rounded-t-[3px] bg-system-yellow" style={{ height: `${(d.review / max) * 100}%` }} />
                   <div className={cn("bg-system-green", d.review === 0 && "rounded-t-[3px]")} style={{ height: `${(d.qualified / max) * 100}%` }} />
@@ -376,10 +368,10 @@ function LeadsChart({ playId, onView }: { playId: string; onView: () => void }) 
             </div>
             <div className="mt-2 flex items-center justify-end gap-3 pt-1 text-xs text-muted">
               <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-system-green" /> Strong match
+                <span className="size-2 rounded-full bg-system-green" /> {t("chart.strong")}
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-system-yellow" /> Worth a look
+                <span className="size-2 rounded-full bg-system-yellow" /> {t("chart.worthALook")}
               </span>
             </div>
           </>
@@ -390,6 +382,7 @@ function LeadsChart({ playId, onView }: { playId: string; onView: () => void }) 
 }
 
 function NewestLeads({ playId, onOpen, onReviewAll }: { playId: string; onOpen: (leadId: string) => void; onReviewAll: () => void }) {
+  const t = useT("plays");
   const trpc = useTRPC();
   const newest = useQuery(trpc.leads.list.queryOptions({ playId, tab: "all", sort: "newest", limit: 5 }));
   const counts = useQuery(trpc.leads.counts.queryOptions({ playId }));
@@ -397,11 +390,11 @@ function NewestLeads({ playId, onOpen, onReviewAll }: { playId: string; onOpen: 
   if (!newest.data?.items.length) return null;
   return (
     <Section
-      title="Newest leads"
+      title={t("newest.title")}
       actions={
         toReview > 0 && (
           <TextButton onClick={onReviewAll}>
-            Review all {toReview} <CaretRight size={11} weight="bold" />
+            {t("newest.reviewAll", { count: toReview })} <CaretRight size={11} weight="bold" />
           </TextButton>
         )
       }
@@ -433,25 +426,26 @@ function NewestLeads({ playId, onOpen, onReviewAll }: { playId: string; onOpen: 
 }
 
 function Activity({ playId }: { playId: string }) {
+  const t = useT("plays");
   const trpc = useTRPC();
   const activity = useQuery(trpc.plays.activity.queryOptions({ id: playId }));
   const spend = useQuery(trpc.credits.play.queryOptions({ playId }));
   const spent = spend.data && (spend.data.allTime.billed > 0 || spend.data.allTime.unbilled > 0) ? spend.data : null;
   return (
-    <Section title="Activity" className="min-w-0 self-start">
+    <Section title={t("activity.title")} className="min-w-0 self-start">
       <Group>
         <div className="px-4 py-3">
-          {activity.data?.length ? <ActivityFeed items={activity.data} compact /> : <p className="text-sm text-muted">Nothing yet.</p>}
+          {activity.data?.length ? <ActivityFeed items={activity.data} compact /> : <p className="text-sm text-muted">{t("activity.empty")}</p>}
         </div>
         {spent && (
           <div className="px-4 pt-1 pb-3.5 text-xs text-muted">
             <p>
-              Spent {usd(spent.periodSpend.billed, { precise: true })} this period, {usd(spent.allTime.billed, { precise: true })} in all
-              {spent.perLeadMicroUsd !== null && ` · ${usd(spent.perLeadMicroUsd, { precise: true })} per lead`}
+              {t("activity.spent", { period: usd(spent.periodSpend.billed, { precise: true }), total: usd(spent.allTime.billed, { precise: true }) })}
+              {spent.perLeadMicroUsd !== null && ` · ${t("activity.perLead", { amount: usd(spent.perLeadMicroUsd, { precise: true }) })}`}
             </p>
-            {spent.allTime.unbilled > 0 && <p className="mt-0.5">+ {usd(spent.allTime.unbilled, { precise: true })} of Claude covered by your subscription</p>}
+            {spent.allTime.unbilled > 0 && <p className="mt-0.5">{t("activity.covered", { amount: usd(spent.allTime.unbilled, { precise: true }) })}</p>}
             <Link to="/workspace/usage" className="mt-2 inline-flex items-center gap-1 text-sm text-accent hover:underline hover:underline-offset-2">
-              Usage <CaretRight size={11} weight="bold" />
+              {t("activity.usage")} <CaretRight size={11} weight="bold" />
             </Link>
           </div>
         )}
@@ -462,18 +456,19 @@ function Activity({ playId }: { playId: string }) {
 
 /** Shown under "Run search": what a run is expected to cost, from past runs, and what's left. */
 function RunEstimate({ playId }: { playId: string }) {
+  const t = useT("plays");
   const trpc = useTRPC();
   const e = useQuery(trpc.credits.estimateRun.queryOptions({ playId }));
   if (!e.data) return null;
   const { estimateMicroUsd, capMicroUsd, availableMicroUsd, basis } = e.data;
   const parts = [
     estimateMicroUsd === null
-      ? "No cost history yet"
+      ? t("estimate.noHistory")
       : estimateMicroUsd === 0
-        ? "Past runs cost nothing billed"
-        : `About ${usd(estimateMicroUsd, { precise: true })} per run${basis === "workspace" ? " (workspace average)" : ""}`,
-    `cap ${usd(capMicroUsd)}`,
-    availableMicroUsd === null ? null : `${usd(availableMicroUsd)} left this period`,
+        ? t("estimate.free")
+        : t(basis === "workspace" ? "estimate.aboutWorkspace" : "estimate.about", { amount: usd(estimateMicroUsd, { precise: true }) }),
+    t("estimate.cap", { amount: usd(capMicroUsd) }),
+    availableMicroUsd === null ? null : t("estimate.left", { amount: usd(availableMicroUsd) }),
   ].filter(Boolean);
   return (
     <p className={cn("text-right text-xs max-sm:text-left", availableMicroUsd !== null && availableMicroUsd < 10_000 ? "text-system-orange" : "text-muted")}>
@@ -483,22 +478,23 @@ function RunEstimate({ playId }: { playId: string }) {
 }
 
 function RunHistory({ runs }: { runs: Run[] }) {
+  const t = useT("plays");
   return (
-    <Section title="Past runs">
+    <Section title={t("history.title")}>
       <Group>
         {runs.map((r) => (
           <Row
             key={r.id}
             label={
               <span className="tabular-nums">
-                {new Date(r.createdAt).toLocaleString()}
-                {r.trigger === "schedule" && <span className="ml-2 text-xs text-muted">scheduled</span>}
+                {formatDateTime(r.createdAt)}
+                {r.trigger === "schedule" && <span className="ml-2 text-xs text-muted">{t("history.scheduled")}</span>}
               </span>
             }
           >
             <span className="shrink-0 text-right text-xs text-muted">
-              {r.report ? `${r.report.qualified} qualified · ${r.report.needsReview} to review · ` : ""}
-              {r.stopReason ? STOP_LABELS[r.stopReason] : r.status}
+              {r.report ? `${t("history.report", { qualified: r.report.qualified, review: r.report.needsReview })} · ` : ""}
+              {r.stopReason ? STOP_LABELS[r.stopReason] : t(`runStatus.${r.status}`)}
             </span>
           </Row>
         ))}
@@ -509,26 +505,27 @@ function RunHistory({ runs }: { runs: Run[] }) {
 
 /** How the Play searches: its definition, limits and what the latest run set aside. */
 function Sourcing({ data: { play, runs } }: { data: PlayData }) {
+  const t = useT("plays");
   const a = play.definition.audience;
   // A cancelled or failed run says little about the search itself.
   const report = runs.find((r) => r.status === "completed" && r.report)?.report;
   const rows: Array<[string, string[]]> = [
-    ["Job titles", a.personas],
-    ["Industries", a.industries],
-    ["Company sizes", a.companySizes],
-    ["Geographies", a.geographies],
-    ["Keywords", a.keywords],
-    ["Hiring roles", a.hiringRoles],
-    ["Technologies", a.technologies],
-    ["Reference customers", play.definition.referenceCompanies ?? []],
-    ["Excluded", a.exclusions],
+    [t("sourcing.jobTitles"), a.personas],
+    [t("sourcing.industries"), a.industries],
+    [t("sourcing.companySizes"), a.companySizes],
+    [t("sourcing.geographies"), a.geographies],
+    [t("sourcing.keywords"), a.keywords],
+    [t("sourcing.hiringRoles"), a.hiringRoles],
+    [t("sourcing.technologies"), a.technologies],
+    [t("sourcing.referenceCustomers"), play.definition.referenceCompanies ?? []],
+    [t("sourcing.excluded"), a.exclusions],
   ];
   const rejections = Object.entries(report?.rejections ?? {}).sort((x, y) => y[1].count - x[1].count);
 
   const shownRows = rows.filter(([, v]) => v.length > 0);
   return (
     <div className="grid items-start gap-x-6 gap-y-8 lg:grid-cols-2">
-      <Section title="What it looks for" description={PIPELINE_LABELS[play.pipeline]}>
+      <Section title={t("sourcing.title")} description={PIPELINE_LABELS[play.pipeline]}>
         <Group>
           {shownRows.map(([label, values]) => (
             <SourcingRow key={label} label={label}>
@@ -542,13 +539,13 @@ function Sourcing({ data: { play, runs } }: { data: PlayData }) {
             </SourcingRow>
           ))}
           {play.definition.criteria && (
-            <SourcingRow label="Criteria">
+            <SourcingRow label={t("sourcing.criteria")}>
               <p className="text-sm leading-relaxed">{play.definition.criteria}</p>
             </SourcingRow>
           )}
-          <SourcingRow label="Limits">
+          <SourcingRow label={t("sourcing.limits")}>
             <p className="text-sm text-muted">
-              {play.definition.policy?.maxMinutes ?? 15} min of research per run · signals from the last {play.definition.policy?.freshnessDays ?? 60} days
+              {t("sourcing.limitsValue", { minutes: play.definition.policy?.maxMinutes ?? 15, days: play.definition.policy?.freshnessDays ?? 60 })}
             </p>
           </SourcingRow>
         </Group>
@@ -556,28 +553,28 @@ function Sourcing({ data: { play, runs } }: { data: PlayData }) {
 
       <div className="flex min-w-0 flex-col gap-8">
         {report?.stages && (
-          <Section title="Main Play, latest run">
+          <Section title={t("sourcing.mainLatest")}>
             <Group>
               {report.stages.map((s) => (
                 <Row key={s.pipeline} label={<span className={cn(s.skipped && "text-muted")}>{PIPELINE_LABELS[s.pipeline] ?? s.pipeline}</span>}>
                   <span className="shrink-0 text-xs text-muted tabular-nums">
                     {s.skipped === "unavailable"
-                      ? "needs a key"
+                      ? t("stage.needsKey")
                       : s.skipped === "target_met"
-                        ? "not needed"
+                        ? t("stage.notNeeded")
                         : s.skipped === "budget"
-                          ? "out of time"
-                          : `${s.discovered} found · ${s.qualified} qualified`}
+                          ? t("stage.outOfTime")
+                          : t("stage.result", { found: s.discovered, qualified: s.qualified })}
                   </span>
                 </Row>
               ))}
             </Group>
           </Section>
         )}
-        <Section title="Set aside in the latest completed run">
+        <Section title={t("sourcing.setAside")}>
           <Group>
             {rejections.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted">Nothing set aside.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted">{t("sourcing.nothingSetAside")}</p>
             ) : (
               rejections.map(([reason, v]) => (
                 <Row

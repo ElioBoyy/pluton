@@ -3,10 +3,9 @@ import { z } from "zod";
 import {
   CampaignConflictError,
   SAMPLE_PERSON,
-  STEP_LABELS,
-  TEMPLATE_VARIABLES,
   addToCampaign,
   campaignStats,
+  campaignsText,
   completeManualAction,
   createSender,
   editDraft,
@@ -29,7 +28,9 @@ import {
   repliesNeedingYou,
   restartEnrollment,
   saveBrainItems,
+  stepKindLabel,
   stepLabel,
+  templateVariables,
   templateVars,
   updateCampaign,
   updateSender,
@@ -100,7 +101,7 @@ export const campaignsRouter = router({
           inviteExpiryDays: z.number().int().min(1).max(30).optional(),
           sendWindow: z
             .object({ days: z.array(z.number().int().min(0).max(6)).max(7), startHour: z.number().int().min(0).max(23), endHour: z.number().int().min(1).max(24) })
-            .refine((w) => w.endHour > w.startHour, "The window must end after it starts")
+            .refine((w) => w.endHour > w.startHour, { error: () => campaignsText("windowOrder") })
             .optional(),
           language: z.string().trim().max(40).nullable().optional(),
           objective: z.object({ kind: z.enum(["book_meeting", "share_app", "none"]), link: z.string().url().max(300).optional().or(z.literal("")), autoReply: z.boolean() }).optional(),
@@ -130,7 +131,11 @@ export const campaignsRouter = router({
   sharpen: publicProcedure
     .input(z.object({ campaignId: z.string(), stepId: z.string(), guidelines: z.string().max(2000) }))
     .mutation(({ ctx, input }) => conflicts(async () => ({ guidelines: await sharpenGuidelines(ctx.db, input.campaignId, input.stepId, input.guidelines) }))),
-  variables: publicProcedure.query(() => ({ variables: TEMPLATE_VARIABLES, sample: SAMPLE_PERSON, stepLabels: STEP_LABELS })),
+  variables: publicProcedure.query(() => ({
+    variables: templateVariables(),
+    sample: SAMPLE_PERSON,
+    stepLabels: Object.fromEntries(STEP_KINDS.map((k) => [k, stepKindLabel(k)])),
+  })),
   /** Template preview for the sample person, or a given lead. */
   preview: publicProcedure
     .input(z.object({ campaignId: z.string(), template: z.string().max(2000), step: stepInput.pick({ defaults: true, skipIfMissing: true }) }))
@@ -219,7 +224,7 @@ export const linkedinRouter = router({
   remove: publicProcedure.input(z.object({ id: z.string() })).mutation(({ ctx, input }) => removeSender(ctx.db, input.id)),
   /** Unipile's hosted login page for a new (or disconnected) LinkedIn account. */
   connectLink: publicProcedure.input(z.object({ reconnectSenderId: z.string().optional() })).mutation(async ({ ctx, input }) => {
-    if (!unipileConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Add your Unipile API key and DSN in Settings → API keys first" });
+    if (!unipileConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: campaignsText("unipileFirst") });
     const sender = input.reconnectSenderId ? await ctx.db.query.senders.findFirst({ where: eq(senders.id, input.reconnectSenderId) }) : null;
     try {
       return { url: await unipileConnectLink({ name: `pluton-${Date.now()}`, reconnectAccountId: sender?.externalId ?? undefined }) };
@@ -242,14 +247,14 @@ export const linkedinRouter = router({
       const status = a.status === "OK" ? "connected" : a.status === "CONNECTING" ? "connecting" : a.status === "CREDENTIALS" || a.status === "STOPPED" ? "disconnected" : "error";
       const profileUrl = a.publicIdentifier ? `https://www.linkedin.com/in/${a.publicIdentifier}` : undefined;
       const known = existing.find((s) => s.externalId === a.id);
-      if (known) await updateSender(ctx.db, known.id, { status, profileUrl, error: status === "connected" ? null : `Unipile status ${a.status}` });
+      if (known) await updateSender(ctx.db, known.id, { status, profileUrl, error: status === "connected" ? null : campaignsText("unipileStatus", { status: a.status }) });
       else {
         await createSender(ctx.db, workspace.id, { provider: "unipile", name: a.name, externalId: a.id, profileUrl, status });
         added++;
       }
     }
     const gone = existing.filter((s) => !accounts.some((a) => a.id === s.externalId));
-    if (gone.length) await ctx.db.update(senders).set({ status: "disconnected", error: "No longer on Unipile" }).where(inArray(senders.id, gone.map((s) => s.id)));
+    if (gone.length) await ctx.db.update(senders).set({ status: "disconnected", error: campaignsText("goneFromUnipile") }).where(inArray(senders.id, gone.map((s) => s.id)));
     return { added, total: accounts.length };
   }),
 });

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
+  appearanceText as t,
   codexAvailable,
   enqueueJob,
   findActiveJob,
@@ -31,10 +32,10 @@ export const appearanceRouter = router({
   remove: publicProcedure.input(z.object({ theme })).mutation(({ input }) => removeWallpaper(input.theme)),
   /** Starts a Codex job that draws both wallpapers from one prompt; follow it on `job:<id>`. */
   generate: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(1000) })).mutation(async ({ ctx, input }) => {
-    if (!codexAvailable()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Codex is not installed on this computer." });
+    if (!codexAvailable()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: t("codexMissing") });
     const ws = await getCurrentWorkspace(ctx.db);
     if (await findActiveJob(ctx.db, ws.id, "appearance.generate_wallpaper")) {
-      throw new TRPCError({ code: "CONFLICT", message: "Codex is already drawing a wallpaper." });
+      throw new TRPCError({ code: "CONFLICT", message: t("codexBusy") });
     }
     return enqueueJob(ctx.db, { type: "appearance.generate_wallpaper", workspaceId: ws.id, payload: { prompt: input.prompt }, maxAttempts: 1 });
   }),

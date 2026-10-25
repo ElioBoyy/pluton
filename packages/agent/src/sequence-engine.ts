@@ -2,6 +2,7 @@ import {
   BUCKET,
   addLeadEvent,
   advance,
+  campaignsText,
   dueEnrollments,
   endEnrollment,
   enrollmentsToPoll,
@@ -52,7 +53,11 @@ import {
   unipileProfile,
   unipileSendMessage,
 } from "@pluton/providers";
+import { localized } from "@pluton/i18n/server";
 import { classifyReply, writeAutoReply, writeDrafts } from "./outreach-writer.ts";
+import messages from "./messages/sequence.ts";
+
+const t = localized(messages);
 
 const HOUR = 3_600_000;
 /** Minimum gap between two actions of one account, so a day's actions spread out like a person's. */
@@ -112,13 +117,13 @@ async function runStep(ctx: Ctx, e: Enrollment, campaign: Campaign): Promise<boo
   if (!sender) {
     sender = await pickSender(db, campaign, person.id);
     if (!sender) {
-      await defer(db, e.id, new Date(now.getTime() + HOUR), "Waiting for a connected LinkedIn account");
+      await defer(db, e.id, new Date(now.getTime() + HOUR), t("waitingAccount"));
       return false;
     }
     await db.update(enrollments).set({ senderId: sender.id, note: null }).where(eq(enrollments.id, e.id));
   }
   if (sender.status !== "connected") {
-    await defer(db, e.id, new Date(now.getTime() + HOUR), `${sender.name} is ${sender.status}`);
+    await defer(db, e.id, new Date(now.getTime() + HOUR), t(`sender.${sender.status}`, { name: sender.name }));
     return false;
   }
   if (!inSendWindow(now, campaign.sendWindow, ctx.timeZone)) {
@@ -171,9 +176,9 @@ async function messageFor(db: Db, e: Enrollment, campaign: Campaign, step: Campa
     await writeDrafts(db, { campaignId: campaign.id, leadIds: [e.leadId], force: false });
     draft = await find();
   }
-  if (draft?.skipReason) return { text: null, reason: `Skipped: ${draft.skipReason.toLowerCase()}` };
-  if (!draft?.text) return { text: null, reason: `${stepLabel(campaign.steps, step)} couldn't be written` };
-  return { text: draft.text, reason: null };
+  if (draft?.skipReason) return { text: null, skipped: true, reason: t("skipped", { reason: draft.skipReason }) };
+  if (!draft?.text) return { text: null, skipped: false, reason: t("notWritten", { step: stepLabel(campaign.steps, step) }) };
+  return { text: draft.text, skipped: false, reason: null };
 }
 
 async function markSent(db: Db, campaign: Campaign, e: Enrollment, step: CampaignStep) {
@@ -196,11 +201,11 @@ async function waitForConnection(ctx: Ctx, e: Enrollment, campaign: Campaign, ch
     return;
   }
   if (!e.inviteSentAt) {
-    await endEnrollment(db, e.id, "needs_you", "Not connected, and the sequence has no connection request step");
+    await endEnrollment(db, e.id, "needs_you", t("noInviteStep"));
     return;
   }
   if (now.getTime() - e.inviteSentAt.getTime() > campaign.inviteExpiryDays * 24 * HOUR) {
-    await endEnrollment(db, e.id, "marked_lost", `Invitation not accepted in ${campaign.inviteExpiryDays} days`);
+    await endEnrollment(db, e.id, "marked_lost", t("inviteExpired", { count: campaign.inviteExpiryDays }));
     return;
   }
   await defer(db, e.id, new Date(now.getTime() + 4 * HOUR + jitterMs()));
@@ -220,7 +225,7 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
   const account = sender.externalId!;
   const identifier = e.providerUserId ?? (person.linkedinUrl ? linkedinPublicId(person.linkedinUrl) : null);
   if (!identifier) {
-    await endEnrollment(db, e.id, "failed", "No LinkedIn profile for this person");
+    await endEnrollment(db, e.id, "failed", t("noProfile"));
     return false;
   }
   const base = { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, stepId: step.id };
@@ -240,7 +245,7 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
     }
     case "follow_profile": {
       // Unipile has no follow endpoint for LinkedIn: recorded as skipped so the journey says so.
-      await logAction(db, { ...base, kind: "follow_profile", status: "skipped", detail: "Following isn't available through Unipile" });
+      await logAction(db, { ...base, kind: "follow_profile", status: "skipped", detail: t("followUnavailable") });
       await advance(db, e, campaign, {}, now);
       return false;
     }
@@ -248,7 +253,7 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
       const providerId = e.providerUserId ?? (await profile(false)).providerId;
       const post = await unipileLatestPost(account, providerId);
       if (!post) {
-        await logAction(db, { ...base, kind: "like_post", status: "skipped", detail: "No recent post" });
+        await logAction(db, { ...base, kind: "like_post", status: "skipped", detail: t("noRecentPost") });
         await advance(db, e, campaign, {}, now);
         return false;
       }
@@ -260,7 +265,7 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
     case "invite": {
       const p = await profile(false);
       if (p.connected) {
-        await logAction(db, { ...base, kind: "invite", status: "skipped", detail: "Already connected" });
+        await logAction(db, { ...base, kind: "invite", status: "skipped", detail: t("alreadyConnected") });
         await advance(db, e, campaign, { status: "invite_accepted", acceptedAt: now }, now);
         return false;
       }
@@ -298,9 +303,9 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
         const fresh = await db.query.enrollments.findFirst({ where: eq(enrollments.id, e.id) });
         if (!fresh || ENDED_ENROLLMENT.includes(fresh.status)) return false;
       }
-      const { text, reason } = await messageFor(db, e, campaign, step);
+      const { text, skipped, reason } = await messageFor(db, e, campaign, step);
       if (!text) {
-        await endEnrollment(db, e.id, reason!.startsWith("Skipped") ? "stopped" : "needs_you", reason!);
+        await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
         return false;
       }
       const providerId = e.providerUserId ?? (await profile(false)).providerId;
@@ -333,22 +338,22 @@ async function manualStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Cam
       await defer(db, e.id, wait);
       return false;
     }
-    const { text, reason } = await messageFor(db, e, campaign, step);
+    const { text, skipped, reason } = await messageFor(db, e, campaign, step);
     if (!text) {
-      await endEnrollment(db, e.id, reason!.startsWith("Skipped") ? "stopped" : "needs_you", reason!);
+      await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
       return false;
     }
     await logAction(db, { ...base, kind: "message", text });
   } else if (step.kind === "invite") {
     if (e.connected === true) {
-      await logAction(db, { ...base, status: "skipped", kind: "invite", detail: "Already connected" });
+      await logAction(db, { ...base, status: "skipped", kind: "invite", detail: t("alreadyConnected") });
       await advance(db, e, campaign, { status: "invite_accepted", acceptedAt: e.acceptedAt ?? now }, now);
       return false;
     }
     const note = campaign.inviteNote ? renderTemplate(campaign.inviteNote, templateVars(person, sender, campaign.objective.link), {}).text : null;
-    await logAction(db, { ...base, kind: "invite", text: note, detail: note ? "Send a connection request with this note" : "Send a connection request, without a note" });
+    await logAction(db, { ...base, kind: "invite", text: note, detail: note ? t("inviteWithNote") : t("inviteWithoutNote") });
   } else {
-    const detail = { visit_profile: "Open their profile", follow_profile: "Follow them", like_post: "Like their most recent post" }[step.kind];
+    const detail = t(({ visit_profile: "openProfile", follow_profile: "followThem", like_post: "likeLatest" } as const)[step.kind]);
     await logAction(db, { ...base, kind: step.kind, detail });
   }
   await defer(db, e.id, null);
@@ -376,7 +381,7 @@ export async function handleReply(db: Db, enrollmentId: string, reply: { text: s
 
 async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "manual"; externalId?: string; at?: Date }) {
   const e = await db.query.enrollments.findFirst({ where: eq(enrollments.id, enrollmentId) });
-  if (!e) throw new Error("Not in a sequence");
+  if (!e) throw new Error(campaignsText("notInSequence"));
   const [row] = await db
     .insert(replies)
     .values({ enrollmentId, text: reply.text, source: reply.source, externalId: reply.externalId ?? crypto.randomUUID(), receivedAt: reply.at ?? new Date() })
@@ -395,7 +400,7 @@ async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: s
     where: and(eq(outreachActions.enrollmentId, e.id), eq(outreachActions.kind, "message"), eq(outreachActions.status, "done")),
     orderBy: desc(outreachActions.createdAt),
   });
-  const verdict = await classifyReply({ reply: reply.text, lastMessage: last?.text ?? undefined }).catch(() => ({ label: "in_your_hands" as const, summary: "Couldn't classify; read it yourself" }));
+  const verdict = await classifyReply({ reply: reply.text, lastMessage: last?.text ?? undefined }).catch(() => ({ label: "in_your_hands" as const, summary: t("couldntClassify") }));
   await db.update(replies).set({ label: verdict.label, summary: verdict.summary }).where(eq(replies.id, row.id));
   await addLeadEvent(db, e.leadId, "reply", { label: verdict.label, summary: verdict.summary });
   await recordActivity(db, e.workspaceId, "campaigns", "reply.received", { playId: campaign.playId, leadId: e.leadId, name: person.name, label: verdict.label });
@@ -411,7 +416,7 @@ async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: s
         await logAction(db, { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, kind: "auto_reply", status: "done", text });
         await db.update(enrollments).set({ status: "auto_reply_sent", chatId: sent.chatId ?? e.chatId }).where(eq(enrollments.id, e.id));
       } else {
-        await logAction(db, { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender?.id ?? null, kind: "auto_reply", status: "pending_manual", text, detail: "Send this answer to their positive reply" });
+        await logAction(db, { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender?.id ?? null, kind: "auto_reply", status: "pending_manual", text, detail: t("answerPositive") });
       }
       await db.update(replies).set({ handledAt: new Date() }).where(eq(replies.id, row.id));
       return { label: verdict.label, autoReplied: true };

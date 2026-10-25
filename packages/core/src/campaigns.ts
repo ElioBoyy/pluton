@@ -33,9 +33,16 @@ import {
   type Sender,
   type SendWindow,
 } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
 import { recordActivity } from "./events.ts";
 import { addLeadEvent } from "./leads.ts";
 import { getCurrentWorkspace } from "./workspaces.ts";
+import messages from "./messages/campaigns.ts";
+import { playsText } from "./plays.ts";
+
+const t = localized(messages);
+/** The sequence area's strings, for the RPC layer's errors. */
+export const campaignsText = t;
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -74,18 +81,13 @@ export function defaultSteps(): CampaignStep[] {
   ];
 }
 
-export const STEP_LABELS: Record<CampaignStep["kind"], string> = {
-  visit_profile: "Visit their profile",
-  follow_profile: "Follow them",
-  like_post: "Like a recent post",
-  invite: "Send a connection request",
-  message: "Message",
-};
+/** "Send a connection request"…, in the founder's language. */
+export const stepKindLabel = (kind: CampaignStep["kind"]) => t(`step.${kind}`);
 
 /** "Message 2" for the second message step, the plain label otherwise. */
 export function stepLabel(steps: CampaignStep[], step: CampaignStep) {
-  if (step.kind !== "message") return STEP_LABELS[step.kind];
-  return `Message ${steps.filter((s) => s.kind === "message").indexOf(step) + 1}`;
+  if (step.kind !== "message") return stepKindLabel(step.kind);
+  return t("stepMessageN", { n: steps.filter((s) => s.kind === "message").indexOf(step) + 1 });
 }
 
 // ── Campaigns ────────────────────────────────────────────────────────────────
@@ -94,7 +96,7 @@ export async function ensureCampaign(db: Db, playId: string) {
   const existing = await db.query.campaigns.findFirst({ where: eq(campaigns.playId, playId) });
   if (existing) return existing;
   const play = await db.query.plays.findFirst({ where: eq(plays.id, playId) });
-  if (!play) throw new Error("Play not found");
+  if (!play) throw new Error(playsText("notFound"));
   const [created] = await db
     .insert(campaigns)
     .values({ workspaceId: play.workspaceId, playId, steps: defaultSteps() })
@@ -109,7 +111,7 @@ export async function getCampaign(db: Db, id: string) {
 
 export class CampaignConflictError extends Error {
   constructor() {
-    super("This sequence changed since you opened it; reload and retry");
+    super(t("changed"));
   }
 }
 
@@ -129,9 +131,9 @@ export async function updateCampaign(db: Db, id: string, revision: number, patch
 /** Saves one step. Leads already given a message keep it; new drafts follow the new version. */
 export async function updateStep(db: Db, campaignId: string, revision: number, step: Omit<CampaignStep, "revision">) {
   const campaign = await getCampaign(db, campaignId);
-  if (!campaign) throw new Error("Sequence not found");
+  if (!campaign) throw new Error(t("notFound"));
   const steps = campaign.steps.map((s) => (s.id === step.id ? { ...s, ...step, revision: s.revision + 1 } : s));
-  if (!campaign.steps.some((s) => s.id === step.id)) throw new Error("Step not found");
+  if (!campaign.steps.some((s) => s.id === step.id)) throw new Error(t("stepNotFound"));
   const [row] = await db
     .update(campaigns)
     .set({ steps, revision: sql`${campaigns.revision} + 1` })
@@ -175,7 +177,7 @@ export async function removeSender(db: Db, id: string) {
   if (affected.length)
     await db
       .update(enrollments)
-      .set({ status: "stopped", note: "Its LinkedIn account was removed", nextActionAt: null, endedAt: new Date() })
+      .set({ status: "stopped", note: t("senderRemoved"), nextActionAt: null, endedAt: new Date() })
       .where(inArray(enrollments.id, affected.map((a) => a.id)));
   await db.delete(senders).where(eq(senders.id, id));
   return { stopped: affected.length };
@@ -260,15 +262,10 @@ export async function usageToday(db: Db, senderId: string, timeZone: string, now
 
 // ── Templates ────────────────────────────────────────────────────────────────
 
-export const TEMPLATE_VARIABLES = [
-  { key: "person.first_name", label: "First name" },
-  { key: "person.last_name", label: "Last name" },
-  { key: "person.full_name", label: "Full name" },
-  { key: "person.company", label: "Company" },
-  { key: "person.title", label: "Job title" },
-  { key: "sender.first_name", label: "Your first name" },
-  { key: "objective.link", label: "Objective link" },
-] as const;
+export const TEMPLATE_VARIABLE_KEYS = ["person.first_name", "person.last_name", "person.full_name", "person.company", "person.title", "sender.first_name", "objective.link"] as const;
+
+/** The variables a template can use, labelled in the founder's language. */
+export const templateVariables = () => TEMPLATE_VARIABLE_KEYS.map((key) => ({ key, label: t(`var.${key}`) }));
 
 export const SAMPLE_PERSON = { name: "Ada Lovelace", company: "Analytical Engines", title: "Head of Operations" };
 
@@ -293,8 +290,8 @@ export function templateVars(person: Pick<Person, "name" | "company" | "title">,
  * first name or company; with skip-if-missing set, the lead is skipped instead (skipReason).
  */
 export function renderTemplate(template: string, vars: Record<string, string>, step: Pick<CampaignStep, "defaults" | "skipIfMissing">) {
-  if (step.skipIfMissing?.firstName && !vars["person.first_name"]) return { text: "", skipReason: "No first name" };
-  if (step.skipIfMissing?.company && !vars["person.company"]) return { text: "", skipReason: "No company" };
+  if (step.skipIfMissing?.firstName && !vars["person.first_name"]) return { text: "", skipReason: t("noFirstName") };
+  if (step.skipIfMissing?.company && !vars["person.company"]) return { text: "", skipReason: t("noCompany") };
   const stepDefault: Record<string, string | undefined> = { "person.first_name": step.defaults?.firstName, "person.company": step.defaults?.company };
   const text = template.replace(/\{\{\s*([a-z_.]+)\s*(?:\|\s*"([^"]*)"\s*)?\}\}/gi, (_, key: string, fallback?: string) => {
     const value = vars[key];
@@ -313,7 +310,7 @@ export async function previewRecipients(db: Db, leadIds: string[]) {
   // A worker restarted mid-writing leaves drafts "being written"; after 5 minutes they're failed.
   await db
     .update(messageDrafts)
-    .set({ review: "failed", error: "Writing was interrupted; generate again" })
+    .set({ review: "failed", error: t("interrupted") })
     .where(and(inArray(messageDrafts.leadId, leadIds), eq(messageDrafts.review, "being_written"), lte(messageDrafts.updatedAt, new Date(Date.now() - 5 * 60_000))));
   const rows = await db
     .select({ lead: leads, person: people, playName: plays.name })
@@ -341,7 +338,7 @@ export async function previewRecipients(db: Db, leadIds: string[]) {
       campaignId: campaign.id,
       steps: messageSteps.map((s) => ({ id: s.id, label: stepLabel(campaign.steps, s), mode: s.mode ?? "ai", delayHours: s.delayHours })),
       drafts,
-      conflict: live[0] ? `Already in the ${live[0].playName} sequence` : r.lead.status === "rejected" ? "Rejected lead" : null,
+      conflict: live[0] ? t("inSequence", { play: live[0].playName }) : r.lead.status === "rejected" ? t("rejectedLead") : null,
       review: draftState(drafts, messageSteps),
     });
   }
@@ -377,7 +374,7 @@ export async function editDraft(db: Db, draftId: string, text: string) {
     .set({ text, origin: "edited", review: "reviewed", error: null })
     .where(and(eq(messageDrafts.id, draftId), isNull(messageDrafts.sentAt)))
     .returning();
-  if (!row) throw new Error("This message was already sent");
+  if (!row) throw new Error(t("alreadySent"));
   return row;
 }
 
@@ -471,7 +468,7 @@ export async function removeFromCampaign(db: Db, enrollmentIds: string[]) {
       await db.delete(enrollments).where(eq(enrollments.id, e.id));
       undone++;
     } else {
-      await db.update(enrollments).set({ status: "stopped", note: "Removed by you", nextActionAt: null, endedAt: now }).where(eq(enrollments.id, e.id));
+      await db.update(enrollments).set({ status: "stopped", note: t("removedByYou"), nextActionAt: null, endedAt: now }).where(eq(enrollments.id, e.id));
       await db.delete(outreachActions).where(and(eq(outreachActions.enrollmentId, e.id), eq(outreachActions.status, "pending_manual")));
     }
     const lead = await db.query.leads.findFirst({ where: eq(leads.id, e.leadId) });
@@ -484,7 +481,7 @@ export async function removeFromCampaign(db: Db, enrollmentIds: string[]) {
 /** Starts a stopped or finished sequence again from its first step. Messages already sent stay sent. */
 export async function restartEnrollment(db: Db, enrollmentId: string) {
   const e = await db.query.enrollments.findFirst({ where: eq(enrollments.id, enrollmentId) });
-  if (!e) throw new Error("Not in a sequence");
+  if (!e) throw new Error(t("notInSequence"));
   const campaign = (await getCampaign(db, e.campaignId))!;
   const ws = await getCurrentWorkspace(db);
   const sender = e.senderId ? await db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : await pickSender(db, campaign, (await db.query.leads.findFirst({ where: eq(leads.id, e.leadId) }))!.personId);
@@ -578,7 +575,7 @@ export async function listManualTasks(db: Db, workspaceId: string) {
  */
 export async function completeManualAction(db: Db, actionId: string, outcome: { done: boolean; connected?: boolean }) {
   const action = await db.query.outreachActions.findFirst({ where: eq(outreachActions.id, actionId) });
-  if (!action || action.status !== "pending_manual") throw new Error("This task is already closed");
+  if (!action || action.status !== "pending_manual") throw new Error(t("taskClosed"));
   const e = (await db.query.enrollments.findFirst({ where: eq(enrollments.id, action.enrollmentId) }))!;
   const campaign = (await getCampaign(db, e.campaignId))!;
   await db.update(outreachActions).set({ status: outcome.done ? "done" : "skipped", doneAt: new Date() }).where(eq(outreachActions.id, actionId));
@@ -619,8 +616,8 @@ export async function completeManualAction(db: Db, actionId: string, outcome: { 
 /** For manual accounts: you saw the invitation accepted (or gave up on it). */
 export async function markInvitationAnswer(db: Db, enrollmentId: string, accepted: boolean) {
   const e = await db.query.enrollments.findFirst({ where: eq(enrollments.id, enrollmentId) });
-  if (!e) throw new Error("Not in a sequence");
-  if (!accepted) return endEnrollment(db, e.id, "marked_lost", "Invitation not accepted");
+  if (!e) throw new Error(t("notInSequence"));
+  if (!accepted) return endEnrollment(db, e.id, "marked_lost", t("inviteNotAccepted"));
   const campaign = (await getCampaign(db, e.campaignId))!;
   const next = campaign.steps[e.stepIndex];
   const now = new Date();

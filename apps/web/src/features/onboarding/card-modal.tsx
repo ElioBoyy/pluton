@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { CardView } from "@pluton/core";
 import { Button } from "../../components/ui.tsx";
+import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 
@@ -35,6 +36,8 @@ export function CardModal({ card, index, total }: { card: CardView; index: numbe
 type StatementAnswer = { action: "confirm" } | { action: "edit"; statement: string };
 
 function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: boolean; onAnswer: (a: StatementAnswer) => void }) {
+  const t = useT("onboarding");
+  const tc = useT("common");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.statement ?? "");
 
@@ -59,19 +62,19 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
         {editing ? (
           <>
             <Button variant="ghost" onClick={() => setEditing(false)}>
-              Cancel
+              {tc("cancel")}
             </Button>
             <Button disabled={pending || draft.trim().length < 20} onClick={() => onAnswer({ action: "edit", statement: draft.trim() })}>
-              Save statement
+              {t("card.saveStatement")}
             </Button>
           </>
         ) : (
           <>
             <Button variant="ghost" onClick={() => setEditing(true)}>
-              Edit Statement
+              {t("card.editStatement")}
             </Button>
             <Button disabled={pending} onClick={() => onAnswer({ action: "confirm" })}>
-              Looks right
+              {t("card.looksRight")}
             </Button>
           </>
         )}
@@ -93,6 +96,7 @@ function SelectCard({
   pending: boolean;
   onAnswer: (selected: string[], custom: string[]) => void;
 }) {
+  const t = useT("onboarding");
   const options = card.options ?? [];
   const [selected, setSelected] = useState(() => new Set(options.filter((o) => o.selected).map((o) => o.id)));
   const [custom, setCustom] = useState<string[]>([]);
@@ -148,7 +152,7 @@ function SelectCard({
                 onClick={() => setDraft("")}
                 className="flex items-center gap-2.5 rounded-xl bg-canvas px-3 py-3 text-left text-sm text-muted shadow-card transition-colors duration-150 hover:text-ink"
               >
-                <Plus size={14} /> Write your own
+                <Plus size={14} /> {t("card.writeOwn")}
               </button>
             ) : (
               <input
@@ -161,14 +165,14 @@ function SelectCard({
                   if (e.key === "Enter") commitDraft();
                   if (e.key === "Escape") setDraft(null);
                 }}
-                placeholder="Type and press Enter"
+                placeholder={t("card.typeAndEnter")}
                 className="rounded-xl border border-accent/60 bg-canvas px-3 py-3 text-sm text-ink outline-none focus-ring placeholder:text-faint"
               />
             ))}
         </div>
       </div>
       <Button disabled={pending} onClick={() => onAnswer([...selected], custom)}>
-        Use selected · {count}
+        {t("card.useSelected", { count })}
       </Button>
     </>
   );

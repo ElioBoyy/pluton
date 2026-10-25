@@ -1,6 +1,10 @@
 import os from "node:os";
 import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/copilot.ts";
 import { MODEL, newMeter, type AgentMeter, type RunAgentOptions, type RunAgentResult } from "./run-agent.ts";
+
+const t = localized(messages);
 
 const SERVER = "pluton";
 
@@ -70,8 +74,8 @@ export async function runAgentWithSubscription(opts: RunAgentOptions, meter: Age
       meter.inputTokens = baselineTokens.input + (message.usage?.input_tokens ?? 0);
       meter.outputTokens = baselineTokens.output + (message.usage?.output_tokens ?? 0);
       meter.cacheReadTokens = baselineTokens.read + (message.usage?.cache_read_input_tokens ?? 0);
-      if (message.subtype !== "success") throw new Error(`Agent stopped: ${message.errors.join("; ") || message.subtype}`);
-      if (message.is_error) throw new Error(message.result || "Claude returned an error");
+      if (message.subtype !== "success") throw new Error(t("claude.stopped", { reason: message.errors.join("; ") || message.subtype }));
+      if (message.is_error) throw new Error(message.result || t("claude.error"));
     }
     return { sessionId, turns };
   };

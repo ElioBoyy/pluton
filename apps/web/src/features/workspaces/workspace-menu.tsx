@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Input } from "../../components/ui.tsx";
+import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 
@@ -48,6 +49,7 @@ export function useOpenWorkspace() {
 
 /** The workspace name at the top of the sidebar; it opens the list of workspaces. */
 export function WorkspaceMenu({ className }: { className?: string }) {
+  const t = useT("workspaces");
   const trpc = useTRPC();
   const list = useQuery(trpc.workspace.list.queryOptions());
   const current = list.data?.find((w) => w.current);
@@ -61,13 +63,21 @@ export function WorkspaceMenu({ className }: { className?: string }) {
         ref={button}
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
-        aria-label={`Workspace: ${current?.name ?? "…"}`}
+        aria-label={t("menuLabel", { name: current?.name ?? "…" })}
         aria-expanded={open}
-        className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-md py-0.5 pr-1 text-left hover:bg-raised", open && "bg-raised", className)}
+        className={cn(
+          // A macOS source-list header: app-icon tile, name, and the pop-up chevron, pressable as one control.
+          "flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1.5 text-left transition-[background-color,scale] duration-150 ease-out",
+          "hover:bg-raised motion-safe:active:scale-[0.98]",
+          open && "bg-selected",
+          className,
+        )}
       >
-        <WorkspaceIcon workspace={current} />
+        <WorkspaceIcon workspace={current} className="size-7 rounded-[8px]! text-sm! shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_1px_2px_rgb(0_0_0/0.15)]" />
         <span className="flex-1 truncate text-sm font-semibold">{current?.name ?? "…"}</span>
-        <CaretUpDown size={12} weight="bold" className="shrink-0 text-faint" />
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-control text-muted">
+          <CaretUpDown size={11} weight="bold" />
+        </span>
       </button>
       {open && (
         <Menu
@@ -86,6 +96,7 @@ export function WorkspaceMenu({ className }: { className?: string }) {
 }
 
 function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<HTMLElement | null>; workspaces: WorkspaceItem[]; onClose: () => void; onNew: () => void }) {
+  const t = useT("workspaces");
   const { open, pending } = useOpenWorkspace();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -114,11 +125,11 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
     <div
       ref={ref}
       role="menu"
-      aria-label="Workspaces"
+      aria-label={t("workspaces")}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
       className="glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden rounded-xl p-1 origin-top-left"
     >
-      <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-faint">Workspaces</p>
+      <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-faint">{t("workspaces")}</p>
       <div className="min-h-0 overflow-y-auto">
         {workspaces.map((ws) => (
           <button
@@ -135,7 +146,7 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
             <WorkspaceIcon workspace={ws} className="size-5 text-[10px]" />
             <span className="min-w-0 flex-1">
               <span className="block truncate">{ws.name}</span>
-              {!ws.onboarded && <span className="block text-[11px] text-faint">Onboarding not finished</span>}
+              {!ws.onboarded && <span className="block text-[11px] text-faint">{t("onboardingNotFinished")}</span>}
             </span>
             {ws.current && <Check size={14} weight="bold" className="shrink-0 text-accent" />}
           </button>
@@ -144,11 +155,11 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
       <div className="my-1 h-px bg-line" />
       <button role="menuitem" onClick={onNew} className={item}>
         <Plus size={14} className="text-muted" />
-        New workspace…
+        {t("newWorkspaceMenu")}
       </button>
       <Link role="menuitem" to="/workspace/settings" onClick={onClose} className={item}>
         <Gear size={14} className="text-muted" />
-        Workspace settings
+        {t("workspaceSettings")}
       </Link>
     </div>,
     document.body,
@@ -157,6 +168,8 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
 
 /** Name the new workspace and choose what it starts with; then its onboarding begins. */
 export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceItem | undefined; onClose: () => void }) {
+  const t = useT("workspaces");
+  const tc = useT("common");
   const { create } = useOpenWorkspace();
   const [name, setName] = useState("");
   const [settings, setSettings] = useState<"copy" | "defaults">("copy");
@@ -171,28 +184,28 @@ export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceIte
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <form
         role="dialog"
-        aria-label="New workspace"
+        aria-label={t("newWorkspace")}
         className="w-[min(420px,100%)] rounded-2xl bg-canvas p-5 shadow-window"
         onSubmit={(e) => {
           e.preventDefault();
           create.mutate({ name: name.trim(), copyFrom: settings === "copy" ? (current?.id ?? null) : null }, { onSuccess: onClose });
         }}
       >
-        <h2 className="text-base font-semibold">New workspace</h2>
-        <p className="mt-1 text-sm text-muted">One per company: its own Brain, Plays, leads and sequences. You&apos;ll go through onboarding for it next.</p>
+        <h2 className="text-base font-semibold">{t("newWorkspace")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("dialogDescription")}</p>
 
         <label className="mt-5 flex flex-col gap-1.5">
-          <span className="text-xs font-medium">Name</span>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Company name" autoFocus required maxLength={80} />
+          <span className="text-xs font-medium">{t("name")}</span>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} autoFocus required maxLength={80} />
         </label>
 
         <div className="mt-5 flex flex-col gap-2">
-          <span className="text-xs font-medium">Settings</span>
-          <div role="radiogroup" aria-label="Settings" className="flex rounded-full bg-raised p-0.5">
+          <span className="text-xs font-medium">{t("settings")}</span>
+          <div role="radiogroup" aria-label={t("settings")} className="flex rounded-full bg-raised p-0.5">
             {(
               [
-                { value: "copy", label: current ? `Copy from ${current.name}` : "Copy current" },
-                { value: "defaults", label: "Start from defaults" },
+                { value: "copy", label: current ? t("copyFrom", { name: current.name }) : t("copyCurrent") },
+                { value: "defaults", label: t("startFromDefaults") },
               ] as const
             ).map((o) => (
               <button
@@ -212,18 +225,18 @@ export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceIte
           </div>
           <p className="text-xs text-muted">
             {settings === "copy"
-              ? "API keys, integrations, budget, notifications and timezone start the same. Change any of them later for this workspace only. LinkedIn accounts are not copied."
-              : "No API keys or integrations: you set this workspace up from scratch in Settings."}
+              ? t("copyHint")
+              : t("defaultsHint")}
           </p>
         </div>
 
         {create.error && <p className="mt-4 text-sm text-cat-orange">{create.error.message}</p>}
         <div className="mt-6 flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button type="submit" disabled={!name.trim() || create.isPending}>
-            Create and start onboarding
+            {t("createAndOnboard")}
           </Button>
         </div>
       </form>

@@ -6,7 +6,9 @@ import { createPortal } from "react-dom";
 import type { AppRouter } from "@pluton/server/router";
 import { Button } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
+import { translate, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
+import { formatTime } from "../../lib/format.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { initials } from "../leads/labels.ts";
 import { REVIEW } from "./labels.ts";
@@ -27,13 +29,19 @@ export function useRefreshSequences() {
 }
 
 const stepWhen = (i: number, delayHours: number) =>
-  i === 0 ? "Once you're connected" : `${delayHours >= 24 ? `${Math.round(delayHours / 24)} day${delayHours >= 48 ? "s" : ""}` : `${delayHours} h`} later, if no reply`;
+  i === 0
+    ? translate("sequence", "add.whenConnected")
+    : delayHours >= 24
+      ? translate("sequence", "add.daysLaterNoReply", { count: Math.round(delayHours / 24) })
+      : translate("sequence", "add.hoursLaterNoReply", { count: delayHours });
 
 /**
  * "Add N people to your campaign": each person's messages are written first (AI) or filled in
  * (template), you can read and edit them, then they join. Nothing is sent for 10 minutes.
  */
 export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; onClose: () => void }) {
+  const t = useT("sequence");
+  const tc = useT("common");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
   const [pending, setPending] = useState(false);
@@ -55,14 +63,14 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
   );
-  const undo = useMutation(trpc.campaigns.enrollments.remove.mutationOptions({ onSuccess: () => (toast("Removed from the campaign"), refresh()) }));
+  const undo = useMutation(trpc.campaigns.enrollments.remove.mutationOptions({ onSuccess: () => (toast(t("toast.removed")), refresh()) }));
   const add = useMutation(
     trpc.campaigns.recipients.add.mutationOptions({
       onSuccess: (r) => {
         setResult(r);
         void refresh();
         if (r.added.length)
-          toast(`${r.added.length} added. Nothing is sent for 10 minutes`, { action: { label: "Undo", run: () => undo.mutate({ enrollmentIds: r.added.map((a) => a.enrollmentId) }) } });
+          toast(t("add.toastAdded", { count: r.added.length }), { action: { label: tc("undo"), run: () => undo.mutate({ enrollmentIds: r.added.map((a) => a.enrollmentId) }) } });
       },
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
@@ -78,7 +86,7 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
   const writing = joinable.filter((r) => r.review === "being_written").length;
   const missing = joinable.filter((r) => r.review === "missing" || r.review === "failed");
   const reviewed = joinable.filter((r) => r.review === "reviewed").length;
-  const title = joinable.length === 1 ? `Add ${joinable[0]!.person.name} to your campaign` : `Start contacting ${joinable.length} people`;
+  const title = joinable.length === 1 ? t("add.titleOne", { name: joinable[0]!.person.name }) : t("add.titleMany", { count: joinable.length });
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -89,9 +97,9 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
           <>
             <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
               <div className="min-w-0">
-                <h2 className="truncate text-lg font-semibold">{preview.isLoading ? "Loading…" : title}</h2>
+                <h2 className="truncate text-lg font-semibold">{preview.isLoading ? tc("loading") : title}</h2>
                 <p className="mt-1 max-w-[70ch] text-sm text-pretty text-muted">
-                  They get these messages one by one as they move through your sequence. Nothing is sent before they're connected, and a reply stops the sequence.
+                  {t("add.intro")}
                 </p>
               </div>
               <CloseButton onClick={onClose} />
@@ -130,19 +138,19 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
               <div className="flex min-w-0 items-center gap-3 text-sm text-muted">
                 {missing.length > 0 && (
                   <Button variant="ghost" disabled={prepare.isPending || writing > 0} onClick={() => prepare.mutate({ leadIds: missing.map((m) => m.leadId) })}>
-                    <Sparkle size={13} weight="fill" className="text-accent" /> Generate messages{missing.length > 1 ? ` for ${missing.length}` : ""}
+                    <Sparkle size={13} weight="fill" className="text-accent" /> {missing.length > 1 ? t("add.generateFor", { count: missing.length }) : t("add.generate")}
                   </Button>
                 )}
                 {writing > 0
-                  ? `Writing messages for ${writing} ${writing === 1 ? "person" : "people"}. You can add them once they're ready.`
-                  : `${joinable.length} will join: ${reviewed} reviewed, ${joinable.length - reviewed} not reviewed`}
+                  ? t("add.writing", { count: writing })
+                  : t("add.willJoin", { count: joinable.length, reviewed, notReviewed: joinable.length - reviewed })}
               </div>
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={onClose}>
-                  Cancel
+                  {tc("cancel")}
                 </Button>
                 <Button disabled={add.isPending || writing > 0 || joinable.length === 0} onClick={() => add.mutate({ leadIds: joinable.map((r) => r.leadId) })}>
-                  {add.isPending && <CircleNotch size={12} className="animate-spin" />} Add {joinable.length} to campaign
+                  {add.isPending && <CircleNotch size={12} className="animate-spin" />} {t("add.submit", { count: joinable.length })}
                 </Button>
               </div>
             </div>
@@ -155,6 +163,7 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
 }
 
 function Messages({ recipient: r, onRegenerate }: { recipient: Recipient; onRegenerate: () => void }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
   const markReviewed = useMutation(trpc.campaigns.drafts.markReviewed.mutationOptions({ onSuccess: () => refresh() }));
@@ -170,17 +179,17 @@ function Messages({ recipient: r, onRegenerate }: { recipient: Recipient; onRege
         </div>
         {!r.conflict && (
           <div className="flex shrink-0 gap-2">
-            <Button variant="ghost" disabled={r.review === "being_written"} onClick={onRegenerate} title="Write this person's messages again">
-              <ArrowsClockwise size={13} /> Rewrite
+            <Button variant="ghost" disabled={r.review === "being_written"} onClick={onRegenerate} title={t("add.rewriteHint")}>
+              <ArrowsClockwise size={13} /> {t("add.rewrite")}
             </Button>
             <Button variant="ghost" disabled={r.review !== "not_reviewed"} onClick={() => markReviewed.mutate({ campaignId: r.campaignId, leadIds: [r.leadId] })}>
-              <Check size={13} /> Mark reviewed
+              <Check size={13} /> {t("add.markReviewed")}
             </Button>
           </div>
         )}
       </div>
-      {r.conflict && <p className="mb-4 rounded-xl bg-system-orange/10 px-3 py-2 text-sm text-system-orange">{r.conflict}: they won't be added.</p>}
-      {r.steps.length === 0 && <p className="text-sm text-muted">This sequence has no message step.</p>}
+      {r.conflict && <p className="mb-4 rounded-xl bg-system-orange/10 px-3 py-2 text-sm text-system-orange">{t("add.conflict", { reason: r.conflict })}</p>}
+      {r.steps.length === 0 && <p className="text-sm text-muted">{t("add.noMessageStep")}</p>}
       <ol className="flex flex-col gap-3">
         {r.steps.map((s, i) => (
           <StepDraft key={s.id} index={i} step={s} draft={r.drafts.find((d) => d.stepId === s.id)} />
@@ -191,6 +200,7 @@ function Messages({ recipient: r, onRegenerate }: { recipient: Recipient; onRege
 }
 
 function StepDraft({ index, step, draft }: { index: number; step: Recipient["steps"][number]; draft?: Recipient["drafts"][number] }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
   const [text, setText] = useState(draft?.text ?? "");
@@ -204,14 +214,14 @@ function StepDraft({ index, step, draft }: { index: number; step: Recipient["ste
           {index + 1} · {stepWhen(index, step.delayHours)} · {step.label}
           {step.mode === "ai" && <Sparkle size={10} weight="fill" className="ml-1 inline text-accent" />}
         </span>
-        <span className={cn("shrink-0", REVIEW[state]?.className)}>{draft?.skipReason ? `Skipped: ${draft.skipReason.toLowerCase()}` : REVIEW[state]?.label}</span>
+        <span className={cn("shrink-0", REVIEW[state]?.className)}>{draft?.skipReason ? t("add.skipped", { reason: draft.skipReason }) : REVIEW[state]?.label}</span>
       </div>
       {state === "being_written" ? (
         <p className="flex items-center gap-2 py-3 text-sm text-muted">
-          <CircleNotch size={13} className="animate-spin" /> Writing from their activity and your Brain…
+          <CircleNotch size={13} className="animate-spin" /> {t("add.writingFromActivity")}
         </p>
       ) : !draft || (!draft.text && !draft.skipReason) ? (
-        <p className="py-2 text-sm text-muted">{draft?.error ?? (step.mode === "ai" ? "Will be generated by AI" : "Will be filled from your template")}</p>
+        <p className="py-2 text-sm text-muted">{draft?.error ?? (step.mode === "ai" ? t("add.willGenerate") : t("add.willFill"))}</p>
       ) : draft.sentAt ? (
         <p className="text-sm whitespace-pre-wrap">{draft.text}</p>
       ) : (
@@ -223,48 +233,52 @@ function StepDraft({ index, step, draft }: { index: number; step: Recipient["ste
           className="block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent/60 focus:focus-ring"
         />
       )}
-      {draft?.origin === "edited" && <p className="mt-1.5 text-xs text-muted">Edited by you</p>}
+      {draft?.origin === "edited" && <p className="mt-1.5 text-xs text-muted">{t("add.editedByYou")}</p>}
     </li>
   );
 }
 
 function Result({ result, onClose }: { result: AddResult; onClose: () => void }) {
+  const t = useT("sequence");
+  const tc = useT("common");
+  // "" groups the people with no account yet.
   const bySender = new Map<string, string[]>();
-  for (const a of result.added) bySender.set(a.senderName ?? "no account yet", [...(bySender.get(a.senderName ?? "no account yet") ?? []), a.name]);
+  for (const a of result.added) bySender.set(a.senderName ?? "", [...(bySender.get(a.senderName ?? "") ?? []), a.name]);
   return (
     <div className="p-6">
       <h2 className="flex items-center gap-2 text-lg font-semibold">
-        <CheckCircle size={20} weight="fill" className="text-system-green" /> Here's what happened
+        <CheckCircle size={20} weight="fill" className="text-system-green" /> {t("result.title")}
       </h2>
       <p className="mt-1 text-sm text-muted">
-        {result.added.length} added. The first step runs after {new Date(result.undoUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} (until then you can undo), inside your sending hours.
+        {t("result.summary", { count: result.added.length, time: formatTime(result.undoUntil, { hour: "2-digit", minute: "2-digit" }) })}
       </p>
       <ul className="mt-4 flex flex-col gap-2 text-sm">
         {[...bySender].map(([sender, names]) => (
           <li key={sender}>
-            <span className="font-medium">From {sender}:</span> <span className="text-muted">{names.join(", ")}</span>
+            <span className="font-medium">{sender ? t("result.from", { name: sender }) : t("result.fromNoAccount")}</span> <span className="text-muted">{names.join(", ")}</span>
           </li>
         ))}
         {result.skipped.map((s) => (
           <li key={s.leadId} className="text-system-orange">
-            {s.name} not added: {s.reason}
+            {t("result.notAdded", { name: s.name, reason: s.reason })}
           </li>
         ))}
       </ul>
-      {bySender.has("no account yet") && <p className="mt-3 text-xs text-muted">Leads without an account wait until you connect one in Settings → LinkedIn accounts.</p>}
+      {bySender.has("") && <p className="mt-3 text-xs text-muted">{t("result.noAccountHint")}</p>}
       <div className="mt-6 flex justify-end">
-        <Button onClick={onClose}>Done</Button>
+        <Button onClick={onClose}>{tc("done")}</Button>
       </div>
     </div>
   );
 }
 
 function CloseButton({ onClick }: { onClick: () => void }) {
+  const tc = useT("common");
   return (
     <button
       onClick={onClick}
-      aria-label="Close"
-      title="Close"
+      aria-label={tc("close")}
+      title={tc("close")}
       className="capsule flex size-8 shrink-0 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90"
     >
       <X size={15} />

@@ -12,15 +12,31 @@ import {
   type Db,
   type Workspace,
 } from "@pluton/db";
-import { budgetStatus, fmtUsd, zonedMidnight } from "./credits.ts";
+import { localized } from "@pluton/i18n/server";
+import { budgetStatus, zonedMidnight } from "./credits.ts";
 import { listManualTasks, repliesNeedingYou } from "./campaigns.ts";
+import messages from "./messages/digest.ts";
+import { fmtUsd } from "./money.ts";
 import { notificationSettings } from "./notifications.ts";
 
 export type DigestLine = { text: string; link?: string };
-export type DigestSection = { title: string; lines: DigestLine[] };
-export type Digest = { subject: string; sections: DigestSection[]; empty: boolean; since: Date };
+/** `key` names the section whatever the language ("spend" has its own card on Home). */
+export type DigestSection = { key: "waiting" | "happened" | "spend"; title: string; lines: DigestLine[] };
+export type Digest = { subject: string; sections: DigestSection[]; empty: boolean; since: Date; facts: DigestFacts };
 
-const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
+/** What the digest counts, without words: the digest notification keeps it to be worded when it is read. */
+export type DigestFacts = {
+  toReview: Array<{ playId: string; name: string; n: number }>;
+  replies: { count: number; names: string[]; playId: string | null };
+  manualSteps: number;
+  proposals: number;
+  freshLeads: number;
+  runsDone: number;
+  runsFailed: number;
+  spend: { spentMicroUsd: number; limitMicroUsd: number | null; availableMicroUsd: number; unbilledMicroUsd: number };
+};
+
+const t = localized(messages);
 
 /** What waits for you and what happened since `since`: the morning digest, in the app and by email. */
 export async function buildDigest(db: Db, ws: Workspace, since: Date): Promise<Digest> {
@@ -49,52 +65,86 @@ export async function buildDigest(db: Db, ws: Workspace, since: Date): Promise<D
     budgetStatus(db, ws),
   ]);
 
-  const waiting: DigestLine[] = [];
-  for (const p of toReview.sort((a, b) => b.n - a.n)) {
-    waiting.push({ text: `${plural(p.n, "lead")} to review in ${p.name}`, link: `/plays/${p.playId}?tab=leads&status=to_review` });
-  }
-  if (replies.length) {
-    const names = replies.slice(0, 3).map((r) => r.person.name).join(", ");
-    waiting.push({ text: `${plural(replies.length, "reply", "replies")} waiting for your answer (${names}${replies.length > 3 ? "…" : ""})`, link: `/plays/${replies[0]!.playId}?tab=sequence` });
-  }
-  const tasks = manual.tasks.length + manual.waiting.length;
-  if (tasks) waiting.push({ text: `${plural(tasks, "LinkedIn step")} to do by hand`, link: "/workspace/linkedin" });
-  const nProposals = proposals[0]?.n ?? 0;
-  if (nProposals) waiting.push({ text: `${plural(nProposals, "Brain suggestion")} to accept or reject`, link: "/brain" });
+  const facts: DigestFacts = {
+    toReview: toReview.sort((a, b) => b.n - a.n),
+    replies: { count: replies.length, names: replies.slice(0, 3).map((r) => r.person.name), playId: replies[0]?.playId ?? null },
+    manualSteps: manual.tasks.length + manual.waiting.length,
+    proposals: proposals[0]?.n ?? 0,
+    freshLeads: fresh[0]?.n ?? 0,
+    runsDone: runs.find((r) => r.status === "completed")?.n ?? 0,
+    runsFailed: runs.find((r) => r.status === "failed")?.n ?? 0,
+    spend: {
+      spentMicroUsd: budget.spentMicroUsd,
+      limitMicroUsd: budget.limitMicroUsd,
+      availableMicroUsd: budget.availableMicroUsd ?? 0,
+      unbilledMicroUsd: budget.unbilledMicroUsd,
+    },
+  };
+  return { ...describeDigest(facts), since, facts };
+}
 
+function waitingLines(f: DigestFacts): DigestLine[] {
+  const lines: DigestLine[] = f.toReview.map((p) => ({ text: t("toReview", { count: p.n, play: p.name }), link: `/plays/${p.playId}?tab=leads&status=to_review` }));
+  if (f.replies.count) {
+    const names = f.replies.names.join(", ") + (f.replies.count > f.replies.names.length ? "…" : "");
+    lines.push({ text: t("replies", { count: f.replies.count, names }), link: f.replies.playId ? `/plays/${f.replies.playId}?tab=sequence` : undefined });
+  }
+  if (f.manualSteps) lines.push({ text: t("manualSteps", { count: f.manualSteps }), link: "/workspace/linkedin" });
+  if (f.proposals) lines.push({ text: t("proposals", { count: f.proposals }), link: "/brain" });
+  return lines;
+}
+
+/** The digest's words, in the current language. */
+export function describeDigest(f: DigestFacts): Pick<Digest, "subject" | "sections" | "empty"> {
+  const waiting = waitingLines(f);
   const happened: DigestLine[] = [];
-  const nFresh = fresh[0]?.n ?? 0;
-  const done = runs.find((r) => r.status === "completed")?.n ?? 0;
-  const failed = runs.find((r) => r.status === "failed")?.n ?? 0;
-  if (done || nFresh) happened.push({ text: `${plural(done, "search", "searches")} finished, ${plural(nFresh, "new lead")}`, link: "/leads" });
-  if (failed) happened.push({ text: `${plural(failed, "search", "searches")} stopped on an error`, link: "/workspace/activity" });
+  if (f.runsDone || f.freshLeads) {
+    happened.push({ text: t("searchesFinished", { count: f.runsDone, leads: t("newLeads", { count: f.freshLeads }) }), link: "/leads" });
+  }
+  if (f.runsFailed) happened.push({ text: t("searchesFailed", { count: f.runsFailed }), link: "/workspace/activity" });
 
+  const { spentMicroUsd, limitMicroUsd, availableMicroUsd, unbilledMicroUsd } = f.spend;
   const spend: DigestLine[] = [
     {
       text:
-        budget.limitMicroUsd !== null
-          ? `${fmtUsd(budget.spentMicroUsd)} of ${fmtUsd(budget.limitMicroUsd)} spent this period, ${fmtUsd(budget.availableMicroUsd ?? 0)} left`
-          : `${fmtUsd(budget.spentMicroUsd)} spent this period (no limit set)`,
+        limitMicroUsd !== null
+          ? t("spend.limit", { spent: fmtUsd(spentMicroUsd), limit: fmtUsd(limitMicroUsd), left: fmtUsd(availableMicroUsd) })
+          : t("spend.noLimit", { spent: fmtUsd(spentMicroUsd) }),
       link: "/workspace/usage",
     },
   ];
-  if (budget.unbilledMicroUsd > 0) spend.push({ text: `Claude through your subscription: ${fmtUsd(budget.unbilledMicroUsd)} at API prices, not charged` });
+  if (unbilledMicroUsd > 0) spend.push({ text: t("spend.subscription", { amount: fmtUsd(unbilledMicroUsd) }) });
 
   const sections: DigestSection[] = [];
-  if (waiting.length) sections.push({ title: "Waiting for you", lines: waiting });
-  if (happened.length) sections.push({ title: "Since the last digest", lines: happened });
-  sections.push({ title: "Spend", lines: spend });
+  if (waiting.length) sections.push({ key: "waiting", title: t("section.waiting"), lines: waiting });
+  if (happened.length) sections.push({ key: "happened", title: t("section.happened"), lines: happened });
+  sections.push({ key: "spend", title: t("section.spend"), lines: spend });
 
-  const headline = waiting.length ? waiting[0]!.text : nFresh ? `${plural(nFresh, "new lead")}` : "Nothing waiting";
-  return { subject: `Pluton: ${headline}`, sections, empty: waiting.length === 0 && happened.length === 0, since };
+  const headline = waiting.length ? waiting[0]!.text : f.freshLeads ? t("newLeads", { count: f.freshLeads }) : t("nothingWaiting");
+  return { subject: t("subject", { headline }), sections, empty: waiting.length === 0 && happened.length === 0 };
 }
+
+/**
+ * The digest notification's body: what waits for you, in the current language ("" when nothing
+ * does). Null when the payload predates the facts, so the stored text is shown.
+ */
+export function describeDigestNotification(payload: Record<string, unknown>): string | null {
+  const facts = payload.facts as DigestFacts | undefined;
+  if (!facts?.spend) return null;
+  return waitingLines(facts)
+    .map((l) => l.text)
+    .join(" · ");
+}
+
+/** The email's failure, worded for the job's error. */
+export const digestEmailFailed = (error: string) => t("emailFailed", { error });
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 /** Plain HTML (email clients ignore most CSS); links point at the local app. */
-export function renderDigest(digest: Digest, appUrl: string) {
+export function renderDigest(digest: Pick<Digest, "sections">, appUrl: string) {
   const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;color:#1d1d1f;max-width:520px">
-<h2 style="font-size:17px;margin:0 0 16px">Your Pluton digest</h2>
+<h2 style="font-size:17px;margin:0 0 16px">${esc(t("email.heading"))}</h2>
 ${digest.sections
   .map(
     (s) => `<h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#86868b;margin:20px 0 6px">${esc(s.title)}</h3>
@@ -103,7 +153,7 @@ ${digest.sections
       .join("")}</ul>`,
   )
   .join("\n")}
-<p style="color:#86868b;font-size:12px;margin-top:24px">Change or turn off this digest in Settings → Notifications.</p>
+<p style="color:#86868b;font-size:12px;margin-top:24px">${esc(t("email.footer"))}</p>
 </div>`;
   const text = digest.sections.map((s) => `${s.title}\n${s.lines.map((l) => `- ${l.text}`).join("\n")}`).join("\n\n");
   return { html, text };

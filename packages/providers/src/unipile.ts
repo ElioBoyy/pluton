@@ -1,5 +1,9 @@
 import { getSetting } from "@pluton/db";
 import { http, ProviderError, requireKey } from "./runtime.ts";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/providers.ts";
+
+const t = localized(messages);
 
 /**
  * Unipile acts on connected LinkedIn accounts: profile visits, invitations, messages, reactions,
@@ -14,7 +18,7 @@ export const unipileConfigured = () => Boolean(getSetting(UNIPILE_KEY)?.trim() &
 
 function baseUrl() {
   const dsn = getSetting(UNIPILE_DSN)?.trim();
-  if (!dsn) throw new ProviderError(PROVIDER, "Unipile DSN missing; add it in Settings → API keys");
+  if (!dsn) throw new ProviderError(PROVIDER, t("error.unipileDsn"));
   return dsn.startsWith("http") ? dsn.replace(/\/$/, "") : `https://${dsn}`;
 }
 

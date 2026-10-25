@@ -26,7 +26,9 @@ import { openContextMenu } from "../../components/context-menu.tsx";
 import { useLeadMenu } from "./lead-menu.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
-import { EMAIL_SOURCE, REASON_LABEL, STAGE_LABELS, STATUS, initials, type RejectReason } from "./labels.ts";
+import { formatDate, formatDateTime } from "../../lib/format.ts";
+import { translate, useT } from "../../i18n/index.ts";
+import { STATUS, emailSourceLabel, initials, reasonLabel, stageLabel, type RejectReason } from "./labels.ts";
 import { RejectPopover } from "./reject-popover.tsx";
 import { LeadCampaignBlock } from "../sequence/lead-campaign-block.tsx";
 import { LeadCrmBlock } from "../integrations/crm-export.tsx";
@@ -50,6 +52,7 @@ export function LeadDrawer({
   onStep?: (delta: 1 | -1) => void;
   focusNote?: boolean;
 }) {
+  const t = useT("leads");
   const trpc = useTRPC();
   const refresh = useRefreshLeads();
   const lead = useQuery(trpc.leads.get.queryOptions({ leadId }));
@@ -91,34 +94,34 @@ export function LeadDrawer({
   return (
     <aside
       className="drawer fixed top-0 right-0 bottom-0 z-40 flex w-[min(520px,100vw)] flex-col bg-canvas shadow-window"
-      aria-label="Lead details"
+      aria-label={t("drawer.label")}
     >
       <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-3">
           {onStep && (
             <ButtonGroup divided>
-              <GroupButton aria-label="Previous lead (↑)" title="Previous lead (↑)" onClick={() => onStep(-1)}>
+              <GroupButton aria-label={t("drawer.previous")} title={t("drawer.previous")} onClick={() => onStep(-1)}>
                 <CaretUp size={15} />
               </GroupButton>
-              <GroupButton aria-label="Next lead (↓)" title="Next lead (↓)" onClick={() => onStep(1)}>
+              <GroupButton aria-label={t("drawer.next")} title={t("drawer.next")} onClick={() => onStep(1)}>
                 <CaretDown size={15} />
               </GroupButton>
             </ButtonGroup>
           )}
-          <span className="truncate text-xs text-muted">↑↓ move · A approve · R reject</span>
+          <span className="truncate text-xs text-muted">{t("drawer.shortcuts")}</span>
         </div>
         <div className="flex items-center gap-1.5">
           {data && (
             <IconButton
               icon={DotsThree}
-              label="More actions"
+              label={t("drawer.more")}
               onClick={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
                 openContextMenu(r.right - 208, r.bottom + 4, menu(data).slice(2));
               }}
             />
           )}
-          <IconButton icon={X} label="Close (Esc)" onClick={onClose} />
+          <IconButton icon={X} label={t("drawer.close")} onClick={onClose} />
         </div>
       </div>
 
@@ -148,7 +151,7 @@ export function LeadDrawer({
                     <span className="size-1.5 rounded-full bg-current" aria-hidden />
                     {STATUS[data.status]?.label}
                   </Pill>
-                  <Pill className="bg-control text-muted">{STAGE_LABELS[data.stage]}</Pill>
+                  <Pill className="bg-control text-muted">{stageLabel(data.stage)}</Pill>
                 </div>
               </div>
             </div>
@@ -161,16 +164,16 @@ export function LeadDrawer({
 
           <Group>
             <EmailRow data={data} />
-            <Field label="Title">
+            <Field label={t("drawer.title")}>
               <span className="line-clamp-3" title={data.person.title ?? undefined}>
                 {data.person.title ?? "—"}
               </span>
             </Field>
-            <Field label="Seniority">{data.seniority ? `${data.seniority} (from title)` : "—"}</Field>
-            <Field label="LinkedIn">
+            <Field label={t("drawer.seniority")}>{data.seniority ? t("drawer.seniorityFromTitle", { seniority: data.seniority }) : "—"}</Field>
+            <Field label={t("drawer.linkedin")}>
               <LinkedinField data={data} />
             </Field>
-            <Field label="Company">
+            <Field label={t("column.company")}>
               <span className="flex flex-col items-end">
                 <span>{data.person.company ?? "—"}</span>
                 {data.person.companyWebsite && (
@@ -181,39 +184,39 @@ export function LeadDrawer({
                 )}
               </span>
             </Field>
-            <Field label="Location">{data.person.location ?? "—"}</Field>
-            <Field label="Play">
+            <Field label={t("column.location")}>{data.person.location ?? "—"}</Field>
+            <Field label={t("column.play")}>
               <Link to="/plays/$playId" params={{ playId: data.playId }} search={{ tab: "leads" }} className="text-accent hover:underline">
                 {data.playName}
               </Link>
             </Field>
-            <Field label="Fit">
+            <Field label={t("column.fit")}>
               <Meter value={data.fit} tone="green" />
             </Field>
-            <Field label="Warmness">
+            <Field label={t("column.warmness")}>
               <Meter value={data.warmness} tone="orange" />
             </Field>
           </Group>
 
-          <Section title="Campaign">
+          <Section title={t("drawer.campaign")}>
             <LeadCampaignBlock leadId={data.id} status={data.status} />
           </Section>
 
           <CrmSection leadId={data.id} />
 
-          <Section title="Why they fit">
+          <Section title={t("column.why")}>
             <Group className="px-4 py-3.5">
               <p className="text-sm font-medium">{data.signalLabel}</p>
               <p className="mt-1.5 text-sm leading-relaxed text-pretty text-muted">{data.reason}</p>
               <p className="mt-2.5 text-sm leading-relaxed text-muted">
-                <span className="font-medium text-ink">Signal · </span>
+                <span className="font-medium text-ink">{t("drawer.signal")} · </span>
                 {data.signal}
               </p>
             </Group>
           </Section>
 
           {data.evidence.length > 0 && (
-            <Section title="Evidence">
+            <Section title={t("drawer.evidence")}>
               <Group>
                 {data.evidence.map((e, i) =>
                   e.url ? (
@@ -234,7 +237,7 @@ export function LeadDrawer({
           )}
 
           {data.otherPlays.length > 0 && (
-            <Section title="Also found by">
+            <Section title={t("drawer.alsoFoundBy")}>
               <Group>
                 {data.otherPlays.map((o) => (
                   <Row
@@ -252,7 +255,7 @@ export function LeadDrawer({
             </Section>
           )}
 
-          <Section title="Timeline">
+          <Section title={t("drawer.timeline")}>
             <NoteInput leadId={data.id} autoFocus={focusNote} />
             {data.timeline.length > 0 && (
               <Group className="mt-3">
@@ -281,15 +284,17 @@ function Verdict({
   onUndo: (feedbackId: string) => void;
   pending: boolean;
 }) {
+  const t = useT("leads");
+  const tc = useT("common");
   const fb = data.feedback;
   if (!fb)
     return (
       <div className="flex flex-wrap items-center gap-2 px-1">
         <Button disabled={pending} onClick={onApprove} className="h-8">
-          <ThumbsUp size={14} /> Good lead
+          <ThumbsUp size={14} /> {t("action.good")}
         </Button>
         <Button variant="ghost" disabled={pending} onClick={onReject} className="h-8">
-          <ThumbsDown size={14} /> Not a fit
+          <ThumbsDown size={14} /> {t("action.notFit")}
         </Button>
       </div>
     );
@@ -299,23 +304,23 @@ function Verdict({
         label={
           <span className="flex items-center gap-2">
             {fb.verdict === "up" ? <ThumbsUp size={15} className="shrink-0 text-system-green" weight="fill" /> : <ThumbsDown size={15} className="shrink-0 text-muted" weight="fill" />}
-            {fb.verdict === "up" ? "You marked this a good lead" : "You marked this not a fit"}
+            {fb.verdict === "up" ? t("verdict.markedGood") : t("verdict.markedNotFit")}
           </span>
         }
-        description={fb.reasons.length > 0 ? <span className="pl-[23px]">{fb.reasons.map((r) => REASON_LABEL[r] ?? r).join(", ")}</span> : undefined}
+        description={fb.reasons.length > 0 ? <span className="pl-[23px]">{fb.reasons.map(reasonLabel).join(", ")}</span> : undefined}
       >
         <div className="flex shrink-0 items-center gap-2">
           {fb.verdict === "up" ? (
-            <Button variant="ghost" onClick={onReject} aria-label="Not a fit" title="Not a fit" className="w-9 !px-0">
+            <Button variant="ghost" onClick={onReject} aria-label={t("action.notFit")} title={t("action.notFit")} className="w-9 !px-0">
               <ThumbsDown size={14} />
             </Button>
           ) : (
-            <Button variant="ghost" onClick={onApprove} aria-label="Approve instead" title="Approve instead" className="w-9 !px-0">
+            <Button variant="ghost" onClick={onApprove} aria-label={t("verdict.approveInstead")} title={t("verdict.approveInstead")} className="w-9 !px-0">
               <ThumbsUp size={14} />
             </Button>
           )}
           <Button variant="ghost" onClick={() => onUndo(fb.id)}>
-            Undo
+            {tc("undo")}
           </Button>
         </div>
       </Row>
@@ -325,6 +330,7 @@ function Verdict({
 
 /** The email row: the address trailing, where it came from beneath the label; or the lookup and its cost. */
 function EmailRow({ data }: { data: Detail }) {
+  const t = useT("leads");
   const trpc = useTRPC();
   const refresh = useRefreshLeads();
   const quota = useQuery(trpc.leads.emailQuota.queryOptions(undefined, { staleTime: 60_000 }));
@@ -332,7 +338,7 @@ function EmailRow({ data }: { data: Detail }) {
     trpc.leads.findEmail.mutationOptions({
       onSuccess: (r) => {
         void refresh();
-        if (!r.email) toast(`No email found for ${data.person.name}`);
+        if (!r.email) toast(translate("leads", "email.noneFoundFor", { name: data.person.name }));
       },
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
@@ -342,19 +348,19 @@ function EmailRow({ data }: { data: Detail }) {
   const cost = !q
     ? ""
     : !q.hunter
-      ? "Checks public pages and the company site (free). Add a Hunter key in Settings → API keys for verified emails."
+      ? t("email.costFree")
       : "error" in q && q.error
-        ? `Free sources first, then Hunter (unavailable: ${q.error})`
-        : `Free sources first, then 1 Hunter search if needed (${"used" in q ? Math.max(0, q.available - q.used) : "?"} left this month)`;
+        ? t("email.costUnavailable", { error: q.error })
+        : t("email.costHunter", { left: "used" in q ? Math.max(0, q.available - q.used) : "?" });
 
   if (p.email)
     return (
       <Row
-        label="Email"
+        label={t("column.email")}
         description={
           <span className={cn(p.emailSource === "pattern" && "text-[color-mix(in_srgb,var(--color-system-orange),black_15%)] dark:text-system-orange")}>
-            {EMAIL_SOURCE[p.emailSource ?? ""] ?? p.emailSource}
-            {p.emailConfidence !== null && ` · ${p.emailConfidence}% confidence`}
+            {emailSourceLabel(p.emailSource)}
+            {p.emailConfidence !== null && ` · ${t("email.confidence", { value: p.emailConfidence })}`}
           </span>
         }
       >
@@ -365,30 +371,31 @@ function EmailRow({ data }: { data: Detail }) {
     );
   return (
     <Row
-      label="Email"
+      label={t("column.email")}
       description={
         <>
-          {p.emailCheckedAt && !find.isPending && <span className="block">No email found on {new Date(p.emailCheckedAt).toLocaleDateString()}</span>}
+          {p.emailCheckedAt && !find.isPending && <span className="block">{t("email.noneFoundOn", { date: formatDate(p.emailCheckedAt) })}</span>}
           {cost && <span className="block">{cost}</span>}
         </>
       }
     >
       <Button variant="ghost" className={cn("shrink-0 self-start", find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
         {find.isPending ? <CircleNotch size={12} className="animate-spin" /> : <MagnifyingGlass size={12} />}
-        {p.emailCheckedAt ? "Search again" : "Find email"}
+        {p.emailCheckedAt ? t("email.searchAgain") : t("email.find")}
       </Button>
     </Row>
   );
 }
 
 function LinkedinField({ data }: { data: Detail }) {
+  const t = useT("leads");
   const trpc = useTRPC();
   const refresh = useRefreshLeads();
   const find = useMutation(
     trpc.leads.findLinkedin.mutationOptions({
       onSuccess: (r) => {
         void refresh();
-        if (!r.url) toast(`No LinkedIn profile found for ${data.person.name}`);
+        if (!r.url) toast(translate("leads", "linkedin.noneFoundFor", { name: data.person.name }));
       },
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
@@ -396,18 +403,20 @@ function LinkedinField({ data }: { data: Detail }) {
   if (data.person.linkedinUrl)
     return (
       <a href={data.person.linkedinUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-accent hover:underline">
-        <LinkedinLogo size={14} weight="fill" className="text-system-blue" /> Profile <ArrowSquareOut size={11} />
+        <LinkedinLogo size={14} weight="fill" className="text-system-blue" /> {t("linkedin.profile")} <ArrowSquareOut size={11} />
       </a>
     );
   return (
     <Button variant="ghost" className={cn(find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
       {find.isPending ? <CircleNotch size={12} className="animate-spin" /> : <LinkedinLogo size={12} />}
-      Find LinkedIn
+      {t("linkedin.find")}
     </Button>
   );
 }
 
 function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean }) {
+  const t = useT("leads");
+  const tc = useT("common");
   const trpc = useTRPC();
   const refresh = useRefreshLeads();
   const [text, setText] = useState("");
@@ -429,38 +438,45 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
         ref={ref}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Add a note…"
+        placeholder={t("note.placeholder")}
         maxLength={2000}
-        aria-label="Note"
+        aria-label={t("note.label")}
         className="h-7 min-w-0 flex-1 rounded-md border border-line bg-canvas px-2.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring"
       />
       <Button variant="ghost" disabled={!text.trim() || add.isPending}>
-        Add
+        {tc("add")}
       </Button>
     </form>
   );
 }
 
+/** Texts are built when rendered, so they follow the current language. */
 const EVENT: Record<string, { icon: Icon; text: (p: Record<string, unknown>) => string; tone?: string }> = {
-  found: { icon: Target, text: (p) => `Qualified as a lead · ${STAGE_LABELS[String(p.stage)] ?? ""}, fit ${p.fit}/100` },
-  approved: { icon: ThumbsUp, text: () => "You marked this a good lead", tone: "text-system-green" },
+  found: { icon: Target, text: (p) => translate("leads", "event.found", { stage: stageLabel(String(p.stage)), fit: String(p.fit) }) },
+  approved: { icon: ThumbsUp, text: () => translate("leads", "verdict.markedGood"), tone: "text-system-green" },
   rejected: {
     icon: ThumbsDown,
     text: (p) => {
-      const reasons = (p.reasons as string[] | undefined)?.map((r) => REASON_LABEL[r] ?? r).join(", ");
-      return `You marked this not a fit${reasons ? ` · ${reasons}` : ""}${p.comment ? ` · “${p.comment}”` : ""}`;
+      const reasons = (p.reasons as string[] | undefined)?.map(reasonLabel).join(", ");
+      const comment = p.comment ? translate("leads", "event.comment", { comment: String(p.comment) }) : "";
+      return [translate("leads", "verdict.markedNotFit"), reasons, comment].filter(Boolean).join(" · ");
     },
   },
-  feedback_withdrawn: { icon: X, text: (p) => `You undid your ${p.verdict === "up" ? "approval" : "rejection"}` },
+  feedback_withdrawn: { icon: X, text: (p) => translate("leads", p.verdict === "up" ? "event.undidApproval" : "event.undidRejection") },
   note: { icon: ChatCircle, text: (p) => String(p.text) },
-  email_found: { icon: Envelope, text: (p) => `Email found: ${p.email} (${EMAIL_SOURCE[String(p.source)] ?? p.source})`, tone: "text-system-green" },
-  email_not_found: { icon: Envelope, text: () => "Looked for an email, none found" },
-  linkedin_found: { icon: LinkedinLogo, text: () => "LinkedIn profile found" },
-  linkedin_not_found: { icon: LinkedinLogo, text: () => "Looked for a LinkedIn profile, none found" },
-  exported: { icon: CheckCircle, text: () => "Exported to CSV" },
+  email_found: {
+    icon: Envelope,
+    text: (p) => translate("leads", "event.emailFound", { email: String(p.email), source: emailSourceLabel(String(p.source)) }),
+    tone: "text-system-green",
+  },
+  email_not_found: { icon: Envelope, text: () => translate("leads", "event.emailNotFound") },
+  linkedin_found: { icon: LinkedinLogo, text: () => translate("leads", "event.linkedinFound") },
+  linkedin_not_found: { icon: LinkedinLogo, text: () => translate("leads", "event.linkedinNotFound") },
+  exported: { icon: CheckCircle, text: () => translate("leads", "event.exported") },
 };
 
 function TimelineItem({ event }: { event: TimelineEvent }) {
+  useT("leads"); // re-renders the event text when the language changes
   const def = EVENT[event.kind] ?? { icon: CheckCircle, text: () => event.kind };
   const IconCmp = def.icon;
   return (
@@ -468,7 +484,7 @@ function TimelineItem({ event }: { event: TimelineEvent }) {
       <IconCmp size={15} className={cn("mt-px shrink-0 text-muted", def.tone)} />
       <div className="min-w-0 flex-1">
         <p className={cn("text-sm break-words", event.kind === "note" ? "text-ink" : "text-muted")}>{def.text(event.payload)}</p>
-        <p className="mt-0.5 text-xs text-muted tabular-nums">{new Date(event.createdAt).toLocaleString()}</p>
+        <p className="mt-0.5 text-xs text-muted tabular-nums">{formatDateTime(event.createdAt)}</p>
       </div>
     </Row>
   );
@@ -485,12 +501,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 /** Hidden until a CRM is connected or the lead was exported. */
 function CrmSection({ leadId }: { leadId: string }) {
+  const t = useT("leads");
   const trpc = useTRPC();
   const crms = useQuery(trpc.integrations.crm.connected.queryOptions());
   const exports = useQuery(trpc.integrations.crm.forLead.queryOptions({ leadId }));
   if (!crms.data?.length && !exports.data?.length) return null;
   return (
-    <Section title="CRM">
+    <Section title={t("drawer.crm")}>
       <Group className="px-4 py-3">
         <LeadCrmBlock leadId={leadId} />
       </Group>

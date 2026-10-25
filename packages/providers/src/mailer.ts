@@ -1,12 +1,16 @@
 import nodemailer from "nodemailer";
 import { getSetting } from "@pluton/db";
 import { ProviderError } from "./runtime.ts";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/providers.ts";
+
+const t = localized(messages);
 
 /** SMTP from Settings → API keys: the digest leaves from your own mailbox, nothing hosted. */
 export const mailerConfigured = () => Boolean(getSetting("smtp_host") && getSetting("smtp_user") && getSetting("smtp_password"));
 
 function transport() {
-  if (!mailerConfigured()) throw new ProviderError("smtp", "not configured: add the SMTP host, user and password in Settings → API keys");
+  if (!mailerConfigured()) throw new ProviderError("smtp", t("error.smtpMissing"));
   const port = Number(getSetting("smtp_port") ?? 465);
   return nodemailer.createTransport({
     host: getSetting("smtp_host"),
@@ -34,5 +38,5 @@ export async function verifyMailer() {
     if (error instanceof ProviderError) throw error;
     throw new ProviderError("smtp", (error as Error).message);
   }
-  return `SMTP works (${getSetting("smtp_host")})`;
+  return t("check.smtp", { host: getSetting("smtp_host") ?? "" });
 }

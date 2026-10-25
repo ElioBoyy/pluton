@@ -2,6 +2,7 @@ import { ArrowsClockwise, Check, Copy, DownloadSimple, Eye, EyeSlash } from "@ph
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Group, PageHeader, Row, Section, Segmented, Switch, TextButton } from "../components/ui.tsx";
+import { useT } from "../i18n/index.ts";
 import { timeAgo } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { downloadText } from "../features/leads/use-lead-actions.ts";
@@ -20,13 +21,15 @@ function snippet(client: Client, url: string, token: string) {
   }
 }
 
-const WHERE: Record<Client, string> = {
-  "Claude Code": "Run it in a terminal.",
-  "Claude Desktop": "Merge into claude_desktop_config.json (Settings → Developer → Edit config), then restart Claude Desktop. Needs Node.",
-  Codex: "Add to ~/.codex/config.toml.",
-};
+/** Where each client's snippet goes: the settings namespace's `mcp.where.<key>`. */
+const WHERE = {
+  "Claude Code": "claudeCode",
+  "Claude Desktop": "claudeDesktop",
+  Codex: "codex",
+} as const satisfies Record<Client, string>;
 
 export function McpPage() {
+  const t = useT("settings");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const info = useQuery(trpc.mcp.info.queryOptions());
@@ -45,33 +48,33 @@ export function McpPage() {
 
   return (
     <>
-      <PageHeader title="Connect your AI" description="Ask Claude or Codex about your leads and Plays, and let them act on them, through Pluton's local MCP server." />
+      <PageHeader title={t("mcp.title")} description={t("mcp.description")} />
 
       <div className="flex flex-col gap-8">
-        <Section footnote="Local only: the server answers on this machine and checks the token on every call. Anything that can read your config files can use it.">
+        <Section footnote={t("mcp.footnote")}>
           <Group>
             <Row>
-              <span className="w-20 shrink-0 text-sm">Server</span>
+              <span className="w-20 shrink-0 text-sm">{t("mcp.server")}</span>
               <code className="min-w-0 flex-1 truncate text-right font-mono text-xs text-muted">{url}</code>
-              <CopyButton text={url} label="Copy server URL" />
+              <CopyButton text={url} label={t("mcp.copyServerUrl")} />
             </Row>
             <Row>
-              <span className="w-20 shrink-0 text-sm">Token</span>
+              <span className="w-20 shrink-0 text-sm">{t("mcp.token")}</span>
               <code className="min-w-0 flex-1 truncate text-right font-mono text-xs text-muted">{shown}</code>
               <span className="flex shrink-0 items-center gap-0.5">
-                <IconButton onClick={() => setReveal((r) => !r)} label={reveal ? "Hide token" : "Show token"}>
+                <IconButton onClick={() => setReveal((r) => !r)} label={reveal ? t("mcp.hideToken") : t("mcp.showToken")}>
                   {reveal ? <EyeSlash size={14} /> : <Eye size={14} />}
                 </IconButton>
-                <CopyButton text={token} label="Copy token" />
+                <CopyButton text={token} label={t("mcp.copyToken")} />
               </span>
             </Row>
-            <Row label="New token" description="Every connected client stops working until you set it up again.">
+            <Row label={t("mcp.newToken")} description={t("mcp.newTokenHint")}>
               <Button
                 variant="ghost"
                 disabled={rotate.isPending}
-                onClick={() => confirm("Make a new token? Every connected client stops working until you set it up again.") && rotate.mutate()}
+                onClick={() => confirm(t("mcp.newTokenConfirm")) && rotate.mutate()}
               >
-                <ArrowsClockwise size={13} /> New token
+                <ArrowsClockwise size={13} /> {t("mcp.newToken")}
               </Button>
             </Row>
           </Group>
@@ -79,29 +82,29 @@ export function McpPage() {
 
         <Section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <Segmented label="AI client" options={CLIENTS.map((c) => ({ value: c, label: c }))} value={client} onChange={setClient} />
+            <Segmented label={t("mcp.aiClient")} options={CLIENTS.map((c) => ({ value: c, label: c }))} value={client} onChange={setClient} />
           </div>
-          <p className="mb-2 px-1 text-xs text-muted">{WHERE[client]}</p>
+          <p className="mb-2 px-1 text-xs text-muted">{t(`mcp.where.${WHERE[client]}`)}</p>
           <CodeBlock text={snippet(client, url, token)} />
         </Section>
 
-        <Section title="Guardrails">
+        <Section title={t("mcp.guardrails")}>
           <Group>
-            <Row label="Pause searches started from AI clients" description="Clients can still read everything and review leads.">
-              <Switch checked={runsPaused} onChange={(paused) => pause.mutate({ paused })} label="Pause searches started from AI clients" disabled={pause.isPending} />
+            <Row label={t("mcp.pauseRuns")} description={t("mcp.pauseRunsHint")}>
+              <Switch checked={runsPaused} onChange={(paused) => pause.mutate({ paused })} label={t("mcp.pauseRuns")} disabled={pause.isPending} />
             </Row>
           </Group>
           <ul className="mt-2 list-disc space-y-1 pr-1 pl-5 text-xs text-muted marker:text-muted">
-            <li>A search shows its expected cost and the budget left first; it starts only when called again with an explicit confirmation. Your monthly budget still applies.</li>
-            <li>Adding people to a LinkedIn sequence or exporting them to a CRM also needs an explicit confirmation, for those people.</li>
-            <li>Everything a client does shows up in Activity.</li>
+            <li>{t("mcp.rule.search")}</li>
+            <li>{t("mcp.rule.outreach")}</li>
+            <li>{t("mcp.rule.activity")}</li>
           </ul>
         </Section>
 
-        <Section title="Connected clients">
+        <Section title={t("mcp.connectedClients")}>
           <Group>
             {clients.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted">No clients yet. The first one to connect appears here.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted">{t("mcp.noClients")}</p>
             ) : (
               clients.map((c) => (
                 <Row
@@ -114,14 +117,13 @@ export function McpPage() {
                   }
                   description={
                     <span className="block truncate">
-                      {c.calls} tool call{c.calls === 1 ? "" : "s"}
-                      {c.lastTool && <> · last {c.lastTool}</>}
+                      {c.lastTool ? t("mcp.toolCallsLast", { count: c.calls, tool: c.lastTool }) : t("mcp.toolCalls", { count: c.calls })}
                     </span>
                   }
                 >
                   <span className="shrink-0 text-xs text-muted tabular-nums">{timeAgo(c.lastSeenAt)}</span>
                   <Button variant="ghost" disabled={forget.isPending} onClick={() => forget.mutate({ id: c.id })}>
-                    Forget
+                    {t("mcp.forget")}
                   </Button>
                 </Row>
               ))
@@ -130,13 +132,13 @@ export function McpPage() {
         </Section>
 
         <Section
-          title="Claude Code skill"
-          description="Teaches Claude how to work with Pluton: the morning check, reviewing leads, running Plays with the cost first, sequences, the Brain and spend."
+          title={t("mcp.skillTitle")}
+          description={t("mcp.skillDescription")}
         >
           <CodeBlock text={`mkdir -p ~/.claude/skills/pluton && curl -s ${skillUrl} -o ~/.claude/skills/pluton/SKILL.md`} />
           <div className="mt-3 px-1">
             <TextButton disabled={!skill.data} onClick={() => downloadText("SKILL.md", skill.data!, "text/markdown;charset=utf-8")}>
-              <DownloadSimple size={14} /> Download SKILL.md
+              <DownloadSimple size={14} /> {t("mcp.downloadSkill")}
             </TextButton>
           </div>
         </Section>
@@ -177,12 +179,13 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 function CodeBlock({ text }: { text: string }) {
+  const tc = useT("common");
   return (
     // The copy button sits beside the scrolling code, never over it.
     <Group className="flex items-start">
       <pre className="min-w-0 flex-1 overflow-x-auto py-3 pl-4 font-mono text-xs leading-relaxed">{text}</pre>
       <span className="shrink-0 p-1.5">
-        <CopyButton text={text} label="Copy" />
+        <CopyButton text={text} label={tc("copy")} />
       </span>
     </Group>
   );

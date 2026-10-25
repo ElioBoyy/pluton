@@ -6,20 +6,24 @@ import { useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader, Row, Section } from "../components/ui.tsx";
 import { toast } from "../components/toast.tsx";
+import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
 type Sender = inferRouterOutputs<AppRouter>["linkedin"]["senders"]["senders"][number];
 
-const STATUS: Record<string, string> = {
+const STATUS = {
   connected: "bg-system-green/15 text-system-green",
   connecting: "bg-system-blue/15 text-system-blue",
   disconnected: "bg-system-orange/15 text-system-orange",
   error: "bg-system-red/15 text-system-red",
-};
+} as const;
+type Status = keyof typeof STATUS;
+const isStatus = (s: string): s is Status => Object.hasOwn(STATUS, s);
 
 /** The LinkedIn accounts sequences send from. */
 export function LinkedinPage() {
+  const t = useT("settings");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const list = useQuery(trpc.linkedin.senders.queryOptions());
@@ -27,7 +31,7 @@ export function LinkedinPage() {
   const sync = useMutation(
     trpc.linkedin.sync.mutationOptions({
       onSuccess: (r) => {
-        toast(r.added ? `${r.added} account${r.added === 1 ? "" : "s"} added` : `Up to date (${r.total} on Unipile)`);
+        toast(r.added ? translate("settings", "linkedin.added", { count: r.added }) : translate("settings", "linkedin.upToDate", { total: r.total }));
         void refresh();
       },
       onError: (e) => toast(e.message, { tone: "error" }),
@@ -37,7 +41,7 @@ export function LinkedinPage() {
     trpc.linkedin.connectLink.mutationOptions({
       onSuccess: ({ url }) => {
         window.open(url, "_blank", "noopener");
-        toast("Log in to LinkedIn in the new tab, then come back and click Refresh");
+        toast(translate("settings", "linkedin.loginInNewTab"));
       },
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
@@ -46,18 +50,18 @@ export function LinkedinPage() {
 
   return (
     <>
-      <PageHeader title="LinkedIn accounts" description="The accounts your sequences send from. New people are shared between them in turn, and each person keeps the same account for the whole sequence." />
+      <PageHeader title={t("linkedin.title")} description={t("linkedin.description")} />
 
       <div className="flex flex-col gap-8">
         <Group className="flex items-start gap-3 px-4 py-3">
           <Warning size={18} weight="fill" className="mt-px shrink-0 text-system-orange" />
           <p className="text-sm text-muted text-pretty">
-            Automating LinkedIn is against its terms and can get an account restricted. Keep the daily limits low, use an account you accept to risk, and start with a few leads.
+            {t("linkedin.warning")}
           </p>
         </Group>
 
         {senders.length > 0 && (
-          <Section title="Accounts">
+          <Section title={t("linkedin.accounts")}>
             <ul className="flex flex-col gap-3">
               {senders.map((s) => (
                 <SenderRow key={s.id} sender={s} onChanged={refresh} onReconnect={() => connect.mutate({ reconnectSenderId: s.id })} />
@@ -66,29 +70,27 @@ export function LinkedinPage() {
           </Section>
         )}
 
-        <Section title="Send through Unipile">
+        <Section title={t("linkedin.unipileTitle")}>
           <Group>
             {list.data && !list.data.unipile ? (
               <Row
-                label="Unipile's hosted page logs in to LinkedIn (codes and captchas handled there). Pluton then visits, invites, likes and messages from that account, and reads replies."
-                description={
-                  <>
-                    First add your Unipile API key and DSN in{" "}
+                label={t("linkedin.unipileExplainer")}
+                description={t.rich("linkedin.unipileSetup", {
+                  link: (
                     <Link to="/workspace/api-keys" className="text-accent hover:underline">
-                      Settings → API keys
+                      {t("linkedin.unipileSetupLink")}
                     </Link>
-                    .
-                  </>
-                }
+                  ),
+                })}
               />
             ) : (
-              <Row label="Unipile's hosted page logs in to LinkedIn (codes and captchas handled there). Pluton then visits, invites, likes and messages from that account, and reads replies.">
+              <Row label={t("linkedin.unipileExplainer")}>
                 <div className="flex shrink-0 gap-2">
                   <Button variant="ghost" disabled={sync.isPending} onClick={() => sync.mutate()}>
-                    {sync.isPending ? <CircleNotch size={13} className="animate-spin" /> : <ArrowsClockwise size={13} />} Refresh
+                    {sync.isPending ? <CircleNotch size={13} className="animate-spin" /> : <ArrowsClockwise size={13} />} {t("linkedin.refresh")}
                   </Button>
                   <Button disabled={connect.isPending} onClick={() => connect.mutate({})}>
-                    <LinkedinLogo size={14} weight="fill" /> Connect LinkedIn
+                    <LinkedinLogo size={14} weight="fill" /> {t("linkedin.connect")}
                   </Button>
                 </div>
               </Row>
@@ -103,6 +105,7 @@ export function LinkedinPage() {
 }
 
 function ManualAccount({ onAdded }: { onAdded: () => void }) {
+  const t = useT("settings");
   const trpc = useTRPC();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
@@ -111,7 +114,7 @@ function ManualAccount({ onAdded }: { onAdded: () => void }) {
       onSuccess: () => {
         setName("");
         setUrl("");
-        toast("Manual account added");
+        toast(translate("settings", "linkedin.manualAdded"));
         onAdded();
       },
       onError: (e) => toast(e.message, { tone: "error" }),
@@ -119,8 +122,8 @@ function ManualAccount({ onAdded }: { onAdded: () => void }) {
   );
   return (
     <Section
-      title="Or send by hand"
-      footnote="No service, nothing automated: when a step is due, Pluton puts it in the Play's to-do with the message ready to copy, and the sequence waits until you tick it."
+      title={t("linkedin.manualTitle")}
+      footnote={t("linkedin.manualFootnote")}
     >
       <Group>
         <form
@@ -131,30 +134,32 @@ function ManualAccount({ onAdded }: { onAdded: () => void }) {
           }}
         >
           <div className="w-44 max-sm:w-full">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name" required />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("linkedin.yourName")} aria-label={t("linkedin.yourName")} required />
           </div>
           <div className="min-w-56 flex-1">
-            <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.linkedin.com/in/you (optional)" aria-label="LinkedIn profile URL" type="url" />
+            <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={t("linkedin.profilePlaceholder")} aria-label={t("linkedin.profileLabel")} type="url" />
           </div>
-          <Button disabled={!name.trim() || add.isPending}>Add manual account</Button>
+          <Button disabled={!name.trim() || add.isPending}>{t("linkedin.addManual")}</Button>
         </form>
       </Group>
     </Section>
   );
 }
 
+/** Each limit's label is the settings namespace's `linkedin.limit.<key>`. */
 const LIMITS = [
-  ["visits", "Visits, follows, likes", 150],
-  ["invites", "Invitations", 40],
-  ["messages", "Messages", 150],
+  ["visits", 150],
+  ["invites", 40],
+  ["messages", 150],
 ] as const;
 
 function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onChanged: () => void; onReconnect: () => void }) {
+  const t = useT("settings");
   const trpc = useTRPC();
   const [limits, setLimits] = useState(s.limits);
   const opts = { onSuccess: () => onChanged(), onError: (e: { message: string }) => toast(e.message, { tone: "error" }) };
-  const update = useMutation(trpc.linkedin.update.mutationOptions({ ...opts, onSuccess: () => (toast("Limits saved"), onChanged()) }));
-  const remove = useMutation(trpc.linkedin.remove.mutationOptions({ ...opts, onSuccess: (r) => (toast(r.stopped ? `Removed; ${r.stopped} sequences stopped` : "Removed"), onChanged()) }));
+  const update = useMutation(trpc.linkedin.update.mutationOptions({ ...opts, onSuccess: () => (toast(translate("settings", "linkedin.limitsSaved")), onChanged()) }));
+  const remove = useMutation(trpc.linkedin.remove.mutationOptions({ ...opts, onSuccess: (r) => (toast(r.stopped ? translate("settings", "linkedin.removedStopped", { count: r.stopped }) : translate("settings", "linkedin.removed")), onChanged()) }));
   const changed = JSON.stringify(limits) !== JSON.stringify(s.limits);
   return (
     <li>
@@ -165,29 +170,31 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
               {s.name}
               {s.profileUrl && (
                 <a href={s.profileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-xs font-normal text-accent hover:underline">
-                  profile <ArrowUpRight size={10} weight="bold" />
+                  {t("linkedin.profile")} <ArrowUpRight size={10} weight="bold" />
                 </a>
               )}
             </span>
           }
-          description={`${s.provider === "manual" ? "Manual: you do each action" : "Unipile"} · ${s.activeLeads} lead${s.activeLeads === 1 ? "" : "s"} in sequences`}
+          description={t("linkedin.inSequences", { provider: s.provider === "manual" ? t("linkedin.manualProvider") : "Unipile", count: s.activeLeads })}
           className="py-3"
         >
           <span className="order-first flex size-8 shrink-0 items-center justify-center rounded-lg bg-system-blue text-white">
             <LinkedinLogo size={18} weight="fill" />
           </span>
           <div className="flex shrink-0 items-center gap-2">
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium capitalize", STATUS[s.status])}>{s.status}</span>
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", isStatus(s.status) && STATUS[s.status])}>
+              {isStatus(s.status) ? t(`linkedin.status.${s.status}`) : s.status}
+            </span>
             {s.provider === "unipile" && s.status !== "connected" && (
               <Button variant="ghost" onClick={onReconnect}>
-                Reconnect
+                {t("linkedin.reconnect")}
               </Button>
             )}
             <button
               type="button"
-              onClick={() => window.confirm(`Remove ${s.name}? Its leads' sequences stop.`) && remove.mutate({ id: s.id })}
-              aria-label="Remove account"
-              title="Remove account"
+              onClick={() => window.confirm(t("linkedin.confirmRemove", { name: s.name })) && remove.mutate({ id: s.id })}
+              aria-label={t("linkedin.removeAccount")}
+              title={t("linkedin.removeAccount")}
               className="flex size-7 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-system-red"
             >
               <Trash size={15} />
@@ -199,8 +206,8 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
             <p className="flex-1 text-xs text-system-orange">{s.error}</p>
           </Row>
         )}
-        {LIMITS.map(([key, label, max]) => (
-          <Row key={key} label={`${label} per day`} description={`today ${s.today[key]}`}>
+        {LIMITS.map(([key, max]) => (
+          <Row key={key} label={t(`linkedin.limit.${key}`)} description={t("linkedin.today", { count: s.today[key] })}>
             <div className="w-20 shrink-0">
               <Input
                 type="number"
@@ -208,7 +215,7 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
                 max={max}
                 value={limits[key]}
                 onChange={(e) => setLimits({ ...limits, [key]: Math.min(max, Math.max(0, Number(e.target.value))) })}
-                aria-label={`${label} per day`}
+                aria-label={t(`linkedin.limit.${key}`)}
                 className="text-right tabular-nums"
               />
             </div>
@@ -216,7 +223,7 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
         ))}
         {changed && (
           <Row className="justify-end">
-            <Button onClick={() => update.mutate({ id: s.id, limits })}>Save limits</Button>
+            <Button onClick={() => update.mutate({ id: s.id, limits })}>{t("linkedin.saveLimits")}</Button>
           </Row>
         )}
       </Group>

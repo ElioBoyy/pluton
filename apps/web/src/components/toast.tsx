@@ -1,5 +1,6 @@
 import { WarningCircle, X } from "@phosphor-icons/react";
 import { useSyncExternalStore } from "react";
+import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 
 type Toast = { id: number; text: string; action?: { label: string; run: () => void }; tone?: "error"; leaving?: boolean };
@@ -33,6 +34,8 @@ export function toast(text: string, opts: { action?: Toast["action"]; tone?: Toa
 }
 
 export function Toaster() {
+  // Not `t`: each toast below is.
+  const dismissLabel = useT("shell")("toast.dismiss");
   const list = useSyncExternalStore(
     (l) => {
       listeners.add(l);
@@ -68,7 +71,7 @@ export function Toaster() {
           )}
           <button
             onClick={() => dismissToast(t.id)}
-            aria-label="Dismiss"
+            aria-label={dismissLabel}
             className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
           >
             <X size={12} />

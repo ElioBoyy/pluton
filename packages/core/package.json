@@ -15,6 +15,7 @@
   "dependencies": {
     "@huggingface/transformers": "4.3.1",
     "@pluton/db": "workspace:*",
+    "@pluton/i18n": "workspace:*",
     "zod": "^4.6.7"
   }
 }

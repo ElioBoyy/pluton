@@ -5,23 +5,21 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader, Progress, Section, Segmented, Stat, TextButton } from "../components/ui.tsx";
+import { getLocale, useT, type Translate } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
-import { usd } from "../lib/format.ts";
+import { formatDate, formatDateTime, usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
 type Range = inferRouterInputs<AppRouter>["credits"]["usage"]["range"];
 type Usage = inferRouterOutputs<AppRouter>["credits"]["usage"];
 type Purpose = Usage["byPurpose"][number]["purpose"];
 
-const RANGES: Array<{ key: NonNullable<Range>; label: string }> = [
-  { key: "period", label: "This period" },
-  { key: "previous", label: "Last period" },
-  { key: "30d", label: "30 days" },
-  { key: "90d", label: "90 days" },
-];
+/** Each range's name is the usage namespace's `range.<key>`. */
+const RANGES: Array<NonNullable<Range>> = ["period", "previous", "30d", "90d"];
 
-const SOURCE_LABELS: Record<string, string> = { claude: "Claude", apify: "Apify", hunter: "Hunter", theirstack: "TheirStack", unipile: "Unipile", manual: "Manual" };
-const sourceLabel = (s: string) => SOURCE_LABELS[s] ?? s;
+const SOURCE_LABELS: Record<string, string> = { claude: "Claude", apify: "Apify", hunter: "Hunter", theirstack: "TheirStack", unipile: "Unipile" };
+const sourceLabel = (s: string, t: Translate<"usage">) => (s === "manual" ? t("source.manual") : (SOURCE_LABELS[s] ?? s));
+const shortDate = (d: Date | string | number) => formatDate(d, { day: "numeric", month: "short" });
 /** "claude-sonnet-5-5" → "Sonnet 5.5"; provider operations "keyword_posts" → "keyword posts". */
 const operationLabel = (source: string, op: string) => {
   const m = source === "claude" ? /^claude-([a-z]+)-(\d+)-(\d+)$/.exec(op) : null;
@@ -29,6 +27,7 @@ const operationLabel = (source: string, op: string) => {
 };
 
 export function UsagePage() {
+  const t = useT("usage");
   const trpc = useTRPC();
   const [range, setRange] = useState<NonNullable<Range>>("period");
   const usage = useQuery(trpc.credits.usage.queryOptions({ range }));
@@ -37,28 +36,28 @@ export function UsagePage() {
   return (
     <>
       <PageHeader
-        title="Usage"
-        description="The real cost of every paid call: data providers and Claude. Claude through your subscription is shown at API prices but not charged."
+        title={t("title")}
+        description={t("description")}
       />
       <div className="-mt-3 mb-6">
-        <Segmented label="Range" options={RANGES.map((r) => ({ value: r.key, label: r.label }))} value={range} onChange={setRange} />
+        <Segmented label={t("range")} options={RANGES.map((key) => ({ value: key, label: t(`range.${key}`) }))} value={range} onChange={setRange} />
       </div>
       {u && (
         <div className="flex flex-col gap-8">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Stat label="Spent" value={usd(u.totals.billed)} detail="Counts against the budget" />
-            <Stat label="Claude via subscription" value={usd(u.totals.unbilled)} detail="API-price equivalent, not charged" />
+            <Stat label={t("spent")} value={usd(u.totals.billed)} detail={t("spentDetail")} />
+            <Stat label={t("subscription")} value={usd(u.totals.unbilled)} detail={t("subscriptionDetail")} />
             <Stat
-              label="Paid calls"
-              value={String(u.totals.calls)}
-              detail={`${u.range.from.toLocaleDateString(undefined, { day: "numeric", month: "short" })} – ${new Date(u.range.to.getTime() - 1).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`}
+              label={t("paidCalls")}
+              value={u.totals.calls.toLocaleString(getLocale())}
+              detail={`${shortDate(u.range.from)} – ${shortDate(u.range.to.getTime() - 1)}`}
             />
           </div>
           <DailyChart usage={u} />
           <ByPlay usage={u} />
           <div className="grid gap-x-4 gap-y-8 md:grid-cols-2">
-            <Breakdown title="By type" rows={u.byPurpose.map((r) => ({ key: r.purpose, label: u.purposeLabels[r.purpose as Purpose], billed: r.billed, unbilled: r.unbilled, calls: r.calls }))} />
-            <Breakdown title="By source" rows={u.bySource.map((r) => ({ key: r.source, label: sourceLabel(r.source), billed: r.billed, unbilled: r.unbilled, calls: r.calls }))} />
+            <Breakdown title={t("byType")} rows={u.byPurpose.map((r) => ({ key: r.purpose, label: u.purposeLabels[r.purpose as Purpose], billed: r.billed, unbilled: r.unbilled, calls: r.calls }))} />
+            <Breakdown title={t("bySource")} rows={u.bySource.map((r) => ({ key: r.source, label: sourceLabel(r.source, t), billed: r.billed, unbilled: r.unbilled, calls: r.calls }))} />
           </div>
           <Ledger purposeLabels={u.purposeLabels} />
         </div>
@@ -69,6 +68,7 @@ export function UsagePage() {
 
 /** One bar per day: spend in accent, the subscription equivalent stacked above in a lighter tint. */
 function DailyChart({ usage }: { usage: Usage }) {
+  const t = useT("usage");
   const days = useMemo(() => {
     const out: Array<{ day: string; billed: number; unbilled: number }> = [];
     const end = Math.min(usage.range.to.getTime(), Date.now());
@@ -87,29 +87,29 @@ function DailyChart({ usage }: { usage: Usage }) {
   const last = days.at(-1)?.day;
   return (
     <Section
-      title="Per day"
+      title={t("chart.title")}
       actions={
         <span className="flex items-center gap-3 text-xs text-muted">
           <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent" /> Spent
+            <span className="size-2 rounded-full bg-accent" /> {t("spent")}
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent/35" /> Claude via subscription
+            <span className="size-2 rounded-full bg-accent/35" /> {t("subscription")}
           </span>
         </span>
       }
     >
       <Group className="px-4 pt-4 pb-3">
         {!any ? (
-          <p className="py-8 text-center text-sm text-muted">No paid calls in this range.</p>
+          <p className="py-8 text-center text-sm text-muted">{t("chart.empty")}</p>
         ) : (
           <>
-            <div className="flex h-32 items-end gap-[3px]" role="img" aria-label={`Spend per day, up to ${usd(max)}`}>
+            <div className="flex h-32 items-end gap-[3px]" role="img" aria-label={t("chart.aria", { max: usd(max) })}>
               {days.map((d) => (
                 <div
                   key={d.day}
                   className="group flex h-full flex-1 flex-col justify-end rounded-[3px] transition-colors hover:bg-raised"
-                  title={`${d.day}: ${usd(d.billed, { precise: true })} spent, ${usd(d.unbilled, { precise: true })} via subscription`}
+                  title={t("chart.bar", { day: dayLabel(d.day), billed: usd(d.billed, { precise: true }), unbilled: usd(d.unbilled, { precise: true }) })}
                 >
                   <div className="rounded-t-[3px] bg-accent/35" style={{ height: `${(d.unbilled / max) * 100}%` }} />
                   <div className={cn("bg-accent", d.unbilled === 0 && "rounded-t-[3px]")} style={{ height: `${(d.billed / max) * 100}%` }} />
@@ -127,22 +127,23 @@ function DailyChart({ usage }: { usage: Usage }) {
   );
 }
 
-const dayLabel = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+const dayLabel = (day: string) => shortDate(`${day}T12:00:00`);
 
 function ByPlay({ usage }: { usage: Usage }) {
+  const t = useT("usage");
   if (!usage.byPlay.length) return null;
   return (
-    <Section title="By Play">
+    <Section title={t("byPlay")}>
       <Group className="overflow-x-auto">
         <table className="mac-table">
           <thead>
             <tr>
-              <th>Play</th>
-              <th className="num">Searches</th>
-              <th className="num">Leads</th>
-              <th className="num">Spent</th>
-              <th className="num">Per lead</th>
-              <th className="num">Via subscription</th>
+              <th>{t("col.play")}</th>
+              <th className="num">{t("col.searches")}</th>
+              <th className="num">{t("col.leads")}</th>
+              <th className="num">{t("spent")}</th>
+              <th className="num">{t("col.perLead")}</th>
+              <th className="num">{t("col.viaSubscription")}</th>
             </tr>
           </thead>
           <tbody>
@@ -152,7 +153,7 @@ function ByPlay({ usage }: { usage: Usage }) {
                   <Link to="/plays/$playId" params={{ playId: p.playId }} className="hover:text-accent">
                     {p.name}
                   </Link>
-                  {p.status !== "active" && <span className="ml-2 text-xs text-muted capitalize">{p.status}</span>}
+                  {p.status !== "active" && <span className="ml-2 text-xs text-muted">{t(`playStatus.${p.status}`)}</span>}
                 </td>
                 <td className="num text-muted">{p.runs}</td>
                 <td className="num text-muted">{p.leads}</td>
@@ -169,13 +170,14 @@ function ByPlay({ usage }: { usage: Usage }) {
 }
 
 function Breakdown({ title, rows }: { title: string; rows: Array<{ key: string; label: string; billed: number; unbilled: number; calls: number }> }) {
+  const t = useT("usage");
   const sorted = [...rows].sort((a, b) => b.billed + b.unbilled - (a.billed + a.unbilled));
   const max = Math.max(1, ...sorted.map((r) => r.billed + r.unbilled));
   return (
     <Section title={title}>
       <Group>
         {sorted.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-muted">Nothing yet.</p>
+          <p className="px-4 py-6 text-center text-sm text-muted">{t("breakdown.empty")}</p>
         ) : (
           sorted.map((r) => (
             <div key={r.key} className="px-4 py-3">
@@ -183,7 +185,7 @@ function Breakdown({ title, rows }: { title: string; rows: Array<{ key: string; 
                 <span>{r.label}</span>
                 <span className="tabular-nums">
                   {usd(r.billed, { precise: true })}
-                  {r.unbilled > 0 && <span className="ml-1.5 text-xs text-muted">+ {usd(r.unbilled, { precise: true })} via subscription</span>}
+                  {r.unbilled > 0 && <span className="ml-1.5 text-xs text-muted">{t("breakdown.plusSubscription", { amount: usd(r.unbilled, { precise: true }) })}</span>}
                 </span>
               </div>
               <div className="flex h-1.5 overflow-hidden rounded-full bg-control">
@@ -199,6 +201,8 @@ function Breakdown({ title, rows }: { title: string; rows: Array<{ key: string; 
 }
 
 function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
+  const t = useT("usage");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [purpose, setPurpose] = useState<Purpose | "">("");
@@ -214,15 +218,15 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
 
   return (
     <Section
-      title="Ledger"
+      title={t("ledger.title")}
       actions={
         <select
           value={purpose}
           onChange={(e) => setPurpose(e.target.value as Purpose | "")}
           className="capsule h-7 pl-3 text-sm outline-none focus:focus-ring"
-          aria-label="Filter by type"
+          aria-label={t("ledger.filter")}
         >
-          <option value="">All types</option>
+          <option value="">{t("ledger.allTypes")}</option>
           {Object.entries(purposeLabels).map(([k, l]) => (
             <option key={k} value={k}>
               {l}
@@ -235,10 +239,10 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
         <table className="mac-table">
           <thead>
             <tr>
-              <th>When</th>
-              <th>What</th>
-              <th>Play</th>
-              <th className="num">Cost</th>
+              <th>{t("col.when")}</th>
+              <th>{t("col.what")}</th>
+              <th>{t("col.play")}</th>
+              <th className="num">{t("col.cost")}</th>
               <th className="w-8" />
             </tr>
           </thead>
@@ -246,23 +250,23 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-muted">
-                  {entries.isLoading ? "Loading…" : "No paid calls yet."}
+                  {entries.isLoading ? tc("loading") : t("ledger.empty")}
                 </td>
               </tr>
             )}
             {rows.map(({ entry: e, playName }) => (
               <tr key={e.id}>
                 <td className="whitespace-nowrap text-muted tabular-nums">
-                  {new Date(e.createdAt).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  {formatDateTime(e.createdAt, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                 </td>
                 <td>
                   {e.kind === "adjustment" ? (
                     <span>
-                      {e.note} <span className="text-xs text-muted">· expense added by you</span>
+                      {e.note} <span className="text-xs text-muted">· {t("ledger.addedByYou")}</span>
                     </span>
                   ) : (
                     <span>
-                      {sourceLabel(e.source)} <span className="text-muted">{operationLabel(e.source, e.operation)}</span>
+                      {sourceLabel(e.source, t)} <span className="text-muted">{operationLabel(e.source, e.operation)}</span>
                       <span className="ml-1.5 text-xs text-muted">{purposeLabels[e.purpose]}</span>
                     </span>
                   )}
@@ -270,11 +274,11 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
                 <td className="text-muted">{playName ?? "—"}</td>
                 <td className={cn("num", !e.billed && "text-muted")}>
                   {usd(e.costMicroUsd, { precise: true })}
-                  {!e.billed && <span className="ml-1 text-xs">sub.</span>}
+                  {!e.billed && <span className="ml-1 text-xs" title={t("subscription")}>{t("ledger.sub")}</span>}
                 </td>
                 <td className="text-right">
                   {e.kind === "adjustment" && (
-                    <button onClick={() => remove.mutate({ id: e.id })} className="rounded-full p-1 text-muted hover:bg-raised hover:text-ink" aria-label="Delete expense">
+                    <button onClick={() => remove.mutate({ id: e.id })} className="rounded-full p-1 text-muted hover:bg-raised hover:text-ink" aria-label={t("ledger.deleteExpense")}>
                       <Trash size={14} />
                     </button>
                   )}
@@ -288,7 +292,7 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
         <AddExpense onAdded={refresh} />
         {entries.hasNextPage && (
           <Button variant="ghost" disabled={entries.isFetchingNextPage} onClick={() => entries.fetchNextPage()}>
-            Show more
+            {t("ledger.showMore")}
           </Button>
         )}
       </div>
@@ -298,6 +302,8 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
 
 /** Costs Pluton can't see itself, like a provider's monthly plan. Negative returns money (a refund). */
 function AddExpense({ onAdded }: { onAdded: () => void }) {
+  const t = useT("usage");
+  const tc = useT("common");
   const trpc = useTRPC();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -315,7 +321,7 @@ function AddExpense({ onAdded }: { onAdded: () => void }) {
   if (!open)
     return (
       <TextButton onClick={() => setOpen(true)}>
-        <Plus size={13} weight="bold" /> Add an expense Pluton can't see (a plan, a subscription)
+        <Plus size={13} weight="bold" /> {t("expense.open")}
       </TextButton>
     );
   return (
@@ -326,13 +332,13 @@ function AddExpense({ onAdded }: { onAdded: () => void }) {
         add.mutate({ amountUsd: Number(amount), note });
       }}
     >
-      <Input className="w-28" type="number" step="0.01" placeholder="USD" value={amount} onChange={(e) => setAmount(e.target.value)} required aria-label="Amount in USD" />
-      <Input className="min-w-48 flex-1" placeholder="What for, e.g. Unipile account, October" value={note} onChange={(e) => setNote(e.target.value)} required minLength={2} aria-label="Note" />
+      <Input className="w-28" type="number" step="0.01" placeholder="USD" value={amount} onChange={(e) => setAmount(e.target.value)} required aria-label={t("expense.amount")} />
+      <Input className="min-w-48 flex-1" placeholder={t("expense.notePlaceholder")} value={note} onChange={(e) => setNote(e.target.value)} required minLength={2} aria-label={t("expense.note")} />
       <Button type="submit" disabled={add.isPending || !Number(amount)}>
-        Add
+        {tc("add")}
       </Button>
       <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-        Cancel
+        {tc("cancel")}
       </Button>
       {add.error && <span className="w-full text-xs text-cat-orange">{add.error.message}</span>}
     </form>

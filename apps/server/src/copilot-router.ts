@@ -14,8 +14,12 @@ import {
   setCopilotActionStatus,
   startCopilotTurn,
 } from "@pluton/core";
-import type { Db } from "@pluton/db";
+import type { CopilotActionStatus, Db } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/copilot.ts";
 import { publicProcedure, router } from "./trpc.ts";
+
+const t = localized(messages);
 
 const ws = (db: Db) => getCurrentWorkspace(db);
 
@@ -33,7 +37,7 @@ function oneAtATime<T>(conversationId: string, fn: () => Promise<T>): Promise<T>
 
 async function requireConversation(db: Db, id: string) {
   const state = await getConversation(db, id);
-  if (!state) throw new TRPCError({ code: "NOT_FOUND", message: "Conversation not found" });
+  if (!state) throw new TRPCError({ code: "NOT_FOUND", message: t("notFound") });
   return state;
 }
 
@@ -50,7 +54,7 @@ export const copilotRouter = router({
       return oneAtATime(conversationId, async () => {
         if (input.conversationId) {
           await requireConversation(ctx.db, conversationId);
-          if (await activeTurn(ctx.db, conversationId)) throw new TRPCError({ code: "CONFLICT", message: "The agent is still answering" });
+          if (await activeTurn(ctx.db, conversationId)) throw new TRPCError({ code: "CONFLICT", message: t("stillAnswering") });
         }
         await addCopilotMessage(ctx.db, { conversationId, role: "user", text: input.text });
         const job = await startCopilotTurn(ctx.db, w.id, conversationId);
@@ -66,10 +70,10 @@ export const copilotRouter = router({
       return oneAtATime(action.conversationId, async () => {
         // Approving starts a turn; one at a time per conversation, like sending.
         if (input.decision === "approve" && (await activeTurn(ctx.db, action.conversationId))) {
-          throw new TRPCError({ code: "CONFLICT", message: "The agent is still answering; approve once it's done" });
+          throw new TRPCError({ code: "CONFLICT", message: t("approveLater") });
         }
         const next = await setCopilotActionStatus(ctx.db, action.id, input.decision === "approve" ? "approved" : "rejected", { decidedAt: new Date() }, ["proposed"]);
-        if (!next) throw new TRPCError({ code: "CONFLICT", message: `This action is already ${action.status}` });
+        if (!next) throw new TRPCError({ code: "CONFLICT", message: t(`already.${action.status as CopilotActionStatus}`) });
         if (input.decision === "approve") await startCopilotTurn(ctx.db, (await ws(ctx.db)).id, action.conversationId, action.id);
         return next;
       });

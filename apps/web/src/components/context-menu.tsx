@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ArrowSquareOut, Browsers, Link as LinkIcon, type Icon } from "@phosphor-icons/react";
+import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 
 /**
@@ -57,10 +58,10 @@ export function ContextMenuHost() {
       e.preventDefault();
       const href = link.href;
       openContextMenu(e.clientX, e.clientY, [
-        { label: "Open", icon: ArrowSquareOut, onSelect: () => link.click() },
-        { label: "Open in new tab", icon: Browsers, onSelect: () => window.open(href, "_blank", "noopener") },
+        { label: translate("common", "open"), icon: ArrowSquareOut, onSelect: () => link.click() },
+        { label: translate("shell", "menu.openInNewTab"), icon: Browsers, onSelect: () => window.open(href, "_blank", "noopener") },
         "gap",
-        { label: "Copy link", icon: LinkIcon, onSelect: () => void navigator.clipboard.writeText(href) },
+        { label: translate("shell", "menu.copyLink"), icon: LinkIcon, onSelect: () => void navigator.clipboard.writeText(href) },
       ]);
     };
     document.addEventListener("contextmenu", onMenu);
@@ -203,6 +204,7 @@ export function askConfirm(options: ConfirmOptions) {
 }
 
 export function ConfirmHost() {
+  const tc = useT("common");
   const state = useSyncExternalStore(
     (l) => {
       confirmListeners.add(l);
@@ -239,7 +241,7 @@ export function ConfirmHost() {
             {state.confirmLabel}
           </button>
           <button onClick={() => done(false)} className="capsule h-8 rounded-full text-sm font-medium motion-safe:active:scale-[0.98]">
-            Cancel
+            {tc("cancel")}
           </button>
         </div>
       </div>

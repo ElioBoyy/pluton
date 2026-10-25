@@ -1,5 +1,9 @@
 import { getSetting, type CrmProvider } from "@pluton/db";
 import { httpJson, ProviderError } from "./runtime.ts";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/providers.ts";
+
+const t = localized(messages);
 
 /**
  * Create-only CRM adapters. Pluton never updates or deletes CRM records: it looks the person up by
@@ -29,7 +33,7 @@ export interface CrmAdapter {
 
 const key = (setting: string, name: string) => {
   const v = getSetting(setting)?.trim();
-  if (!v) throw new ProviderError(name, "not configured: add its token in Settings → Integrations");
+  if (!v) throw new ProviderError(name, t("error.missingToken"));
   return v;
 };
 
@@ -104,7 +108,7 @@ function attio(): CrmAdapter {
   return {
     async check() {
       const me = await get<{ active: boolean; workspace_name?: string }>("/self");
-      if (!me.active) throw new ProviderError("attio", "this key is no longer active");
+      if (!me.active) throw new ProviderError("attio", t("error.attioInactive"));
       return me.workspace_name ? `Attio workspace ${me.workspace_name}` : "Attio";
     },
     async personFields() {

@@ -1,6 +1,10 @@
-import { addLeadEvent, getLeadWithPerson, setPersonEmail } from "@pluton/core";
+import { addLeadEvent, getLeadWithPerson, leadsText, setPersonEmail } from "@pluton/core";
 import { getSetting, type Db } from "@pluton/db";
 import { emailFromWebsite, emailInText, findEmail, HUNTER_KEY, splitName, type EmailResult } from "@pluton/providers";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/lead-finding.ts";
+
+const t = localized(messages);
 
 /**
  * Finds a lead's work email, free sources first: an address already quoted in the research, then the
@@ -9,7 +13,7 @@ import { emailFromWebsite, emailInText, findEmail, HUNTER_KEY, splitName, type E
  */
 export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult & { leadId: string }> {
   const row = await getLeadWithPerson(db, leadId);
-  if (!row) throw new Error("Lead not found");
+  if (!row) throw new Error(leadsText("notFound"));
   const { lead, person } = row;
   const done = async (result: EmailResult | null) => {
     await setPersonEmail(db, person.id, result?.email ?? null, result?.confidence ?? null, result?.source ?? null);
@@ -33,7 +37,7 @@ export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult
       if (hunter.email) return done(hunter);
     } catch (error) {
       // A broken key shouldn't hide what the free sources found; with nothing found, say why.
-      if (!guess) throw new Error(/HTTP 401/.test((error as Error).message) ? "Hunter rejected the API key; fix it in Settings → API keys" : (error as Error).message);
+      if (!guess) throw new Error(/HTTP 401/.test((error as Error).message) ? t("hunterRejected") : (error as Error).message);
     }
   }
   return done(guess);

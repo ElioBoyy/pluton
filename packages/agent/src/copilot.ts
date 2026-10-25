@@ -9,8 +9,12 @@ import {
   setCopilotActionStatus,
 } from "@pluton/core";
 import type { CopilotAction, CopilotMessage, Db } from "@pluton/db";
+import { languageInstruction, localized } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
+import messages from "./messages/copilot.ts";
 import { localTool, type LocalTool } from "./run-agent.ts";
+
+const t = localized(messages);
 
 /** A Pluton tool as the server defines it (see apps/server/src/agent-tools.ts). */
 export type CopilotTool = {
@@ -21,10 +25,11 @@ export type CopilotTool = {
   run: (args: Record<string, unknown>) => Promise<unknown>;
 };
 
-const SYSTEM = `You are the Pluton agent, inside Pluton: the founder's local go-to-market app. Pluton holds a Brain (company, ICP, personas, competitors, voice, keywords, signals), Plays that search for leads, the leads they found, LinkedIn sequences, spend and activity.
+/** Built per turn: the language line follows the founder's current language. */
+const system = () => `You are the Pluton agent, inside Pluton: the founder's local go-to-market app. Pluton holds a Brain (company, ICP, personas, competitors, voice, keywords, signals), Plays that search for leads, the leads they found, LinkedIn sequences, spend and activity.
 
 How you work:
-- Answer in the founder's language. Be short and concrete: a few sentences or a short list, no preamble.
+- ${languageInstruction()} If the founder clearly writes to you in another language, answer in theirs instead. Be short and concrete: a few sentences or a short list, no preamble.
 - Read before you answer: call the read tools instead of guessing. Never invent leads, numbers or results.
 - Tools marked "needs approval" never run when you call them. Calling one shows the founder an approval card; it runs only if they approve. Call each at most once per request, then say in one or two sentences what it will do (with the cost from its preview when there is one) and stop. Never claim it already ran.
 - One approval card per decision: group leads into one call instead of one card per lead.
@@ -103,7 +108,7 @@ export async function executeCopilotAction(db: Db, actionId: string, tools: Copi
   const action = await setCopilotActionStatus(db, actionId, "executing", {}, ["approved"]);
   if (!action) {
     // Still "executing" means a restart cut it off mid-run: it may have partly run, so don't run it again.
-    const interrupted = await setCopilotActionStatus(db, actionId, "failed", { error: "Interrupted by a restart before it finished; check the result in Pluton before asking again." }, ["executing"]);
+    const interrupted = await setCopilotActionStatus(db, actionId, "failed", { error: t("action.interrupted") }, ["executing"]);
     return interrupted ?? getCopilotAction(db, actionId);
   }
   const tool = tools.find((t) => t.name === action.tool);
@@ -113,11 +118,11 @@ export async function executeCopilotAction(db: Db, actionId: string, tools: Copi
     const result = await tool.run(input);
     // A confirmable tool still asking for confirmation was missing an argument (a CRM, the leads…): nothing ran.
     if (result && typeof result === "object" && "needsConfirmation" in result) {
-      throw new Error(`Nothing ran: an argument was missing. ${JSON.stringify(result).slice(0, 300)}`);
+      throw new Error(t("action.missingArgument", { detail: JSON.stringify(result).slice(0, 300) }));
     }
     // Waited out without a result: the job goes on in the background, so this is not "done" yet.
     if (result && typeof result === "object" && "pending" in result && result.pending) {
-      throw new Error(`Still running in the background (job ${String((result as { jobId?: unknown }).jobId ?? "?")}); check its result in Pluton before relying on it.`);
+      throw new Error(t("action.stillRunning", { jobId: String((result as { jobId?: unknown }).jobId ?? "?") }));
     }
     const ws = await getCurrentWorkspace(db);
     await recordActivity(db, ws.id, "agent", "agent.action_completed", { tool: action.tool, summary: action.summary, conversationId: action.conversationId });
@@ -141,7 +146,7 @@ export async function runCopilotTurn(opts: { db: Db; conversationId: string; too
     : "Answer the founder's last message.";
 
   await runAgent({
-    system: SYSTEM,
+    system: system(),
     maxTurns: 25,
     webSearchUses: 3,
     webFetchUses: 3,

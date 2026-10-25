@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "../../components/toast.tsx";
+import { translate } from "../../i18n/index.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import type { RejectReason } from "./labels.ts";
 
@@ -32,8 +33,8 @@ export function useReviewLeads() {
           reasons: input.reasons ?? [],
           comment: input.comment,
         });
-        toast(`${input.verdict === "up" ? "Approved" : "Rejected"} ${input.label}`, {
-          action: { label: "Undo", run: () => undo.mutate({ feedbackIds }) },
+        toast(translate("leads", input.verdict === "up" ? "review.approved" : "review.rejected", { label: input.label }), {
+          action: { label: translate("common", "undo"), run: () => undo.mutate({ feedbackIds }) },
         });
         return feedbackIds;
       } catch (error) {

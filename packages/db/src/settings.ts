@@ -1,9 +1,11 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { localized } from "@pluton/i18n/server";
 import fs from "node:fs";
 import path from "node:path";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { currentCostScope } from "./costs.ts";
 import type { Db } from "./index.ts";
+import messages from "./messages/settings.ts";
 import { repoRoot } from "./paths.ts";
 import { workspaces, workspaceSettings } from "./schema.ts";
 
@@ -202,6 +204,11 @@ export function settingByWorkspace(key: string) {
   return [...cache].flatMap(([workspaceId, values]) => (values.get(key) ? [{ workspaceId, value: values.get(key)! }] : []));
 }
 
+const t = localized(messages);
+type SettingMessage = keyof (typeof messages)["en"];
+/** A setting's words in the current language; a setting added without them keeps its English. */
+const word = (key: string, english: string) => (key in messages.en ? t(key as SettingMessage) : english);
+
 /** What the Settings page shows: never the secret itself, only whether it's set and its last 4 characters. */
 export function describeSettings(workspaceId?: string) {
   const ws = scopedWorkspace(workspaceId);
@@ -209,6 +216,9 @@ export function describeSettings(workspaceId?: string) {
     const { value, source } = resolve(def.key, ws);
     return {
       ...def,
+      label: word(`${def.key}.label`, def.label),
+      description: word(`${def.key}.description`, def.description),
+      options: def.options?.map((o) => ({ ...o, label: word(`${def.key}.option.${o.value}`, o.label) })),
       source,
       value: def.secret ? undefined : value,
       preview: def.secret && value ? `••••${value.slice(-4)}` : undefined,

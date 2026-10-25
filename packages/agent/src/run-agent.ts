@@ -1,6 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { getSetting } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/copilot.ts";
+
+const t = localized(messages);
 
 export const MODEL = "claude-opus-5-5";
 /** Writing outreach and judging fit. */
@@ -141,7 +145,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
     meterUsage(meter, response.model ?? opts.model ?? MODEL, response.usage);
 
     if (response.stop_reason === "refusal") {
-      throw new AgentRefusalError(response.stop_details?.explanation ?? "The model declined this request");
+      throw new AgentRefusalError(response.stop_details?.explanation ?? t("claude.declined"));
     }
     messages.push({ role: "assistant", content: response.content });
     for (const block of response.content) if (block.type === "text" && block.text.trim()) await opts.onText?.(block.text);
@@ -163,7 +167,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
       messages.push({ role: "user", content: nudge });
       continue;
     }
-    if (response.stop_reason === "max_tokens") throw new Error("Agent output was truncated (max_tokens)");
+    if (response.stop_reason === "max_tokens") throw new Error(t("claude.truncated"));
 
     const results = await Promise.all(
       toolUses.map(async (use): Promise<Anthropic.Beta.BetaToolResultBlockParam> => {
@@ -189,5 +193,5 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
     );
     messages.push({ role: "user", content: results });
   }
-  throw new Error("Agent did not finish within its turn budget");
+  throw new Error(t("claude.turnBudget"));
 }

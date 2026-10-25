@@ -1,6 +1,7 @@
 import { Plus, X } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button, Input, TextButton } from "../../components/ui.tsx";
+import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { COMPANY_SIZE_BANDS, RELATIONS, SECTION_FIELDS, cleanData, type BrainSection, type Field } from "./fields.ts";
 
@@ -21,6 +22,8 @@ export function ItemEditor({
   onSave: (data: Data) => void;
   onCancel: () => void;
 }) {
+  const t = useT("brain");
+  const tc = useT("common");
   const [data, setData] = useState<Data>(initial);
   const set = (key: string, value: unknown) => setData((d) => ({ ...d, [key]: value }));
 
@@ -36,7 +39,7 @@ export function ItemEditor({
       {SECTION_FIELDS[section].map((f) => (
         <label key={f.key} className="grid items-start gap-x-3 gap-y-1.5 sm:grid-cols-[10rem_minmax(0,1fr)]">
           <span className="text-sm text-muted sm:pt-1.5 sm:text-right">
-            {f.label} {"optional" in f && f.optional && <span className="text-muted/70">(optional)</span>}
+            {t(f.label)} {"optional" in f && f.optional && <span className="text-muted/70">{t("editor.optional")}</span>}
           </span>
           <FieldInput field={f} value={data[f.key]} onChange={(v) => set(f.key, v)} />
         </label>
@@ -44,10 +47,10 @@ export function ItemEditor({
       {error && <p className="text-sm text-system-orange sm:pl-[calc(10rem+0.75rem)]">{error}</p>}
       <div className="mt-1 flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onCancel}>
-          Cancel
+          {tc("cancel")}
         </Button>
         <Button type="submit" disabled={saving}>
-          Save
+          {tc("save")}
         </Button>
       </div>
     </form>
@@ -60,9 +63,10 @@ const textareaClass =
 const selectClass = "capsule h-7 justify-self-start pl-3 text-sm outline-none focus:focus-ring";
 
 function FieldInput({ field, value, onChange }: { field: Field; value: unknown; onChange: (v: unknown) => void }) {
+  const t = useT("brain");
   switch (field.kind) {
     case "text":
-      return <Input value={(value as string) ?? ""} placeholder={field.placeholder} onChange={(e) => onChange(e.target.value)} />;
+      return <Input value={(value as string) ?? ""} placeholder={field.placeholder && t(field.placeholder)} onChange={(e) => onChange(e.target.value)} />;
     case "textarea":
       return <textarea value={(value as string) ?? ""} rows={4} className={textareaClass} onChange={(e) => onChange(e.target.value)} />;
     case "select":
@@ -74,13 +78,13 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
         >
           {field.options.map((o) => (
             <option key={o.value} value={o.value}>
-              {o.label}
+              {t(o.label)}
             </option>
           ))}
         </select>
       );
     case "list":
-      return <ListInput values={(value as string[]) ?? []} onChange={onChange} placeholder={field.placeholder} />;
+      return <ListInput values={(value as string[]) ?? []} onChange={onChange} placeholder={field.placeholder && t(field.placeholder)} />;
     case "bands": {
       const selected = new Set((value as string[]) ?? []);
       return (
@@ -114,6 +118,7 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
 }
 
 function ListInput({ values, onChange, placeholder }: { values: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const t = useT("brain");
   const [draft, setDraft] = useState("");
   const add = () => {
     const v = draft.trim();
@@ -128,7 +133,7 @@ function ListInput({ values, onChange, placeholder }: { values: string[]; onChan
           <span className="min-w-0 break-words">{v}</span>
           <button
             type="button"
-            aria-label={`Remove ${v}`}
+            aria-label={t("editor.removeValue", { value: v })}
             onClick={() => onChange(values.filter((x) => x !== v))}
             className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted hover:bg-control-hover hover:text-ink"
           >
@@ -146,7 +151,7 @@ function ListInput({ values, onChange, placeholder }: { values: string[]; onChan
           }
         }}
         onBlur={add}
-        placeholder={placeholder ?? "Add and press Enter"}
+        placeholder={placeholder ?? t("editor.addPlaceholder")}
         className="h-5 min-w-32 flex-1 bg-transparent px-1.5 text-sm outline-none placeholder:text-faint"
       />
     </div>
@@ -160,28 +165,29 @@ function TechInput({
   values: Array<{ name: string; relation: string }>;
   onChange: (v: Array<{ name: string; relation: string }>) => void;
 }) {
+  const t = useT("brain");
   const update = (i: number, patch: Partial<{ name: string; relation: string }>) =>
     onChange(values.map((t, j) => (j === i ? { ...t, ...patch } : t)));
   return (
     <div className="flex flex-col gap-2">
-      {values.map((t, i) => (
+      {values.map((tech, i) => (
         <div key={i} className="flex items-center gap-2">
-          <Input value={t.name} onChange={(e) => update(i, { name: e.target.value })} placeholder="Tool name" />
+          <Input value={tech.name} onChange={(e) => update(i, { name: e.target.value })} placeholder={t("editor.toolName")} />
           <select
-            value={t.relation}
+            value={tech.relation}
             onChange={(e) => update(i, { relation: e.target.value })}
-            aria-label="Relation"
+            aria-label={t("editor.relation")}
             className={cn(selectClass, "shrink-0")}
           >
             {RELATIONS.map((r) => (
               <option key={r.value} value={r.value}>
-                {r.label}
+                {t(r.label)}
               </option>
             ))}
           </select>
           <button
             type="button"
-            aria-label="Remove tool"
+            aria-label={t("editor.removeTool")}
             onClick={() => onChange(values.filter((_, j) => j !== i))}
             className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-ink"
           >
@@ -190,7 +196,7 @@ function TechInput({
         </div>
       ))}
       <TextButton className="self-start py-1" onClick={() => onChange([...values, { name: "", relation: "uses" }])}>
-        <Plus size={12} weight="bold" /> Add tool
+        <Plus size={12} weight="bold" /> {t("editor.addTool")}
       </TextButton>
     </div>
   );

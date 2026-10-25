@@ -19,34 +19,24 @@ import {
   type IntegrationProvider,
   type SlackConfig,
 } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
 import { enqueueJob } from "./jobs.ts";
+import messages from "./messages/integrations.ts";
 
-export const INTEGRATION_INFO: Record<IntegrationProvider, { name: string; settingKeys: string[]; description: string }> = {
-  slack: {
-    name: "Slack",
-    settingKeys: ["slack_bot_token", "slack_app_token"],
-    description: "New leads in a channel, with Approve and Reject buttons.",
-  },
-  hubspot: { name: "HubSpot", settingKeys: ["hubspot_token"], description: "Approved leads become contacts (and companies)." },
-  attio: { name: "Attio", settingKeys: ["attio_api_key"], description: "Approved leads become People records (and Companies)." },
-  pipedrive: { name: "Pipedrive", settingKeys: ["pipedrive_api_token"], description: "Approved leads become Persons (and Organizations)." },
+/** What the founder reads about integrations (Slack posts included), in the current language. */
+export const integrationText = localized(messages);
+
+export const INTEGRATION_INFO: Record<IntegrationProvider, { name: string; settingKeys: string[] }> = {
+  slack: { name: "Slack", settingKeys: ["slack_bot_token", "slack_app_token"] },
+  hubspot: { name: "HubSpot", settingKeys: ["hubspot_token"] },
+  attio: { name: "Attio", settingKeys: ["attio_api_key"] },
+  pipedrive: { name: "Pipedrive", settingKeys: ["pipedrive_api_token"] },
 };
 
-export const CRM_FIELD_LABELS: Record<CrmField, string> = {
-  first_name: "First name",
-  last_name: "Last name",
-  full_name: "Full name",
-  email: "Work email",
-  title: "Job title",
-  company: "Company",
-  company_domain: "Company domain",
-  linkedin_url: "LinkedIn URL",
-  location: "Location",
-  fit: "Fit score",
-  reason: "Why they fit",
-  signal: "Signal",
-  play: "Play",
-};
+/** Name, tokens and what it does, as Settings → Integrations shows it. */
+export const integrationInfo = (p: IntegrationProvider) => ({ ...INTEGRATION_INFO[p], description: integrationText(`${p}.description`) });
+
+export const crmFieldLabel = (f: CrmField) => integrationText(`field.${f}`);
 
 /**
  * Where each field lands by default. Only standard properties: the rest (LinkedIn, fit, reason…)
@@ -96,7 +86,7 @@ export async function listIntegrations(db: Db, workspaceId: string) {
   const rows = await db.select().from(integrations).where(eq(integrations.workspaceId, workspaceId));
   return (Object.keys(INTEGRATION_INFO) as IntegrationProvider[]).map((provider) => {
     const row = rows.find((r) => r.provider === provider);
-    return { provider, ...INTEGRATION_INFO[provider], hasTokens: hasTokens(provider), row: row ?? null };
+    return { provider, ...integrationInfo(provider), hasTokens: hasTokens(provider), row: row ?? null };
   });
 }
 

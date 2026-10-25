@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { BrainItemView } from "@pluton/core";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Input } from "../../components/ui.tsx";
+import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { SECTION_FIELDS, SECTION_LABELS, titleOf, type BrainSection } from "./fields.ts";
@@ -13,15 +14,18 @@ import { CHIP, ItemFields } from "./sections.tsx";
 
 type Proposal = inferRouterOutputs<AppRouter>["brain"]["proposals"][number];
 
-const KIND = {
-  create: { label: "Add", className: "bg-system-green/15 text-system-green" },
-  revise: { label: "Edit", className: "bg-system-blue/15 text-system-blue" },
-  archive: { label: "Remove", className: "bg-system-orange/15 text-system-orange" },
-  question: { label: "Question", className: "bg-system-purple/15 text-system-purple" },
+/** Each kind's name is the brain namespace's `proposals.kind.<kind>`. */
+const KIND_CLASS = {
+  create: "bg-system-green/15 text-system-green",
+  revise: "bg-system-blue/15 text-system-blue",
+  archive: "bg-system-orange/15 text-system-orange",
+  question: "bg-system-purple/15 text-system-purple",
 } as const;
 
 /** Docked on wide screens; on narrow ones it opens over the page from a header button. */
 export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[]; open: boolean; onClose: () => void }) {
+  const t = useT("brain");
+  const tc = useT("common");
   const trpc = useTRPC();
   const proposals = useQuery(trpc.brain.proposals.queryOptions());
   const list = proposals.data ?? [];
@@ -38,25 +42,25 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
       <div className="px-4 pt-5 pb-2">
         <div className="flex items-center gap-2">
           <Sparkle size={15} weight="fill" className="text-system-pink" />
-          <h2 className="text-sm font-semibold">Suggestions</h2>
+          <h2 className="text-sm font-semibold">{t("proposals.title")}</h2>
           {list.length > 0 && <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-control px-1.5 text-xs font-medium text-muted tabular-nums">{list.length}</span>}
           <button
             onClick={onClose}
-            aria-label="Close"
-            title="Close"
+            aria-label={tc("close")}
+            title={tc("close")}
             className="-my-1 ml-auto flex size-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-ink xl:hidden"
           >
             <X size={14} />
           </button>
         </div>
-        <p className="mt-1 text-xs text-muted">Pluton proposes, you decide. Nothing changes until you accept.</p>
+        <p className="mt-1 text-xs text-muted">{t("proposals.intro")}</p>
         <ReviewControl />
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {list.length === 0 ? (
           <div className="flex flex-col items-center px-4 py-12 text-center">
             <Sparkle size={22} className="text-muted" />
-            <p className="mt-2 text-sm text-muted">No pending suggestions.</p>
+            <p className="mt-2 text-sm text-muted">{t("proposals.empty")}</p>
           </div>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -72,6 +76,7 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
 
 /** Starts a review and narrates it live; reattaches to a running review after a reload. */
 function ReviewControl() {
+  const t = useT("brain");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const active = useQuery(trpc.brain.activeReview.queryOptions());
@@ -102,8 +107,8 @@ function ReviewControl() {
           if (data.type === "done" || data.type === "error") {
             setFinished(
               data.type === "done"
-                ? `${payload.proposals} new suggestion${payload.proposals === 1 ? "" : "s"}`
-                : `Review failed: ${payload.message}`,
+                ? t("proposals.newCount", { count: payload.proposals ?? 0 })
+                : t("proposals.failed", { message: payload.message ?? "" }),
             );
             setStartedId(null);
             void queryClient.invalidateQueries({ queryKey: trpc.brain.proposals.queryKey() });
@@ -123,18 +128,18 @@ function ReviewControl() {
           <Input
             value={focus}
             onChange={(e) => setFocus(e.target.value)}
-            placeholder="Focus (optional): e.g. find more competitors"
-            aria-label="Review focus"
+            placeholder={t("proposals.focusPlaceholder")}
+            aria-label={t("proposals.focusLabel")}
           />
           <Button variant="ghost" className="w-full" disabled={review.isPending} onClick={() => review.mutate({ focus: focus.trim() || undefined })}>
-            <Sparkle size={14} /> Review my Brain
+            <Sparkle size={14} /> {t("proposals.review")}
           </Button>
         </>
       )}
       {running && (
         <div className="ai-glow rounded-xl bg-canvas p-3 text-xs text-muted shadow-card">
           <p className="flex items-center gap-2 font-medium text-ink">
-            <CircleNotch size={13} className="animate-spin" /> <span className="ai-text">Reviewing your Brain…</span>
+            <CircleNotch size={13} className="animate-spin" /> <span className="ai-text">{t("proposals.reviewing")}</span>
           </p>
           {log.map((line, i) => (
             <p key={i} className="mt-1.5 leading-relaxed">
@@ -150,6 +155,8 @@ function ReviewControl() {
 }
 
 function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: BrainItemView[] }) {
+  const t = useT("brain");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [answer, setAnswer] = useState("");
@@ -167,14 +174,13 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
 
   const section = p.section as BrainSection | null;
   const target = items.find((i) => i.id === p.targetItemId);
-  const kind = KIND[p.kind];
 
   return (
     // Cards sit a tone off the inspector, as grouped boxes do in System Settings.
     <li className="rounded-xl bg-canvas p-3.5 shadow-card">
       <div className="flex min-w-0 items-center gap-2 text-xs">
-        <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 font-medium", kind.className)}>{kind.label}</span>
-        {section && <span className="truncate text-muted">{SECTION_LABELS[section]}</span>}
+        <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 font-medium", KIND_CLASS[p.kind])}>{t(`proposals.kind.${p.kind}`)}</span>
+        {section && <span className="truncate text-muted">{t(SECTION_LABELS[section])}</span>}
       </div>
 
       <div className="mt-2.5 text-sm">
@@ -188,7 +194,7 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
           </>
         )}
         {p.kind === "archive" && section && (
-          <p className="font-semibold break-words">{target ? titleOf(section, target.data) : "An item already removed"}</p>
+          <p className="font-semibold break-words">{target ? titleOf(section, target.data) : t("proposals.alreadyRemoved")}</p>
         )}
         {p.kind === "revise" && section && p.data && <Diff section={section} before={target?.data} after={p.data} />}
       </div>
@@ -210,25 +216,25 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             rows={2}
-            placeholder="Your answer"
+            placeholder={t("proposals.answerPlaceholder")}
             className="block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-faint transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent/60 focus:focus-ring"
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" disabled={busy} onClick={() => reject.mutate({ id: p.id })}>
-              Skip
+              {t("proposals.skip")}
             </Button>
             <Button disabled={busy || !answer.trim()} onClick={() => reply.mutate({ id: p.id, answer: answer.trim() })}>
-              Answer
+              {t("proposals.answer")}
             </Button>
           </div>
         </div>
       ) : (
         <div className="mt-3 flex justify-end gap-2">
           <Button variant="ghost" disabled={busy} onClick={() => reject.mutate({ id: p.id })}>
-            Reject
+            {tc("reject")}
           </Button>
           <Button disabled={busy} onClick={() => accept.mutate({ id: p.id })}>
-            Accept
+            {t("proposals.accept")}
           </Button>
         </div>
       )}
@@ -239,6 +245,7 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
 
 /** Field-level before/after for a revise proposal. */
 function Diff({ section, before, after }: { section: BrainSection; before?: Record<string, unknown>; after: Record<string, unknown> }) {
+  const t = useT("brain");
   const show = (v: unknown) =>
     Array.isArray(v) ? v.map((x) => (typeof x === "object" ? (x as { name: string }).name : String(x))).join(", ") : String(v ?? "—");
   const changed = SECTION_FIELDS[section].filter((f) => JSON.stringify(before?.[f.key]) !== JSON.stringify(after[f.key]));
@@ -247,7 +254,7 @@ function Diff({ section, before, after }: { section: BrainSection; before?: Reco
       <p className="font-semibold break-words">{titleOf(section, after)}</p>
       {changed.map((f) => (
         <div key={f.key} className="text-xs">
-          <p className="text-muted">{f.label}</p>
+          <p className="text-muted">{t(f.label)}</p>
           {before && <p className="mt-0.5 text-muted line-through decoration-system-red/60">{show(before[f.key])}</p>}
           <p className="mt-0.5 text-ink">{show(after[f.key])}</p>
         </div>

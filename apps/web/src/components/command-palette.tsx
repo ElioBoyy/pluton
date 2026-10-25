@@ -15,16 +15,17 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { SearchHit } from "@pluton/core";
+import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
-/** Each kind of result: its icon, and the title of its group in the list (sentence case, as Spotlight). */
-const KINDS: Record<SearchHit["kind"], { icon: Icon; group: string }> = {
-  page: { icon: ArrowSquareOut, group: "Pages" },
-  lead: { icon: User, group: "Leads" },
-  play: { icon: Lightning, group: "Plays" },
-  brain: { icon: Brain, group: "Brain" },
-  conversation: { icon: ChatCircle, group: "Agent" },
+/** Each kind of result's icon; its group title (sentence case, as Spotlight) is the shell namespace's `palette.group.<kind>`. */
+const KINDS: Record<SearchHit["kind"], Icon> = {
+  page: ArrowSquareOut,
+  lead: User,
+  play: Lightning,
+  brain: Brain,
+  conversation: ChatCircle,
 };
 
 type Result = { ask: true; label: string } | ({ ask: false } & SearchHit);
@@ -33,11 +34,11 @@ type Result = { ask: true; label: string } | ({ ask: false } & SearchHit);
 const DEBOUNCE_MS = 120;
 
 /** The round buttons beside the field, like Spotlight's Applications / Files / Shortcuts. */
-const QUICK: Array<{ label: string; to: string; icon: Icon }> = [
-  { label: "Brain", to: "/brain", icon: Brain },
-  { label: "Plays", to: "/plays", icon: Lightning },
-  { label: "Leads", to: "/leads", icon: UsersThree },
-  { label: "New Play", to: "/plays/new", icon: Plus },
+const QUICK: Array<{ label: "nav.brain" | "nav.plays" | "nav.leads" | "palette.newPlay"; to: string; icon: Icon }> = [
+  { label: "nav.brain", to: "/brain", icon: Brain },
+  { label: "nav.plays", to: "/plays", icon: Lightning },
+  { label: "nav.leads", to: "/leads", icon: UsersThree },
+  { label: "palette.newPlay", to: "/plays/new", icon: Plus },
 ];
 
 /** How long the palette stays mounted after closing, so it can fade out (matches the exit duration). */
@@ -53,6 +54,7 @@ const POP =
  * and results only once you type. The first result asks the agent; the others go to a page.
  */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useT("shell");
   const navigate = useNavigate();
   const router = useRouter();
   const trpc = useTRPC();
@@ -105,15 +107,15 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     const byKind = (list: Result[]) => {
       const groups = new Map<string, Result[]>();
       for (const h of list) if (!h.ask) groups.set(h.kind, [...(groups.get(h.kind) ?? []), h]);
-      return [...groups].map(([kind, items]) => ({ title: KINDS[kind as SearchHit["kind"]].group, items }));
+      return [...groups].map(([kind, items]) => ({ title: t(`palette.group.${kind as SearchHit["kind"]}`), items }));
     };
     // Something typed by name opens on Enter; anything else is a question for the agent.
     const askItem: Result = { label: q, ask: true };
     const out: Array<{ title?: string; items: Result[] }> = hits[0]?.named
-      ? [{ title: "Top hit", items: [hits[0]] }, ...byKind(hits.slice(1)), { items: [askItem] }]
+      ? [{ title: t("palette.topHit"), items: [hits[0]] }, ...byKind(hits.slice(1)), { items: [askItem] }]
       : [{ items: [askItem] }, ...byKind(hits)];
     return { results: out.flatMap((g) => g.items), sections: out };
-  }, [query, searched, search.data]);
+  }, [query, searched, search.data, t]);
 
   // One highlight slides between rows; it is measured, since section titles sit between them.
   const [highlight, setHighlight] = useState<{ top: number; height: number } | null>(null);
@@ -188,7 +190,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 if (e.key === "ArrowUp") setActive((i) => Math.max(i - 1, 0));
                 if (e.key === "Enter") run(active);
               }}
-              placeholder="Ask Pluton anything"
+              placeholder={t("askAnything")}
               className="h-full min-w-0 flex-1 bg-transparent text-xl text-ink caret-accent outline-none placeholder:text-muted"
             />
           </div>
@@ -196,8 +198,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             <button
               key={to}
               onClick={() => go(to)}
-              aria-label={label}
-              title={label}
+              aria-label={t(label)}
+              title={t(label)}
               // The shortcuts follow the field in, 25ms apart.
               style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
               className={cn(
@@ -245,9 +247,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                           {c.ask ? (
                             <>
                               <Sparkle size={16} weight="fill" className={cn("shrink-0", i !== active && "text-accent")} />
-                              <span className="truncate">
-                                Ask Pluton: <span className="opacity-80">{c.label}</span>
-                              </span>
+                              <span className="truncate">{t.rich("palette.ask", { question: <span className="opacity-80">{c.label}</span> })}</span>
                             </>
                           ) : (
                             <ResultRow hit={c} active={i === active} />
@@ -268,7 +268,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 }
 
 function ResultRow({ hit, active }: { hit: SearchHit; active: boolean }) {
-  const { icon: KindIcon } = KINDS[hit.kind];
+  const KindIcon = KINDS[hit.kind];
   return (
     <>
       <KindIcon size={16} className={cn("shrink-0", !active && "text-muted")} />

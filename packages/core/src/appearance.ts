@@ -2,6 +2,11 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { repoRoot } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/appearance.ts";
+
+/** Appearance errors and the wallpaper job's progress, in the current language. */
+export const appearanceText = localized(messages);
 
 /**
  * Wallpapers: one image per appearance, kept on disk next to the database (data/backgrounds/light.*
@@ -40,8 +45,8 @@ export async function wallpaperStatus() {
 /** Replaces a theme's wallpaper. The extension comes from the image's own bytes, not from the caller. */
 export async function saveWallpaper(theme: WallpaperTheme, bytes: Buffer) {
   const ext = sniffImage(bytes);
-  if (!ext) throw new Error("That file is not a PNG, JPEG, WebP or AVIF image.");
-  if (bytes.length > WALLPAPER_MAX_BYTES) throw new Error("That image is over 15 MB. Try a smaller one.");
+  if (!ext) throw new Error(appearanceText("notImage"));
+  if (bytes.length > WALLPAPER_MAX_BYTES) throw new Error(appearanceText("tooBig"));
   await removeWallpaper(theme);
   await fs.mkdir(wallpaperDir(), { recursive: true });
   await fs.writeFile(path.join(wallpaperDir(), `${theme}.${ext}`), bytes);

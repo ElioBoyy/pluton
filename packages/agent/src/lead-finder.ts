@@ -17,6 +17,8 @@ import {
   settleRunHold,
   watchRunSpend,
   pipelineCapabilities,
+  pipelineLabel,
+  playsText,
   recordActivity,
   runChannel,
   setPersonLinkedin,
@@ -40,6 +42,10 @@ import {
 import { runAgent } from "./backend.ts";
 import { findLinkedinProfiles } from "./linkedin-lookup.ts";
 import { localTool } from "./run-agent.ts";
+import { languageInstruction, localized } from "@pluton/i18n/server";
+import messages from "./messages/lead-finding.ts";
+
+const t = localized(messages);
 
 type Candidate = CandidatePerson & { signal: string; evidence: Evidence[] };
 type Kept = Candidate & { personId: string };
@@ -62,6 +68,10 @@ Rules:
 - Include the organization's website when you know it, and the person's LinkedIn URL when you saw one.
 - Submit in batches with submit_candidates as you go. The tool tells you how many more are needed; stop when it says so.
 - Call narrate 3 to 6 times with one concrete sentence about what you are doing.`;
+
+/** Narration and signals are read by the founder; searches stay in the market's language. */
+const researchSystem = () =>
+  `${RESEARCH_SYSTEM}\n- ${languageInstruction()} That covers narrate and each candidate's signal. Search in whatever language finds the people (job titles and keywords as written in the market), and keep names, titles and organizations as found.`;
 
 const brainOf = (play: Play) => play.brainSnapshot as BrainItemView[];
 const section = <T>(play: Play, s: string) => brainOf(play).filter((i) => i.section === s).map((i) => i.data as T);
@@ -136,15 +146,15 @@ async function collectFromLinkedin(ctx: Ctx, pipeline: Pipeline, wanted: number)
     // Keyword posts are low-precision and Apify bills per post: a few recent posts per query.
     const queries = play.definition.audience.keywords.slice(0, 3);
     if (queries.length === 0) return [];
-    await ctx.say(`Reading recent LinkedIn posts about ${queries.join(", ")}…`);
+    await ctx.say(t("readingKeywordPosts", { queries: queries.join(", ") }));
     const { posts } = await keywordPosts(db, queries, { maxPosts: Math.min(wanted, 6), postedLimit });
     // Company pages post too; only people can be leads.
     return posts.filter((p) => /linkedin\.com\/in\//i.test(p.author.linkedinUrl ?? "")).map((p) => ({
       name: p.author.name,
       ...splitHeadline(p.author.headline),
       linkedinUrl: p.author.linkedinUrl,
-      signal: `Posted about "${queries.find((q) => p.text.toLowerCase().includes(q.toLowerCase())) ?? queries[0]}"`,
-      evidence: [{ label: p.text.slice(0, 80) || "LinkedIn post", url: p.url }],
+      signal: t("postedAbout", { query: queries.find((q) => p.text.toLowerCase().includes(q.toLowerCase())) ?? queries[0]! }),
+      evidence: [{ label: p.text.slice(0, 80) || t("linkedinPost"), url: p.url }],
     }));
   }
 
@@ -154,10 +164,10 @@ async function collectFromLinkedin(ctx: Ctx, pipeline: Pipeline, wanted: number)
     ...section<{ linkedinUrl?: string }>(play, "influencer").map((i) => i.linkedinUrl),
   ].filter((u): u is string => Boolean(u && /linkedin\.com\/(in|company)\//i.test(u)));
   if (watch.length === 0) {
-    await ctx.say("No tracked LinkedIn profiles in the Brain yet; skipping engagement.");
+    await ctx.say(t("noTracked"));
     return [];
   }
-  await ctx.say(`Reading recent posts of ${watch.length} tracked profiles…`);
+  await ctx.say(t("readingTracked", { count: watch.length }));
   const { posts } = await profilePosts(db, watch.slice(0, 10), { maxPosts: 3, postedLimit });
   const top = posts.sort((a, b) => (b.likes ?? 0) + (b.comments ?? 0) - ((a.likes ?? 0) + (a.comments ?? 0))).slice(0, 5);
   const out: Candidate[] = [];
@@ -169,8 +179,8 @@ async function collectFromLinkedin(ctx: Ctx, pipeline: Pipeline, wanted: number)
         name: p.name,
         ...splitHeadline(p.headline),
         linkedinUrl: p.linkedinUrl,
-        signal: `${p.signal?.startsWith("Commented") ? "Commented on" : "Reacted to"} a post by ${post.author.name}`,
-        evidence: [{ label: `Post by ${post.author.name}`, url: post.url }],
+        signal: t(p.signal?.startsWith("Commented") ? "commentedOn" : "reactedTo", { author: post.author.name }),
+        evidence: [{ label: t("postBy", { author: post.author.name }), url: post.url }],
       });
     }
   }
@@ -182,7 +192,7 @@ async function collectByResearch(ctx: Ctx, pipeline: Pipeline, wanted: number, s
   const { db } = ctx;
   let accepted = 0;
   await runAgent({
-    system: RESEARCH_SYSTEM,
+    system: researchSystem(),
     prompt: researchBrief(ctx.play, pipeline),
     required: ["submit_candidates"],
     webSearchUses: 15,
@@ -300,7 +310,7 @@ function makeGate(ctx: Ctx, kept: Kept[]) {
 async function enrichLinkedin(ctx: Ctx, kept: Kept[]) {
   const missing = kept.filter((k) => !k.linkedinUrl);
   if (missing.length === 0) return;
-  await ctx.say(`Looking up LinkedIn profiles for ${missing.length} people…`);
+  await ctx.say(t("lookingUpLinkedin", { count: missing.length }));
   const found = await findLinkedinProfiles(ctx.db, missing, { signal: ctx.signal });
   for (const [i, k] of missing.entries()) {
     const url = found.get(i);
@@ -332,7 +342,7 @@ async function runPipeline(ctx: Ctx, pipeline: Pipeline, wanted: number, deadlin
 
   if (kept.length) {
     await enrichLinkedin(ctx, kept);
-    await ctx.say(`Scoring ${kept.length} candidates against your ICP…`);
+    await ctx.say(t("scoring", { count: kept.length }));
     for (let i = 0; i < kept.length; i += 10) await judgeBatch(ctx, kept.slice(i, i + 10), pipeline);
   }
   return ctx.report.qualified - before;
@@ -344,7 +354,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
   const run = await getRun(db, runId);
   if (!run) throw new Error(`Run ${runId} not found`);
   const play = await getPlay(db, run.playId);
-  if (!play) throw new Error("Play not found");
+  if (!play) throw new Error(playsText("notFound"));
 
   const report = emptyReport();
   const ctx: Ctx = {
@@ -372,7 +382,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
   const unwatch =
     hold && ws && budgetSettings(ws).mode === "enforce"
       ? watchRunSpend(runId, hold.reservedMicroUsd, () => {
-          void ctx.say("This search reached its spend cap; scoring what it found so far.");
+          void ctx.say(t("spendCap"));
           spendCap.abort();
         })
       : () => {};
@@ -397,7 +407,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
           continue;
         }
         const discoveredBefore = report.discovered;
-        await ctx.say(`Main Play: ${pipeline.replace("_", " ")} (${remaining} still to find)`);
+        await ctx.say(t("mainStage", { pipeline: pipelineLabel(pipeline), count: remaining }));
         const qualified = await runPipeline(ctx, pipeline, Math.min(remaining * 2, 30), deadline);
         report.stages.push({ pipeline, qualified, discovered: report.discovered - discoveredBefore });
         await emit(db, runId, "report", report);
@@ -414,7 +424,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
     return { stopReason, report };
   } catch (error) {
     const cancelled = opts.signal.aborted && opts.signal.reason === "cancel";
-    const message = opts.signal.reason === "shutdown" ? "Interrupted because the worker restarted. Run it again." : (error as Error).message;
+    const message = opts.signal.reason === "shutdown" ? t("interrupted") : (error as Error).message;
     await updateRun(db, runId, {
       status: cancelled ? "cancelled" : "failed",
       stopReason: cancelled ? "cancelled" : "error",
@@ -441,11 +451,13 @@ For each candidate:
 - rejection: for disqualified only, one of wrong_persona, wrong_seniority, wrong_company, wrong_geography, other.
 Score every candidate exactly once with record_verdicts.`;
 
+const judgeSystem = () => `${JUDGE_SYSTEM}\nThe reason is for the founder: ${languageInstruction()} Keep job titles and organization names as written.`;
+
 async function judgeBatch(ctx: Ctx, batch: Kept[], pipeline: Pipeline) {
   const { db, play, report, runId } = ctx;
   const verdicts = new Map<number, { fit: number; stage: "qualified" | "needs_review" | "disqualified"; reason: string; rejection?: string }>();
   await runAgent({
-    system: JUDGE_SYSTEM,
+    system: judgeSystem(),
     noWeb: true,
     maxTurns: 4,
     required: ["record_verdicts"],

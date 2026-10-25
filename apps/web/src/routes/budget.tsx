@@ -3,17 +3,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button, Group, Input, PageHeader, Row, Section, Segmented } from "../components/ui.tsx";
+import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
-import { usd } from "../lib/format.ts";
+import { formatDate, usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
-const MODES = [
-  { value: "enforce", label: "Stop", hint: "New searches don't start, and a search stops at its cap. What it already found is still scored." },
-  { value: "track", label: "Only track", hint: "Searches keep running; you get the 80% and 100% alerts." },
-] as const;
+/** Each mode's label and hint are the usage namespace's `mode.<value>` and `mode.<value>.hint`. */
+const MODES = ["enforce", "track"] as const;
 
 /** Personal use, no billing: the "Billing" page is a monthly budget that runs are held to. */
 export function BudgetPage() {
+  const t = useT("usage");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const status = useQuery({ ...trpc.credits.status.queryOptions(), refetchInterval: 10_000 });
@@ -50,32 +51,32 @@ export function BudgetPage() {
   const dirty = (Object.keys(next) as Array<keyof typeof next>).some((k) => next[k] !== saved[k]);
   const invalid = !(next.runCapUsd > 0) || [next.monthlyUsd, next.dailyUsd].some((v) => Number.isNaN(v) || v < 0);
   const share = s.limitMicroUsd ? Math.min((s.spentMicroUsd + s.heldMicroUsd) / s.limitMicroUsd, 1) : 0;
-  const until = new Date(s.period.end.getTime() - 1).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const until = formatDate(s.period.end.getTime() - 1, { day: "numeric", month: "short" });
 
   return (
     <>
-      <PageHeader title="Budget" description="What Pluton may spend on paid sources and the Claude API each month. Nothing is billed: it's your own limit." />
+      <PageHeader title={t("budget.title")} description={t("budget.description")} />
 
       <div className="flex flex-col gap-8">
         <Section
-          title={`This period · ${s.period.start.toLocaleDateString(undefined, { day: "numeric", month: "short" })} to ${until}`}
+          title={t("budget.period", { from: formatDate(s.period.start, { day: "numeric", month: "short" }), to: until })}
           actions={
             <Link to="/workspace/usage" className="inline-flex items-center gap-1 text-sm text-accent hover:underline hover:underline-offset-2">
-              See where it went <ArrowRight size={12} weight="bold" />
+              {t("budget.seeWhere")} <ArrowRight size={12} weight="bold" />
             </Link>
           }
           footnote={
             s.unbilledMicroUsd > 0 &&
-            `Claude through your subscription would have cost ${usd(s.unbilledMicroUsd)} at API prices this period. It's covered by the subscription, so it doesn't count here.`
+            t("budget.subscriptionNote", { amount: usd(s.unbilledMicroUsd) })
           }
         >
           <Group>
             {/* Spent, as the Storage pane draws a disk: the figure, then a meter of what's used and what's set aside. */}
             <div className="px-4 pt-3 pb-4">
-              <p className="text-xs text-muted">Spent</p>
+              <p className="text-xs text-muted">{t("spent")}</p>
               <p className="mt-0.5 text-[22px] leading-7 font-semibold tracking-[-0.01em] tabular-nums">
                 {usd(s.spentMicroUsd)}
-                {s.limitMicroUsd !== null && <span className="text-base font-normal tracking-normal text-muted"> of {usd(s.limitMicroUsd)}</span>}
+                {s.limitMicroUsd !== null && <span className="text-base font-normal tracking-normal text-muted"> {t("budget.of", { amount: usd(s.limitMicroUsd) })}</span>}
               </p>
               {s.limitMicroUsd !== null && (
                 <>
@@ -85,7 +86,7 @@ export function BudgetPage() {
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={Math.round(share * 100)}
-                    aria-label="Budget used"
+                    aria-label={t("budget.used")}
                   >
                     <div
                       className={cn("h-full rounded-full", share >= 1 ? "bg-system-red" : share >= 0.8 ? "bg-system-orange" : "bg-accent")}
@@ -95,15 +96,15 @@ export function BudgetPage() {
                   </div>
                   {s.heldMicroUsd > 0 && (
                     <p className="mt-2 flex items-center gap-1.5 text-xs text-muted">
-                      <span className="size-2 rounded-full bg-accent/35" /> Held by running searches
+                      <span className="size-2 rounded-full bg-accent/35" /> {t("budget.held")}
                     </p>
                   )}
                 </>
               )}
             </div>
-            <Figure label="Available" value={s.availableMicroUsd === null ? "No limit" : usd(s.availableMicroUsd)} />
-            <Figure label="Held by running searches" value={usd(s.heldMicroUsd)} hint={s.openHolds ? `${s.openHolds} open` : undefined} />
-            <Figure label="Today" value={usd(s.spentTodayMicroUsd)} hint={s.dailyLimitMicroUsd ? `of ${usd(s.dailyLimitMicroUsd)}` : undefined} />
+            <Figure label={t("budget.available")} value={s.availableMicroUsd === null ? t("budget.noLimit") : usd(s.availableMicroUsd)} />
+            <Figure label={t("budget.held")} value={usd(s.heldMicroUsd)} hint={s.openHolds ? t("budget.openHolds", { count: s.openHolds }) : undefined} />
+            <Figure label={t("budget.today")} value={usd(s.spentTodayMicroUsd)} hint={s.dailyLimitMicroUsd ? t("budget.of", { amount: usd(s.dailyLimitMicroUsd) }) : undefined} />
           </Group>
         </Section>
 
@@ -113,34 +114,34 @@ export function BudgetPage() {
             save.mutate(next);
           }}
         >
-          <Section title="Limits">
+          <Section title={t("budget.limits")}>
             <Group>
-              <Row label="Monthly budget (USD)" description="Leave empty for no limit. Spend is still tracked.">
-                <Money placeholder="No limit" value={form.monthlyUsd} onChange={(v) => setForm({ ...form, monthlyUsd: v })} label="Monthly budget (USD)" />
+              <Row label={t("budget.monthly")} description={t("budget.monthlyHint")}>
+                <Money placeholder={t("budget.noLimit")} value={form.monthlyUsd} onChange={(v) => setForm({ ...form, monthlyUsd: v })} label={t("budget.monthly")} />
               </Row>
-              <Row label="Period starts on day" description="In your workspace timezone.">
+              <Row label={t("budget.startDay")} description={t("budget.startDayHint")}>
                 <select
                   value={form.periodStartDay}
                   onChange={(e) => setForm({ ...form, periodStartDay: e.target.value })}
                   className="capsule h-7 pl-3 text-sm tabular-nums outline-none focus:focus-ring"
-                  aria-label="Period starts on day"
+                  aria-label={t("budget.startDay")}
                 >
                   {Array.from({ length: 28 }, (_, i) => (
                     <option key={i + 1}>{i + 1}</option>
                   ))}
                 </select>
               </Row>
-              <Row label="Daily cap (USD)" description="Optional. Stops a busy day from eating the month.">
-                <Money placeholder="None" value={form.dailyUsd} onChange={(v) => setForm({ ...form, dailyUsd: v })} label="Daily cap (USD)" />
+              <Row label={t("budget.daily")} description={t("budget.dailyHint")}>
+                <Money placeholder={t("budget.noDailyCap")} value={form.dailyUsd} onChange={(v) => setForm({ ...form, dailyUsd: v })} label={t("budget.daily")} />
               </Row>
-              <Row label="Most one search may spend (USD)" description="Set aside when a search starts; what it doesn't use goes back. A Play can set its own.">
-                <Money min={0.01} value={form.runCapUsd} onChange={(v) => setForm({ ...form, runCapUsd: v })} label="Most one search may spend (USD)" required />
+              <Row label={t("budget.runCap")} description={t("budget.runCapHint")}>
+                <Money min={0.01} value={form.runCapUsd} onChange={(v) => setForm({ ...form, runCapUsd: v })} label={t("budget.runCap")} required />
               </Row>
-              <Row label="At the limit" description={MODES.find((m) => m.value === form.mode)?.hint}>
+              <Row label={t("budget.atLimit")} description={t(`mode.${form.mode}.hint`)}>
                 <Segmented
-                  label="At the limit"
+                  label={t("budget.atLimit")}
                   size="sm"
-                  options={MODES.map((m) => ({ value: m.value, label: m.label }))}
+                  options={MODES.map((value) => ({ value, label: t(`mode.${value}`) }))}
                   value={form.mode}
                   onChange={(mode) => setForm({ ...form, mode })}
                 />
@@ -149,10 +150,10 @@ export function BudgetPage() {
           </Section>
 
           <div className="mt-4 flex items-center justify-end gap-3">
-            {save.isSuccess && !dirty && <span className="text-sm text-muted">Saved</span>}
+            {save.isSuccess && !dirty && <span className="text-sm text-muted">{tc("saved")}</span>}
             {save.error && <span className="text-sm text-system-orange">{save.error.message}</span>}
             <Button type="submit" disabled={!dirty || invalid || save.isPending}>
-              Save
+              {tc("save")}
             </Button>
           </div>
         </form>

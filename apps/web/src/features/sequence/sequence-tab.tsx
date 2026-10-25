@@ -25,20 +25,23 @@ import { useState, type ReactNode } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Section, Stat } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
+import { getLocale, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useRefreshSequences } from "./add-to-campaign.tsx";
 import { ConfigurePanel, PanelHeader } from "./configure-panel.tsx";
-import { ACTION_LABEL, ENROLLMENT, REPLY_LABEL, REVIEW, delayLabel, when } from "./labels.ts";
+import { ENROLLMENT, REPLY_LABEL, REVIEW, actionLabel, delayLabel, when } from "./labels.ts";
 import { StepPanel, type Step } from "./step-panel.tsx";
 
 type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
+type ReviewState = "missing" | "being_written" | "not_reviewed" | "reviewed" | "failed";
 type Enrollment = inferRouterOutputs<AppRouter>["campaigns"]["enrollments"]["list"][number];
 
 const STEP_ICON: Record<string, Icon> = { visit_profile: Eye, follow_profile: UserPlus, like_post: Heart, invite: LinkedinLogo, message: ChatCircleText };
 
 /** A Play's LinkedIn sequence: the steps as a flow, who is where, and what waits for you. */
 export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLeads: () => void }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
   const query = useQuery(trpc.campaigns.get.queryOptions({ playId }, { refetchInterval: 30_000 }));
@@ -54,8 +57,8 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold">Sequence</h2>
-          <p className="mt-0.5 text-sm text-muted">The LinkedIn outreach this Play's leads go through.</p>
+          <h2 className="text-lg font-semibold">{t("tab.title")}</h2>
+          <p className="mt-0.5 text-sm text-muted">{t("tab.description")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -69,17 +72,17 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
             )}
           >
             <span className="size-1.5 rounded-full bg-current" aria-hidden />
-            {waiting ? "Waiting for LinkedIn" : campaign.status === "paused" ? "Paused" : "Active"}
+            {waiting ? t("tab.waitingLinkedin") : campaign.status === "paused" ? t("tab.paused") : t("tab.active")}
           </span>
           <Button variant="ghost" onClick={() => update.mutate({ id: campaign.id, revision: campaign.revision, patch: { status: campaign.status === "paused" ? "active" : "paused" } })}>
             {campaign.status === "paused" ? <PlayIcon size={13} /> : <Pause size={13} />}
-            {campaign.status === "paused" ? "Resume" : "Pause"}
+            {campaign.status === "paused" ? t("tab.resume") : t("tab.pause")}
           </Button>
           <Button variant="ghost" onClick={() => setPanel({ kind: "configure" })}>
-            <GearSix size={13} /> Configure
+            <GearSix size={13} /> {t("configure.title")}
           </Button>
           <Button variant="ghost" onClick={() => setPanel({ kind: "enrolled" })}>
-            <Users size={13} /> Enrolled leads
+            <Users size={13} /> {t("enrolled.title")}
           </Button>
         </div>
       </div>
@@ -87,11 +90,11 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {(
           [
-            ["Enrolled", stats.enrolled],
-            ["Invited", stats.invited],
-            ["Accepted", stats.accepted],
-            ["Replies", stats.replyRate === null ? stats.replies : `${stats.replies} · ${Math.round(stats.replyRate * 100)}%`],
-            ["Won", stats.won],
+            [t("stats.enrolled"), stats.enrolled],
+            [t("stats.invited"), stats.invited],
+            [t("stats.accepted"), stats.accepted],
+            [t("stats.replies"), stats.replyRate === null ? stats.replies : `${stats.replies} · ${new Intl.NumberFormat(getLocale(), { style: "percent" }).format(stats.replyRate)}`],
+            [t("stats.won"), stats.won],
           ] as const
         ).map(([label, value]) => (
           <Stat key={label} label={label} value={value} />
@@ -116,40 +119,41 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
 }
 
 function Checklist({ data, onObjective, onPickLeads }: { data: Data; onObjective: () => void; onPickLeads: () => void }) {
+  const t = useT("sequence");
   const items: Array<{ done: boolean; title: string; hint: string; action: ReactNode }> = [
     {
       done: data.setup.linkedin,
-      title: "Connect your LinkedIn",
-      hint: "Outreach goes out from your own account. Nothing sends until it's connected (or added in manual mode).",
+      title: t("checklist.linkedin"),
+      hint: t("checklist.linkedinHint"),
       action: (
         <Link to="/workspace/linkedin" className="text-sm text-accent hover:underline">
-          Connect LinkedIn →
+          {t("checklist.linkedinAction")}
         </Link>
       ),
     },
     {
       done: data.setup.objective && data.campaign.objective.kind !== "none",
-      title: "Set your objective",
-      hint: "The link Pluton answers with when a lead replies positively.",
+      title: t("checklist.objective"),
+      hint: t("checklist.objectiveHint"),
       action: (
         <button onClick={onObjective} className="text-sm text-accent hover:underline">
-          Set objective →
+          {t("checklist.objectiveAction")}
         </button>
       ),
     },
     {
       done: data.setup.leads,
-      title: "Add your first leads",
-      hint: "Approve leads on your Leads page and add them to the campaign.",
+      title: t("checklist.leads"),
+      hint: t("checklist.leadsHint"),
       action: (
         <button onClick={onPickLeads} className="text-sm text-accent hover:underline">
-          Pick from your leads →
+          {t("checklist.leadsAction")}
         </button>
       ),
     },
   ];
   return (
-    <Section title="Get your campaign running" description="Three steps and Pluton takes it from there.">
+    <Section title={t("checklist.title")} description={t("checklist.description")}>
       <ul className="grid gap-3 md:grid-cols-3">
         {items.map((i) => (
           <li key={i.title} className="flex gap-3 rounded-xl bg-panel p-4 shadow-card">
@@ -168,6 +172,7 @@ function Checklist({ data, onObjective, onPickLeads }: { data: Data; onObjective
 
 /** The sequence as a vertical flow, with the "Already connected?" branch before the invitation. */
 function Canvas({ data, onOpen, selected }: { data: Data; onOpen: (s: Step) => void; selected?: string }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const enrolled = useQuery(trpc.campaigns.enrollments.list.queryOptions({ campaignId: data.campaign.id }));
   const atStep = (id: string) => (enrolled.data ?? []).filter((e) => e.stepId === id).length;
@@ -177,17 +182,17 @@ function Canvas({ data, onOpen, selected }: { data: Data; onOpen: (s: Step) => v
 
   return (
     <div className="flex flex-col items-center rounded-2xl bg-panel px-4 py-6 shadow-card">
-      <Pill>Campaign start</Pill>
+      <Pill>{t("canvas.start")}</Pill>
       {steps.map((s, i) => (
         <div key={s.id} className="flex w-full flex-col items-center">
           <Connector
             label={
               i === firstMessage && inviteIndex >= 0
-                ? `Accepted · wait ${s.delayHours} h`
+                ? t("canvas.acceptedWait", { hours: s.delayHours })
                 : i === 0
                   ? delayLabel(s.delayHours)
                   : s.kind === "message"
-                    ? `${delayLabel(s.delayHours)}, if no reply`
+                    ? t("canvas.ifNoReply", { delay: delayLabel(s.delayHours) })
                     : delayLabel(s.delayHours)
             }
           />
@@ -195,33 +200,34 @@ function Canvas({ data, onOpen, selected }: { data: Data; onOpen: (s: Step) => v
             <>
               <div className="w-full max-w-md rounded-xl bg-system-orange/10 px-4 py-2.5 text-center text-sm">
                 <span className="inline-flex items-center gap-1.5 font-medium">
-                  <Warning size={14} weight="fill" className="text-system-orange" /> Already connected?
+                  <Warning size={14} weight="fill" className="text-system-orange" /> {t("canvas.alreadyConnected")}
                 </span>
-                <span className="mt-0.5 block text-xs text-muted">Already connected leads skip the request and go straight to the messages.</span>
+                <span className="mt-0.5 block text-xs text-muted">{t("canvas.alreadyConnectedHint")}</span>
               </div>
-              <Connector label="Not connected" />
+              <Connector label={t("canvas.notConnected")} />
             </>
           )}
           <Node step={s} count={atStep(s.id)} selected={selected === s.id} onClick={() => onOpen(s)} expiry={s.kind === "invite" ? data.campaign.inviteExpiryDays : undefined} />
         </div>
       ))}
       <Connector />
-      <Pill>End · a reply stops the sequence at any point</Pill>
+      <Pill>{t("canvas.end")}</Pill>
     </div>
   );
 }
 
 function Node({ step, count, selected, onClick, expiry }: { step: Step; count: number; selected: boolean; onClick: () => void; expiry?: number }) {
+  const t = useT("sequence");
   const IconCmp = STEP_ICON[step.kind] ?? Circle;
   const sub =
     step.kind === "message"
       ? step.mode === "template"
-        ? step.template?.slice(0, 70) || "Template not written yet"
-        : "Written per lead from their activity, following your guidelines"
+        ? step.template?.slice(0, 70) || t("node.templateEmpty")
+        : t("node.aiHint")
       : step.kind === "invite"
-        ? `Without a note · gives up after ${expiry} days`
+        ? t("node.invite", { count: expiry ?? 0 })
         : step.kind === "follow_profile"
-          ? "Manual accounts only (skipped with Unipile)"
+          ? t("node.follow")
           : "";
   return (
     <button
@@ -240,7 +246,7 @@ function Node({ step, count, selected, onClick, expiry }: { step: Step; count: n
         <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
           <span className="truncate">{step.label}</span>
           {step.kind === "message" && step.mode !== "template" && <Sparkle size={11} weight="fill" className="text-accent" />}
-          {!step.enabled && <span className="text-xs font-normal text-muted">· Off</span>}
+          {!step.enabled && <span className="text-xs font-normal text-muted">· {t("node.off")}</span>}
         </span>
         {sub && <span className="block truncate text-xs text-muted">{sub}</span>}
       </span>
@@ -262,16 +268,17 @@ function Connector({ label }: { label?: string }) {
 }
 
 function NeedsYou({ campaignId }: { campaignId: string }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
   const list = useQuery(trpc.campaigns.replies.needingYou.queryOptions({ campaignId }, { refetchInterval: 30_000 }));
   const handled = useMutation(trpc.campaigns.replies.handled.mutationOptions({ onSuccess: () => refresh() }));
   const rows = list.data ?? [];
   return (
-    <Section title={<>Replies waiting for you {rows.length > 0 && <span className="text-system-orange tabular-nums">· {rows.length}</span>}</>}>
+    <Section title={<>{t("needsYou.title")} {rows.length > 0 && <span className="text-system-orange tabular-nums">· {rows.length}</span>}</>}>
       {rows.length === 0 ? (
         <Group className="px-4 py-3">
-          <p className="text-sm text-muted">None. Positive replies get your link automatically when the objective allows it.</p>
+          <p className="text-sm text-muted">{t("needsYou.empty")}</p>
         </Group>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -288,11 +295,11 @@ function NeedsYou({ campaignId }: { campaignId: string }) {
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 {r.person.linkedinUrl && (
                   <a href={r.person.linkedinUrl} target="_blank" rel="noreferrer" className="mr-auto text-sm text-accent hover:underline">
-                    Answer on LinkedIn ↗
+                    {t("needsYou.answer")}
                   </a>
                 )}
                 <Button variant="ghost" onClick={() => handled.mutate({ replyId: r.reply.id })}>
-                  Mark handled
+                  {t("needsYou.markHandled")}
                 </Button>
               </div>
             </li>
@@ -305,6 +312,8 @@ function NeedsYou({ campaignId }: { campaignId: string }) {
 
 /** Manual accounts: what to do on LinkedIn now, with the text ready to paste. */
 function Tasks({ playId }: { playId: string }) {
+  const t = useT("sequence");
+  const tc = useT("common");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
   const list = useQuery(trpc.campaigns.tasks.list.queryOptions(undefined, { refetchInterval: 30_000 }));
@@ -313,22 +322,22 @@ function Tasks({ playId }: { playId: string }) {
   const tasks = (list.data?.tasks ?? []).filter((t) => t.playId === playId);
   const waiting = (list.data?.waiting ?? []).filter((t) => t.playId === playId);
   if (tasks.length === 0 && waiting.length === 0) return null;
-  const copy = (text: string) => navigator.clipboard.writeText(text).then(() => toast("Copied"));
+  const copy = (text: string) => navigator.clipboard.writeText(text).then(() => toast(tc("copied")));
 
   return (
-    <Section title={`Your LinkedIn to-do · ${tasks.length}`} description="Manual accounts: do it on LinkedIn, then tick it. The sequence waits for you.">
+    <Section title={t("tasks.title", { count: tasks.length })} description={t("tasks.description")}>
       <ul className="flex flex-col gap-2">
         {tasks.map(({ action, person, sender }) => (
           <li key={action.id} className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-medium">{ACTION_LABEL[action.kind]}</span>
+              <span className="font-medium">{actionLabel(action.kind)}</span>
               <span className="truncate text-xs text-muted">{sender?.name}</span>
             </div>
             <p className="text-xs text-muted">
               {person.name}
               {person.linkedinUrl && (
                 <a href={person.linkedinUrl} target="_blank" rel="noreferrer" className="ml-1.5 text-accent hover:underline">
-                  Open profile ↗
+                  {t("tasks.openProfile")}
                 </a>
               )}
             </p>
@@ -337,7 +346,7 @@ function Tasks({ playId }: { playId: string }) {
               <div className="mt-2 rounded-lg bg-canvas px-3 py-2 text-sm whitespace-pre-wrap">
                 {action.text}
                 <button onClick={() => copy(action.text!)} className="mt-1.5 flex items-center gap-1 text-xs text-accent hover:underline">
-                  <Copy size={11} /> Copy
+                  <Copy size={11} /> {tc("copy")}
                 </button>
               </div>
             )}
@@ -345,33 +354,33 @@ function Tasks({ playId }: { playId: string }) {
               {action.kind === "visit_profile" ? (
                 <>
                   <Button onClick={() => complete.mutate({ actionId: action.id, done: true, connected: false })}>
-                    Done · not connected
+                    {t("tasks.doneNotConnected")}
                   </Button>
                   <Button variant="ghost" onClick={() => complete.mutate({ actionId: action.id, done: true, connected: true })}>
-                    Done · already connected
+                    {t("tasks.doneConnected")}
                   </Button>
                 </>
               ) : (
                 <Button onClick={() => complete.mutate({ actionId: action.id, done: true })}>
-                  Done
+                  {tc("done")}
                 </Button>
               )}
               <Button variant="ghost" onClick={() => complete.mutate({ actionId: action.id, done: false })}>
-                Skip
+                {t("tasks.skip")}
               </Button>
             </div>
           </li>
         ))}
         {waiting.map(({ enrollment, person }) => (
           <li key={enrollment.id} className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
-            <span className="font-medium">Waiting for {person.name} to accept</span>
-            <p className="mt-0.5 text-xs text-muted">Invited {when(enrollment.inviteSentAt)}. Tell me when they accept.</p>
+            <span className="font-medium">{t("tasks.waiting", { name: person.name })}</span>
+            <p className="mt-0.5 text-xs text-muted">{t("tasks.invited", { when: when(enrollment.inviteSentAt) })}</p>
             <div className="mt-2.5 flex gap-2">
               <Button onClick={() => answer.mutate({ enrollmentId: enrollment.id, accepted: true })}>
-                <UserCheck size={12} /> Accepted
+                <UserCheck size={12} /> {t("tasks.accepted")}
               </Button>
               <Button variant="ghost" onClick={() => answer.mutate({ enrollmentId: enrollment.id, accepted: false })}>
-                Give up
+                {t("tasks.giveUp")}
               </Button>
             </div>
           </li>
@@ -382,13 +391,14 @@ function Tasks({ playId }: { playId: string }) {
 }
 
 function EnrolledPanel({ data, onClose }: { data: Data; onClose: () => void }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const list = useQuery(trpc.campaigns.enrollments.list.queryOptions({ campaignId: data.campaign.id }, { refetchInterval: 15_000 }));
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(620px,calc(100vw-24px))] flex-col rounded-3xl" aria-label="Enrolled leads">
-      <PanelHeader title={`Enrolled leads · ${list.data?.length ?? ""}`} onClose={onClose} />
+    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(620px,calc(100vw-24px))] flex-col rounded-3xl" aria-label={t("enrolled.title")}>
+      <PanelHeader title={list.data ? t("enrolled.titleCount", { count: list.data.length }) : t("enrolled.title")} onClose={onClose} />
       <div className="flex-1 overflow-y-auto px-4 pt-1 pb-6">
-        {list.data?.length === 0 && <p className="py-8 text-center text-sm text-muted">Nobody yet. Add approved leads from the Leads tab.</p>}
+        {list.data?.length === 0 && <p className="py-8 text-center text-sm text-muted">{t("enrolled.empty")}</p>}
         <ul className="flex flex-col gap-2">
           {(list.data ?? []).map((e) => (
             <EnrolledRow key={e.id} e={e} />
@@ -400,6 +410,7 @@ function EnrolledPanel({ data, onClose }: { data: Data; onClose: () => void }) {
 }
 
 function EnrolledRow({ e }: { e: Enrollment }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
   const [replying, setReplying] = useState(false);
@@ -413,7 +424,8 @@ function EnrolledRow({ e }: { e: Enrollment }) {
       onSuccess: (r) => {
         setReplying(false);
         setReply("");
-        toast(r ? `Reply logged: ${r.label.replace(/_/g, " ")}${r.autoReplied ? ", answer with your link prepared" : ""}` : "Already logged");
+        const label = REPLY_LABEL[r?.label ?? ""]?.label ?? r?.label.replace(/_/g, " ");
+        toast(r ? t(r.autoReplied ? "enrolled.replyLoggedAuto" : "enrolled.replyLogged", { label: label ?? "" }) : t("enrolled.alreadyLogged"));
         void refresh();
       },
     }),
@@ -427,25 +439,28 @@ function EnrolledRow({ e }: { e: Enrollment }) {
         <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
       </div>
       <p className="mt-0.5 text-xs text-muted">
-        {e.sender ? `From ${e.sender.name}` : "No account yet"}
-        {e.nextStep && ` · Up next: ${e.nextStep}${e.nextActionAt ? `, ${when(e.nextActionAt)}` : " (waiting for you)"}`}
+        {e.sender ? t("from", { name: e.sender.name }) : t("enrolled.noAccount")}
+        {e.nextStep &&
+          ` · ${t("enrolled.upNext", {
+            next: e.nextActionAt ? t("nextStepAt", { step: e.nextStep, when: when(e.nextActionAt) }) : t("nextStepWaiting", { step: e.nextStep }),
+          })}`}
         {" · "}
-        <span className={REVIEW[e.review]?.className}>Messages {REVIEW[e.review]?.label.toLowerCase()}</span>
+        <span className={REVIEW[e.review]?.className}>{e.review in REVIEW ? t(`messagesReview.${e.review as ReviewState}`) : e.review}</span>
       </p>
       {e.note && <p className="mt-0.5 text-xs text-system-orange">{e.note}</p>}
       <div className="mt-2.5 flex flex-wrap gap-2">
         {!ended && (
           <Button variant="ghost" onClick={() => remove.mutate({ enrollmentIds: [e.id] })}>
-            {undoable ? "Undo (nothing sent yet)" : "Remove from campaign"}
+            {undoable ? t("enrolled.undo") : t("removeFromCampaign")}
           </Button>
         )}
         {ended && (
           <Button variant="ghost" onClick={() => restart.mutate({ enrollmentId: e.id })}>
-            Restart sequence
+            {t("restartSequence")}
           </Button>
         )}
         <Button variant="ghost" aria-expanded={replying} onClick={() => setReplying((r) => !r)}>
-          Log a reply
+          {t("enrolled.logAReply")}
         </Button>
       </div>
       {replying && (
@@ -454,11 +469,11 @@ function EnrolledRow({ e }: { e: Enrollment }) {
             value={reply}
             onChange={(ev) => setReply(ev.target.value)}
             rows={3}
-            placeholder="Paste their reply. It stops the sequence and gets classified."
+            placeholder={t("enrolled.replyPlaceholder")}
             className="block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
           />
           <Button className="self-end" disabled={!reply.trim() || logReply.isPending} onClick={() => logReply.mutate({ enrollmentId: e.id, text: reply })}>
-            {logReply.isPending && <CircleNotch size={12} className="animate-spin" />} Log reply
+            {logReply.isPending && <CircleNotch size={12} className="animate-spin" />} {t("enrolled.logReply")}
           </Button>
         </div>
       )}
