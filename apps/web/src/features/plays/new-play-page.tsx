@@ -100,7 +100,7 @@ export function NewPlayPage() {
 function Intro({ onPick }: { onPick: (text: string) => void }) {
   const trpc = useTRPC();
   const brain = useQuery(trpc.brain.list.queryOptions());
-  // Starting ideas built from the Brain, like the reference's suggested Plays.
+  // Starting ideas built from the Brain.
   const ideas = useMemo(() => {
     const items = brain.data ?? [];
     const get = (s: string) => items.filter((i) => i.section === s).map((i) => i.data as Record<string, any>);
