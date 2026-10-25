@@ -43,6 +43,8 @@ export function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => setNavOpen(false), [pathname]);
   const [playsOpen, setPlaysOpen] = usePlaysOpen();
+  // The floating "Ask Pluton" bar; the page keeps room at its foot so nothing ends up behind it.
+  const askBar = !pathname.startsWith("/plays/new") && !pathname.startsWith("/agent");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -174,10 +176,10 @@ export function AppShell() {
           <NotificationBell />
         </header>
 
-        <main className="relative flex-1 overflow-y-auto overscroll-contain">
+        <main className={cn("relative flex-1 overflow-y-auto overscroll-contain", askBar && "md:pb-20")}>
           <Outlet />
           {/* Pages with their own composer would be covered by the floating bar; phones use the header button. */}
-          {!pathname.startsWith("/plays/new") && !pathname.startsWith("/agent") && (
+          {askBar && (
             <button
               onClick={() => setPaletteOpen(true)}
               className="glass fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-[color,scale] duration-200 ease-out hover:text-ink max-md:hidden motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]"
