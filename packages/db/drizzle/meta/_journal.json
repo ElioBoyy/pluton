@@ -36,6 +36,20 @@
       "when": 1792886149182,
       "tag": "0004_awesome_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792888320212,
+      "tag": "0005_cheerful_callisto",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792888629678,
+      "tag": "0006_jittery_caretaker",
+      "breakpoints": true
     }
   ]
 }

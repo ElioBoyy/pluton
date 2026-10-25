@@ -19,7 +19,8 @@ import {
   type Play,
   type RunReport,
 } from "@pluton/db";
-import { listBrain } from "./brain.ts";
+import { getSetting } from "@pluton/db";
+import { getSingleton, listBrain } from "./brain.ts";
 import { recordActivity } from "./events.ts";
 import { enqueueJob } from "./jobs.ts";
 
@@ -39,7 +40,14 @@ export const playDefinitionSchema = z.object({
     exclusions: terms(10).describe("Companies or profiles to leave out"),
   }),
   criteria: z.string().trim().max(600).optional().describe("Plain-language criteria, required for web_evidence"),
+  referenceCompanies: terms(5).describe("Best customers to find lookalikes of, required for lookalikes"),
   target: z.number().int().min(1).max(50).default(10).describe("Qualified leads wanted per run"),
+  policy: z
+    .object({
+      maxMinutes: z.number().int().min(3).max(60).default(15).describe("Research time budget per run"),
+      freshnessDays: z.number().int().min(1).max(365).default(60).describe("Only signals newer than this"),
+    })
+    .default({ maxMinutes: 15, freshnessDays: 60 }),
 });
 
 export const playSummarySchema = z.object({
@@ -63,20 +71,24 @@ export const PIPELINE_LABELS: Record<Pipeline, string> = {
   company_hiring: "Companies hiring",
   company_stack: "Tech stack",
   web_evidence: "Web evidence",
+  lookalikes: "Lookalikes of your customers",
+  funding: "Recently funded",
   post_watchlist: "Engagement on tracked profiles",
   post_keyword: "People posting about keywords",
+  waterfall: "Main Play (every signal in turn)",
 };
 
-/**
- * Which pipelines can run now. Post pipelines read LinkedIn engagement through Apify; the adapter
- * exists (packages/providers) but the pipeline isn't wired yet, so they stay unavailable.
- */
+/** Main Play order: warmest signals first, the broad role match last. */
+export const WATERFALL_ORDER: Pipeline[] = ["post_watchlist", "post_keyword", "company_stack", "company_hiring", "funding", "persona_sweep"];
+
+/** Which pipelines can run now. Post pipelines read LinkedIn engagement through Apify. */
 export function pipelineCapabilities() {
+  const apify = Boolean(getSetting("apify_token"));
   return PIPELINES.map((p) => ({
     pipeline: p,
     label: PIPELINE_LABELS[p],
-    available: !p.startsWith("post_"),
-    reason: p.startsWith("post_") ? "LinkedIn engagement isn't wired yet (needs Apify)" : undefined,
+    available: p.startsWith("post_") ? apify : true,
+    reason: p.startsWith("post_") && !apify ? "Needs an Apify token (Settings → API keys)" : undefined,
   }));
 }
 
@@ -84,6 +96,9 @@ export async function createPlay(db: Db, workspaceId: string, input: NewPlay) {
   const parsed = newPlaySchema.parse(input);
   const capability = pipelineCapabilities().find((c) => c.pipeline === parsed.pipeline)!;
   if (!capability.available) throw new Error(`${capability.label}: ${capability.reason}`);
+  if (parsed.pipeline === "lookalikes" && parsed.definition.referenceCompanies.length === 0) {
+    throw new Error("Lookalikes needs at least one reference customer");
+  }
   const brainSnapshot = await listBrain(db, workspaceId);
   const [play] = await db
     .insert(plays)
@@ -102,6 +117,7 @@ export async function updatePlay(
   patch: Partial<Pick<Play, "name" | "status" | "schedule">> & { definition?: z.input<typeof playDefinitionSchema> },
 ) {
   const { definition: rawDefinition, ...rest } = patch;
+  if (rest.status === "archived" && (await getPlay(db, playId))?.isMain) throw new Error("The Main Play can't be archived; pause it instead");
   const definition = rawDefinition ? playDefinitionSchema.parse(rawDefinition) : undefined;
   const [updated] = await db
     .update(plays)
@@ -218,7 +234,7 @@ export type CandidatePerson = {
   location?: string;
 };
 
-const norm = (s?: string) => (s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+const norm = (s?: string) => (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 
 export function personKey(p: CandidatePerson) {
   const url = p.linkedinUrl?.match(/linkedin\.com\/in\/([^/?#]+)/i)?.[1];
@@ -322,4 +338,150 @@ export async function duePlays(db: Db, timeZone: string, now = new Date()) {
       return !p.lastRunAt || localParts(p.lastRunAt, timeZone).day !== local.day;
     })
     .map((p) => ({ play: p, day: local.day }));
+}
+
+// ── Main Play, estimates, enrichment ─────────────────────────────────────────
+
+/** The Main Play chains every pipeline from the Brain. Created once per workspace (onboarding or on demand). */
+export async function ensureMainPlay(db: Db, workspaceId: string, opts: { onboardingSessionId?: string; target?: number } = {}) {
+  const existing = await db.query.plays.findFirst({ where: and(eq(plays.workspaceId, workspaceId), eq(plays.isMain, true)) });
+  if (existing) return existing;
+  const icp = await getSingleton(db, workspaceId, "icp");
+  const brain = await listBrain(db, workspaceId);
+  const of = <T>(s: string) => brain.filter((i) => i.section === s).map((i) => i.data as T);
+  const personas = of<{ title: string }>("persona").map((p) => p.title);
+  const hiring = of<{ roles: string[] }>("hiring_signal")[0]?.roles ?? [];
+  const stack = of<{ technologies: Array<{ name: string }> }>("stack_signal")[0]?.technologies.map((t) => t.name) ?? [];
+  const keywords = of<{ phrase: string }>("keyword").map((k) => k.phrase);
+  const target = opts.target ?? 10;
+  const [play] = await db
+    .insert(plays)
+    .values({
+      workspaceId,
+      name: "Main",
+      isMain: true,
+      onboardingSessionId: opts.onboardingSessionId ?? null,
+      ask: "Find the best-fit people for my company using every signal in the Brain.",
+      pipeline: "waterfall",
+      summary: {
+        who: personas.slice(0, 3).join(", ") + (icp ? ` · ${icp.data.summary}` : ""),
+        how: "Every signal in turn: engagement, keywords, tech stack, hiring, funding, then role match.",
+        howMany: `${target} qualified leads per run`,
+      },
+      definition: playDefinitionSchema.parse({
+        audience: {
+          personas,
+          industries: icp?.data.industries ?? [],
+          companySizes: icp?.data.companySizes ?? [],
+          geographies: icp?.data.geographies ?? [],
+          keywords,
+          hiringRoles: hiring,
+          technologies: stack,
+          exclusions: [],
+        },
+        target,
+      }),
+      brainSnapshot: brain,
+    })
+    .returning();
+  await recordActivity(db, workspaceId, "leads", "play.created", { playId: play!.id, name: "Main" });
+  return play!;
+}
+
+const quantile = (xs: number[], q: number) => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.max(0, Math.round(q * (s.length - 1))))] ?? 0;
+};
+
+/**
+ * What to expect from a run, from this workspace's past runs of the same pipeline (p25–p80),
+ * or rough defaults before there's any history.
+ */
+export async function estimatePlay(db: Db, workspaceId: string, pipeline: Pipeline, target: number) {
+  const past = await db
+    .select({ report: leadFindingRuns.report, startedAt: leadFindingRuns.startedAt, finishedAt: leadFindingRuns.finishedAt })
+    .from(leadFindingRuns)
+    .innerJoin(plays, eq(plays.id, leadFindingRuns.playId))
+    .where(and(eq(leadFindingRuns.workspaceId, workspaceId), eq(plays.pipeline, pipeline), eq(leadFindingRuns.status, "completed")))
+    .orderBy(desc(leadFindingRuns.createdAt))
+    .limit(20);
+  const paid = pipeline.startsWith("post_") || pipeline === "waterfall" ? ["Apify actor runs (billed by Apify)"] : [];
+  if (past.length < 2) {
+    return {
+      basis: "default" as const,
+      runs: past.length,
+      qualified: [Math.max(1, Math.round(target * 0.2)), Math.round(target * 0.7)] as [number, number],
+      minutes: [4, 10] as [number, number],
+      paid,
+    };
+  }
+  const qualified = past.map((r) => r.report?.qualified ?? 0);
+  const minutes = past
+    .filter((r) => r.startedAt && r.finishedAt)
+    .map((r) => (r.finishedAt!.getTime() - r.startedAt!.getTime()) / 60_000);
+  return {
+    basis: "history" as const,
+    runs: past.length,
+    qualified: [quantile(qualified, 0.25), quantile(qualified, 0.8)] as [number, number],
+    minutes: [Math.round(quantile(minutes, 0.25)), Math.ceil(quantile(minutes, 0.8))] as [number, number],
+    paid,
+  };
+}
+
+export async function setPersonLinkedin(db: Db, personId: string, linkedinUrl: string) {
+  await db.update(people).set({ linkedinUrl }).where(eq(people.id, personId));
+}
+
+export async function setPersonEmail(db: Db, personId: string, email: string | null, confidence: number | null) {
+  await db.update(people).set({ email, emailConfidence: confidence }).where(eq(people.id, personId));
+}
+
+export async function getLeadWithPerson(db: Db, leadId: string) {
+  const [row] = await db.select({ lead: leads, person: people }).from(leads).innerJoin(people, eq(people.id, leads.personId)).where(eq(leads.id, leadId));
+  return row;
+}
+
+/** After the first search reported back to onboarding, later runs of the Main Play don't. */
+export async function detachOnboarding(db: Db, playId: string) {
+  await db.update(plays).set({ onboardingSessionId: null }).where(eq(plays.id, playId));
+}
+
+export function localDay(date: Date, timeZone: string) {
+  const { day, hour } = localParts(date, timeZone);
+  return { day, hour };
+}
+
+/**
+ * What recent searches taught us, for the Brain review: why people were set aside and how the
+ * judge scored them. Founder feedback on leads joins this in phase 5.
+ */
+export async function leadOutcomes(db: Db, workspaceId: string) {
+  const runs = await db
+    .select({ report: leadFindingRuns.report, playName: plays.name })
+    .from(leadFindingRuns)
+    .innerJoin(plays, eq(plays.id, leadFindingRuns.playId))
+    .where(and(eq(leadFindingRuns.workspaceId, workspaceId), eq(leadFindingRuns.status, "completed")))
+    .orderBy(desc(leadFindingRuns.createdAt))
+    .limit(10);
+  const rejections: Record<string, { count: number; examples: string[] }> = {};
+  let qualified = 0;
+  let needsReview = 0;
+  for (const { report } of runs) {
+    if (!report) continue;
+    qualified += report.qualified;
+    needsReview += report.needsReview;
+    for (const [reason, r] of Object.entries(report.rejections)) {
+      const agg = (rejections[reason] ??= { count: 0, examples: [] });
+      agg.count += r.count;
+      agg.examples.push(...r.examples.slice(0, 3 - agg.examples.length));
+    }
+  }
+  const reviewSample = await db
+    .select({ name: people.name, title: people.title, company: people.company, reason: leads.reason })
+    .from(leads)
+    .innerJoin(people, eq(people.id, leads.personId))
+    .where(and(eq(leads.workspaceId, workspaceId), eq(leads.stage, "needs_review")))
+    .orderBy(desc(leads.createdAt))
+    .limit(8);
+  return { runs: runs.length, qualified, needsReview, rejections, reviewSample };
 }

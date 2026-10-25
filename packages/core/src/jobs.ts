@@ -1,3 +1,4 @@
+import { hostname } from "node:os";
 import { and, asc, desc, eq, inArray, jobs, lt, lte, sql, type Db, type Job } from "@pluton/db";
 
 export type EnqueueInput = {
@@ -73,15 +74,35 @@ export async function failJob(db: Db, job: Job, error: unknown) {
     .where(eq(jobs.id, job.id));
 }
 
-/** Jobs left "running" by a worker that crashed go back to the queue. */
+/**
+ * Jobs left "running" by a worker that died go back to the queue: immediately when the worker
+ * was on this machine and its process is gone (a crash or a dev reload), after `staleAfterMs` otherwise.
+ */
 export async function recoverStaleJobs(db: Db, staleAfterMs = 10 * 60_000) {
   const cutoff = new Date(Date.now() - staleAfterMs);
-  const recovered = await db
+  const running = await db.select({ id: jobs.id, lockedBy: jobs.lockedBy, lockedAt: jobs.lockedAt }).from(jobs).where(eq(jobs.status, "running"));
+  const orphaned = running.filter((j) => {
+    const [host, pidAndSlot] = (j.lockedBy ?? "").split(":");
+    const pid = Number(pidAndSlot?.split("#")[0]);
+    if (host === hostname() && pid && pid !== process.pid && !processAlive(pid)) return true;
+    return j.lockedAt !== null && j.lockedAt < cutoff;
+  });
+  if (orphaned.length === 0) return 0;
+  await db
     .update(jobs)
     .set({ status: "queued", lockedAt: null, lockedBy: null })
-    .where(and(eq(jobs.status, "running"), lt(jobs.lockedAt, cutoff)))
-    .returning({ id: jobs.id });
-  return recovered.length;
+    .where(and(eq(jobs.status, "running"), inArray(jobs.id, orphaned.map((j) => j.id))));
+  return orphaned.length;
+}
+
+function processAlive(pid: number) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    // EPERM means it exists but belongs to someone else.
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
 }
 
 export async function getJob(db: Db, jobId: string) {
@@ -104,4 +125,20 @@ export async function findActiveJob(db: Db, workspaceId: string, type: string) {
     where: and(eq(jobs.workspaceId, workspaceId), eq(jobs.type, type), inArray(jobs.status, ["queued", "running"])),
     orderBy: desc(jobs.createdAt),
   });
+}
+
+/** Asks the worker to stop a running job; it aborts the handler's signal within a few seconds. */
+export async function requestJobCancel(db: Db, jobId: string) {
+  await db.update(jobs).set({ cancelRequested: true }).where(eq(jobs.id, jobId));
+  // A job still waiting in the queue is simply cancelled.
+  await db.update(jobs).set({ status: "cancelled" }).where(and(eq(jobs.id, jobId), eq(jobs.status, "queued")));
+}
+
+export async function isCancelRequested(db: Db, jobId: string) {
+  const row = await db.query.jobs.findFirst({ where: eq(jobs.id, jobId), columns: { cancelRequested: true } });
+  return row?.cancelRequested ?? false;
+}
+
+export async function markJobCancelled(db: Db, jobId: string) {
+  await db.update(jobs).set({ status: "cancelled", lockedAt: null, lockedBy: null }).where(eq(jobs.id, jobId));
 }

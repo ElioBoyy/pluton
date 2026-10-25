@@ -24,6 +24,7 @@ import {
 } from "./brain.ts";
 import { emitStreamEvent } from "./events.ts";
 import { enqueueJob } from "./jobs.ts";
+import { ensureMainPlay, startRun } from "./plays.ts";
 import { getOrCreateDefaultWorkspace, updateWorkspace } from "./workspaces.ts";
 
 export const onboardingChannel = (sessionId: string) => `onboarding:${sessionId}`;
@@ -229,6 +230,7 @@ export async function refreshSession(db: Db, sessionId: string) {
   if (status !== session.status) {
     await db.update(onboardingSessions).set({ status }).where(eq(onboardingSessions.id, sessionId));
     await emitOnboarding(db, sessionId, { type: "status", status });
+    if (status === "ready") await startFirstLeads(db, { ...session, status });
   }
   await emitOnboarding(db, sessionId, { type: "plan", steps: derivePlan({ ...session, status }, stages, cards) });
 }
@@ -472,4 +474,37 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
     await refreshSession(db, sid);
   }
   return toCardView(updated!);
+}
+
+// ── First leads ──────────────────────────────────────────────────────────────
+
+/** Once the Brain is ready, the Main Play runs a first search so the founder sees real people. */
+async function startFirstLeads(db: Db, session: OnboardingSession) {
+  try {
+    const play = await ensureMainPlay(db, session.workspaceId, { onboardingSessionId: session.id });
+    await startRun(db, play.id);
+    await setStep(db, session.id, "first_leads", "running");
+    await say(db, session.id, "Looking for your first real leads with the Main Play. You can activate meanwhile.");
+  } catch (error) {
+    await setStep(db, session.id, "first_leads", "skipped");
+    await say(db, session.id, `Couldn't start the first search: ${(error as Error).message}`);
+  }
+}
+
+/** Called when a run of a Play created by onboarding ends. */
+export async function reportFirstLeads(
+  db: Db,
+  sessionId: string,
+  outcome: { ok: boolean; qualified: number; needsReview: number; examples: string[] },
+) {
+  await setStep(db, sessionId, "first_leads", outcome.ok ? "done" : "skipped");
+  if (!outcome.ok) return say(db, sessionId, "The first search stopped early. Run the Main Play again from Plays.");
+  const total = outcome.qualified + outcome.needsReview;
+  await say(
+    db,
+    sessionId,
+    total === 0
+      ? "No matching people in this first pass. Plays will widen the search."
+      : `Found ${outcome.qualified} qualified and ${outcome.needsReview} to review, e.g. ${outcome.examples.slice(0, 3).join("; ")}. They're in Plays → Main.`,
+  );
 }

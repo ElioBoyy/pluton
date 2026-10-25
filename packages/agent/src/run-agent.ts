@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { getSetting } from "@pluton/db";
 
 export const MODEL = "claude-opus-5-5";
 
@@ -42,9 +43,13 @@ export type RunAgentResult = { turns: number; missing: string[] };
 
 export class AgentRefusalError extends Error {}
 
-// Created on first use so the worker still boots (and runs other jobs) without credentials.
-let client: Anthropic | undefined;
-const getClient = () => (client ??= new Anthropic());
+// Created on first use (and again when the key changes in Settings) so the worker boots without credentials.
+let client: { key: string | undefined; instance: Anthropic } | undefined;
+const getClient = () => {
+  const key = getSetting("anthropic_api_key");
+  if (!client || client.key !== key) client = { key, instance: new Anthropic({ apiKey: key }) };
+  return client.instance;
+};
 
 function toInputSchema(schema: z.ZodType): Anthropic.Beta.BetaTool.InputSchema {
   const { $schema: _ignored, ...json } = z.toJSONSchema(schema) as Record<string, unknown>;

@@ -3,8 +3,11 @@ export const PIPELINE_LABELS: Record<string, string> = {
   company_hiring: "Companies hiring",
   company_stack: "Tech stack",
   web_evidence: "Web evidence",
+  lookalikes: "Lookalikes of your customers",
+  funding: "Recently funded",
   post_watchlist: "Engagement on tracked profiles",
   post_keyword: "People posting about keywords",
+  waterfall: "Main Play (every signal in turn)",
 };
 
 export const SCHEDULE_LABELS: Record<string, string> = {

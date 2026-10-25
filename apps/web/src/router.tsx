@@ -6,6 +6,7 @@ import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
 import { NewPlayPage } from "./features/plays/new-play-page.tsx";
 import { PlayPage } from "./features/plays/play-page.tsx";
 import { LeadsPage, PlaysPage } from "./features/plays/plays-page.tsx";
+import { ApiKeysPage } from "./routes/api-keys.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
@@ -69,7 +70,9 @@ const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
         ? GeneralSettingsPage
         : s.slug === "data-sources"
           ? DataSourcesPage
-          : () => (
+          : s.slug === "api-keys"
+            ? ApiKeysPage
+            : () => (
             <div className="rounded-xl border border-dashed border-line px-6 py-16 text-center text-sm text-muted">
               {s.label} arrives in phase {s.phase} of PLAN.md.
             </div>

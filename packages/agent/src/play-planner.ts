@@ -17,12 +17,17 @@ Pipelines (how a Play finds people):
 - company_hiring: organizations currently hiring for given roles (a buying window), then the right person there.
 - company_stack: organizations using given tools (or a competitor's product), then the right person there.
 - web_evidence: organizations matching a plain-language criterion checked on the web, then the right person there.
+- lookalikes: organizations similar (same sector and size) to named reference customers; needs definition.referenceCompanies.
+- funding: organizations that recently raised money (press), then the right person there.
 - post_watchlist / post_keyword: people engaging with tracked LinkedIn profiles or posting about keywords.
+Never propose "waterfall": that is the Main Play, created automatically.
 
 How you work:
 - Each turn, call exactly one tool: ask_question or propose_play. Never both, never neither.
 - Ask only what changes who gets found, one question at a time, with 2 to 6 short clickable options. Prefer options drawn from the Brain.
 - Propose as soon as you can; after 3 questions, always propose. Fill the definition from the founder's words first, the Brain second.
+- When the conversation already contains a proposal and the founder asks for a change, start from that last proposal and change only what they asked; keep every other title, filter and setting.
+- policy.freshnessDays: how recent signals must be (default 60). policy.maxMinutes: research time per run (default 15).
 - Write questions and the summary in the founder's language. Keep job titles and keywords in the market's language.
 - Only use pipelines marked available. target defaults to 10 leads per run; schedule defaults to "off" unless the founder asks for recurrence.`;
 
@@ -72,6 +77,10 @@ ${opts.transcript.map((t) => `${t.role === "user" ? "Founder" : "You"}: ${t.text
           const capability = capabilities.find((c) => c.pipeline === play.pipeline);
           if (!capability?.available) throw new Error(`${play.pipeline} is unavailable: ${capability?.reason}. Pick another pipeline.`);
           if (play.pipeline === "web_evidence" && !play.definition.criteria) throw new Error("web_evidence needs definition.criteria");
+          if (play.pipeline === "waterfall") throw new Error("waterfall is reserved for the Main Play; pick another pipeline");
+          if (play.pipeline === "lookalikes" && !play.definition.referenceCompanies?.length) {
+            throw new Error("lookalikes needs definition.referenceCompanies; ask the founder for their best customers");
+          }
           result = { type: "proposal", play };
           return "Shown to the founder. Stop now.";
         },

@@ -1,7 +1,7 @@
-import { CaretRight, CircleNotch } from "@phosphor-icons/react";
+import { CaretRight, CircleNotch, Sparkle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { BrainData } from "@pluton/core";
 import { Input } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
@@ -136,7 +136,16 @@ function Field({ label, optional, className, children }: { label: string; option
 
 function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt: number }) {
   const state = useOnboarding(sessionId);
+  const navigate = useNavigate();
   const [pickedHub, setPickedHub] = useState<string | null>(null);
+  const [celebrating, setCelebrating] = useState(false);
+
+  // After activation: a short transition over the faded graph, then on to the Plays.
+  useEffect(() => {
+    if (!celebrating) return;
+    const t = setTimeout(() => void navigate({ to: "/plays" }), 2800);
+    return () => clearTimeout(t);
+  }, [celebrating, navigate]);
 
   const items = useMemo(() => [...state.brain.values()], [state.brain]);
   const company = items.find((i) => i.section === "company")?.data as BrainData<"company"> | undefined;
@@ -153,7 +162,7 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
   return (
     <div className="flex h-full">
       <aside className="w-[300px] shrink-0 border-r border-line bg-panel">
-        <ChatPanel state={state} sessionId={sessionId} startedAt={startedAt} />
+        <ChatPanel state={state} sessionId={sessionId} startedAt={startedAt} onActivated={() => setCelebrating(true)} />
       </aside>
       <section className="relative flex-1 overflow-hidden">
         <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />
@@ -179,6 +188,15 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
           </div>
         )}
 
+        {celebrating && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas/80 backdrop-blur-sm motion-safe:animate-[fadeIn_600ms_ease-out]">
+            <span className="flex size-14 items-center justify-center rounded-full border border-line bg-panel shadow-2xl">
+              <Sparkle size={26} weight="fill" className="text-ink motion-safe:animate-pulse" />
+            </span>
+            <p className="mt-5 text-lg font-semibold">Your Brain is live</p>
+            <p className="mt-1 text-sm text-muted">Your first leads are on their way.</p>
+          </div>
+        )}
         {current && (
           <CardModal
             key={current.id}

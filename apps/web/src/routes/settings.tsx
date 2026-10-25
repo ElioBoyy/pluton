@@ -10,6 +10,7 @@ export const SETTINGS_SECTIONS = [
   { slug: "notifications", label: "Notifications", phase: 7 },
   { slug: "linkedin", label: "LinkedIn accounts", phase: 6 },
   { slug: "mcp", label: "Connect your AI", phase: 8 },
+  { slug: "api-keys", label: "API keys", phase: 3 },
   { slug: "data-sources", label: "Data sources", phase: 3 },
   { slug: "integrations", label: "Integrations", phase: 8 },
   { slug: "usage", label: "Usage", phase: 7 },

@@ -4,7 +4,7 @@ import type { JobRecord } from "./types.ts";
 
 /** TheirStack: job posts across the market, filterable by title, country and technologies. 1 credit per job. */
 const PROVIDER = "theirstack";
-export const THEIRSTACK_ENV = "THEIRSTACK_API_KEY";
+export const THEIRSTACK_KEY = "theirstack_api_key";
 
 export type TheirStackSearch = {
   titles?: string[];
@@ -27,7 +27,7 @@ type ApiJob = {
 };
 
 export async function searchJobs(db: Db, search: TheirStackSearch) {
-  const key = requireKey(PROVIDER, THEIRSTACK_ENV);
+  const key = requireKey(PROVIDER, THEIRSTACK_KEY);
   const body = {
     job_title_or: search.titles,
     job_country_code_or: search.countries,

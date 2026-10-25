@@ -1,6 +1,8 @@
-import { ArrowSquareOut, LinkedinLogo } from "@phosphor-icons/react";
+import { ArrowSquareOut, CircleNotch, Envelope, LinkedinLogo } from "@phosphor-icons/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
+import { useTRPC } from "../../lib/trpc.ts";
 import type { AppRouter } from "@pluton/server/router";
 import { cn } from "../../lib/cn.ts";
 
@@ -68,6 +70,7 @@ export function LeadTable({ leads, showPlay }: { leads: LeadRow[]; showPlay?: bo
                       {l.person.title}
                       {l.person.company && ` · ${l.person.company}`}
                     </p>
+                    <Enrich lead={l} />
                   </td>
                   <td className="px-3 py-3 text-muted">{l.reason}</td>
                   <td className="w-60 px-3 py-3 text-xs text-muted">
@@ -92,6 +95,49 @@ export function LeadTable({ leads, showPlay }: { leads: LeadRow[]; showPlay?: bo
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Email and LinkedIn for one lead: shown when known, otherwise a button to look them up. */
+function Enrich({ lead }: { lead: LeadRow }) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const refresh = () => queryClient.invalidateQueries({ queryKey: trpc.leads.list.queryKey() });
+  const email = useMutation(trpc.leads.findEmail.mutationOptions({ onSuccess: refresh }));
+  const linkedin = useMutation(trpc.leads.findLinkedin.mutationOptions({ onSuccess: refresh }));
+  const p = lead.person;
+  const notFound = (m: typeof email | typeof linkedin, what: string) =>
+    m.isSuccess && !(m.data as { email?: string | null; url?: string | null })[what === "email" ? "email" : "url"];
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+      {p.email ? (
+        <a href={`mailto:${p.email}`} className="flex items-center gap-1 text-muted hover:text-ink">
+          <Envelope size={12} /> {p.email}
+        </a>
+      ) : (
+        <button
+          disabled={email.isPending}
+          onClick={() => email.mutate({ leadId: lead.id })}
+          title={p.companyWebsite ? "Find a work email (Hunter)" : "Needs the company website"}
+          className="flex items-center gap-1 text-faint hover:text-ink disabled:opacity-60"
+        >
+          {email.isPending ? <CircleNotch size={11} className="animate-spin" /> : <Envelope size={12} />}
+          {notFound(email, "email") ? "No email found" : "Find email"}
+        </button>
+      )}
+      {!p.linkedinUrl && (
+        <button
+          disabled={linkedin.isPending}
+          onClick={() => linkedin.mutate({ leadId: lead.id })}
+          className="flex items-center gap-1 text-faint hover:text-ink disabled:opacity-60"
+        >
+          {linkedin.isPending ? <CircleNotch size={11} className="animate-spin" /> : <LinkedinLogo size={12} />}
+          {notFound(linkedin, "linkedin") ? "Not found" : "Find LinkedIn"}
+        </button>
+      )}
+      {(email.error ?? linkedin.error) && <span className="text-cat-orange">{(email.error ?? linkedin.error)!.message}</span>}
     </div>
   );
 }

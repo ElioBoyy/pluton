@@ -98,3 +98,26 @@ function toCompany(c: ApiCompany): CompanyRecord {
     source: PROVIDER,
   };
 }
+
+/**
+ * Lookalikes of a reference customer: same sector code and headcount band, from the registry.
+ * Free stand-in for Ocean.io-style lookalike search (which needs a paid contract).
+ */
+export async function registryLookalikes(db: Db, referenceName: string, opts: { departments?: string[]; perPage?: number } = {}) {
+  const ref = (await searchRegistry(db, { query: referenceName, perPage: 1 })).companies[0];
+  if (!ref?.industryCode) return { reference: ref ?? null, companies: [] as CompanyRecord[] };
+  const params = new URLSearchParams({
+    activite_principale: ref.industryCode,
+    etat_administratif: "A",
+    per_page: String(Math.min(opts.perPage ?? 20, 25)),
+  });
+  const tranche = Object.entries(TRANCHES).find(([, label]) => label === ref.sizeBand)?.[0];
+  if (tranche) params.set("tranche_effectif_salarie", tranche);
+  if (opts.departments?.length) params.set("departement", opts.departments.join(","));
+  const result = await providerCall(db, PROVIDER, "lookalikes", Object.fromEntries(params), async () => {
+    const data = await httpJson<{ results: ApiCompany[] }>(PROVIDER, `${BASE}?${params}`, { minIntervalMs: 160 });
+    const companies = data.results.map(toCompany).filter((c) => c.siren !== ref.siren);
+    return { value: companies, items: companies.length };
+  });
+  return { reference: ref, companies: result };
+}

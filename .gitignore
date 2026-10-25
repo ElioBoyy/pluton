@@ -5,3 +5,4 @@ dist
 data/*.db*
 *.mov
 .DS_Store
+data/secret.key

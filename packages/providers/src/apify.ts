@@ -4,21 +4,21 @@ import type { PersonRecord, PostRecord } from "./types.ts";
 
 /**
  * Apify actors for LinkedIn engagement. Defaults are the no-cookie harvestapi actors, so your own
- * LinkedIn account is never used for scraping. Override with APIFY_ACTOR_* if you prefer others.
+ * LinkedIn account is never used for scraping.
  */
 const PROVIDER = "apify";
-export const APIFY_ENV = "APIFY_TOKEN";
+export const APIFY_KEY = "apify_token";
 
-const actor = (envVar: string, fallback: string) => process.env[envVar]?.trim() || fallback;
 const ACTORS = {
-  profilePosts: () => actor("APIFY_ACTOR_PROFILE_POSTS", "harvestapi~linkedin-profile-posts"),
-  postReactions: () => actor("APIFY_ACTOR_POST_REACTIONS", "harvestapi~linkedin-post-reactions"),
-  postComments: () => actor("APIFY_ACTOR_POST_COMMENTS", "harvestapi~linkedin-post-comments"),
+  profilePosts: () => "harvestapi~linkedin-profile-posts",
+  postReactions: () => "harvestapi~linkedin-post-reactions",
+  postComments: () => "harvestapi~linkedin-post-comments",
+  postSearch: () => "harvestapi~linkedin-post-search",
 };
 
 /** Runs an actor and returns its dataset (synchronous endpoint: capped at 300 s by Apify). */
 async function runActor<T>(actorId: string, input: unknown, maxItems: number) {
-  const token = requireKey(PROVIDER, APIFY_ENV);
+  const token = requireKey(PROVIDER, APIFY_KEY);
   const url = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?maxItems=${maxItems}&timeout=280`;
   return httpJson<T[]>(PROVIDER, url, {
     method: "POST",
@@ -32,14 +32,16 @@ async function runActor<T>(actorId: string, input: unknown, maxItems: number) {
 type ApiPost = {
   linkedinUrl: string;
   content?: string;
-  author?: { name?: string; linkedinUrl?: string };
+  author?: { name?: string; linkedinUrl?: string; info?: string };
   postedAt?: { date?: string };
   engagement?: { likes?: number; comments?: number };
 };
 
 /** Recent posts of LinkedIn profiles or company pages (the tracked competitors, influencers, own brand). */
-export async function profilePosts(db: Db, profileUrls: string[], opts: { maxPosts?: number; postedLimit?: "24h" | "week" | "month" } = {}) {
-  const input = { targetUrls: profileUrls, maxPosts: opts.maxPosts ?? 5, postedLimit: opts.postedLimit ?? "month" };
+export async function profilePosts(db: Db, profileUrls: string[], opts: { maxPosts?: number; postedLimit?: PostedLimit } = {}) {
+  // The profile-posts actor stops at a month.
+  const postedLimit = opts.postedLimit === "3months" ? "month" : (opts.postedLimit ?? "month");
+  const input = { targetUrls: profileUrls, maxPosts: opts.maxPosts ?? 5, postedLimit };
   return providerCall(
     db,
     PROVIDER,
@@ -108,4 +110,38 @@ export async function postEngagers(db: Db, postUrl: string, opts: { maxReactions
     },
     { ttlMs: 24 * 3600_000 },
   );
+}
+
+export type PostedLimit = "24h" | "week" | "month" | "3months";
+
+/** Recent LinkedIn posts matching keywords: their authors are people posting about the topic. */
+export async function keywordPosts(db: Db, queries: string[], opts: { maxPosts?: number; postedLimit?: PostedLimit } = {}) {
+  const input = { searchQueries: queries, maxPosts: opts.maxPosts ?? 20, postedLimit: opts.postedLimit ?? "month", sortBy: "date" };
+  return providerCall(
+    db,
+    PROVIDER,
+    "keyword_posts",
+    input,
+    async () => {
+      const items = await runActor<ApiPost>(ACTORS.postSearch(), input, input.maxPosts * queries.length);
+      const posts = items
+        .filter((p) => p.linkedinUrl && p.author?.name)
+        .map((p) => ({
+          url: p.linkedinUrl,
+          text: p.content ?? "",
+          postedAt: p.postedAt?.date,
+          author: { name: p.author!.name!, linkedinUrl: p.author?.linkedinUrl, headline: p.author?.info },
+          likes: p.engagement?.likes,
+          comments: p.engagement?.comments,
+          source: PROVIDER,
+        }));
+      return { value: { posts }, items: posts.length };
+    },
+    { ttlMs: 6 * 3600_000 },
+  );
+}
+
+/** Maps a freshness window in days to the actors' posted-date filter. */
+export function postedLimitFor(days: number): PostedLimit {
+  return days <= 1 ? "24h" : days <= 7 ? "week" : days <= 31 ? "month" : "3months";
 }
