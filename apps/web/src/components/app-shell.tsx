@@ -132,11 +132,11 @@ export function AppShell() {
         {!pathname.startsWith("/plays/new") && (
         <button
           onClick={() => setPaletteOpen(true)}
-          className="glass fixed bottom-5 left-[calc(50%+7.75rem)] flex h-9 -translate-x-1/2 items-center gap-2 rounded-full px-4 text-sm text-muted hover:text-ink"
+          className="glass fixed bottom-5 left-[calc(50%+7.75rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted hover:text-ink"
         >
-          <MagnifyingGlass size={15} />
+          <MagnifyingGlass size={18} />
           Ask Pluton anything
-          <kbd className="ml-2 font-sans text-xs text-faint">⌘K</kbd>
+          <kbd className="ml-auto font-sans text-xs text-faint">⌘K</kbd>
         </button>
         )}
       </main>

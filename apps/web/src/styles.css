@@ -75,9 +75,10 @@
   --shadow-window: 0 0 0 0.5px rgb(0 0 0 / 0.1), 0 8px 40px rgb(0 0 0 / 0.16);
 
   /* Liquid Glass, approximated: a translucent, blurred surface with a hairline edge. */
-  --glass-bg: rgb(246 246 246 / 0.78);
-  --glass-edge: rgb(0 0 0 / 0.08);
-  --glass-shadow: 0 4px 24px rgb(0 0 0 / 0.08);
+  --glass-bg: rgb(246 246 246 / 0.86);
+  --glass-edge: rgb(0 0 0 / 0.1);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.12);
+  --glass-highlight: rgb(255 255 255 / 0.7); /* the lit top rim of Liquid Glass */
 }
 
 /* Dark appearance. data-theme is set before first paint (index.html) and by lib/theme.ts. */
@@ -114,16 +115,18 @@
   --shadow-control: inset 0 0.5px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.3);
   --shadow-window: 0 0 0 0.5px rgb(255 255 255 / 0.12), 0 8px 40px rgb(0 0 0 / 0.5);
 
-  --glass-bg: rgb(44 44 46 / 0.72);
+  --glass-bg: rgb(50 50 52 / 0.84);
   --glass-edge: rgb(255 255 255 / 0.1);
   --glass-shadow: 0 4px 24px rgb(0 0 0 / 0.3);
+  --glass-highlight: rgb(255 255 255 / 0.14);
 }
 
 @utility glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
   box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
     0 0 0 0.5px var(--glass-edge),
     var(--glass-shadow);
 }
