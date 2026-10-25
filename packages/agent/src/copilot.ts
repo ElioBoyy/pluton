@@ -1,6 +1,9 @@
 import { z } from "zod";
 import {
   addCopilotMessage,
+  copilotChannel,
+  deleteStreamEvents,
+  emitStreamEvent,
   getConversation,
   getCopilotAction,
   getCurrentWorkspace,
@@ -161,6 +164,7 @@ export async function runCopilotTurn(opts: { db: Db; conversationId: string; too
     ? `The founder just approved action card ${approved.id} (${approved.tool}). It ${approved.status === "completed" ? `ran and returned: ${clip(json(approved.result), 3000)}` : `failed: ${approved.error}`}. Tell them in one or two sentences what happened and what comes next.`
     : "Answer the founder's last message.";
 
+  const drafts = draftStream(db, conversationId);
   await runAgent({
     system: system(),
     maxTurns: 25,
@@ -174,8 +178,51 @@ ${transcript(state.messages, state.actions)}
 
 ${ask}`,
     tools: wrapTools(db, conversationId, [...docsTools, ...opts.tools]),
+    onTextDelta: drafts.push,
     onText: async (text) => {
+      // The block is complete: its saved message replaces the draft the chat was showing. Pending
+      // draft writes land first, so none arrives after the message.
+      await drafts.reset();
       await addCopilotMessage(db, { conversationId, role: "assistant", text: text.trim() });
     },
-  });
+  }).finally(() => drafts.close());
+}
+
+const DRAFT_EVERY_MS = 100;
+
+/**
+ * The answer as it is written: deltas are gathered and sent as "draft" events a few times a second
+ * (the chat polls its channel, so sending each token would only fill the table). Drafts are
+ * deleted once the turn ends, since its saved messages say the same thing.
+ */
+function draftStream(db: Db, conversationId: string) {
+  const channel = copilotChannel(conversationId);
+  let pending = "";
+  let timer: NodeJS.Timeout | undefined;
+  // Writes go one after another so the chat receives the pieces in order.
+  let chain = Promise.resolve();
+  const flush = () => {
+    timer = undefined;
+    if (!pending) return;
+    const text = pending;
+    pending = "";
+    chain = chain.then(() => emitStreamEvent(db, channel, "draft", { text }).then(() => undefined)).catch(() => undefined);
+  };
+  return {
+    push: (delta: string) => {
+      pending += delta;
+      timer ??= setTimeout(flush, DRAFT_EVERY_MS);
+    },
+    reset: async () => {
+      clearTimeout(timer);
+      timer = undefined;
+      pending = "";
+      await chain;
+    },
+    close: async () => {
+      clearTimeout(timer);
+      await chain;
+      await deleteStreamEvents(db, channel, "draft").catch(() => undefined);
+    },
+  };
 }

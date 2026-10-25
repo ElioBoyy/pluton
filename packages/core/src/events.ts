@@ -18,6 +18,11 @@ export async function emitStreamEvent(db: Db, channel: string, type: string, pay
   return event!;
 }
 
+/** Removes one kind of event from a channel, e.g. the live drafts of a turn once its messages are saved. */
+export async function deleteStreamEvents(db: Db, channel: string, type: string) {
+  await db.delete(streamEvents).where(and(eq(streamEvents.channel, channel), eq(streamEvents.type, type)));
+}
+
 export async function readStreamEvents(db: Db, channel: string, afterId = 0, limit = 200) {
   return db
     .select()

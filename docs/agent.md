@@ -53,7 +53,8 @@ A conversation shows:
 - **The agent's answers**, formatted text that can include headings, lists, task lists, bold and italic, quotes, tables, charts and links.
 - **"Looked at …" lines**: when the agent reads data, a folded grey line lists what it looked at in plain names, for example "Looked at Leads, Play details". Click it to unfold each read with a short summary of what it asked for (such as "tab: to_review, limit: 25").
 - **Approval cards** for actions waiting for you (see Approval cards and their statuses).
-- **Working…** with a spinner while the agent is answering.
+- **Working…** with a spinner while the agent reads or thinks, before it starts writing.
+- **The answer as it is written**: text appears a few words at a time. A table or chart is only drawn once it is complete; while it is being written, a card says **Creating the visual…** in its place.
 - **"The agent stopped: (reason)"** in orange if a turn failed.
 
 At the bottom, the field **Reply or ask something else…** continues the conversation. While the agent works, the field is disabled and its button turns into **Stop**.
