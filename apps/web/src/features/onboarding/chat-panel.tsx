@@ -74,7 +74,7 @@ export function ChatPanel({
       )}
 
       {state.steps.length > 0 && <StepList steps={state.steps} />}
-      <p className="text-xs tabular-nums text-faint">⏱ {formatDuration(endedAt - startedAt)}</p>
+      <p className="text-xs tabular-nums text-muted">⏱ {formatDuration(endedAt - startedAt)}</p>
 
       {state.status === "failed" && <RetryBox sessionId={sessionId} />}
       {state.status === "ready" && <ActivateBox sessionId={sessionId} state={state} onActivated={onActivated} />}
@@ -97,7 +97,7 @@ function Bubble({ role, text }: { role: "assistant" | "user"; text: string }) {
 function PlanBox({ plan, now }: { plan: PlanStep[]; now: number }) {
   const done = plan.filter((p) => p.status === "done").length;
   return (
-    <div className="rounded-2xl bg-panel p-2 shadow-card">
+    <div className="rounded-2xl bg-canvas p-2 shadow-card">
       <div className="flex items-center justify-between px-2 py-1.5 text-sm font-semibold text-muted">
         <span>Plan</span>
         <span className="tabular-nums">
@@ -112,7 +112,7 @@ function PlanBox({ plan, now }: { plan: PlanStep[]; now: number }) {
               "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px]",
               p.status === "active" && "bg-raised text-ink",
               p.status === "done" && "text-muted",
-              p.status === "pending" && "text-faint",
+              p.status === "pending" && "text-muted",
             )}
           >
             {p.status === "done" ? (
@@ -122,7 +122,7 @@ function PlanBox({ plan, now }: { plan: PlanStep[]; now: number }) {
             )}
             <span className="flex-1">{p.label}</span>
             {p.startedAt && p.status !== "pending" && (
-              <span className="text-xs tabular-nums text-faint">{formatDuration((p.finishedAt ?? now) - p.startedAt)}</span>
+              <span className="text-xs tabular-nums text-muted">{formatDuration((p.finishedAt ?? now) - p.startedAt)}</span>
             )}
           </li>
         ))}
@@ -144,10 +144,10 @@ function StepList({ steps }: { steps: StepState[] }) {
         <ul className="mt-2 flex flex-col gap-1.5 pl-1">
           {steps.map((s) => (
             <li key={s.key} className="flex items-center gap-2 text-[13px] text-muted">
-              {s.status === "running" && <CircleNotch size={13} className="animate-spin text-faint" />}
+              {s.status === "running" && <CircleNotch size={13} className="animate-spin text-muted" />}
               {s.status === "done" && <CheckCircle size={13} className="text-ink" />}
-              {s.status === "skipped" && <MinusCircle size={13} className="text-faint" />}
-              <span className={cn(s.status === "skipped" && "text-faint")}>
+              {s.status === "skipped" && <MinusCircle size={13} className="text-muted" />}
+              <span className={cn(s.status === "skipped" && "line-through decoration-muted/60")}>
                 {s.label}
               </span>
             </li>
@@ -162,7 +162,7 @@ function RetryBox({ sessionId }: { sessionId: string }) {
   const trpc = useTRPC();
   const retry = useMutation(trpc.onboarding.retry.mutationOptions());
   return (
-    <div className="rounded-xl border border-cat-orange/30 bg-cat-orange/10 p-3.5 text-sm">
+    <div className="rounded-xl bg-system-orange/10 p-3.5 text-sm">
       <p>Research stopped on an error.</p>
       <Button variant="ghost" className="mt-3" disabled={retry.isPending} onClick={() => retry.mutate({ sessionId })}>
         <ArrowClockwise size={14} /> Retry
@@ -183,7 +183,7 @@ function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; sta
   ] as const;
 
   return (
-    <div className="rounded-2xl bg-panel p-4 shadow-card ring-1 ring-accent/35">
+    <div className="rounded-2xl bg-canvas p-4 shadow-card">
       <p className="flex items-center gap-2 text-sm font-semibold">
         <Sparkle size={15} className="text-cat-pink" /> Your Brain is ready
       </p>
@@ -197,7 +197,7 @@ function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; sta
       >
         Activate
       </Button>
-      {activate.error && <p className="mt-2 text-xs text-cat-orange">{activate.error.message}</p>}
+      {activate.error && <p className="mt-2 text-xs text-system-orange">{activate.error.message}</p>}
     </div>
   );
 }
@@ -205,7 +205,7 @@ function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; sta
 function CompletedBox() {
   const navigate = useNavigate();
   return (
-    <div className="rounded-2xl bg-panel p-4 text-sm shadow-card">
+    <div className="rounded-2xl bg-canvas p-4 text-sm shadow-card">
       <p className="font-semibold">Onboarding complete</p>
       <div className="mt-3 flex gap-2">
         <Button onClick={() => void navigate({ to: "/home" })}>Open Pluton</Button>

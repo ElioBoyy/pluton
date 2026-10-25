@@ -1,6 +1,6 @@
 import { Plus, X } from "@phosphor-icons/react";
 import { useState } from "react";
-import { Button, Input } from "../../components/ui.tsx";
+import { Button, Input, TextButton } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
 import { COMPANY_SIZE_BANDS, RELATIONS, SECTION_FIELDS, cleanData, type BrainSection, type Field } from "./fields.ts";
 
@@ -26,22 +26,23 @@ export function ItemEditor({
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         onSave(cleanData(section, data));
       }}
     >
+      {/* A macOS form: labels right-aligned in their own column, the fields lined up beside them. */}
       {SECTION_FIELDS[section].map((f) => (
-        <label key={f.key} className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted">
-            {f.label} {"optional" in f && f.optional && <span className="text-faint">(optional)</span>}
+        <label key={f.key} className="grid items-start gap-x-3 gap-y-1.5 sm:grid-cols-[10rem_minmax(0,1fr)]">
+          <span className="text-sm text-muted sm:pt-1.5 sm:text-right">
+            {f.label} {"optional" in f && f.optional && <span className="text-muted/70">(optional)</span>}
           </span>
           <FieldInput field={f} value={data[f.key]} onChange={(v) => set(f.key, v)} />
         </label>
       ))}
-      {error && <p className="text-sm text-cat-orange">{error}</p>}
-      <div className="flex justify-end gap-2">
+      {error && <p className="text-sm text-system-orange sm:pl-[calc(10rem+0.75rem)]">{error}</p>}
+      <div className="mt-1 flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
@@ -53,8 +54,10 @@ export function ItemEditor({
   );
 }
 
+// Fields match the shared Input: a hairline box on the content color, the accent ring on focus.
 const textareaClass =
-  "w-full resize-y rounded-lg border border-line bg-canvas px-3 py-2 text-sm leading-relaxed outline-none placeholder:text-faint focus:focus-ring";
+  "block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm leading-relaxed text-ink outline-none placeholder:text-faint transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent/60 focus:focus-ring";
+const selectClass = "capsule h-7 justify-self-start pl-3 text-sm outline-none focus:focus-ring";
 
 function FieldInput({ field, value, onChange }: { field: Field; value: unknown; onChange: (v: unknown) => void }) {
   switch (field.kind) {
@@ -67,7 +70,7 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
         <select
           value={value as string}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 rounded-lg border border-line bg-canvas px-3 text-sm outline-none focus:focus-ring"
+          className={selectClass}
         >
           {field.options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -81,7 +84,7 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
     case "bands": {
       const selected = new Set((value as string[]) ?? []);
       return (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 sm:pt-0.5">
           {COMPANY_SIZE_BANDS.map((band) => (
             <button
               key={band}
@@ -93,9 +96,10 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
                 // Keep the bands in size order whatever the click order.
                 onChange(COMPANY_SIZE_BANDS.filter((b) => next.has(b)));
               }}
+              aria-pressed={selected.has(band)}
               className={cn(
-                "rounded-full border px-2.5 py-1 text-xs",
-                selected.has(band) ? "border-cat-pink/50 bg-cat-pink/15 text-ink" : "border-line text-muted hover:bg-raised",
+                "inline-flex h-6 items-center rounded-full px-2.5 text-xs tabular-nums transition-[background-color,scale] duration-150 ease-out motion-safe:active:scale-[0.96]",
+                selected.has(band) ? "bg-accent font-medium text-on-accent" : "bg-control text-ink hover:bg-control-hover",
               )}
             >
               {band}
@@ -117,12 +121,18 @@ function ListInput({ values, onChange, placeholder }: { values: string[]; onChan
     setDraft("");
   };
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-raised p-1.5">
+    // A token field: the tokens sit inside one box that takes the focus ring like an Input.
+    <div className="flex min-h-7 flex-wrap items-center gap-1 rounded-md border border-line bg-canvas p-[3px] transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-accent/60 focus-within:focus-ring">
       {values.map((v) => (
-        <span key={v} className="flex items-center gap-1 rounded-md bg-panel px-2 py-1 text-xs">
-          {v}
-          <button type="button" aria-label={`Remove ${v}`} onClick={() => onChange(values.filter((x) => x !== v))} className="text-faint hover:text-ink">
-            <X size={11} />
+        <span key={v} className="inline-flex min-h-5 max-w-full items-center gap-1 rounded-[5px] bg-control py-0.5 pr-1 pl-2 text-xs leading-4">
+          <span className="min-w-0 break-words">{v}</span>
+          <button
+            type="button"
+            aria-label={`Remove ${v}`}
+            onClick={() => onChange(values.filter((x) => x !== v))}
+            className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted hover:bg-control-hover hover:text-ink"
+          >
+            <X size={9} weight="bold" />
           </button>
         </span>
       ))}
@@ -137,7 +147,7 @@ function ListInput({ values, onChange, placeholder }: { values: string[]; onChan
         }}
         onBlur={add}
         placeholder={placeholder ?? "Add and press Enter"}
-        className="min-w-32 flex-1 bg-transparent px-1.5 py-1 text-sm outline-none placeholder:text-faint"
+        className="h-5 min-w-32 flex-1 bg-transparent px-1.5 text-sm outline-none placeholder:text-faint"
       />
     </div>
   );
@@ -155,12 +165,13 @@ function TechInput({
   return (
     <div className="flex flex-col gap-2">
       {values.map((t, i) => (
-        <div key={i} className="flex gap-2">
+        <div key={i} className="flex items-center gap-2">
           <Input value={t.name} onChange={(e) => update(i, { name: e.target.value })} placeholder="Tool name" />
           <select
             value={t.relation}
             onChange={(e) => update(i, { relation: e.target.value })}
-            className="h-9 rounded-lg border border-line bg-raised px-2 text-sm outline-none"
+            aria-label="Relation"
+            className={cn(selectClass, "shrink-0")}
           >
             {RELATIONS.map((r) => (
               <option key={r.value} value={r.value}>
@@ -168,14 +179,19 @@ function TechInput({
               </option>
             ))}
           </select>
-          <button type="button" aria-label="Remove tool" onClick={() => onChange(values.filter((_, j) => j !== i))} className="px-1 text-faint hover:text-ink">
-            <X size={14} />
+          <button
+            type="button"
+            aria-label="Remove tool"
+            onClick={() => onChange(values.filter((_, j) => j !== i))}
+            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-ink"
+          >
+            <X size={13} />
           </button>
         </div>
       ))}
-      <Button type="button" variant="ghost" className="self-start" onClick={() => onChange([...values, { name: "", relation: "uses" }])}>
-        <Plus size={13} /> Add tool
-      </Button>
+      <TextButton className="self-start py-1" onClick={() => onChange([...values, { name: "", relation: "uses" }])}>
+        <Plus size={12} weight="bold" /> Add tool
+      </TextButton>
     </div>
   );
 }

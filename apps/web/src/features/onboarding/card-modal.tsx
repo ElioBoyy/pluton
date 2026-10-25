@@ -26,7 +26,7 @@ export function CardModal({ card, index, total }: { card: CardView; index: numbe
             onAnswer={(selected, custom) => answer.mutate({ cardId: card.id, answer: { selected, custom } })}
           />
         )}
-        {answer.error && <p className="self-start text-sm text-cat-orange">{answer.error.message}</p>}
+        {answer.error && <p className="self-start text-sm text-system-orange">{answer.error.message}</p>}
       </div>
     </div>
   );
@@ -49,7 +49,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
             onChange={(e) => setDraft(e.target.value)}
             rows={9}
             autoFocus
-            className="mt-3 w-full resize-none rounded-lg border border-line bg-canvas p-3 text-sm leading-relaxed outline-none focus:focus-ring"
+            className={"mt-3 leading-relaxed " + "block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"}
           />
         ) : (
           <p className="mt-3 text-sm leading-relaxed text-muted">{card.statement}</p>
@@ -58,7 +58,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
       <div className="flex items-center gap-2">
         {editing ? (
           <>
-            <Button variant="ghost" className="border-transparent" onClick={() => setEditing(false)}>
+            <Button variant="ghost" onClick={() => setEditing(false)}>
               Cancel
             </Button>
             <Button disabled={pending || draft.trim().length < 20} onClick={() => onAnswer({ action: "edit", statement: draft.trim() })}>
@@ -67,7 +67,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
           </>
         ) : (
           <>
-            <Button variant="ghost" className="border-transparent text-muted" onClick={() => setEditing(true)}>
+            <Button variant="ghost" onClick={() => setEditing(true)}>
               Edit Statement
             </Button>
             <Button disabled={pending} onClick={() => onAnswer({ action: "confirm" })}>
@@ -146,7 +146,7 @@ function SelectCard({
             (draft === null ? (
               <button
                 onClick={() => setDraft("")}
-                className="flex items-center gap-2.5 rounded-xl bg-raised px-3 py-3 text-left text-sm text-muted transition-colors duration-150 hover:bg-control-hover"
+                className="flex items-center gap-2.5 rounded-xl bg-canvas px-3 py-3 text-left text-sm text-muted shadow-card transition-colors duration-150 hover:text-ink"
               >
                 <Plus size={14} /> Write your own
               </button>
@@ -162,7 +162,7 @@ function SelectCard({
                   if (e.key === "Escape") setDraft(null);
                 }}
                 placeholder="Type and press Enter"
-                className="rounded-lg border border-line-strong bg-raised px-3 py-3 text-sm outline-none"
+                className="rounded-xl border border-accent/60 bg-canvas px-3 py-3 text-sm text-ink outline-none focus-ring placeholder:text-faint"
               />
             ))}
         </div>
@@ -180,21 +180,22 @@ function Tile({ checked, onClick, label, detail }: { checked: boolean; onClick: 
       onClick={onClick}
       title={detail}
       className={cn(
-        "flex items-start gap-2.5 rounded-lg border px-3 py-3 text-left text-sm transition-colors",
-        checked ? "border-cat-pink/40 bg-cat-pink/10" : "border-line hover:bg-raised",
+        // A tinted tile when picked, a plain raised one otherwise: no outlines.
+        "flex items-start gap-2.5 rounded-xl px-3 py-3 text-left text-sm transition-[background-color,box-shadow] duration-150",
+        checked ? "bg-accent/12 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]" : "bg-canvas shadow-card hover:bg-panel-hover",
       )}
     >
       <span
         className={cn(
-          "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border",
-          checked ? "border-cat-pink bg-cat-pink text-on-accent" : "border-line-strong",
+          "mt-px flex size-4 shrink-0 items-center justify-center rounded-[5px] transition-colors duration-150",
+          checked ? "bg-accent text-on-accent" : "bg-canvas shadow-[inset_0_0_0_1px_var(--color-line-strong)]",
         )}
       >
         {checked && <Check size={11} weight="bold" />}
       </span>
       <span className="min-w-0">
         <span className="block">{label}</span>
-        {detail && <span className="mt-0.5 line-clamp-2 block text-xs text-faint">{detail}</span>}
+        {detail && <span className="mt-0.5 line-clamp-2 block text-xs text-muted">{detail}</span>}
       </span>
     </button>
   );

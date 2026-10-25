@@ -11,6 +11,7 @@ import {
   createPlay,
   getPlay,
   getRun,
+  deletePlay,
   listPlays,
   leadsPerDay,
   BudgetError,
@@ -409,6 +410,7 @@ const playsRouter = router({
     )
     .mutation(({ ctx, input }) => playCall(() => updatePlay(ctx.db, input.id, input.revision, input.patch))),
   run: publicProcedure.input(z.object({ id: z.string() })).mutation(({ ctx, input }) => playCall(() => startRun(ctx.db, input.id))),
+  delete: publicProcedure.input(z.object({ id: z.string() })).mutation(({ ctx, input }) => playCall(() => deletePlay(ctx.db, input.id))),
   estimate: publicProcedure
     .input(z.object({ pipeline: z.enum(PIPELINES), target: z.number().int().min(1).max(50) }))
     .query(async ({ ctx, input }) => {

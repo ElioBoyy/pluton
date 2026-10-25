@@ -1,6 +1,7 @@
 import {
   ArrowSquareOut,
   ChatCircle,
+  Check,
   CircleNotch,
   DownloadSimple,
   Envelope,
@@ -10,14 +11,18 @@ import {
   PaperPlaneTilt,
   ThumbsDown,
   ThumbsUp,
+  Trash,
   X,
 } from "@phosphor-icons/react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { AppRouter } from "@pluton/server/router";
-import { Button, ButtonGroup, GroupButton } from "../../components/ui.tsx";
+import { Button, ButtonGroup, Group, GroupButton, Progress, Segmented, TextButton } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
+import { contextMenu } from "../../components/context-menu.tsx";
+import { useDeleteLeads, useLeadMenu } from "./lead-menu.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
@@ -153,24 +158,28 @@ export function LeadsView({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1" role="tablist">
-          {LEAD_TABS.map((t) => (
-            <button
-              key={t.key}
-              role="tab"
-              aria-selected={tab === t.key}
-              onClick={() => onTab(t.key)}
-              className={cn("rounded-lg px-2.5 py-1 text-sm", tab === t.key ? "bg-raised text-ink" : "text-muted hover:text-ink")}
-            >
-              {t.label} <span className="tabular-nums text-faint">{counts.data?.counts[t.key] ?? "·"}</span>
-            </button>
-          ))}
+        {/* The tab strip is a segmented control; it scrolls sideways rather than wrapping on narrow windows. */}
+        <div className="-m-1 max-w-full min-w-0 overflow-x-auto p-1 [scrollbar-width:none]">
+          {/* Keyed on the counts: Segmented measures its thumb only when the value changes, and the counts widen the labels. */}
+          <Segmented
+            key={LEAD_TABS.map((t) => counts.data?.counts[t.key] ?? "").join(",")}
+            label="Lead status"
+            value={tab}
+            onChange={onTab}
+            options={LEAD_TABS.map((t) => ({
+              value: t.key,
+              label: (
+                <>
+                  {t.label}
+                  <span className="ml-1.5 font-normal tabular-nums text-muted">{counts.data?.counts[t.key] ?? "·"}</span>
+                </>
+              ),
+            }))}
+          />
         </div>
         {progress && progress.total > 0 && (
-          <div className="flex items-center gap-2 text-xs text-muted" title="Leads with your verdict, or already in a campaign">
-            <span className="h-1.5 w-28 overflow-hidden rounded-full bg-raised">
-              <span className="block h-full rounded-full bg-cat-green" style={{ width: `${(progress.reviewed / progress.total) * 100}%` }} />
-            </span>
+          <div className="flex items-center gap-2.5 text-xs whitespace-nowrap text-muted tabular-nums" title="Leads with your verdict, or already in a campaign">
+            <Progress value={progress.reviewed / progress.total} tone="green" className="w-28" />
             {progress.reviewed} of {progress.total} reviewed
           </div>
         )}
@@ -224,28 +233,33 @@ export function LeadsView({
       )}
 
       {list.isLoading ? (
-        <div className="flex justify-center py-12 text-faint">
+        <div className="flex justify-center py-12 text-muted">
           <CircleNotch size={18} className="animate-spin" />
         </div>
       ) : items.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-line py-12 text-center text-sm text-faint">
-          {search || pipeline ? "No lead matches these filters." : tab === "all" ? "No leads yet. Run a search from a Play." : "No leads here."}
-        </p>
+        <Group>
+          <p className="py-12 text-center text-sm text-muted">
+            {search || pipeline ? "No lead matches these filters." : tab === "all" ? "No leads yet. Run a search from a Play." : "No leads here."}
+          </p>
+        </Group>
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-panel shadow-card">
+        <Group className="overflow-x-auto">
+          {/* NSTableView: small secondary headers that never wrap, zebra rows instead of separators. */}
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line text-left text-xs text-faint">
-                <th className="w-9 px-3 py-2">
-                  <input type="checkbox" checked={pageAllSelected || allMatching} onChange={togglePage} aria-label="Select all on this page" className="accent-accent" />
+              <tr className="text-left text-xs whitespace-nowrap text-muted">
+                <th className="w-10 pt-2 pr-1 pb-1.5 pl-4">
+                  <input type="checkbox" checked={pageAllSelected || allMatching} onChange={togglePage} aria-label="Select all on this page" className="block accent-accent" />
                 </th>
-                <th className="px-3 py-2 font-medium">Lead</th>
+                <th className="px-3 pt-2 pb-1.5 font-medium">Lead</th>
                 {COLUMNS.filter((c) => has(c.key)).map((c) => (
-                  <th key={c.key} className="px-3 py-2 font-medium whitespace-nowrap">
+                  <th key={c.key} className={cn("px-3 pt-2 pb-1.5 font-medium", (c.key === "fit" || c.key === "warmness") && "text-right")}>
                     {c.label}
                   </th>
                 ))}
-                <th className="px-3 py-2 text-right font-medium">Actions</th>
+                <th className="w-0 p-0 [@media(hover:none)]:w-auto">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -266,14 +280,14 @@ export function LeadsView({
             </tbody>
           </table>
           {items.length < total && (
-            <div className="flex justify-center border-t border-line p-3">
+            <div className="flex justify-center px-4 py-3">
               <Button variant="ghost" disabled={list.isFetching} onClick={() => setLimit((n) => n + PAGE)}>
                 {list.isFetching && <CircleNotch size={13} className="animate-spin" />}
                 Show more ({total - items.length} left)
               </Button>
             </div>
           )}
-        </div>
+        </Group>
       )}
 
       {openLeadId && <LeadDrawer key={openLeadId} leadId={openLeadId} onClose={() => onOpenLead(undefined)} onStep={step} focusNote={noteFocus} />}
@@ -307,98 +321,131 @@ function Row({
       ? { label: `${STATUS[l.status]!.label} · ${ENROLLMENT[l.sequenceStatus]?.label ?? ""}`, className: STATUS[l.status]!.className }
       : STATUS[l.status]!;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
+  const menu = useLeadMenu({
+    open: () => onOpen(),
+    reject: () => setRejecting(true),
+    addToCampaign: l.sequenceStatus || l.status === "rejected" ? undefined : () => setAdding(true),
+    addNote: () => onOpen(true),
+  });
 
   return (
     <tr
       onClick={() => onOpen()}
-      className={cn("cursor-pointer align-top even:bg-zebra hover:bg-raised", open && "!bg-selected", selected && "!bg-raised")}
+      onContextMenu={contextMenu(() => menu(l))}
+      aria-selected={open || undefined}
+      className={cn(
+        "group/row cursor-pointer even:bg-zebra hover:bg-control",
+        // The open lead reads as the selected row; ticked rows get a lighter tint of the same accent.
+        selected && "!bg-accent/10",
+        open && "!bg-accent/18",
+      )}
     >
-      <td className="px-3 py-3" onClick={stop}>
-        <input type="checkbox" checked={selected} onChange={onToggle} aria-label={`Select ${l.person.name}`} className="accent-accent" />
+      <td className="w-10 py-2 pr-1 pl-4" onClick={stop}>
+        <input type="checkbox" checked={selected} onChange={onToggle} aria-label={`Select ${l.person.name}`} className="block accent-accent" />
       </td>
-      <td className="min-w-52 px-3 py-3">
+      <td className="max-w-56 min-w-40 px-3 py-2">
         <div className="flex items-center gap-2.5">
-          <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-raised text-xs font-semibold text-muted">
+          <span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-control text-[11px] font-semibold text-muted">
             {initials(l.person.name)}
-            {l.isNew && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full border-2 border-panel bg-cat-blue" aria-label="New" />}
+            {l.isNew && <span className="absolute -top-px -right-px size-2.5 rounded-full bg-system-blue ring-2 ring-canvas" aria-label="New" />}
           </span>
           <span className="min-w-0">
-            <span className="flex items-center gap-1.5 font-medium">
-              {l.person.name}
+            <span className="flex items-start gap-1.5">
+              <span className="line-clamp-2 font-medium" title={l.person.name}>
+                {l.person.name}
+              </span>
               {l.person.linkedinUrl && (
-                <a href={l.person.linkedinUrl} target="_blank" rel="noreferrer" onClick={stop} aria-label="LinkedIn profile" className="text-faint hover:text-cat-blue">
+                <a href={l.person.linkedinUrl} target="_blank" rel="noreferrer" onClick={stop} aria-label="LinkedIn profile" className="mt-px shrink-0 text-muted hover:text-system-blue">
                   <LinkedinLogo size={14} weight="fill" />
                 </a>
               )}
             </span>
-            {!has("position") && <span className="block truncate text-xs text-muted">{l.person.title}</span>}
+            {!has("position") && <span className="line-clamp-1 text-xs text-muted">{l.person.title}</span>}
           </span>
         </div>
       </td>
       {has("position") && (
-        <td className="max-w-56 px-3 py-3 text-muted">
+        <td className="max-w-48 min-w-32 px-3 py-2 text-muted">
           <p className="line-clamp-2" title={l.person.title ?? undefined}>
             {l.person.title ?? "—"}
           </p>
         </td>
       )}
       {has("company") && (
-        <td className="max-w-48 px-3 py-3">
-          <span className="text-muted">{l.person.company ?? "—"}</span>
-          {l.person.companyWebsite && (
-            <a
-              href={/^https?:/.test(l.person.companyWebsite) ? l.person.companyWebsite : `https://${l.person.companyWebsite}`}
-              target="_blank"
-              rel="noreferrer"
-              onClick={stop}
-              aria-label="Company website"
-              className="ml-1 inline-flex text-faint hover:text-ink"
-            >
-              <ArrowSquareOut size={12} />
-            </a>
-          )}
+        <td className="max-w-48 px-3 py-2">
+          <span className="line-clamp-2 text-muted">
+            {l.person.company ?? "—"}
+            {l.person.companyWebsite && (
+              <a
+                href={/^https?:/.test(l.person.companyWebsite) ? l.person.companyWebsite : `https://${l.person.companyWebsite}`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={stop}
+                aria-label="Company website"
+                className="ml-1 inline-flex align-[-1px] text-muted hover:text-ink"
+              >
+                <ArrowSquareOut size={12} />
+              </a>
+            )}
+          </span>
         </td>
       )}
       {has("location") && (
-        <td className="max-w-40 px-3 py-3 text-muted">
+        <td className="max-w-40 px-3 py-2 text-muted">
           <p className="line-clamp-2">{l.person.location ?? "—"}</p>
         </td>
       )}
       {has("status") && (
-        <td className="px-3 py-3">
-          <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap", status.className)}>{status.label}</span>
+        <td className="px-3 py-2">
+          <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-xs font-medium whitespace-nowrap", status.className)}>{status.label}</span>
         </td>
       )}
       {has("why") && (
-        <td className="max-w-80 px-3 py-3" title={`${l.reason}\n\n${l.signal}`}>
-          <p className="text-sm">{l.signalLabel}</p>
+        <td className="max-w-72 min-w-48 px-3 py-2" title={`${l.reason}\n\n${l.signal}`}>
+          <p className="line-clamp-1 text-sm">{l.signalLabel}</p>
           <p className="line-clamp-2 text-xs text-muted">{l.reason}</p>
         </td>
       )}
-      {has("fit") && <td className="px-3 py-3 text-xs tabular-nums text-muted">{l.fit}</td>}
-      {has("warmness") && <td className="px-3 py-3 text-xs tabular-nums text-muted">{l.warmness}</td>}
+      {has("fit") && <td className="px-3 py-2 text-right tabular-nums text-muted">{l.fit}</td>}
+      {has("warmness") && <td className="px-3 py-2 text-right tabular-nums text-muted">{l.warmness}</td>}
       {has("email") && (
-        <td className="max-w-52 truncate px-3 py-3 text-xs text-muted">
+        <td className="max-w-52 truncate px-3 py-2 text-muted">
           {l.person.email ? (
-            <span className={cn(l.person.emailSource === "pattern" && "text-cat-yellow")} title={l.person.emailSource === "pattern" ? "Guessed, unverified" : undefined}>
+            <span className={cn(l.person.emailSource === "pattern" && "text-[color-mix(in_srgb,var(--color-system-yellow),black_45%)] dark:text-system-yellow")} title={l.person.emailSource === "pattern" ? "Guessed, unverified" : undefined}>
               {l.person.email}
             </span>
           ) : l.person.emailCheckedAt ? (
-            <span className="text-faint">None found</span>
+            <span>None found</span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-faint">
+            <span className="inline-flex items-center gap-1">
               <Envelope size={12} /> Open to find
             </span>
           )}
         </td>
       )}
-      {has("play") && <td className="max-w-40 px-3 py-3 text-xs text-muted">{l.playName}</td>}
-      {has("found") && <td className="px-3 py-3 text-xs whitespace-nowrap text-faint">{new Date(l.createdAt).toLocaleDateString()}</td>}
-      <td className="px-3 py-2.5" onClick={stop}>
-        <div className="relative flex justify-end gap-0.5">
+      {has("play") && (
+        <td className="max-w-40 px-3 py-2 text-muted">
+          <p className="line-clamp-2">{l.playName}</p>
+        </td>
+      )}
+      {has("found") && <td className="px-3 py-2 whitespace-nowrap text-muted tabular-nums">{new Date(l.createdAt).toLocaleDateString()}</td>}
+      {/*
+        * With a pointer, the actions float over the row's trailing edge in a small capsule, on hover or
+        * keyboard focus, as in Mail, so they take no column. On touch screens they sit in their own column.
+        */}
+      <td className="sticky right-0 w-0 p-0 [@media(hover:none)]:static [@media(hover:none)]:w-auto [@media(hover:none)]:py-1.5 [@media(hover:none)]:pr-3" onClick={stop}>
+        <div
+          className={cn(
+            "flex justify-end gap-0.5 transition-opacity duration-150",
+            "[@media(hover:hover)]:capsule [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
+            !rejecting &&
+              "[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:pointer-events-auto [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
+          )}
+        >
           <RowAction
             label="Good lead"
             active={l.status === "approved"}
+            tone="green"
             onClick={() => void review.run({ leadIds: [l.id], verdict: "up", label: l.person.name })}
             disabled={review.isPending}
           >
@@ -432,12 +479,14 @@ function Row({
   );
 }
 
+/** A small round icon button; a given verdict stays tinted so it reads at a glance. */
 function RowAction({
   ref,
   label,
   onClick,
   children,
   active,
+  tone,
   disabled,
 }: {
   ref?: React.Ref<HTMLButtonElement>;
@@ -445,6 +494,7 @@ function RowAction({
   onClick: () => void;
   children: React.ReactNode;
   active?: boolean;
+  tone?: "green";
   disabled?: boolean;
 }) {
   return (
@@ -453,8 +503,13 @@ function RowAction({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      aria-pressed={active}
       title={label}
-      className={cn("rounded-md p-1.5 hover:bg-raised hover:text-ink disabled:opacity-50", active ? "text-ink" : "text-faint")}
+      className={cn(
+        "flex size-7 items-center justify-center rounded-full transition-[background-color,color,scale] duration-150 ease-out",
+        "enabled:hover:bg-control-hover enabled:hover:text-ink motion-safe:enabled:active:scale-90 disabled:opacity-50",
+        active ? (tone === "green" ? "text-system-green" : "text-ink") : "text-muted",
+      )}
     >
       {children}
     </button>
@@ -487,6 +542,7 @@ function BulkBar({
   const [rejecting, setRejecting] = useState(false);
   const rejectRef = useRef<HTMLDivElement>(null);
   const exportCsv = useMutation(trpc.leads.exportCsv.mutationOptions());
+  const deleteLeads = useDeleteLeads(onClear);
   const resolveIds = async () => ids ?? (await queryClient.fetchQuery(trpc.leads.ids.queryOptions(filter)));
   const label = `${count} lead${count === 1 ? "" : "s"}`;
 
@@ -497,13 +553,10 @@ function BulkBar({
   };
 
   return (
-    <div className="sticky top-2 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-panel px-3 py-2 text-sm shadow-[var(--shadow-popover)]">
-      <span className="font-medium">{count} selected</span>
-      {canSelectAll && (
-        <button onClick={onSelectAll} className="text-muted underline underline-offset-2 hover:text-ink">
-          Select all {total}
-        </button>
-      )}
+    // A floating Liquid Glass bar, like the Finder's selection toolbar; it stays in view while the table scrolls.
+    <div className="glass sticky top-2 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-[22px] py-1.5 pr-1.5 pl-4 text-sm">
+      <span className="font-medium tabular-nums">{count} selected</span>
+      {canSelectAll && <TextButton onClick={onSelectAll}>Select all {total}</TextButton>}
       <span className="flex-1" />
       <Button className="h-8" disabled={review.isPending} onClick={() => void act("up")}>
         <ThumbsUp size={14} /> Approve {count}
@@ -526,6 +579,13 @@ function BulkBar({
       </div>
       <BulkAddToCampaign resolveIds={resolveIds} count={count} onDone={onClear} />
       <BulkFindEmails resolveIds={resolveIds} count={count} />
+      <Button
+        variant="ghost"
+        className="h-8 text-system-red"
+        onClick={async () => void deleteLeads(await resolveIds(), `${count} lead${count === 1 ? "" : "s"}`)}
+      >
+        <Trash size={14} /> Delete
+      </Button>
       <BulkCrmExport resolveIds={resolveIds} count={count} />
       <Button
         variant="ghost"
@@ -540,7 +600,12 @@ function BulkBar({
       >
         <DownloadSimple size={14} /> Export {count}
       </Button>
-      <button onClick={onClear} aria-label="Clear selection" className="rounded-md p-1.5 text-faint hover:bg-raised hover:text-ink">
+      <button
+        onClick={onClear}
+        aria-label="Clear selection"
+        title="Clear selection"
+        className="flex size-8 items-center justify-center rounded-full text-muted transition-[background-color,color,scale] duration-150 hover:bg-control hover:text-ink motion-safe:active:scale-90"
+      >
         <X size={14} />
       </button>
     </div>
@@ -626,11 +691,23 @@ function ExportButton({ filter, count }: { filter: Filter; count: number }) {
 function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c: ColumnKey[]) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const a = ref.current?.getBoundingClientRect();
+    if (a) setPos({ top: a.bottom + 8, right: window.innerWidth - a.right });
+    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && !menu.current?.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const close = () => setOpen(false);
     document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", close);
+    };
   }, [open]);
   const ordered = useMemo(() => (c: ColumnKey[]) => COLUMNS.map((x) => x.key).filter((k) => c.includes(k)), []);
   return (
@@ -638,21 +715,37 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
       <GroupButton className="gap-1.5 px-3 text-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <GearSix size={14} /> Columns
       </GroupButton>
-      {open && (
-        <div className="popover absolute top-full right-0 z-30 mt-1.5 w-48 origin-top-right rounded-xl p-2">
-          {COLUMNS.map((c) => (
-            <label key={c.key} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-raised">
-              <input
-                type="checkbox"
-                className="accent-accent"
-                checked={columns.includes(c.key)}
-                onChange={() => onChange(ordered(columns.includes(c.key) ? columns.filter((x) => x !== c.key) : [...columns, c.key]))}
-              />
-              {c.label}
-            </label>
-          ))}
-        </div>
-      )}
+      {open &&
+        pos &&
+        // In a portal: the toolbar capsule's backdrop blur is its own stacking context, which would leave the menu under the table.
+        createPortal(
+          <div
+            ref={menu}
+            role="menu"
+            aria-label="Columns"
+            style={{ top: pos.top, right: pos.right }}
+            className="popover fixed z-50 w-48 origin-top-right rounded-xl p-1.5"
+          >
+            {/* A macOS menu: checkmarks in the leading gutter, rounded highlights inset from the edge. */}
+            {COLUMNS.map((c) => {
+              const on = columns.includes(c.key);
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={on}
+                  onClick={() => onChange(ordered(on ? columns.filter((x) => x !== c.key) : [...columns, c.key]))}
+                  className="flex h-7 w-full items-center gap-1.5 rounded-md pr-3 pl-1.5 text-left text-sm text-ink hover:bg-raised"
+                >
+                  <span className="flex w-4 justify-center">{on && <Check size={12} weight="bold" />}</span>
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

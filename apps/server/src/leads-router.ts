@@ -5,6 +5,7 @@ import {
   LEAD_TABS,
   addLeadEvent,
   addLeadNote,
+  deleteLeads,
   enqueueJob,
   exportLeadsCsv,
   findActiveJob,
@@ -64,6 +65,10 @@ export const leadsRouter = router({
   undoReview: publicProcedure
     .input(z.object({ feedbackIds: z.array(z.string()).min(1).max(5000) }))
     .mutation(async ({ ctx, input }) => withdrawFeedback(ctx.db, await workspaceId(ctx.db), input.feedbackIds)),
+  /** Deletes for good; to keep a lead out of searches, reject it instead. */
+  delete: publicProcedure.input(idsInput).mutation(async ({ ctx, input }) => ({
+    deleted: await deleteLeads(ctx.db, await workspaceId(ctx.db), input.leadIds),
+  })),
   addNote: publicProcedure
     .input(z.object({ leadId: z.string(), text: z.string().trim().min(1).max(2000) }))
     .mutation(({ ctx, input }) => addLeadNote(ctx.db, input.leadId, input.text)),
