@@ -1,5 +1,6 @@
 import { executeCopilotAction, runCopilotTurn } from "@pluton/agent";
-import { copilotChannel, emitStreamEvent, getCopilotAction, jobPayloads, type JobHandler } from "@pluton/core";
+import { copilotChannel, emitStreamEvent, getJob, jobPayloads, type JobHandler } from "@pluton/core";
+import type { Db } from "@pluton/db";
 import { buildPlutonTools } from "@pluton/server/agent-tools";
 import { localized } from "@pluton/i18n/server";
 import messages from "../messages/copilot.ts";
@@ -8,9 +9,11 @@ const t = localized(messages);
 
 /** One agent turn on a conversation; an approved action runs first and the agent reports on it. */
 export const copilotTurn: JobHandler = async ({ db, job, signal }) => {
-  const { conversationId, actionId } = jobPayloads["copilot.turn"].parse(job.payload);
+  const { conversationId, actionId, after } = jobPayloads["copilot.turn"].parse(job.payload);
   const tools = buildPlutonTools(db, "agent");
   try {
+    // Approved while the agent was still answering: wait for that answer to end, then go at once.
+    if (after) await waitForJobEnd(db, after, signal);
     const justApproved = actionId ? await executeCopilotAction(db, actionId, tools) : undefined;
     // An action someone else already ran (double approval) needs no new report.
     if (actionId && justApproved?.status !== "completed" && justApproved?.status !== "failed") return { skipped: true };
@@ -28,3 +31,12 @@ export const copilotTurn: JobHandler = async ({ db, job, signal }) => {
     await emitStreamEvent(db, copilotChannel(conversationId), "turn_end", { jobId: job.id });
   }
 };
+
+async function waitForJobEnd(db: Db, jobId: string, signal: AbortSignal) {
+  while (!signal.aborted) {
+    const job = await getJob(db, jobId);
+    if (!job || (job.status !== "queued" && job.status !== "running")) return;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  signal.throwIfAborted();
+}

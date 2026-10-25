@@ -109,10 +109,25 @@ export async function activeTurn(db: Db, conversationId: string) {
   });
 }
 
-/** Queues one agent turn. With `actionId`, the approved action runs first and the agent reports on it. */
-export async function startCopilotTurn(db: Db, workspaceId: string, conversationId: string, actionId?: string) {
+/** Every turn of a conversation still queued or running, newest first. */
+export async function activeTurns(db: Db, conversationId: string) {
+  return db.query.jobs.findMany({
+    where: and(
+      eq(jobs.type, "copilot.turn"),
+      inArray(jobs.status, ["queued", "running"]),
+      sql`json_extract(${jobs.payload}, '$.conversationId') = ${conversationId}`,
+    ),
+    orderBy: desc(jobs.createdAt),
+  });
+}
+
+/**
+ * Queues one agent turn. With `actionId`, the approved action runs first and the agent reports on it.
+ * With `after`, it waits for that turn to end, so an action approved mid-answer runs right after it.
+ */
+export async function startCopilotTurn(db: Db, workspaceId: string, conversationId: string, actionId?: string, after?: string) {
   // A turn writes messages as it goes: retrying one would repeat them.
-  const job = await enqueueJob(db, { type: "copilot.turn", workspaceId, payload: { conversationId, actionId }, maxAttempts: 1 });
+  const job = await enqueueJob(db, { type: "copilot.turn", workspaceId, payload: { conversationId, actionId, after }, maxAttempts: 1 });
   await emitStreamEvent(db, copilotChannel(conversationId), "turn", { jobId: job.id });
   return job;
 }

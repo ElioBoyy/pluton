@@ -450,8 +450,26 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
   );
 }
 
+type EmailStep = { source: "research" | "website" | "hunter"; outcome: string; detail?: string };
+const STEP_OUTCOMES = ["found", "guess", "nothing", "no_website", "no_key", "no_company", "error"] as const;
+
+/** Each source an email search tried, in order: "Research: nothing · Company website: nothing · Hunter: no key". */
+function emailSteps(p: Record<string, unknown>) {
+  const steps = p.steps as EmailStep[] | undefined;
+  if (!steps?.length) return null;
+  return steps
+    .map((step) => {
+      const source = step.source === "hunter" ? "Hunter" : translate("leads", `emailStep.${step.source}`);
+      const outcome = (STEP_OUTCOMES as readonly string[]).includes(step.outcome)
+        ? translate("leads", `emailStep.${step.outcome as (typeof STEP_OUTCOMES)[number]}`)
+        : step.outcome;
+      return translate("leads", "emailStep.item", { source, outcome: step.detail ? `${outcome} (${step.detail})` : outcome });
+    })
+    .join(" · ");
+}
+
 /** Texts are built when rendered, so they follow the current language. */
-const EVENT: Record<string, { icon: Icon; text: (p: Record<string, unknown>) => string; tone?: string }> = {
+const EVENT: Record<string, { icon: Icon; text: (p: Record<string, unknown>) => string; detail?: (p: Record<string, unknown>) => string | null; tone?: string }> = {
   found: { icon: Target, text: (p) => translate("leads", "event.found", { stage: stageLabel(String(p.stage)), fit: String(p.fit) }) },
   approved: { icon: ThumbsUp, text: () => translate("leads", "verdict.markedGood"), tone: "text-system-green" },
   rejected: {
@@ -467,9 +485,10 @@ const EVENT: Record<string, { icon: Icon; text: (p: Record<string, unknown>) => 
   email_found: {
     icon: Envelope,
     text: (p) => translate("leads", "event.emailFound", { email: String(p.email), source: emailSourceLabel(String(p.source)) }),
+    detail: emailSteps,
     tone: "text-system-green",
   },
-  email_not_found: { icon: Envelope, text: () => translate("leads", "event.emailNotFound") },
+  email_not_found: { icon: Envelope, text: () => translate("leads", "event.emailNotFound"), detail: emailSteps },
   linkedin_found: { icon: LinkedinLogo, text: () => translate("leads", "event.linkedinFound") },
   linkedin_not_found: { icon: LinkedinLogo, text: () => translate("leads", "event.linkedinNotFound") },
   exported: { icon: CheckCircle, text: () => translate("leads", "event.exported") },
@@ -484,6 +503,7 @@ function TimelineItem({ event }: { event: TimelineEvent }) {
       <IconCmp size={15} className={cn("mt-px shrink-0 text-muted", def.tone)} />
       <div className="min-w-0 flex-1">
         <p className={cn("text-sm break-words", event.kind === "note" ? "text-ink" : "text-muted")}>{def.text(event.payload)}</p>
+        {def.detail?.(event.payload) && <p className="mt-0.5 text-xs break-words text-muted">{def.detail(event.payload)}</p>}
         <p className="mt-0.5 text-xs text-muted tabular-nums">{formatDateTime(event.createdAt)}</p>
       </div>
     </Row>

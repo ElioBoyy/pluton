@@ -5,7 +5,6 @@ export default defineMessages({
   en: {
     notFound: "This conversation no longer exists.",
     stillAnswering: "The agent is still answering.",
-    approveLater: "The agent is still answering. Approve once it’s done.",
     "already.proposed": "This action is already waiting for approval.",
     "already.approved": "This action is already approved.",
     "already.rejected": "This action is already rejected.",
@@ -16,7 +15,6 @@ export default defineMessages({
   fr: {
     notFound: "Cette conversation n’existe plus.",
     stillAnswering: "L’agent est encore en train de répondre.",
-    approveLater: "L’agent est encore en train de répondre. Approuvez une fois qu’il a terminé.",
     "already.proposed": "Cette action attend déjà une approbation.",
     "already.approved": "Cette action est déjà approuvée.",
     "already.rejected": "Cette action est déjà rejetée.",
@@ -27,7 +25,6 @@ export default defineMessages({
   it: {
     notFound: "Questa conversazione non esiste più.",
     stillAnswering: "L’agente sta ancora rispondendo.",
-    approveLater: "L’agente sta ancora rispondendo. Approva quando ha finito.",
     "already.proposed": "Questa azione è già in attesa di approvazione.",
     "already.approved": "Questa azione è già approvata.",
     "already.rejected": "Questa azione è già rifiutata.",
@@ -38,7 +35,6 @@ export default defineMessages({
   es: {
     notFound: "Esta conversación ya no existe.",
     stillAnswering: "El agente todavía está respondiendo.",
-    approveLater: "El agente todavía está respondiendo. Apruébalo cuando termine.",
     "already.proposed": "Esta acción ya está esperando aprobación.",
     "already.approved": "Esta acción ya está aprobada.",
     "already.rejected": "Esta acción ya está rechazada.",
@@ -49,7 +45,6 @@ export default defineMessages({
   de: {
     notFound: "Diese Unterhaltung gibt es nicht mehr.",
     stillAnswering: "Der Agent antwortet noch.",
-    approveLater: "Der Agent antwortet noch. Geben Sie frei, sobald er fertig ist.",
     "already.proposed": "Diese Aktion wartet bereits auf Freigabe.",
     "already.approved": "Diese Aktion ist bereits freigegeben.",
     "already.rejected": "Diese Aktion ist bereits abgelehnt.",
