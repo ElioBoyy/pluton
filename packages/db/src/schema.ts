@@ -600,7 +600,7 @@ export const campaigns = sqliteTable(
       .references(() => plays.id, { onDelete: "cascade" }),
     status: text("status", { enum: CAMPAIGN_STATUSES }).notNull().default("active"),
     steps: text("steps", { mode: "json" }).$type<CampaignStep[]>().notNull(),
-    /** Optional invitation note (300 characters max on LinkedIn); none by default, like the reference. */
+    /** Optional invitation note (300 characters max on LinkedIn); none by default. */
     inviteNote: text("invite_note"),
     /** An invitation not accepted after this many days ends the sequence for that lead. */
     inviteExpiryDays: integer("invite_expiry_days").notNull().default(7),
@@ -617,7 +617,7 @@ export const campaigns = sqliteTable(
   (t) => [uniqueIndex("campaign_play_idx").on(t.playId)],
 );
 
-/** What last happened to a lead in its sequence (the reference's enrollment states). */
+/** What last happened to a lead in its sequence (its enrollment state). */
 export const ENROLLMENT_STATUSES = [
   "enrolled",
   "profile_visited",

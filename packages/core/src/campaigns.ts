@@ -42,7 +42,7 @@ import { getOrCreateDefaultWorkspace } from "./workspaces.ts";
 const HOUR = 3_600_000;
 export const UNDO_MINUTES = 10;
 
-/** The reference sequence: visit → follow → like → invite (no note) → 3 messages, 6 h then 3 days apart. */
+/** The default sequence: visit → follow → like → invite (no note) → 3 messages, 6 h then 3 days apart. */
 export function defaultSteps(): CampaignStep[] {
   const step = (kind: CampaignStep["kind"], delayHours: number, extra: Partial<CampaignStep> = {}): CampaignStep => ({
     id: crypto.randomUUID(),

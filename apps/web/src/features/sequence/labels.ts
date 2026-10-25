@@ -1,4 +1,4 @@
-/** Enrollment states, worded like the reference ("Preparing messages", "Waiting for LinkedIn"). */
+/** Enrollment states, worded for people ("Preparing messages", "Waiting for LinkedIn"). */
 export const ENROLLMENT: Record<string, { label: string; className: string }> = {
   enrolled: { label: "Preparing messages", className: "bg-system-blue/15 text-system-blue" },
   profile_visited: { label: "Profile visited", className: "bg-system-blue/15 text-system-blue" },

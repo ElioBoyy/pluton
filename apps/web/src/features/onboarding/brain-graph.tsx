@@ -25,7 +25,7 @@ type HubDef = { id: string; label: string; color: string; parent?: string; leave
 const of = (items: BrainItemView[], section: string) => items.filter((i) => i.section === section).map((i) => i.data as Record<string, any>);
 const one = (items: BrainItemView[], section: string) => of(items, section)[0];
 
-/** Hubs mirror the reference graph: each Brain section becomes a colored cluster around the company. */
+/** Each Brain section becomes a colored cluster around the company. */
 const HUBS: HubDef[] = [
   { id: "company", label: "Company", color: C.pink, leaves: (i) => [one(i, "company")?.category, ...(one(i, "company")?.products ?? [])] },
   { id: "market", label: "Market profile", color: C.pink, leaves: (i) => one(i, "icp")?.geographies ?? one(i, "company")?.geographies ?? [] },

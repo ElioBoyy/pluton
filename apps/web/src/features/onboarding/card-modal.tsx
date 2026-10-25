@@ -6,7 +6,7 @@ import { Button } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 
-/** One pending card at a time, centered over the dimmed graph, with actions below it like the reference. */
+/** One pending card at a time, centered over the dimmed graph, with actions below it. */
 export function CardModal({ card, index, total }: { card: CardView; index: number; total: number }) {
   const trpc = useTRPC();
   const answer = useMutation(trpc.onboarding.answerCard.mutationOptions());

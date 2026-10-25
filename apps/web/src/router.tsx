@@ -26,7 +26,7 @@ const rootRoute = createRootRoute({
   ),
 });
 
-// Full-screen flow without the sidebar, like the reference onboarding.
+// Full-screen flow without the sidebar.
 const onboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/onboarding",
