@@ -86,7 +86,7 @@ function ProviderCard({
           <p className="mt-1.5 text-sm text-muted">{p.description}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {p.powers.map((s) => (
-              <span key={s} className="rounded-md border border-line px-2 py-0.5 text-xs text-faint">
+              <span key={s} className="rounded-md bg-raised px-2 py-0.5 text-xs text-faint">
                 {s}
               </span>
             ))}

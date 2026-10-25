@@ -18,16 +18,20 @@ export function Composer({
   autoFocus?: boolean;
 }) {
   const [text, setText] = useState("");
+  const ready = Boolean(text.trim()) && !disabled;
   const submit = () => {
-    if (!text.trim() || disabled) return;
+    if (!ready) return;
     onSend(text.trim());
     setText("");
   };
+  const stopping = disabled && onStop;
   return (
-    <div className="border-t border-line p-3 sm:p-4">
+    <div className="px-3 pt-2 pb-3 sm:px-4 sm:pb-5">
       <div
         className={cn(
-          "mx-auto flex max-w-2xl items-end gap-2 rounded-xl border border-line bg-panel p-2 focus-within:border-line-strong",
+          // A floating field: a tone step above the page and a soft shadow, the ring only while focused.
+          "mx-auto flex max-w-2xl items-end gap-2 rounded-[22px] bg-panel py-1.5 pr-1.5 pl-4 shadow-card",
+          "transition-shadow duration-200 ease-out focus-within:shadow-[var(--shadow-card),0_0_0_3px_color-mix(in_srgb,var(--color-accent)_22%,transparent)]",
           disabled && "ai-glow",
         )}
       >
@@ -35,34 +39,35 @@ export function Composer({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               submit();
             }
           }}
-          rows={2}
+          rows={1}
           autoFocus={autoFocus}
           placeholder={placeholder}
-          className="flex-1 resize-none bg-transparent px-2 py-1 text-sm outline-none placeholder:text-faint"
+          className="max-h-48 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-base outline-none [field-sizing:content] placeholder:text-faint"
         />
-        {disabled && onStop ? (
-          <button
-            aria-label="Stop"
-            onClick={onStop}
-            className="flex size-8 items-center justify-center rounded-full bg-control text-ink hover:bg-control-hover"
-          >
-            <Stop size={14} weight="fill" />
-          </button>
-        ) : (
         <button
-          aria-label="Send"
-          onClick={submit}
-          disabled={disabled || !text.trim()}
-          className="flex size-8 items-center justify-center rounded-full bg-accent text-on-accent disabled:opacity-40"
+          aria-label={stopping ? "Stop" : "Send"}
+          onClick={stopping ? onStop : submit}
+          disabled={!stopping && !ready}
+          className={cn(
+            "flex size-8 shrink-0 items-center justify-center rounded-full",
+            "transition-[background-color,color,scale,opacity] duration-150 ease-out motion-safe:enabled:active:scale-90",
+            stopping
+              ? "bg-ink text-canvas"
+              : ready
+                ? "bg-accent text-on-accent hover:brightness-110"
+                : "bg-control text-faint",
+          )}
         >
-          <ArrowUp size={15} weight="bold" />
+          {/* The icons swap in place, so the button morphs instead of jumping. */}
+          <span key={stopping ? "stop" : "send"} className="flex motion-safe:animate-[icon-in_200ms_var(--ease-out)]">
+            {stopping ? <Stop size={12} weight="fill" /> : <ArrowUp size={16} weight="bold" />}
+          </span>
         </button>
-        )}
       </div>
     </div>
   );

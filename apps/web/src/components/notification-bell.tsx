@@ -83,7 +83,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
     <div
       ref={ref}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: Math.min(WIDTH, window.innerWidth - 16) }}
-      className="glass fixed z-50 flex max-h-[70vh] flex-col overflow-hidden rounded-xl"
+      className="glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden rounded-2xl origin-top-left"
       role="dialog"
       aria-label="Notifications"
     >

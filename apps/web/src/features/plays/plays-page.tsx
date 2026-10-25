@@ -65,7 +65,7 @@ export function PlaysPage() {
                 to="/plays/$playId"
                 params={{ playId: p.id }}
                 className={cn(
-                  "block rounded-xl border border-line bg-panel p-4 transition-colors hover:border-line-strong",
+                  "block rounded-2xl bg-panel p-4 shadow-card transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.99]",
                   p.lastRun && (p.lastRun.status === "running" || p.lastRun.status === "queued") && "ai-glow",
                 )}
               >
@@ -101,7 +101,7 @@ export function PlaysPage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-line bg-panel p-4">
+    <div className="rounded-2xl bg-panel p-4 shadow-card">
       <p className="text-xs text-faint">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
     </div>

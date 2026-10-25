@@ -41,7 +41,7 @@ export function ItemFields({ section, data, skipTitle }: { section: BrainSection
               {f.kind === "list" || f.kind === "bands" ? (
                 <span className="flex flex-wrap gap-1.5">
                   {(v as string[]).map((s) => (
-                    <span key={s} className="rounded-md border border-line bg-raised px-2 py-0.5 text-xs">
+                    <span key={s} className="rounded-md bg-raised px-2 py-0.5 text-xs">
                       {s}
                     </span>
                   ))}
@@ -49,7 +49,7 @@ export function ItemFields({ section, data, skipTitle }: { section: BrainSection
               ) : f.kind === "tech" ? (
                 <span className="flex flex-wrap gap-1.5">
                   {(v as Array<{ name: string; relation: string }>).map((t) => (
-                    <span key={t.name} className="rounded-md border border-line bg-raised px-2 py-0.5 text-xs">
+                    <span key={t.name} className="rounded-md bg-raised px-2 py-0.5 text-xs">
                       {t.name} <span className="text-faint">· {RELATIONS.find((r) => r.value === t.relation)?.label}</span>
                     </span>
                   ))}
@@ -133,7 +133,7 @@ export function ListSection({ section, items, description }: { section: BrainSec
       </div>
 
       {editingId === "new" && (
-        <div className="mb-4 rounded-lg border border-line-strong p-4">
+        <div className="mb-4 rounded-xl bg-raised p-4">
           <ItemEditor
             section={section}
             initial={emptyData(section)}
@@ -148,7 +148,7 @@ export function ListSection({ section, items, description }: { section: BrainSec
       <ul className="grid gap-2.5 md:grid-cols-2">
         {items.map((item) =>
           editingId === item.id ? (
-            <li key={item.id} className="rounded-lg border border-line-strong p-4 md:col-span-2">
+            <li key={item.id} className="rounded-xl bg-raised p-4 md:col-span-2">
               <ItemEditor
                 section={section}
                 initial={item.data}
@@ -161,7 +161,7 @@ export function ListSection({ section, items, description }: { section: BrainSec
               />
             </li>
           ) : (
-            <li key={item.id} className="group rounded-lg border border-line bg-raised/40 p-3.5">
+            <li key={item.id} className="group rounded-xl bg-raised p-3.5">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-medium">{titleOf(section, item.data)}</p>
                 <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">

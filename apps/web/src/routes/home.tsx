@@ -6,6 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { Button, Card, PageHeader } from "../components/ui.tsx";
 import { ActivityFeed } from "../features/activity/activity-feed.tsx";
 import { DigestView } from "../features/activity/digest-view.tsx";
+import { cn } from "../lib/cn.ts";
 import { usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
@@ -28,10 +29,10 @@ export function HomePage() {
         <SpendCard />
       </div>
 
-      <h2 className="mb-3 text-xs font-semibold tracking-wide text-faint uppercase">System</h2>
+      <h2 className="mb-3 text-lg font-semibold tracking-[-0.01em]">System</h2>
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <h2 className="mb-4 text-sm font-medium">System</h2>
+          <h2 className="mb-4 text-sm font-semibold">Services</h2>
           <dl className="flex flex-col gap-2.5 text-sm">
             <Row label="API server">
               {health.isError ? (
@@ -101,13 +102,16 @@ function SpendCard() {
   return (
     <Card className="self-start">
       <h2 className="text-sm font-semibold">Spend this period</h2>
-      <p className="mt-2 text-2xl font-semibold tabular-nums">
+      <p className="mt-3 text-[34px] leading-[40px] font-semibold tracking-[-0.03em] tabular-nums">
         {usd(s.spentMicroUsd)}
         {s.limitMicroUsd !== null && <span className="text-sm font-normal text-muted"> of {usd(s.limitMicroUsd)}</span>}
       </p>
       {share !== null && (
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-raised">
-          <div className={share >= 1 ? "h-full bg-system-red" : share >= 0.8 ? "h-full bg-system-orange" : "h-full bg-accent"} style={{ width: `${share * 100}%` }} />
+          <div
+            className={cn("h-full origin-left rounded-full transition-[scale] duration-500 ease-out", share >= 1 ? "bg-system-red" : share >= 0.8 ? "bg-system-orange" : "bg-accent")}
+            style={{ scale: `${share} 1` }}
+          />
         </div>
       )}
       <p className="mt-2 text-xs text-muted">
@@ -156,7 +160,7 @@ function PingCard() {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-medium">Worker &amp; live events</h2>
+        <h2 className="text-sm font-semibold">Worker &amp; live events</h2>
         <Button
           variant="ghost"
           disabled={enqueue.isPending || running}

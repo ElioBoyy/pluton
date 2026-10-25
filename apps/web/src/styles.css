@@ -33,7 +33,8 @@
 
   /* Light appearance. */
   --color-canvas: #ffffff; /* content background */
-  --color-panel: #f5f5f5; /* boxes, grouped content */
+  --color-panel: #f5f5f7; /* boxes, grouped content */
+  --color-panel-hover: #efeff1;
   --color-raised: rgb(0 0 0 / 0.05); /* fills: hover, wells */
   --color-selected: rgb(0 0 0 / 0.06); /* sidebar selection */
   --color-sidebar: #e6e6e6; /* opaque, full height, flush with the window edge */
@@ -79,6 +80,10 @@
   /* For raised surfaces inside content (a selected segment, a card picker), not for buttons. */
   --shadow-control: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.08);
   --shadow-window: 0 0 0 0.5px rgb(0 0 0 / 0.1), 0 8px 40px rgb(0 0 0 / 0.16);
+  /* Grouped content sits on a tone step; a hairline of shadow, not a border, defines its edge. */
+  --shadow-card: 0 0 0 0.5px rgb(0 0 0 / 0.05), 0 1px 2px rgb(0 0 0 / 0.04);
+  /* Menus and popovers: they truly float, so they cast a real shadow. */
+  --shadow-popover: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 4px 12px rgb(0 0 0 / 0.08), 0 16px 40px -8px rgb(0 0 0 / 0.18);
 
   /* Liquid Glass, measured on the macOS 27 kit's Materials page (see the glass utility below). */
   --glass-bg: rgb(255 255 255 / 0.68);
@@ -91,13 +96,15 @@
   /* Motion. Strong curves: the built-in ones are too soft for UI. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Dark appearance. data-theme is set before first paint (index.html) and by lib/theme.ts. */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --color-canvas: #1e1e1e;
-  --color-panel: #282828;
+  --color-panel: #262626;
+  --color-panel-hover: #2c2c2c;
   --color-raised: rgb(255 255 255 / 0.08);
   --color-selected: rgb(255 255 255 / 0.06);
   --color-sidebar: #161616;
@@ -130,6 +137,8 @@
 
   --shadow-control: inset 0 0.5px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.3);
   --shadow-window: 0 0 0 0.5px rgb(255 255 255 / 0.12), 0 8px 40px rgb(0 0 0 / 0.5);
+  --shadow-card: inset 0 0.5px 0 rgb(255 255 255 / 0.07), 0 0 0 0.5px rgb(255 255 255 / 0.06);
+  --shadow-popover: inset 0 0.5px 0 rgb(255 255 255 / 0.1), 0 0 0 0.5px rgb(0 0 0 / 0.6), 0 16px 48px -8px rgb(0 0 0 / 0.6);
 
   --glass-bg: rgb(29 29 29 / 0.66);
   --glass-edge: rgb(0 0 0 / 0.6);
@@ -180,9 +189,10 @@
 }
 
 /*
- * AI at work, like Siri / Apple Intelligence: a ring in the Apple Intelligence colors turns around
- * the element while a soft halo breathes outside it. Add `ai-glow` only while the AI is working; it
- * makes the element `relative`, so wrap anything that is already absolutely positioned.
+ * AI at work, like Apple Intelligence: a thin ring in the Apple Intelligence colors turns around the
+ * element's own edge while a soft glow beneath it drifts through the same hues. Add `ai-glow` only
+ * while the AI is working; it makes the element `relative`, so wrap anything already absolutely
+ * positioned. The glow is a box-shadow, so it follows any corner radius exactly.
  */
 @property --ai-angle {
   syntax: "<angle>";
@@ -201,44 +211,35 @@
     #c686ff,
     #bc82f3
   );
-  --ai-halo-opacity: 0.5;
+  --ai-glow-alpha: 22%;
 }
 
 :root[data-theme="dark"] {
-  --ai-halo-opacity: 0.7;
+  --ai-glow-alpha: 30%;
 }
 
 @utility ai-glow {
   position: relative;
+  animation: ai-hue 6s ease-in-out infinite;
 
-  &::before,
-  &::after {
+  /* The ring, on the element's edge; the 1px padding keeps the cut-out's corners concentric. */
+  &::before {
     content: "";
     position: absolute;
+    inset: 0;
     border-radius: inherit;
+    padding: 1px;
     background: var(--ai-gradient);
-    pointer-events: none;
-    /* Cut out the element itself: the ring and halo only ever sit on and around its edge. */
     mask:
       linear-gradient(#000 0 0) content-box exclude,
       linear-gradient(#000 0 0);
-    animation: ai-spin 4s linear infinite;
-  }
+    pointer-events: none;
+    animation: ai-spin 3s linear infinite;
+    transition: opacity 300ms var(--ease-out);
 
-  /* The ring, on the border. */
-  &::before {
-    inset: -1px;
-    padding: 1.5px;
-  }
-
-  /* The halo, outside. */
-  &::after {
-    inset: -12px;
-    padding: 11px;
-    filter: blur(10px);
-    animation:
-      ai-spin 4s linear infinite,
-      ai-breathe 2.4s ease-in-out infinite alternate;
+    @starting-style {
+      opacity: 0;
+    }
   }
 
   /* A busy AI control stays readable instead of dimming like a plain disabled one (doubled to beat `disabled:opacity-50`). */
@@ -246,25 +247,25 @@
     opacity: 1;
   }
 
-  @starting-style {
-    &::before,
-    &::after {
-      opacity: 0;
-    }
-  }
-  &::before,
-  &::after {
-    transition: opacity 300ms var(--ease-out);
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    &::before,
-    &::after {
+    animation: none;
+    box-shadow: 0 6px 24px -6px color-mix(in srgb, #bc82f3 var(--ai-glow-alpha), transparent);
+    &::before {
       animation: none;
     }
-    &::after {
-      opacity: var(--ai-halo-opacity);
-    }
+  }
+}
+
+@keyframes ai-hue {
+  0%,
+  100% {
+    box-shadow: 0 6px 24px -6px color-mix(in srgb, #bc82f3 var(--ai-glow-alpha), transparent);
+  }
+  33% {
+    box-shadow: 0 6px 24px -6px color-mix(in srgb, #8d9fff var(--ai-glow-alpha), transparent);
+  }
+  66% {
+    box-shadow: 0 6px 24px -6px color-mix(in srgb, #ff6778 var(--ai-glow-alpha), transparent);
   }
 }
 
@@ -285,15 +286,6 @@
 @keyframes ai-spin {
   to {
     --ai-angle: 360deg;
-  }
-}
-
-@keyframes ai-breathe {
-  from {
-    opacity: calc(var(--ai-halo-opacity) * 0.55);
-  }
-  to {
-    opacity: var(--ai-halo-opacity);
   }
 }
 
@@ -394,11 +386,100 @@ body {
   animation-duration: 200ms;
 }
 
+/*
+ * Menus and popovers: an opaque raised surface with a real shadow, entering from just above its
+ * trigger. Set the origin with `origin-top-right` and the like when it opens from a corner.
+ */
+@utility popover {
+  background: var(--color-panel);
+  box-shadow: var(--shadow-popover);
+  @apply popover-motion;
+}
+
+/* The popover entrance on its own, for floating surfaces with their own material (glass). */
+@utility popover-motion {
+  transform-origin: top;
+  transition:
+    opacity 150ms var(--ease-out),
+    scale 150ms var(--ease-out),
+    translate 150ms var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    scale: 0.97;
+    translate: 0 -4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    @starting-style {
+      scale: 1;
+      translate: 0;
+    }
+  }
+}
+
+/* Browser surfaces carry the palette too. */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+
+  textarea,
+  input {
+    caret-color: var(--color-accent);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
+  }
+}
+
+/* An icon swapping inside the same control (send → stop): it settles in rather than popping. */
+@keyframes icon-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+    filter: blur(2px);
+  }
+}
+
+/* Side drawers slide in from their edge on the iOS drawer curve. */
+@utility drawer {
+  transition: translate 320ms var(--ease-drawer);
+
+  @starting-style {
+    translate: 100% 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: opacity 200ms ease;
+    @starting-style {
+      translate: 0;
+      opacity: 0;
+    }
+  }
+}
+
+/* Centered dialogs grow out of the middle, slightly; never from nothing. */
+@utility modal-in {
+  transition:
+    opacity 220ms var(--ease-out),
+    scale 220ms var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    scale: 0.96;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    @starting-style {
+      scale: 1;
+    }
   }
 }

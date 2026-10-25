@@ -122,7 +122,7 @@ function ReviewControl() {
         </>
       )}
       {running && (
-        <div className="ai-glow rounded-lg border border-line bg-raised/50 p-3 text-xs text-muted">
+        <div className="ai-glow rounded-xl bg-raised p-3 text-xs text-muted">
           <p className="flex items-center gap-2 font-medium text-ink">
             <CircleNotch size={13} className="animate-spin" /> <span className="ai-text">Reviewing your Brain…</span>
           </p>
@@ -160,7 +160,7 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
   const kind = KIND[p.kind];
 
   return (
-    <li className="rounded-xl border border-line bg-raised/40 p-3.5">
+    <li className="rounded-xl bg-raised p-3.5">
       <div className="flex items-center gap-2 text-xs">
         <span className={cn("rounded-md px-1.5 py-0.5 font-medium", kind.className)}>{kind.label}</span>
         {section && <span className="text-faint">{SECTION_LABELS[section]}</span>}

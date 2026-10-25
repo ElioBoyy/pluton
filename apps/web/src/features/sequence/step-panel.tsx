@@ -22,7 +22,7 @@ export function StepPanel({ data, step, onClose, onSaved, onEditTone }: { data: 
     <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(460px,calc(100vw-24px))] flex-col rounded-2xl" aria-label={step.label}>
       <div className="flex items-start justify-between px-5 pt-4">
         <div>
-          <p className="text-xs font-semibold tracking-wide text-faint uppercase">{step.kind === "message" ? "Campaign message" : "Campaign step"}</p>
+          <p className="text-sm font-semibold text-muted">{step.kind === "message" ? "Campaign message" : "Campaign step"}</p>
           <h2 className="text-lg font-bold">{step.label}</h2>
         </div>
         <button onClick={onClose} aria-label="Close" className="rounded-full p-1.5 text-muted hover:bg-raised hover:text-ink">
@@ -238,7 +238,7 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
         <p className={cn("text-right text-xs", len > 500 ? "text-system-orange" : "text-faint")}>{len} / 500 characters recommended</p>
       </div>
       <div className="rounded-xl border border-line bg-canvas p-3">
-        <p className="text-xs font-semibold tracking-wide text-faint uppercase">Preview · Sample person</p>
+        <p className="text-sm font-semibold text-muted">Preview · Sample person</p>
         <p className="mt-1.5 text-sm whitespace-pre-wrap">
           {preview.data?.skipReason ? <span className="text-muted">This lead would be skipped ({preview.data.skipReason.toLowerCase()}).</span> : preview.data?.text || <span className="text-faint">Write your message to see a preview</span>}
         </p>
@@ -278,7 +278,7 @@ function InviteSettings({ data }: { data: Data }) {
   const [expiry, setExpiry] = useState(data.campaign.inviteExpiryDays);
   const save = useMutation(trpc.campaigns.update.mutationOptions({ onSuccess: () => toast("Invitation settings saved"), onError: (e) => toast(e.message, { tone: "error" }) }));
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-line p-3">
+    <div className="flex flex-col gap-3 rounded-xl bg-raised p-3">
       <label className="text-sm">
         <span className="font-medium">Note with the invitation</span>
         <span className="block text-xs text-muted">Empty sends it without a note, which tends to get accepted more. Variables work here.</span>

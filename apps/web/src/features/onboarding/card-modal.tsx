@@ -40,7 +40,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
 
   return (
     <>
-      <div className="w-full rounded-2xl border border-line-strong bg-panel p-6 shadow-2xl">
+      <div className="modal-in w-full rounded-3xl bg-panel p-6 shadow-window">
         <h2 className="text-lg font-semibold">{card.title}</h2>
         <p className="mt-5 text-sm font-semibold">{card.heading}</p>
         {editing ? (
@@ -122,7 +122,7 @@ function SelectCard({
 
   return (
     <>
-      <div className="w-full rounded-2xl border border-line-strong bg-panel p-6 shadow-2xl">
+      <div className="modal-in w-full rounded-3xl bg-panel p-6 shadow-window">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-lg font-semibold leading-snug">{card.title}</h2>
           {total > 1 && (
@@ -146,7 +146,7 @@ function SelectCard({
             (draft === null ? (
               <button
                 onClick={() => setDraft("")}
-                className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-3 text-left text-sm text-muted hover:bg-raised"
+                className="flex items-center gap-2.5 rounded-xl bg-raised px-3 py-3 text-left text-sm text-muted transition-colors duration-150 hover:bg-control-hover"
               >
                 <Plus size={14} /> Write your own
               </button>

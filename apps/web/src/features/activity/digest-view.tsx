@@ -13,7 +13,7 @@ export function DigestView({ digest, title }: { digest: Digest; title?: string }
       <div className="flex flex-col gap-4">
         {digest.sections.map((s) => (
           <section key={s.title}>
-            <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-faint uppercase">{s.title}</p>
+            <p className="mb-1.5 text-sm font-semibold text-muted">{s.title}</p>
             <ul className="flex flex-col gap-1">
               {s.lines.map((l) => (
                 <li key={l.text} className="text-sm">

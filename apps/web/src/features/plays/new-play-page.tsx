@@ -73,7 +73,7 @@ export function NewPlayPage() {
                   {t.text}
                 </div>
               ) : (
-                <div key={i} className="max-w-[85%] rounded-xl border border-line bg-raised/40 px-3.5 py-2 text-sm">
+                <div key={i} className="max-w-[85%] rounded-xl bg-raised px-3.5 py-2 text-sm">
                   {t.text.startsWith("Here is the Play I'd run") ? "Here is the Play I'd run." : t.text}
                 </div>
               ),
@@ -127,12 +127,12 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
       <p className="mt-1 text-sm text-muted">Describe who you want to reach. Pluton asks what it needs, then proposes the Play.</p>
       {ideas.length > 0 && (
         <div className="mt-5 flex flex-col gap-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-faint">Ideas from your Brain</p>
+          <p className="text-sm font-semibold text-muted">Ideas from your Brain</p>
           {ideas.map((idea) => (
             <button
               key={idea}
               onClick={() => onPick(idea)}
-              className="rounded-lg border border-line px-3 py-2.5 text-left text-sm text-muted hover:bg-raised hover:text-ink"
+              className="rounded-xl bg-raised px-3 py-2.5 text-left text-sm text-muted transition-colors duration-150 hover:bg-control-hover hover:text-ink"
             >
               {idea}
             </button>
@@ -196,7 +196,7 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
 
   return (
     <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-line bg-panel p-5 max-md:max-h-[55%] max-md:w-full max-md:border-t max-md:border-l-0">
-      <p className="text-xs font-medium uppercase tracking-wider text-faint">New Play</p>
+      <p className="text-sm font-semibold text-muted">New Play</p>
       {editingName ? (
         <input
           autoFocus
@@ -236,7 +236,7 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
           <Slot label="Targeting">
             <span className="mt-1 flex flex-wrap gap-1.5">
               {chips.map((c) => (
-                <span key={c} className="rounded-md border border-line px-2 py-0.5 text-xs text-muted">
+                <span key={c} className="rounded-md bg-raised px-2 py-0.5 text-xs text-muted">
                   {c}
                 </span>
               ))}

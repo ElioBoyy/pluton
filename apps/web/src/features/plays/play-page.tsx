@@ -265,7 +265,7 @@ function Funnel({ report: r }: { report: Report }) {
   return (
     <div className="mt-4 grid grid-cols-5 gap-2">
       {steps.map((s) => (
-        <div key={s.label} className="rounded-lg border border-line bg-raised/40 p-3">
+        <div key={s.label} className="rounded-xl bg-raised p-3">
           <p className={cn("text-xl font-semibold tabular-nums", s.accent)}>{s.value}</p>
           <p className="text-xs text-faint">{s.label}</p>
         </div>
@@ -411,7 +411,7 @@ function RunHistory({ runs }: { runs: Run[] }) {
   return (
     <div>
       <h2 className="mb-3 text-sm font-semibold">Past runs</h2>
-      <ul className="flex flex-col divide-y divide-line rounded-xl border border-line">
+      <ul className="flex flex-col divide-y divide-line rounded-2xl bg-panel shadow-card">
         {runs.map((r) => (
           <li key={r.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
             <span className="text-muted">
@@ -460,7 +460,7 @@ function Sourcing({ data: { play, runs } }: { data: PlayData }) {
                 <dt className="text-xs text-faint">{label}</dt>
                 <dd className="mt-1 flex flex-wrap gap-1.5">
                   {values.map((v) => (
-                    <span key={v} className="rounded-md border border-line bg-raised px-2 py-0.5 text-xs">
+                    <span key={v} className="rounded-md bg-raised px-2 py-0.5 text-xs">
                       {v}
                     </span>
                   ))}

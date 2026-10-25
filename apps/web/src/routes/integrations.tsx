@@ -291,7 +291,7 @@ function CrmConfigSection({ provider, detail }: { provider: CrmProvider; detail:
         <div>
           <p className="mb-2 text-sm font-medium">Field mapping</p>
           {fields.error && <p className="mb-2 text-xs text-cat-orange">{fields.error.message}</p>}
-          <div className="overflow-x-auto rounded-lg border border-line">
+          <div className="overflow-x-auto rounded-2xl bg-panel shadow-card">
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-muted">
                 <tr className="border-b border-line">
@@ -350,7 +350,7 @@ function ExportLog({ provider }: { provider: CrmProvider }) {
   return (
     <section>
       <h2 className="mb-2 text-sm font-semibold">Export log</h2>
-      <div className="overflow-x-auto rounded-xl border border-line">
+      <div className="overflow-x-auto rounded-2xl bg-panel shadow-card">
         <table className="w-full text-sm">
           <tbody className="divide-y divide-line">
             {log.data.map(({ export: e, name, company }) => (
