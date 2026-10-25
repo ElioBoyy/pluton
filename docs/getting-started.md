@@ -333,6 +333,18 @@ A **Get started** card sits at the bottom of the sidebar with a counter (for exa
 
 The checklist is per workspace: a new workspace starts again at 0/5.
 
+## License and commercial use
+
+Pluton is made by Mathis Sportiello, who holds its copyright (© 2026). It is source-available under the **PolyForm Noncommercial License 1.0.0**: the full text is in the LICENSE.md file at the root of the project, and that text is what governs.
+
+**Allowed without asking**: using, copying and modifying Pluton for noncommercial purposes, such as personal study, research, experiments, hobby projects, and use by charities, schools, public research bodies and government institutions.
+
+**Needs a written license from Mathis Sportiello**: any commercial use. That includes using Pluton in or for a business (for example to find leads, prospect or sell for a company, including your own), doing client work with it, selling it or a modified version, or offering it to others as a hosted service.
+
+Anyone who shares Pluton or a modified copy must pass the license on and keep the line "Required Notice: Copyright © 2026 Mathis Sportiello (https://mathissportiello.com)". Using Pluton in breach of the license ends the right to use it, unless the breach is put right within 32 days of being notified (once).
+
+To ask for a commercial license, contact Mathis Sportiello. This summary is not legal advice; for a specific situation, read the license itself or ask a lawyer.
+
 ## FAQ
 
 **Do I need an Anthropic API key?**

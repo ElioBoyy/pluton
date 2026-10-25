@@ -4,7 +4,7 @@
 
 Pluton reads your website, learns who you sell to, finds the people worth talking to and reaches out to them on LinkedIn, while you stay in control of every lead and every message. Everything lives in a local SQLite database; nothing leaves your computer except the calls to the services you connect.
 
-Designed and built by **Mathis Sportiello**.
+Designed and built by **Mathis Sportiello**. Free for noncommercial use; commercial use needs written permission from Mathis Sportiello (see [License](#license)).
 
 ## What it does
 
@@ -148,3 +148,7 @@ Conventions for working on the code:
 ## Author
 
 Pluton is designed, written and maintained by **Mathis Sportiello**: product, design, architecture and code.
+
+## License
+
+Copyright © 2026 Mathis Sportiello. Pluton is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.md): you may use, copy and modify it for noncommercial purposes only. **Any commercial use** (in or for a business, selling it, hosting it as a service, or using it to prospect and sell) **requires a written license from Mathis Sportiello.**
