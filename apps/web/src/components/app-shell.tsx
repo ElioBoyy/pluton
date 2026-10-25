@@ -1,9 +1,11 @@
 import {
   Brain,
+  CheckCircle,
   Circle,
   Gear,
   House,
   Lightning,
+  List,
   MagnifyingGlass,
   Sparkle,
   UsersThree,
@@ -12,7 +14,9 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
+import { AppLink } from "./app-link.tsx";
 import { AppearanceControl } from "./appearance-control.tsx";
 import { CommandPalette } from "./command-palette.tsx";
 import { NotificationBell } from "./notification-bell.tsx";
@@ -26,8 +30,6 @@ const NAV: Array<{ to: string; label: string; icon: Icon }> = [
   { to: "/leads", label: "Leads", icon: UsersThree },
 ];
 
-const GET_STARTED = ["Create a play", "Edit the brain", "Connect MCP"];
-
 export function AppShell() {
   const trpc = useTRPC();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
@@ -35,7 +37,10 @@ export function AppShell() {
   const leadCounts = useQuery(trpc.leads.counts.queryOptions({}));
   const toReview = leadCounts.data?.counts.to_review ?? 0;
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Below md the sidebar is a drawer, closed whenever the page changes.
+  const [navOpen, setNavOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => setNavOpen(false), [pathname]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -52,8 +57,16 @@ export function AppShell() {
 
   return (
     <div className="flex h-full">
-      {/* macOS 27 sidebar: opaque, full height and flush with the window edge. */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-sidebar">
+      {navOpen && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />}
+      {/* macOS 27 sidebar: opaque, full height and flush with the window edge. A drawer on phones. */}
+      <aside
+        className={cn(
+          "flex w-60 shrink-0 flex-col border-r border-line bg-sidebar",
+          "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-72 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]",
+          "max-md:transition-transform max-md:duration-200 max-md:ease-out motion-reduce:transition-none",
+          navOpen ? "max-md:translate-x-0 max-md:shadow-2xl" : "max-md:-translate-x-full",
+        )}
+      >
         <div className="flex items-center gap-2.5 px-4 pt-4 pb-3">
           <span className="flex size-6 items-center justify-center rounded-md bg-cat-pink text-xs font-semibold text-on-accent">
             {workspace.data?.icon ?? name.charAt(0).toUpperCase()}
@@ -103,17 +116,7 @@ export function AppShell() {
         </nav>
 
         <div className="mt-auto flex flex-col gap-3 p-3">
-          <div className="rounded-lg bg-raised p-3">
-            <p className="mb-2 text-xs font-semibold text-muted">Get started</p>
-            <ul className="flex flex-col gap-1.5">
-              {GET_STARTED.map((step) => (
-                <li key={step} className="flex items-center gap-2 text-xs text-muted">
-                  <Circle size={13} className="text-faint" />
-                  {step}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <GetStarted />
           <div className="flex items-center gap-2">
             <Link
               to="/workspace/settings"
@@ -128,23 +131,75 @@ export function AppShell() {
         </div>
       </aside>
 
-      <main className="relative flex-1 overflow-y-auto">
-        <Outlet />
-        {/* Pages with their own composer would be covered by the floating bar. */}
-        {!pathname.startsWith("/plays/new") && (
-        <button
-          onClick={() => setPaletteOpen(true)}
-          className="glass fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-[color,scale] duration-200 ease-out hover:text-ink motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]"
-        >
-          <MagnifyingGlass size={18} />
-          Ask Pluton anything
-          <kbd className="ml-auto font-sans text-xs text-faint">⌘K</kbd>
-        </button>
-        )}
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
+          <button
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            className="flex size-9 items-center justify-center rounded-md text-ink hover:bg-raised"
+          >
+            <List size={20} />
+          </button>
+          <span className="flex-1 truncate text-sm font-semibold">{name}</span>
+          <button
+            onClick={() => setPaletteOpen(true)}
+            aria-label="Ask Pluton"
+            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-ink"
+          >
+            <MagnifyingGlass size={18} />
+          </button>
+          <NotificationBell />
+        </header>
+
+        <main className="relative flex-1 overflow-y-auto overscroll-contain">
+          <Outlet />
+          {/* Pages with their own composer would be covered by the floating bar; phones use the header button. */}
+          {!pathname.startsWith("/plays/new") && !pathname.startsWith("/agent") && (
+            <button
+              onClick={() => setPaletteOpen(true)}
+              className="glass fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-[color,scale] duration-200 ease-out hover:text-ink max-md:hidden motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]"
+            >
+              <MagnifyingGlass size={18} />
+              Ask Pluton anything
+              <kbd className="ml-auto font-sans text-xs text-faint">⌘K</kbd>
+            </button>
+          )}
+        </main>
+      </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <Toaster />
+    </div>
+  );
+}
+
+/** The first things to try; each step ticks itself once the workspace shows it happened, and the card leaves when all are done. */
+function GetStarted() {
+  const trpc = useTRPC();
+  const checklist = useQuery({ ...trpc.workspace.checklist.queryOptions(), refetchInterval: 60_000 });
+  const steps = checklist.data ?? [];
+  if (!steps.length || steps.every((s) => s.done)) return null;
+  return (
+    <div className="rounded-lg bg-raised p-3">
+      <p className="mb-2 flex items-center text-xs font-semibold text-muted">
+        <span className="flex-1">Get started</span>
+        <span className="font-normal tabular-nums text-faint">
+          {steps.filter((s) => s.done).length}/{steps.length}
+        </span>
+      </p>
+      <ul className="flex flex-col gap-0.5">
+        {steps.map((step) => (
+          <li key={step.key}>
+            <AppLink
+              href={step.to}
+              className={cn("flex items-center gap-2 rounded py-0.5 text-xs hover:text-ink", step.done ? "text-faint line-through" : "text-muted")}
+            >
+              {step.done ? <CheckCircle size={13} weight="fill" className="text-cat-green" /> : <Circle size={13} className="text-faint" />}
+              {step.label}
+            </AppLink>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

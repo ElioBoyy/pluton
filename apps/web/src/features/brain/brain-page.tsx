@@ -33,7 +33,7 @@ export function BrainPage() {
   if (brain.isPending) return null;
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-5xl px-8 py-10">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
         <PageHeader title="Brain" description="Your company, ideal customers, market and voice." />
         <div className="rounded-xl border border-dashed border-line py-16 text-center">
           <p className="text-sm text-muted">Your Brain is empty. Onboarding builds it from your website.</p>
@@ -50,7 +50,7 @@ export function BrainPage() {
   return (
     <div className="flex h-full">
       <div className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl px-8 pt-10 pb-24">
+        <div className="mx-auto max-w-4xl px-4 pt-6 pb-24 sm:px-8 sm:pt-10">
           <PageHeader
             title="Brain"
             description="What Pluton knows about your company, who buys from you and how you sound. Every Play starts from here."

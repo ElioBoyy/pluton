@@ -1,9 +1,10 @@
-import { ArrowUp, CircleNotch, Lightning, PencilSimple } from "@phosphor-icons/react";
+import { CircleNotch, Lightning, PencilSimple } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { inferRouterInputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
+import { Composer } from "../../components/composer.tsx";
 import { Button, Card } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
@@ -61,10 +62,10 @@ export function NewPlayPage() {
   const started = transcript.length > 0;
 
   return (
-    <div className="flex h-full">
-      <div className="flex min-w-0 flex-1 flex-col">
+    <div className="flex h-full max-md:flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
-          <div className="mx-auto flex max-w-2xl flex-col gap-3 px-6 pt-12 pb-6">
+          <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 pt-8 pb-6 sm:px-6 sm:pt-12">
             {!started && <Intro onPick={send} />}
             {transcript.map((t, i) =>
               t.role === "user" ? (
@@ -169,47 +170,6 @@ function QuestionOptions({ question, onAnswer }: { question: Question; onAnswer:
   );
 }
 
-function Composer({ placeholder, disabled, onSend }: { placeholder: string; disabled: boolean; onSend: (text: string) => void }) {
-  const [text, setText] = useState("");
-  const submit = () => {
-    if (!text.trim() || disabled) return;
-    onSend(text.trim());
-    setText("");
-  };
-  return (
-    <div className="border-t border-line p-4">
-      <div
-        className={cn(
-          "mx-auto flex max-w-2xl items-end gap-2 rounded-xl border border-line bg-panel p-2 focus-within:border-line-strong",
-          disabled && "ai-glow",
-        )}
-      >
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          rows={2}
-          placeholder={placeholder}
-          className="flex-1 resize-none bg-transparent px-2 py-1 text-sm outline-none placeholder:text-faint"
-        />
-        <button
-          aria-label="Send"
-          onClick={submit}
-          disabled={disabled || !text.trim()}
-          className="flex size-8 items-center justify-center rounded-full bg-accent text-on-accent disabled:opacity-40"
-        >
-          <ArrowUp size={15} weight="bold" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /** The right-hand recap: Who / How we find them / How many / When, then create. */
 function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p: NewPlay) => void }) {
   const trpc = useTRPC();
@@ -235,7 +195,7 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
   ];
 
   return (
-    <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-line bg-panel p-5">
+    <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-line bg-panel p-5 max-md:max-h-[55%] max-md:w-full max-md:border-t max-md:border-l-0">
       <p className="text-xs font-medium uppercase tracking-wider text-faint">New Play</p>
       {editingName ? (
         <input

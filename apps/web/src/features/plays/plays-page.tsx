@@ -18,7 +18,7 @@ export function PlaysPage() {
   const totals = all.reduce((t, p) => ({ q: t.q + p.leadCounts.qualified, r: t.r + p.leadCounts.needsReview }), { q: 0, r: 0 });
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader
         title="Plays"
         description="Each Play turns one go-to-market idea into a recurring search for people."
@@ -74,8 +74,13 @@ export function PlaysPage() {
                     {p.name}
                     {p.isMain && <span className="ml-2 rounded-md bg-cat-pink/15 px-1.5 py-0.5 text-xs text-cat-pink">Main</span>}
                   </p>
-                  {p.lastRun && (p.lastRun.status === "running" || p.lastRun.status === "queued") && (
+                  {p.lastRun && (p.lastRun.status === "running" || p.lastRun.status === "queued") ? (
                     <span className="rounded-md bg-cat-blue/15 px-1.5 py-0.5 text-xs text-cat-blue">Searching</span>
+                  ) : (
+                    p.lastRun &&
+                    (p.lastRun.status === "failed" || ["budget", "sources_dry", "error"].includes(p.lastRun.stopReason ?? "")) && (
+                      <span className="shrink-0 rounded-md bg-cat-orange/15 px-1.5 py-0.5 text-xs text-cat-orange">Needs attention</span>
+                    )
                   )}
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm text-muted">{p.summary.who}</p>

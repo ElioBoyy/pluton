@@ -59,7 +59,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
 
   useLayoutEffect(() => {
     const a = anchor.current?.getBoundingClientRect();
-    if (a) setPos({ top: a.bottom + 6, left: Math.min(a.left, window.innerWidth - WIDTH - 8) });
+    if (a) setPos({ top: a.bottom + 6, left: Math.max(8, Math.min(a.left, window.innerWidth - WIDTH - 8)) });
   }, [anchor]);
 
   useEffect(() => {
@@ -82,7 +82,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
   return createPortal(
     <div
       ref={ref}
-      style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
+      style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: Math.min(WIDTH, window.innerWidth - 16) }}
       className="glass fixed z-50 flex max-h-[70vh] flex-col overflow-hidden rounded-xl"
       role="dialog"
       aria-label="Notifications"

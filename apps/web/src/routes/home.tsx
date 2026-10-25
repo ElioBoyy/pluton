@@ -17,7 +17,7 @@ export function HomePage() {
   const health = useQuery({ ...trpc.system.health.queryOptions(), refetchInterval: 3000 });
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader title={workspace.data?.name ?? "Home"} description="What waits for you, what happened, and what it cost." />
 
       <div className="mb-8 grid gap-4 lg:grid-cols-[1fr_20rem]">

@@ -1,10 +1,11 @@
-import { ArrowLeft, ArrowRight, CircleNotch, Pause, Play as PlayIcon, Stop } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, CircleNotch, Pause, Play as PlayIcon, Stop, WarningCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useState } from "react";
 import type { PlayTab } from "../../router.tsx";
 import type { AppRouter } from "@pluton/server/router";
+import { AppLink } from "../../components/app-link.tsx";
 import { Button, Card } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
@@ -63,7 +64,7 @@ export function PlayPage({
   const latest = runs[0];
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10">
       <Link to="/plays" className="mb-4 flex items-center gap-1.5 text-sm text-muted hover:text-ink">
         <ArrowLeft size={14} /> Plays
       </Link>
@@ -108,6 +109,7 @@ export function PlayPage({
         {!active && <RunEstimate playId={play.id} />}
         </div>
       </div>
+      {latest && !active && <NeedsAttention run={latest} />}
       {(runNow.error ?? update.error ?? cancel.error) && (
         <p className="mb-4 text-sm text-cat-orange">{(runNow.error ?? update.error ?? cancel.error)!.message}</p>
       )}
@@ -148,6 +150,44 @@ export function PlayPage({
         <LeadsView playId={playId} tab={leadTab} onTab={(t) => onChange({ status: t, lead: undefined })} openLeadId={leadId} onOpenLead={(id) => onChange({ lead: id })} />
       )}
       {tab === "sequence" && <SequenceTab playId={playId} onPickLeads={() => onChange({ tab: "leads", status: "approved", lead: undefined })} />}
+    </div>
+  );
+}
+
+/** Why the last search fell short, and the one thing that fixes it. */
+const ATTENTION: Partial<Record<string, { title: string; fix: string; to?: string; cta?: string }>> = {
+  budget: {
+    title: "The last search hit its spend cap",
+    fix: "Raise the cap per search or the monthly budget, then run it again.",
+    to: "/workspace/billing",
+    cta: "Budget",
+  },
+  sources_dry: {
+    title: "The last search ran out of people before the target",
+    fix: "Widen the audience (more titles, sizes or regions) or add a data source.",
+    to: "/workspace/data-sources",
+    cta: "Data sources",
+  },
+  error: { title: "The last search stopped on an error", fix: "Check the error below; a key that expired is the usual cause.", to: "/workspace/api-keys", cta: "API keys" },
+};
+
+function NeedsAttention({ run }: { run: Run }) {
+  const reason = run.status === "failed" ? "error" : run.stopReason;
+  const info = reason ? ATTENTION[reason] : undefined;
+  if (!info) return null;
+  return (
+    <div className="mb-5 flex items-start gap-3 rounded-xl border border-cat-orange/30 bg-cat-orange/10 px-4 py-3 text-sm max-sm:flex-col">
+      <WarningCircle size={18} className="mt-px shrink-0 text-cat-orange" />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{info.title}</p>
+        <p className="mt-0.5 text-muted">{info.fix}</p>
+        {reason === "error" && run.error && <p className="mt-1 truncate text-xs text-faint" title={run.error}>{run.error}</p>}
+      </div>
+      {info.to && (
+        <AppLink href={info.to} className="shrink-0 rounded-md bg-control px-3 py-1.5 text-sm font-medium hover:bg-control-hover">
+          {info.cta}
+        </AppLink>
+      )}
     </div>
   );
 }

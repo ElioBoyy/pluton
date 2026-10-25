@@ -5,29 +5,30 @@ import { Button, Card, Input, PageHeader } from "../components/ui.tsx";
 import { useTRPC } from "../lib/trpc.ts";
 
 export const SETTINGS_SECTIONS = [
-  { slug: "settings", label: "General", phase: 0 },
-  { slug: "members", label: "Members", phase: 9 },
-  { slug: "notifications", label: "Notifications", phase: 7 },
-  { slug: "linkedin", label: "LinkedIn accounts", phase: 6 },
-  { slug: "mcp", label: "Connect your AI", phase: 8 },
-  { slug: "api-keys", label: "API keys", phase: 3 },
-  { slug: "data-sources", label: "Data sources", phase: 3 },
-  { slug: "integrations", label: "Integrations", phase: 8 },
-  { slug: "usage", label: "Usage", phase: 7 },
-  { slug: "billing", label: "Budget", phase: 7 },
-  { slug: "activity", label: "Activity", phase: 7 },
+  { slug: "settings", label: "General" },
+  { slug: "notifications", label: "Notifications" },
+  { slug: "linkedin", label: "LinkedIn accounts" },
+  { slug: "mcp", label: "Connect your AI" },
+  { slug: "api-keys", label: "API keys" },
+  { slug: "data-sources", label: "Data sources" },
+  { slug: "integrations", label: "Integrations" },
+  { slug: "usage", label: "Usage" },
+  { slug: "billing", label: "Budget" },
+  { slug: "activity", label: "Activity" },
+  { slug: "whats-new", label: "What's new" },
 ] as const;
 
 export function SettingsShell() {
   return (
-    <div className="mx-auto flex max-w-5xl gap-10 px-8 py-10">
-      <nav className="flex w-44 shrink-0 flex-col gap-0.5">
-        <p className="mb-2 px-2.5 text-xs font-medium text-faint">Workspace</p>
+    <div className="mx-auto flex max-w-5xl gap-10 px-4 py-6 max-md:flex-col max-md:gap-6 sm:px-8 sm:py-10">
+      {/* A column beside the page from md up; a row of tabs that scrolls sideways on phones. */}
+      <nav className="flex w-44 shrink-0 flex-col gap-0.5 max-md:-mx-4 max-md:w-auto max-md:flex-row max-md:overflow-x-auto max-md:px-4 max-md:[scrollbar-width:none]">
+        <p className="mb-2 px-2.5 text-xs font-medium text-faint max-md:hidden">Workspace</p>
         {SETTINGS_SECTIONS.map((s) => (
           <Link
             key={s.slug}
             to={`/workspace/${s.slug}`}
-            className="rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink"
+            className="rounded-lg px-2.5 py-1.5 text-sm whitespace-nowrap text-muted hover:bg-raised hover:text-ink"
             activeProps={{ className: "bg-raised !text-ink" }}
           >
             {s.label}
