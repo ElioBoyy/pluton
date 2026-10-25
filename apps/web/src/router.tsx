@@ -1,6 +1,6 @@
 import { createRootRoute, createRoute, createRouter, Link, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell.tsx";
-import { ComingSoon } from "./components/ui.tsx";
+import { AgentPage } from "./features/agent/agent-page.tsx";
 import { BrainPage } from "./features/brain/brain-page.tsx";
 import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
 import { NewPlayPage } from "./features/plays/new-play-page.tsx";
@@ -15,6 +15,7 @@ import { NotificationsPage } from "./routes/notifications.tsx";
 import { UsagePage } from "./routes/usage.tsx";
 import { IntegrationPage, IntegrationsPage } from "./routes/integrations.tsx";
 import { McpPage } from "./routes/mcp.tsx";
+import { WhatsNewPage } from "./routes/whats-new.tsx";
 import { LinkedinPage } from "./routes/linkedin.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
@@ -46,13 +47,6 @@ const onboardingRoute = createRoute({
 
 const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", component: AppShell });
 
-const page = <TPath extends string>(path: TPath, title: string, description: string, phase: number) =>
-  createRoute({
-    getParentRoute: () => appRoute,
-    path,
-    component: () => <ComingSoon title={title} description={description} phase={phase} />,
-  });
-
 const indexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/",
@@ -70,7 +64,7 @@ const workspaceIndexRoute = createRoute({
     throw redirect({ to: "/workspace/settings" });
   },
 });
-const SETTINGS_PAGES: Partial<Record<(typeof SETTINGS_SECTIONS)[number]["slug"], () => React.ReactNode>> = {
+const SETTINGS_PAGES: Record<(typeof SETTINGS_SECTIONS)[number]["slug"], () => React.ReactNode> = {
   settings: GeneralSettingsPage,
   "data-sources": DataSourcesPage,
   "api-keys": ApiKeysPage,
@@ -81,6 +75,7 @@ const SETTINGS_PAGES: Partial<Record<(typeof SETTINGS_SECTIONS)[number]["slug"],
   activity: ActivityPage,
   integrations: IntegrationsPage,
   mcp: McpPage,
+  "whats-new": WhatsNewPage,
 };
 
 const INTEGRATION_PROVIDERS = ["slack", "hubspot", "attio", "pipedrive"] as const;
@@ -98,13 +93,7 @@ const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
   createRoute({
     getParentRoute: () => workspaceRoute,
     path: s.slug,
-    component:
-      SETTINGS_PAGES[s.slug] ??
-      (() => (
-        <div className="rounded-xl border border-dashed border-line px-6 py-16 text-center text-sm text-muted">
-          {s.label} arrives in phase {s.phase} of PLAN.md.
-        </div>
-      )),
+    component: SETTINGS_PAGES[s.slug],
   }),
 );
 
@@ -156,13 +145,23 @@ const leadsRoute = createRoute({
   },
 });
 
+const agentConversationRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/agent/$conversationId",
+  component: function AgentConversation() {
+    const { conversationId } = agentConversationRoute.useParams();
+    return <AgentPage conversationId={conversationId} />;
+  },
+});
+
 const routeTree = rootRoute.addChildren([
   onboardingRoute,
   appRoute.addChildren([
     indexRoute,
     homeRoute,
     createRoute({ getParentRoute: () => appRoute, path: "/brain", component: BrainPage }),
-    page("/agent", "Agent", "Chat with the Pluton agent to plan Plays and act on leads.", 4),
+    createRoute({ getParentRoute: () => appRoute, path: "/agent", component: () => <AgentPage /> }),
+    agentConversationRoute,
     createRoute({ getParentRoute: () => appRoute, path: "/plays", component: PlaysPage }),
     createRoute({ getParentRoute: () => appRoute, path: "/plays/new", component: NewPlayPage }),
     playRoute,

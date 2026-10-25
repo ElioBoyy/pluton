@@ -1,4 +1,17 @@
-import { and, asc, eq, sql, workspaces, type Db, type Workspace } from "@pluton/db";
+import {
+  and,
+  asc,
+  brainItems,
+  copilotConversations,
+  eq,
+  leadFeedback,
+  mcpClients,
+  plays,
+  sql,
+  workspaces,
+  type Db,
+  type Workspace,
+} from "@pluton/db";
 
 export class RevisionConflictError extends Error {
   constructor(readonly current: Workspace) {
@@ -28,4 +41,23 @@ export async function updateWorkspace(db: Db, id: string, revision: number, patc
   const current = await db.query.workspaces.findFirst({ where: eq(workspaces.id, id) });
   if (!current) throw new Error(`Workspace ${id} not found`);
   throw new RevisionConflictError(current);
+}
+
+/** The sidebar's "Get started" steps, each done once the workspace shows it happened. */
+export async function getStartedChecklist(db: Db, workspaceId: string) {
+  const exists = async (query: ReturnType<typeof sql>) => Boolean((await db.get<{ n: number }>(sql`select exists(${query}) as n`))?.n);
+  const [reviewedLead, createdPlay, editedBrain, askedAgent, connectedAi] = await Promise.all([
+    exists(sql`select 1 from ${leadFeedback} where ${leadFeedback.workspaceId} = ${workspaceId}`),
+    exists(sql`select 1 from ${plays} where ${plays.workspaceId} = ${workspaceId} and ${plays.pipeline} != 'waterfall'`),
+    exists(sql`select 1 from ${brainItems} where ${brainItems.workspaceId} = ${workspaceId} and (${brainItems.source} = 'user' or ${brainItems.revision} > 1)`),
+    exists(sql`select 1 from ${copilotConversations} where ${copilotConversations.workspaceId} = ${workspaceId}`),
+    exists(sql`select 1 from ${mcpClients} where ${mcpClients.workspaceId} = ${workspaceId}`),
+  ]);
+  return [
+    { key: "review", label: "Review a lead", to: "/leads?tab=to_review", done: reviewedLead },
+    { key: "play", label: "Create a play", to: "/plays/new", done: createdPlay },
+    { key: "brain", label: "Edit the brain", to: "/brain", done: editedBrain },
+    { key: "agent", label: "Ask the agent", to: "/agent", done: askedAgent },
+    { key: "mcp", label: "Connect your AI", to: "/workspace/mcp", done: connectedAi },
+  ];
 }

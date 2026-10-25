@@ -13,7 +13,7 @@ export function LeadsPage({
   onChange: (next: { tab?: LeadTabKey; lead?: string }) => void;
 }) {
   return (
-    <div className="mx-auto max-w-7xl px-8 py-10">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader title="Leads" description="Everyone your Plays found and qualified, with why they fit. Approve the right ones; reject the rest with a reason so the next search is better." />
       <LeadsView tab={tab} onTab={(t) => onChange({ tab: t })} openLeadId={leadId} onOpenLead={(id) => onChange({ tab, lead: id })} />
     </div>

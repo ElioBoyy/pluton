@@ -40,6 +40,7 @@ import {
   getLatestSession,
   getOrCreateDefaultWorkspace,
   getSession,
+  getStartedChecklist,
   jobPayloads,
   listBrain,
   listCards,
@@ -85,6 +86,7 @@ const system = router({
 
 const workspace = router({
   current: publicProcedure.query(({ ctx }) => getOrCreateDefaultWorkspace(ctx.db)),
+  checklist: publicProcedure.query(async ({ ctx }) => getStartedChecklist(ctx.db, (await getOrCreateDefaultWorkspace(ctx.db)).id)),
   update: publicProcedure
     .input(
       z.object({
