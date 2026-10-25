@@ -1,4 +1,5 @@
 import {
+  ArrowSquareOut,
   CaretLeft,
   CaretRight,
   Check,
@@ -19,6 +20,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Composer } from "../../components/composer.tsx";
+import { askConfirm, contextMenu, type MenuItem } from "../../components/context-menu.tsx";
 import { Markdown } from "../../components/markdown.tsx";
 import { Button } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
@@ -43,8 +45,24 @@ export function AgentPage({ conversationId }: { conversationId?: string }) {
 function ConversationList({ activeId, className }: { activeId?: string; className?: string }) {
   const trpc = useTRPC();
   const list = useQuery(trpc.copilot.list.queryOptions());
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const remove = useMutation(
+    trpc.copilot.delete.mutationOptions({
+      onSuccess: async (_, { id }) => {
+        await queryClient.invalidateQueries({ queryKey: trpc.copilot.list.queryKey() });
+        if (id === activeId) await navigate({ to: "/agent" });
+      },
+    }),
+  );
+  const menu = (c: { id: string; title: string }): MenuItem[] => [
+    { label: "Open", icon: ArrowSquareOut, onSelect: () => void navigate({ to: "/agent/$conversationId", params: { conversationId: c.id } }) },
+    { label: "New conversation", icon: NotePencil, onSelect: () => void navigate({ to: "/agent" }) },
+    "gap",
+    { label: "Delete…", icon: Trash, destructive: true, onSelect: async () => (await confirmDelete(c.title)) && remove.mutate({ id: c.id }) },
+  ];
   return (
-    <aside className={cn("flex w-64 shrink-0 flex-col border-r border-line", className)}>
+    <aside className={cn("flex w-64 shrink-0 flex-col", className)}>
       <div className="flex flex-col gap-3 px-3 pt-5 pb-3">
         <h1 className="px-1 text-lg font-semibold tracking-[-0.01em]">Agent</h1>
         <Link
@@ -60,6 +78,7 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
             <Link
               to="/agent/$conversationId"
               params={{ conversationId: c.id }}
+              onContextMenu={contextMenu(() => menu(c))}
               className={cn(
                 "flex flex-col gap-0.5 rounded-lg px-2.5 py-2 text-sm transition-colors duration-150 hover:bg-raised",
                 c.id === activeId && "!bg-selected",
@@ -216,7 +235,7 @@ function Chat({ conversationId }: { conversationId: string }) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center gap-2 border-b border-line px-3 py-2.5 sm:px-5">
+      <header className="flex items-center gap-2 px-3 py-2.5 sm:px-5">
         <Link to="/agent" aria-label="All conversations" className="rounded-md p-1 text-muted hover:bg-raised hover:text-ink md:hidden">
           <CaretLeft size={16} />
         </Link>
@@ -224,7 +243,7 @@ function Chat({ conversationId }: { conversationId: string }) {
         <button
           aria-label="Delete conversation"
           title="Delete conversation"
-          onClick={() => confirm("Delete this conversation?") && remove.mutate({ id: conversationId })}
+          onClick={async () => (await confirmDelete(state.data?.conversation.title ?? "this conversation")) && remove.mutate({ id: conversationId })}
           className="rounded-md p-1 text-faint hover:bg-raised hover:text-ink"
         >
           <Trash size={15} />
@@ -260,6 +279,9 @@ function Chat({ conversationId }: { conversationId: string }) {
   );
 }
 
+const confirmDelete = (title: string) =>
+  askConfirm({ title: `Delete “${title}”?`, message: "The conversation and its approval cards are deleted.", confirmLabel: "Delete", destructive: true });
+
 type Item = { kind: "message"; message: Message } | { kind: "tools"; messages: Message[] };
 
 /** Consecutive reads fold into one line so the answer stays in view. */
@@ -284,7 +306,7 @@ function ToolGroup({ messages }: { messages: Message[] }) {
         Looked at {names.join(", ")}
       </button>
       {open && (
-        <ul className="mt-1.5 flex flex-col gap-1 border-l border-line pl-3">
+        <ul className="mt-1.5 flex flex-col gap-1 pl-4">
           {messages.map((m) => (
             <li key={m.id}>
               <span className="text-muted">{toolLabel(m.tool)}</span>

@@ -1,8 +1,7 @@
-import { Check, Copy, DownloadSimple, Eye, EyeSlash } from "@phosphor-icons/react";
+import { ArrowsClockwise, Check, Copy, DownloadSimple, Eye, EyeSlash } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Button, Card, PageHeader } from "../components/ui.tsx";
-import { cn } from "../lib/cn.ts";
+import { Button, Group, PageHeader, Row, Section, Segmented, Switch, TextButton } from "../components/ui.tsx";
 import { timeAgo } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { downloadText } from "../features/leads/use-lead-actions.ts";
@@ -48,126 +47,143 @@ export function McpPage() {
     <>
       <PageHeader title="Connect your AI" description="Ask Claude or Codex about your leads and Plays, and let them act on them, through Pluton's local MCP server." />
 
-      <Card className="mb-6">
-        <div className="mb-4 grid gap-3 sm:grid-cols-[6rem_1fr] sm:items-center">
-          <span className="text-sm text-muted">Server</span>
-          <code className="truncate text-sm">{url}</code>
-          <span className="text-sm text-muted">Token</span>
-          <span className="flex min-w-0 items-center gap-2">
-            <code className="truncate text-sm">{shown}</code>
-            <button onClick={() => setReveal((r) => !r)} className="rounded p-1 text-faint hover:bg-raised hover:text-ink" aria-label={reveal ? "Hide token" : "Show token"}>
-              {reveal ? <EyeSlash size={14} /> : <Eye size={14} />}
-            </button>
-            <CopyButton text={token} label="Copy token" />
-            <button
-              onClick={() => confirm("Make a new token? Every connected client stops working until you set it up again.") && rotate.mutate()}
-              className="ml-auto text-xs text-muted hover:text-ink"
-            >
-              New token
-            </button>
-          </span>
-        </div>
+      <div className="flex flex-col gap-8">
+        <Section footnote="Local only: the server answers on this machine and checks the token on every call. Anything that can read your config files can use it.">
+          <Group>
+            <Row>
+              <span className="w-20 shrink-0 text-sm">Server</span>
+              <code className="min-w-0 flex-1 truncate text-right font-mono text-xs text-muted">{url}</code>
+              <CopyButton text={url} label="Copy server URL" />
+            </Row>
+            <Row>
+              <span className="w-20 shrink-0 text-sm">Token</span>
+              <code className="min-w-0 flex-1 truncate text-right font-mono text-xs text-muted">{shown}</code>
+              <span className="flex shrink-0 items-center gap-0.5">
+                <IconButton onClick={() => setReveal((r) => !r)} label={reveal ? "Hide token" : "Show token"}>
+                  {reveal ? <EyeSlash size={14} /> : <Eye size={14} />}
+                </IconButton>
+                <CopyButton text={token} label="Copy token" />
+              </span>
+            </Row>
+            <Row label="New token" description="Every connected client stops working until you set it up again.">
+              <Button
+                variant="ghost"
+                disabled={rotate.isPending}
+                onClick={() => confirm("Make a new token? Every connected client stops working until you set it up again.") && rotate.mutate()}
+              >
+                <ArrowsClockwise size={13} /> New token
+              </Button>
+            </Row>
+          </Group>
+        </Section>
 
-        <div className="mb-2 flex gap-1" role="tablist">
-          {CLIENTS.map((c) => (
-            <button key={c} role="tab" aria-selected={client === c} onClick={() => setClient(c)} className={cn("h-7 rounded-md px-3 text-sm", client === c ? "bg-selected font-medium" : "text-muted hover:bg-raised hover:text-ink")}>
-              {c}
-            </button>
-          ))}
-        </div>
-        <p className="mb-2 text-xs text-muted">{WHERE[client]}</p>
-        <CodeBlock text={snippet(client, url, token)} />
-        <p className="mt-3 text-xs text-faint">Local only: the server answers on this machine and checks the token on every call. Anything that can read your config files can use it.</p>
-      </Card>
+        <Section>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <Segmented label="AI client" options={CLIENTS.map((c) => ({ value: c, label: c }))} value={client} onChange={setClient} />
+          </div>
+          <p className="mb-2 px-1 text-xs text-muted">{WHERE[client]}</p>
+          <CodeBlock text={snippet(client, url, token)} />
+        </Section>
 
-      <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold">Guardrails</h2>
-        <Card className="flex flex-col gap-3">
-          <label className="flex items-center justify-between gap-4 text-sm">
-            <span>
-              Pause searches started from AI clients
-              <span className="block text-xs text-muted">Clients can still read everything and review leads.</span>
-            </span>
-            <input type="checkbox" className="size-4 accent-[var(--color-accent)]" checked={runsPaused} onChange={(e) => pause.mutate({ paused: e.target.checked })} />
-          </label>
-          <ul className="list-disc space-y-1 pl-5 text-xs text-muted">
+        <Section title="Guardrails">
+          <Group>
+            <Row label="Pause searches started from AI clients" description="Clients can still read everything and review leads.">
+              <Switch checked={runsPaused} onChange={(paused) => pause.mutate({ paused })} label="Pause searches started from AI clients" disabled={pause.isPending} />
+            </Row>
+          </Group>
+          <ul className="mt-2 list-disc space-y-1 pr-1 pl-5 text-xs text-muted marker:text-muted">
             <li>A search shows its expected cost and the budget left first; it starts only when called again with an explicit confirmation. Your monthly budget still applies.</li>
             <li>Adding people to a LinkedIn sequence or exporting them to a CRM also needs an explicit confirmation, for those people.</li>
             <li>Everything a client does shows up in Activity.</li>
           </ul>
-        </Card>
-      </section>
+        </Section>
 
-      <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold">Connected clients</h2>
-        {clients.length === 0 ? (
-          <Card className="text-sm text-muted">No clients yet. The first one to connect appears here.</Card>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl bg-panel shadow-card">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-line">
-                {clients.map((c) => (
-                  <tr key={c.id}>
-                    <td className="px-4 py-2 font-medium">
-                      {c.name}
-                      {c.version && <span className="ml-1.5 text-xs font-normal text-faint">{c.version}</span>}
-                    </td>
-                    <td className="px-4 py-2 text-muted">
+        <Section title="Connected clients">
+          <Group>
+            {clients.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-muted">No clients yet. The first one to connect appears here.</p>
+            ) : (
+              clients.map((c) => (
+                <Row
+                  key={c.id}
+                  label={
+                    <span className="flex min-w-0 items-baseline gap-1.5">
+                      <span className="truncate font-medium">{c.name}</span>
+                      {c.version && <span className="shrink-0 text-xs text-muted">{c.version}</span>}
+                    </span>
+                  }
+                  description={
+                    <span className="block truncate">
                       {c.calls} tool call{c.calls === 1 ? "" : "s"}
-                      {c.lastTool && <span className="text-faint"> · last {c.lastTool}</span>}
-                    </td>
-                    <td className="px-4 py-2 text-right text-xs text-faint">{timeAgo(c.lastSeenAt)}</td>
-                    <td className="pr-3 text-right">
-                      <button onClick={() => forget.mutate({ id: c.id })} className="text-xs text-muted hover:text-ink">
-                        Forget
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                      {c.lastTool && <> · last {c.lastTool}</>}
+                    </span>
+                  }
+                >
+                  <span className="shrink-0 text-xs text-muted tabular-nums">{timeAgo(c.lastSeenAt)}</span>
+                  <Button variant="ghost" disabled={forget.isPending} onClick={() => forget.mutate({ id: c.id })}>
+                    Forget
+                  </Button>
+                </Row>
+              ))
+            )}
+          </Group>
+        </Section>
 
-      <section>
-        <h2 className="mb-1 text-sm font-semibold">Claude Code skill</h2>
-        <p className="mb-3 text-xs text-muted">Teaches Claude how to work with Pluton: the morning check, reviewing leads, running Plays with the cost first, sequences, the Brain and spend.</p>
-        <CodeBlock text={`mkdir -p ~/.claude/skills/pluton && curl -s ${skillUrl} -o ~/.claude/skills/pluton/SKILL.md`} />
-        <div className="mt-3 flex gap-2">
-          <Button variant="ghost" disabled={!skill.data} onClick={() => downloadText("SKILL.md", skill.data!, "text/markdown;charset=utf-8")}>
-            <DownloadSimple size={14} /> Download SKILL.md
-          </Button>
-        </div>
-      </section>
+        <Section
+          title="Claude Code skill"
+          description="Teaches Claude how to work with Pluton: the morning check, reviewing leads, running Plays with the cost first, sequences, the Brain and spend."
+        >
+          <CodeBlock text={`mkdir -p ~/.claude/skills/pluton && curl -s ${skillUrl} -o ~/.claude/skills/pluton/SKILL.md`} />
+          <div className="mt-3 px-1">
+            <TextButton disabled={!skill.data} onClick={() => downloadText("SKILL.md", skill.data!, "text/markdown;charset=utf-8")}>
+              <DownloadSimple size={14} /> Download SKILL.md
+            </TextButton>
+          </div>
+        </Section>
+      </div>
     </>
+  );
+}
+
+/** Icon-only actions: a round, muted hit area that lights on hover. */
+function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex size-7 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+      aria-label={label}
+      title={label}
+    >
+      {children}
+    </button>
   );
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button
+    <IconButton
       onClick={async () => {
         await navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="rounded p-1 text-faint hover:bg-raised hover:text-ink"
-      aria-label={label}
+      label={label}
     >
-      {copied ? <Check size={14} className="text-cat-green" /> : <Copy size={14} />}
-    </button>
+      {copied ? <Check size={14} weight="bold" className="text-system-green" /> : <Copy size={14} />}
+    </IconButton>
   );
 }
 
 function CodeBlock({ text }: { text: string }) {
   return (
-    <div className="relative">
-      <pre className="overflow-x-auto rounded-lg bg-raised p-3 pr-10 text-xs leading-relaxed">{text}</pre>
-      <span className="absolute top-2 right-2">
+    // The copy button sits beside the scrolling code, never over it.
+    <Group className="flex items-start">
+      <pre className="min-w-0 flex-1 overflow-x-auto py-3 pl-4 font-mono text-xs leading-relaxed">{text}</pre>
+      <span className="shrink-0 p-1.5">
         <CopyButton text={text} label="Copy" />
       </span>
-    </div>
+    </Group>
   );
 }

@@ -2,6 +2,7 @@ import {
   ArrowSquareOut,
   CaretDown,
   CaretUp,
+  DotsThree,
   ChatCircle,
   CheckCircle,
   CircleNotch,
@@ -19,8 +20,10 @@ import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AppRouter } from "@pluton/server/router";
-import { Button, ButtonGroup, GroupButton } from "../../components/ui.tsx";
+import { Button, ButtonGroup, Group, GroupButton, Progress, Row, Section } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
+import { openContextMenu } from "../../components/context-menu.tsx";
+import { useLeadMenu } from "./lead-menu.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { EMAIL_SOURCE, REASON_LABEL, STAGE_LABELS, STATUS, initials, type RejectReason } from "./labels.ts";
@@ -55,6 +58,7 @@ export function LeadDrawer({
   const [rejecting, setRejecting] = useState(false);
   const verdictRef = useRef<HTMLDivElement>(null);
   const data = lead.data;
+  const menu = useLeadMenu({ open: () => {}, reject: () => setRejecting(true), onDeleted: onClose });
 
   useEffect(() => {
     if (data?.isNew) markSeen.mutate({ leadIds: [data.id] });
@@ -86,11 +90,11 @@ export function LeadDrawer({
 
   return (
     <aside
-      className="drawer fixed top-0 right-0 bottom-0 z-40 flex w-[min(520px,100vw)] flex-col bg-panel shadow-window"
+      className="drawer fixed top-0 right-0 bottom-0 z-40 flex w-[min(520px,100vw)] flex-col bg-canvas shadow-window"
       aria-label="Lead details"
     >
-      <div className="flex items-center justify-between border-b border-line px-5 py-3">
-        <div className="flex items-center gap-1">
+      <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
+        <div className="flex min-w-0 items-center gap-3">
           {onStep && (
             <ButtonGroup divided>
               <GroupButton aria-label="Previous lead (↑)" title="Previous lead (↑)" onClick={() => onStep(-1)}>
@@ -101,125 +105,162 @@ export function LeadDrawer({
               </GroupButton>
             </ButtonGroup>
           )}
-          <span className="ml-2 text-xs text-faint">↑↓ move · A approve · R reject</span>
+          <span className="truncate text-xs text-muted">↑↓ move · A approve · R reject</span>
         </div>
-        <IconButton icon={X} label="Close (Esc)" onClick={onClose} />
+        <div className="flex items-center gap-1.5">
+          {data && (
+            <IconButton
+              icon={DotsThree}
+              label="More actions"
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                openContextMenu(r.right - 208, r.bottom + 4, menu(data).slice(2));
+              }}
+            />
+          )}
+          <IconButton icon={X} label="Close (Esc)" onClick={onClose} />
+        </div>
       </div>
 
       {!data ? (
-        <div className="flex flex-1 items-center justify-center text-sm text-faint">
+        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted">
           {lead.error ? lead.error.message : <CircleNotch size={18} className="animate-spin" />}
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-5 py-5">
-          <div className="flex items-start gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-raised text-sm font-semibold text-muted">
-              {initials(data.person.name)}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base font-semibold">{data.person.name}</h2>
-              <p className="text-sm text-muted">
-                {data.person.title}
-                {data.person.company && ` @ ${data.person.company}`}
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS[data.status]?.className)}>• {STATUS[data.status]?.label}</span>
-                <span className="rounded-full bg-raised px-2 py-0.5 text-xs text-muted">{STAGE_LABELS[data.stage]}</span>
+        // The content fades out under the toolbar instead of meeting a hairline (the scroll edge effect).
+        // Children keep their height: a Group clips (overflow hidden), so a flex column would squash it.
+        <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-2 pb-8 [mask-image:linear-gradient(to_bottom,transparent,black_12px)] [&>*]:shrink-0">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-3 px-1">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-control text-base font-semibold text-muted">
+                {initials(data.person.name)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold break-words">{data.person.name}</h2>
+                {(data.person.title || data.person.company) && (
+                  <p className="mt-0.5 line-clamp-2 text-sm text-muted" title={data.person.title ?? undefined}>
+                    {data.person.title}
+                    {data.person.company && ` @ ${data.person.company}`}
+                  </p>
+                )}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <Pill className={cn("font-medium", STATUS[data.status]?.className)}>
+                    <span className="size-1.5 rounded-full bg-current" aria-hidden />
+                    {STATUS[data.status]?.label}
+                  </Pill>
+                  <Pill className="bg-control text-muted">{STAGE_LABELS[data.stage]}</Pill>
+                </div>
               </div>
             </div>
+
+            <div ref={verdictRef}>
+              <Verdict data={data} onApprove={approve} onReject={() => setRejecting(true)} onUndo={(id) => review.undo([id])} pending={review.isPending} />
+            </div>
+            {rejecting && <RejectPopover anchor={verdictRef} align="left" onSubmit={reject} onClose={() => setRejecting(false)} />}
           </div>
 
-          <div ref={verdictRef}>
-            <Verdict data={data} onApprove={approve} onReject={() => setRejecting(true)} onUndo={(id) => review.undo([id])} pending={review.isPending} />
-          </div>
-          {rejecting && <RejectPopover anchor={verdictRef} align="left" onSubmit={reject} onClose={() => setRejecting(false)} />}
-
-          <dl className="mt-5 grid grid-cols-[7.5rem_1fr] gap-x-4 gap-y-3 text-sm">
-            <Field label="Email">
-              <EmailField data={data} />
+          <Group>
+            <EmailRow data={data} />
+            <Field label="Title">
+              <span className="line-clamp-3" title={data.person.title ?? undefined}>
+                {data.person.title ?? "—"}
+              </span>
             </Field>
-            <Field label="Title">{data.person.title ?? "—"}</Field>
             <Field label="Seniority">{data.seniority ? `${data.seniority} (from title)` : "—"}</Field>
             <Field label="LinkedIn">
               <LinkedinField data={data} />
             </Field>
             <Field label="Company">
-              {data.person.company ?? "—"}
-              {data.person.companyWebsite && (
-                <a href={withProtocol(data.person.companyWebsite)} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 text-xs text-faint hover:text-ink">
-                  {data.person.companyWebsite.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")} <ArrowSquareOut size={11} />
-                </a>
-              )}
+              <span className="flex flex-col items-end">
+                <span>{data.person.company ?? "—"}</span>
+                {data.person.companyWebsite && (
+                  <a href={withProtocol(data.person.companyWebsite)} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 text-xs text-accent hover:underline">
+                    <span className="truncate">{data.person.companyWebsite.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</span>
+                    <ArrowSquareOut size={11} className="shrink-0" />
+                  </a>
+                )}
+              </span>
             </Field>
             <Field label="Location">{data.person.location ?? "—"}</Field>
             <Field label="Play">
-              <Link to="/plays/$playId" params={{ playId: data.playId }} search={{ tab: "leads" }} className="hover:underline">
+              <Link to="/plays/$playId" params={{ playId: data.playId }} search={{ tab: "leads" }} className="text-accent hover:underline">
                 {data.playName}
               </Link>
             </Field>
             <Field label="Fit">
-              <Meter value={data.fit} className="bg-cat-green" />
+              <Meter value={data.fit} tone="green" />
             </Field>
             <Field label="Warmness">
-              <Meter value={data.warmness} className="bg-cat-orange" />
+              <Meter value={data.warmness} tone="orange" />
             </Field>
-          </dl>
+          </Group>
 
           <Section title="Campaign">
             <LeadCampaignBlock leadId={data.id} status={data.status} />
           </Section>
 
           <CrmSection leadId={data.id} />
+
           <Section title="Why they fit">
-            <p className="text-sm font-medium">{data.signalLabel}</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">{data.reason}</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted">
-              <span className="text-faint">Signal · </span>
-              {data.signal}
-            </p>
+            <Group className="px-4 py-3.5">
+              <p className="text-sm font-medium">{data.signalLabel}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-pretty text-muted">{data.reason}</p>
+              <p className="mt-2.5 text-sm leading-relaxed text-muted">
+                <span className="font-medium text-ink">Signal · </span>
+                {data.signal}
+              </p>
+            </Group>
           </Section>
 
           {data.evidence.length > 0 && (
             <Section title="Evidence">
-              <ul className="flex flex-col gap-1.5">
-                {data.evidence.map((e, i) => (
-                  <li key={i} className="text-sm">
-                    {e.url ? (
-                      <a href={e.url} target="_blank" rel="noreferrer" className="inline-flex items-start gap-1.5 text-muted hover:text-ink">
-                        <ArrowSquareOut size={13} className="mt-0.5 shrink-0" />
-                        {e.label}
+              <Group>
+                {data.evidence.map((e, i) =>
+                  e.url ? (
+                    <Row key={i} className="py-0">
+                      <a href={e.url} target="_blank" rel="noreferrer" className="flex min-w-0 flex-1 items-start gap-2 py-2.5 text-sm hover:text-accent">
+                        <span className="min-w-0 flex-1 break-words">{e.label}</span>
+                        <ArrowSquareOut size={13} className="mt-0.5 shrink-0 text-muted" />
                       </a>
-                    ) : (
-                      <span className="text-muted">{e.label}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                    </Row>
+                  ) : (
+                    <Row key={i}>
+                      <span className="min-w-0 flex-1 text-sm break-words text-muted">{e.label}</span>
+                    </Row>
+                  ),
+                )}
+              </Group>
             </Section>
           )}
 
           {data.otherPlays.length > 0 && (
             <Section title="Also found by">
-              <ul className="flex flex-col gap-1">
+              <Group>
                 {data.otherPlays.map((o) => (
-                  <li key={o.leadId} className="flex items-center justify-between text-sm">
-                    <Link to="/plays/$playId" params={{ playId: o.playId }} search={{ tab: "leads", lead: o.leadId }} className="text-muted hover:text-ink">
-                      {o.playName}
-                    </Link>
-                    <span className={cn("rounded-full px-2 py-0.5 text-xs", STATUS[o.status]?.className)}>{STATUS[o.status]?.label}</span>
-                  </li>
+                  <Row
+                    key={o.leadId}
+                    label={
+                      <Link to="/plays/$playId" params={{ playId: o.playId }} search={{ tab: "leads", lead: o.leadId }} className="block truncate hover:text-accent">
+                        {o.playName}
+                      </Link>
+                    }
+                  >
+                    <Pill className={STATUS[o.status]?.className}>{STATUS[o.status]?.label}</Pill>
+                  </Row>
                 ))}
-              </ul>
+              </Group>
             </Section>
           )}
 
           <Section title="Timeline">
             <NoteInput leadId={data.id} autoFocus={focusNote} />
-            <ol className="mt-4 flex flex-col gap-3">
-              {data.timeline.map((e) => (
-                <TimelineItem key={e.id} event={e} />
-              ))}
-            </ol>
+            {data.timeline.length > 0 && (
+              <Group className="mt-3">
+                {data.timeline.map((e) => (
+                  <TimelineItem key={e.id} event={e} />
+                ))}
+              </Group>
+            )}
           </Section>
         </div>
       )}
@@ -241,44 +282,49 @@ function Verdict({
   pending: boolean;
 }) {
   const fb = data.feedback;
+  if (!fb)
+    return (
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <Button disabled={pending} onClick={onApprove} className="h-8">
+          <ThumbsUp size={14} /> Good lead
+        </Button>
+        <Button variant="ghost" disabled={pending} onClick={onReject} className="h-8">
+          <ThumbsDown size={14} /> Not a fit
+        </Button>
+      </div>
+    );
   return (
-    <div className="relative mt-4 flex flex-wrap items-center gap-2">
-      {fb ? (
-        <div className="flex flex-1 items-center justify-between gap-3 rounded-xl bg-raised px-3 py-2 text-sm">
+    <Group>
+      <Row
+        label={
           <span className="flex items-center gap-2">
-            {fb.verdict === "up" ? <ThumbsUp size={15} className="text-cat-green" weight="fill" /> : <ThumbsDown size={15} className="text-faint" weight="fill" />}
+            {fb.verdict === "up" ? <ThumbsUp size={15} className="shrink-0 text-system-green" weight="fill" /> : <ThumbsDown size={15} className="shrink-0 text-muted" weight="fill" />}
             {fb.verdict === "up" ? "You marked this a good lead" : "You marked this not a fit"}
-            {fb.reasons.length > 0 && <span className="text-xs text-muted">· {fb.reasons.map((r) => REASON_LABEL[r] ?? r).join(", ")}</span>}
           </span>
-          <button onClick={() => onUndo(fb.id)} className="text-xs text-muted underline underline-offset-2 hover:text-ink">
+        }
+        description={fb.reasons.length > 0 ? <span className="pl-[23px]">{fb.reasons.map((r) => REASON_LABEL[r] ?? r).join(", ")}</span> : undefined}
+      >
+        <div className="flex shrink-0 items-center gap-2">
+          {fb.verdict === "up" ? (
+            <Button variant="ghost" onClick={onReject} aria-label="Not a fit" title="Not a fit" className="w-9 !px-0">
+              <ThumbsDown size={14} />
+            </Button>
+          ) : (
+            <Button variant="ghost" onClick={onApprove} aria-label="Approve instead" title="Approve instead" className="w-9 !px-0">
+              <ThumbsUp size={14} />
+            </Button>
+          )}
+          <Button variant="ghost" onClick={() => onUndo(fb.id)}>
             Undo
-          </button>
+          </Button>
         </div>
-      ) : (
-        <>
-          <Button disabled={pending} onClick={onApprove} className="h-8">
-            <ThumbsUp size={14} /> Good lead
-          </Button>
-          <Button variant="ghost" disabled={pending} onClick={onReject} className="h-8">
-            <ThumbsDown size={14} /> Not a fit
-          </Button>
-        </>
-      )}
-      {fb?.verdict === "up" && (
-        <Button variant="ghost" onClick={onReject} className="h-8">
-          <ThumbsDown size={14} />
-        </Button>
-      )}
-      {fb?.verdict === "down" && (
-        <Button variant="ghost" onClick={onApprove} className="h-8" title="Approve instead">
-          <ThumbsUp size={14} />
-        </Button>
-      )}
-    </div>
+      </Row>
+    </Group>
   );
 }
 
-function EmailField({ data }: { data: Detail }) {
+/** The email row: the address trailing, where it came from beneath the label; or the lookup and its cost. */
+function EmailRow({ data }: { data: Detail }) {
   const trpc = useTRPC();
   const refresh = useRefreshLeads();
   const quota = useQuery(trpc.leads.emailQuota.queryOptions(undefined, { staleTime: 60_000 }));
@@ -303,25 +349,35 @@ function EmailField({ data }: { data: Detail }) {
 
   if (p.email)
     return (
-      <span className="flex flex-col">
-        <a href={`mailto:${p.email}`} className="inline-flex items-center gap-1.5 hover:underline">
-          <Envelope size={13} /> {p.email}
+      <Row
+        label="Email"
+        description={
+          <span className={cn(p.emailSource === "pattern" && "text-[color-mix(in_srgb,var(--color-system-orange),black_15%)] dark:text-system-orange")}>
+            {EMAIL_SOURCE[p.emailSource ?? ""] ?? p.emailSource}
+            {p.emailConfidence !== null && ` · ${p.emailConfidence}% confidence`}
+          </span>
+        }
+      >
+        <a href={`mailto:${p.email}`} className="inline-flex max-w-[60%] min-w-0 items-center gap-1.5 text-sm text-accent hover:underline">
+          <Envelope size={13} className="shrink-0" /> <span className="truncate">{p.email}</span>
         </a>
-        <span className={cn("text-xs", p.emailSource === "pattern" ? "text-cat-yellow" : "text-faint")}>
-          {EMAIL_SOURCE[p.emailSource ?? ""] ?? p.emailSource}
-          {p.emailConfidence !== null && ` · ${p.emailConfidence}% confidence`}
-        </span>
-      </span>
+      </Row>
     );
   return (
-    <span className="flex flex-col items-start gap-1">
-      <Button variant="ghost" className={cn("h-7 px-2.5 text-xs", find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
+    <Row
+      label="Email"
+      description={
+        <>
+          {p.emailCheckedAt && !find.isPending && <span className="block">No email found on {new Date(p.emailCheckedAt).toLocaleDateString()}</span>}
+          {cost && <span className="block">{cost}</span>}
+        </>
+      }
+    >
+      <Button variant="ghost" className={cn("shrink-0 self-start", find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
         {find.isPending ? <CircleNotch size={12} className="animate-spin" /> : <MagnifyingGlass size={12} />}
         {p.emailCheckedAt ? "Search again" : "Find email"}
       </Button>
-      {p.emailCheckedAt && !find.isPending && <span className="text-xs text-faint">No email found on {new Date(p.emailCheckedAt).toLocaleDateString()}</span>}
-      <span className="text-xs text-faint">{cost}</span>
-    </span>
+    </Row>
   );
 }
 
@@ -339,12 +395,12 @@ function LinkedinField({ data }: { data: Detail }) {
   );
   if (data.person.linkedinUrl)
     return (
-      <a href={data.person.linkedinUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:underline">
-        <LinkedinLogo size={14} weight="fill" className="text-cat-blue" /> Profile <ArrowSquareOut size={11} />
+      <a href={data.person.linkedinUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-accent hover:underline">
+        <LinkedinLogo size={14} weight="fill" className="text-system-blue" /> Profile <ArrowSquareOut size={11} />
       </a>
     );
   return (
-    <Button variant="ghost" className={cn("h-7 px-2.5 text-xs", find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
+    <Button variant="ghost" className={cn(find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
       {find.isPending ? <CircleNotch size={12} className="animate-spin" /> : <LinkedinLogo size={12} />}
       Find LinkedIn
     </Button>
@@ -368,15 +424,17 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
       }}
       className="flex items-center gap-2"
     >
+      {/* The shared Input's look; a plain input because it needs the ref for focus. */}
       <input
         ref={ref}
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Add a note…"
         maxLength={2000}
-        className="h-8 flex-1 rounded-lg border border-line bg-canvas px-3 text-sm outline-none placeholder:text-faint focus:focus-ring"
+        aria-label="Note"
+        className="h-7 min-w-0 flex-1 rounded-md border border-line bg-canvas px-2.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring"
       />
-      <Button variant="ghost" className="h-8" disabled={!text.trim() || add.isPending}>
+      <Button variant="ghost" disabled={!text.trim() || add.isPending}>
         Add
       </Button>
     </form>
@@ -385,7 +443,7 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
 
 const EVENT: Record<string, { icon: Icon; text: (p: Record<string, unknown>) => string; tone?: string }> = {
   found: { icon: Target, text: (p) => `Qualified as a lead · ${STAGE_LABELS[String(p.stage)] ?? ""}, fit ${p.fit}/100` },
-  approved: { icon: ThumbsUp, text: () => "You marked this a good lead", tone: "text-cat-green" },
+  approved: { icon: ThumbsUp, text: () => "You marked this a good lead", tone: "text-system-green" },
   rejected: {
     icon: ThumbsDown,
     text: (p) => {
@@ -395,7 +453,7 @@ const EVENT: Record<string, { icon: Icon; text: (p: Record<string, unknown>) => 
   },
   feedback_withdrawn: { icon: X, text: (p) => `You undid your ${p.verdict === "up" ? "approval" : "rejection"}` },
   note: { icon: ChatCircle, text: (p) => String(p.text) },
-  email_found: { icon: Envelope, text: (p) => `Email found: ${p.email} (${EMAIL_SOURCE[String(p.source)] ?? p.source})`, tone: "text-cat-green" },
+  email_found: { icon: Envelope, text: (p) => `Email found: ${p.email} (${EMAIL_SOURCE[String(p.source)] ?? p.source})`, tone: "text-system-green" },
   email_not_found: { icon: Envelope, text: () => "Looked for an email, none found" },
   linkedin_found: { icon: LinkedinLogo, text: () => "LinkedIn profile found" },
   linkedin_not_found: { icon: LinkedinLogo, text: () => "Looked for a LinkedIn profile, none found" },
@@ -406,22 +464,22 @@ function TimelineItem({ event }: { event: TimelineEvent }) {
   const def = EVENT[event.kind] ?? { icon: CheckCircle, text: () => event.kind };
   const IconCmp = def.icon;
   return (
-    <li className="flex gap-2.5 text-sm">
-      <IconCmp size={15} className={cn("mt-0.5 shrink-0 text-faint", def.tone)} />
-      <div className="min-w-0">
-        <p className={cn(event.kind === "note" ? "text-ink" : "text-muted", "break-words")}>{def.text(event.payload)}</p>
-        <p className="text-xs text-faint">{new Date(event.createdAt).toLocaleString()}</p>
+    <Row className="items-start">
+      <IconCmp size={15} className={cn("mt-px shrink-0 text-muted", def.tone)} />
+      <div className="min-w-0 flex-1">
+        <p className={cn("text-sm break-words", event.kind === "note" ? "text-ink" : "text-muted")}>{def.text(event.payload)}</p>
+        <p className="mt-0.5 text-xs text-muted tabular-nums">{new Date(event.createdAt).toLocaleString()}</p>
       </div>
-    </li>
+    </Row>
   );
 }
 
+/** An inspector row: the label leading, its value trailing and right-aligned. */
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <>
-      <dt className="pt-0.5 text-xs text-faint">{label}</dt>
-      <dd className="min-w-0 break-words">{children}</dd>
-    </>
+    <Row label={<span className="whitespace-nowrap">{label}</span>} className="[&>div:first-child]:flex-none">
+      <div className="ml-auto flex min-w-0 justify-end text-right text-sm break-words text-muted">{children}</div>
+    </Row>
   );
 }
 
@@ -433,34 +491,29 @@ function CrmSection({ leadId }: { leadId: string }) {
   if (!crms.data?.length && !exports.data?.length) return null;
   return (
     <Section title="CRM">
-      <LeadCrmBlock leadId={leadId} />
+      <Group className="px-4 py-3">
+        <LeadCrmBlock leadId={leadId} />
+      </Group>
     </Section>
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="mt-6 border-t border-line pt-5">
-      <h3 className="mb-2.5 text-sm font-semibold text-muted">{title}</h3>
-      {children}
-    </section>
-  );
-}
+const Pill = ({ className, children }: { className?: string; children: ReactNode }) => (
+  <span className={cn("inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs whitespace-nowrap", className)}>{children}</span>
+);
 
-function Meter({ value, className }: { value: number; className: string }) {
+function Meter({ value, tone }: { value: number; tone: "green" | "orange" }) {
   return (
-    <span className="flex items-center gap-2">
-      <span className="h-1.5 w-28 overflow-hidden rounded-full bg-raised">
-        <span className={cn("block h-full rounded-full", className)} style={{ width: `${value}%` }} />
-      </span>
-      <span className="text-xs tabular-nums text-muted">{value}/100</span>
+    <span className="flex items-center gap-2.5">
+      <Progress value={value / 100} tone={tone} className="w-24" />
+      <span className="w-12 text-right text-sm tabular-nums">{value}/100</span>
     </span>
   );
 }
 
-function IconButton({ icon: IconCmp, label, onClick }: { icon: Icon; label: string; onClick: () => void }) {
+function IconButton({ icon: IconCmp, label, onClick }: { icon: Icon; label: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} className="capsule flex size-8 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90">
+    <button onClick={onClick} aria-label={label} title={label} className="capsule flex size-8 shrink-0 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90">
       <IconCmp size={15} />
     </button>
   );

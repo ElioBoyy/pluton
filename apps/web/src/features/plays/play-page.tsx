@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CircleNotch, Pause, Play as PlayIcon, Stop, WarningCircle } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, CircleNotch, DotsThree, Pause, Play as PlayIcon, Stop, WarningCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -6,11 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import type { PlayTab } from "../../router.tsx";
 import type { AppRouter } from "@pluton/server/router";
 import { AppLink } from "../../components/app-link.tsx";
-import { Button, Card } from "../../components/ui.tsx";
+import { Button, Group, Row, Section, Segmented, TextButton } from "../../components/ui.tsx";
+import { contextMenu, openContextMenu } from "../../components/context-menu.tsx";
 import { cn } from "../../lib/cn.ts";
+import { usePlayMenu } from "./play-menu.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
-import { PIPELINE_LABELS, REJECTION_LABELS, SCHEDULE_LABELS, STOP_LABELS } from "./labels.ts";
+import { CHIP, PILL, PILL_BASE, PIPELINE_LABELS, REJECTION_LABELS, SCHEDULE_LABELS, STOP_LABELS } from "./labels.ts";
 import { initials, STATUS, type LeadTabKey } from "../leads/labels.ts";
 import { LeadsView } from "../leads/leads-view.tsx";
 import { SequenceTab } from "../sequence/sequence-tab.tsx";
@@ -57,6 +59,7 @@ export function PlayPage({
   const runNow = useMutation(trpc.plays.run.mutationOptions({ onSuccess: refresh }));
   const cancel = useMutation(trpc.plays.cancelRun.mutationOptions({ onSuccess: refresh }));
   const update = useMutation(trpc.plays.update.mutationOptions({ onSettled: refresh }));
+  const playMenu = usePlayMenu();
 
   if (!data.data) return null;
   const { play, runs } = data.data;
@@ -65,78 +68,102 @@ export function PlayPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10">
-      <Link to="/plays" className="mb-4 flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <ArrowLeft size={14} /> Plays
+      <Link to="/plays" className="mb-3 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-ink">
+        <CaretLeft size={12} weight="bold" /> Plays
       </Link>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{play.name}</h1>
-          <p className="mt-1 text-sm text-muted">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2.5 text-2xl font-semibold tracking-[-0.02em]" onContextMenu={contextMenu(() => playMenu(play))}>
+            <span className="min-w-0 truncate" title={play.name}>
+              {play.name}
+            </span>
+            {/* The same actions as the right-click menu, for those who don't right-click. */}
+            <button
+              aria-label="More actions"
+              title="More actions"
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                openContextMenu(r.left, r.bottom + 4, playMenu(play));
+              }}
+              className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-ink"
+            >
+              <DotsThree size={18} weight="bold" />
+            </button>
+            {play.status !== "active" && <span className={cn(PILL_BASE, PILL.gray, "capitalize")}>{play.status}</span>}
+          </h1>
+          <p className="mt-1.5 text-base text-muted">
             {PIPELINE_LABELS[play.pipeline]} · {play.definition.target} leads per run
-            {play.status !== "active" && <span className="ml-2 rounded-md bg-raised px-1.5 py-0.5 text-xs capitalize">{play.status}</span>}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
-        <div className="flex items-center gap-2">
-          <select
-            value={play.schedule}
-            onChange={(e) => update.mutate({ id: play.id, revision: play.revision, patch: { schedule: e.target.value as typeof play.schedule } })}
-            className="h-9 rounded-lg border border-line bg-raised px-2 text-sm outline-none"
-          >
-            {Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <Button
-            variant="ghost"
-            onClick={() => update.mutate({ id: play.id, revision: play.revision, patch: { status: play.status === "paused" ? "active" : "paused" } })}
-          >
-            {play.status === "paused" ? <PlayIcon size={14} /> : <Pause size={14} />}
-            {play.status === "paused" ? "Resume" : "Pause"}
-          </Button>
-          {active ? (
-            <Button variant="ghost" disabled={cancel.isPending} onClick={() => cancel.mutate({ runId: active.id })}>
-              <Stop size={14} weight="fill" /> Stop search
+        <div className="flex flex-col items-end gap-2 max-sm:items-start">
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={play.schedule}
+              onChange={(e) => update.mutate({ id: play.id, revision: play.revision, patch: { schedule: e.target.value as typeof play.schedule } })}
+              className="capsule h-7 pl-3 text-sm outline-none focus:focus-ring"
+              aria-label="Schedule"
+            >
+              {Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="ghost"
+              onClick={() => update.mutate({ id: play.id, revision: play.revision, patch: { status: play.status === "paused" ? "active" : "paused" } })}
+            >
+              {play.status === "paused" ? <PlayIcon size={14} /> : <Pause size={14} />}
+              {play.status === "paused" ? "Resume" : "Pause"}
             </Button>
-          ) : (
-            <Button disabled={runNow.isPending || play.status !== "active"} onClick={() => runNow.mutate({ id: play.id })}>
-              <PlayIcon size={14} weight="fill" /> Run search
-            </Button>
-          )}
-        </div>
-        {!active && <RunEstimate playId={play.id} />}
+            {active ? (
+              <Button variant="ghost" disabled={cancel.isPending} onClick={() => cancel.mutate({ runId: active.id })}>
+                <Stop size={14} weight="fill" /> Stop search
+              </Button>
+            ) : (
+              <Button disabled={runNow.isPending || play.status !== "active"} onClick={() => runNow.mutate({ id: play.id })}>
+                <PlayIcon size={14} weight="fill" /> Run search
+              </Button>
+            )}
+          </div>
+          {!active && <RunEstimate playId={play.id} />}
         </div>
       </div>
       {latest && !active && <NeedsAttention run={latest} />}
       {(runNow.error ?? update.error ?? cancel.error) && (
-        <p className="mb-4 text-sm text-cat-orange">{(runNow.error ?? update.error ?? cancel.error)!.message}</p>
+        <p className="mb-4 text-sm text-system-orange">{(runNow.error ?? update.error ?? cancel.error)!.message}</p>
       )}
 
-      <nav className="mb-6 flex gap-1 border-b border-line">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => onChange({ tab: t.key, lead: undefined })}
-            className={cn("-mb-px border-b-2 px-3 py-2 text-sm", tab === t.key ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink")}
-          >
-            {t.label}
-            {t.key === "leads" && <span className="ml-1.5 text-faint">{counts.data?.counts.all ?? ""}</span>}
-          </button>
-        ))}
-      </nav>
+      <div className="mb-8">
+        <Segmented
+          label="Play sections"
+          options={TABS.map((t) => ({
+            value: t.key,
+            label:
+              t.key === "leads" && counts.data ? (
+                <>
+                  {t.label}
+                  <span className="ml-1.5 font-normal text-muted tabular-nums">{counts.data.counts.all}</span>
+                </>
+              ) : (
+                t.label
+              ),
+          }))}
+          value={tab}
+          onChange={(t) => onChange({ tab: t, lead: undefined })}
+        />
+      </div>
 
       {tab === "overview" && (
-        <div className="flex flex-col gap-6">
-          <div className="grid gap-3 md:grid-cols-3">
+        <div className="flex flex-col gap-8">
+          <Group>
             <Summary label="Who" text={play.summary.who} />
             <Summary label="How we find them" text={play.summary.how} />
             <Summary label="How many" text={play.summary.howMany} />
-          </div>
+          </Group>
           {latest && <RunPanel key={latest.id} run={latest} live={latest.id === active?.id} onFinished={refresh} />}
-          <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
-            <div className="flex flex-col gap-4">
+          <div className="grid gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="flex min-w-0 flex-col gap-8">
               <LeadsChart playId={playId} onView={() => onChange({ tab: "leads" })} />
               <NewestLeads playId={playId} onOpen={(lead) => onChange({ tab: "leads", status: "all", lead })} onReviewAll={() => onChange({ tab: "leads", status: "to_review" })} />
             </div>
@@ -176,15 +203,22 @@ function NeedsAttention({ run }: { run: Run }) {
   const info = reason ? ATTENTION[reason] : undefined;
   if (!info) return null;
   return (
-    <div className="mb-5 flex items-start gap-3 rounded-xl border border-cat-orange/30 bg-cat-orange/10 px-4 py-3 text-sm max-sm:flex-col">
-      <WarningCircle size={18} className="mt-px shrink-0 text-cat-orange" />
+    <div className="mb-6 flex items-start gap-3 rounded-xl bg-system-orange/10 px-4 py-3 text-sm max-sm:flex-col">
+      <WarningCircle size={18} weight="fill" className="mt-px shrink-0 text-system-orange" />
       <div className="min-w-0 flex-1">
         <p className="font-medium">{info.title}</p>
         <p className="mt-0.5 text-muted">{info.fix}</p>
-        {reason === "error" && run.error && <p className="mt-1 truncate text-xs text-faint" title={run.error}>{run.error}</p>}
+        {reason === "error" && run.error && (
+          <p className="mt-1 truncate text-xs text-muted" title={run.error}>
+            {run.error}
+          </p>
+        )}
       </div>
       {info.to && (
-        <AppLink href={info.to} className="shrink-0 rounded-md bg-control px-3 py-1.5 text-sm font-medium hover:bg-control-hover">
+        <AppLink
+          href={info.to}
+          className="capsule inline-flex h-7 shrink-0 items-center px-3.5 text-sm font-medium transition-colors hover:bg-(--capsule-bg-hover)"
+        >
           {info.cta}
         </AppLink>
       )}
@@ -192,12 +226,13 @@ function NeedsAttention({ run }: { run: Run }) {
   );
 }
 
+/** One line of the Play's recap: the label in a fixed column, as in a Get Info window. */
 function Summary({ label, text }: { label: string; text: string }) {
   return (
-    <Card className="p-4">
-      <p className="text-xs font-medium text-faint">{label}</p>
-      <p className="mt-1 text-sm leading-relaxed">{text}</p>
-    </Card>
+    <Row className="items-baseline! max-sm:flex-col max-sm:items-start! max-sm:gap-1">
+      <span className="w-36 shrink-0 text-sm text-muted">{label}</span>
+      <p className="min-w-0 flex-1 text-sm leading-relaxed">{text}</p>
+    </Row>
   );
 }
 
@@ -219,55 +254,76 @@ function RunPanel({ run, live, onFinished }: { run: Run; live: boolean; onFinish
     if (["done", "error", "cancelled"].includes(event.type)) onFinished();
   });
 
+  const hasBody = Boolean(report || live || run.error);
   return (
-    <Card className={live ? "ai-glow" : undefined}>
-      <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          {live && <CircleNotch size={14} className="animate-spin" />}
+    <Section
+      title={
+        <span className="flex items-center gap-2">
+          {live && <CircleNotch size={13} className="animate-spin text-muted" />}
           {live ? <span className="ai-text">Searching now</span> : "Latest search"}
-        </h2>
-        <span className="text-xs text-faint">
+        </span>
+      }
+      actions={
+        <span className="text-xs text-muted tabular-nums">
           {new Date(run.createdAt).toLocaleString()}
           {run.stopReason && ` · ${STOP_LABELS[run.stopReason]}`}
           {run.status === "failed" && " · failed"}
         </span>
-      </div>
-      {report && <Funnel report={report} />}
-      {live && (
-        <div className="mt-4 flex flex-col gap-1.5 text-sm text-muted">
-          {log.length === 0 && <p className="text-faint">Starting the research…</p>}
-          {log.map((line, i) => (
-            <p key={i}>{line}</p>
-          ))}
-          {found.slice(-5).map((l, i) => (
-            <p key={`l${i}`} className="text-xs">
-              <span className={l.stage === "qualified" ? "text-cat-green" : l.stage === "needs_review" ? "text-cat-yellow" : "text-faint"}>
-                {l.fit}/100
-              </span>{" "}
-              {l.name} · {l.title} @ {l.company}
+      }
+    >
+      {hasBody && (
+        <Group className={cn(live && "ai-glow")}>
+          {report && <Funnel report={report} />}
+          {live && (
+            <div className="relative flex flex-col gap-1.5 px-4 py-3 text-sm text-muted">
+              {log.length === 0 && <p>Starting the research…</p>}
+              {log.map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+              {found.slice(-5).map((l, i) => (
+                <p key={`l${i}`} className="truncate text-xs">
+                  <span
+                    className={cn(
+                      "font-medium tabular-nums",
+                      l.stage === "qualified" ? "text-system-green" : l.stage === "needs_review" ? "text-system-orange" : "text-muted",
+                    )}
+                  >
+                    {l.fit}/100
+                  </span>{" "}
+                  {l.name} · {l.title} @ {l.company}
+                </p>
+              ))}
+            </div>
+          )}
+          {run.error && (
+            <p className="relative px-4 py-3 text-sm text-system-orange">
+              {run.error}
             </p>
-          ))}
-        </div>
+          )}
+        </Group>
       )}
-      {run.error && <p className="mt-3 text-sm text-cat-orange">{run.error}</p>}
-    </Card>
+    </Section>
   );
 }
 
+/** The run's funnel as one strip of figures, set apart by spacing alone. */
 function Funnel({ report: r }: { report: Report }) {
   const steps = [
     { label: "Discovered", value: r.discovered },
     { label: "Kept after checks", value: r.gated },
     { label: "LinkedIn found", value: r.linkedinFound ?? 0 },
-    { label: "Qualified", value: r.qualified, accent: "text-cat-green" },
-    { label: "To review", value: r.needsReview, accent: "text-cat-yellow" },
+    { label: "Qualified", value: r.qualified, accent: "text-system-green" },
+    { label: "To review", value: r.needsReview, accent: "text-system-orange" },
   ];
   return (
-    <div className="mt-4 grid grid-cols-5 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-5">
       {steps.map((s) => (
-        <div key={s.label} className="rounded-xl bg-raised p-3">
-          <p className={cn("text-xl font-semibold tabular-nums", s.accent)}>{s.value}</p>
-          <p className="text-xs text-faint">{s.label}</p>
+        <div
+          key={s.label}
+          className="min-w-0 px-4 py-3.5"
+        >
+          <p className={cn("text-[22px] leading-7 font-semibold tracking-[-0.01em] tabular-nums", s.accent)}>{s.value}</p>
+          <p className="mt-0.5 truncate text-xs text-muted">{s.label}</p>
         </div>
       ))}
     </div>
@@ -292,39 +348,44 @@ function LeadsChart({ playId, onView }: { playId: string; onView: () => void }) 
   const total = days.reduce((t, d) => t + d.qualified + d.review, 0);
 
   return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold">Leads over time</h2>
-          <p className="text-xs text-faint">{total} leads in the last 30 days</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-3 text-xs text-faint">
-            <span className="flex items-center gap-1">
-              <span className="size-2 rounded-sm bg-cat-green" /> Strong match
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="size-2 rounded-sm bg-cat-yellow/70" /> Worth a look
-            </span>
-          </span>
-          <button onClick={onView} className="flex items-center gap-1 text-xs text-muted hover:text-ink">
-            View leads <ArrowRight size={12} />
-          </button>
-        </div>
-      </div>
-      {total === 0 ? (
-        <p className="py-6 text-center text-sm text-faint">No leads in the last 30 days.</p>
-      ) : (
-        <div className="flex h-28 items-end gap-1" role="img" aria-label={`${total} leads in the last 30 days`}>
-          {days.map((d) => (
-            <div key={d.day} className="flex h-full flex-1 flex-col justify-end" title={`${d.day}: ${d.qualified} strong, ${d.review} worth a look`}>
-              <div className="rounded-t-sm bg-cat-yellow/70" style={{ height: `${(d.review / max) * 100}%` }} />
-              <div className={cn("bg-cat-green", d.review === 0 && "rounded-t-sm")} style={{ height: `${(d.qualified / max) * 100}%` }} />
+    <Section
+      title="Leads over time"
+      description={`${total} leads in the last 30 days`}
+      actions={
+        <TextButton onClick={onView}>
+          View leads <CaretRight size={11} weight="bold" />
+        </TextButton>
+      }
+    >
+      <Group className="px-4 pt-4 pb-3">
+        {total === 0 ? (
+          <p className="py-8 text-center text-sm text-muted">No leads in the last 30 days.</p>
+        ) : (
+          <>
+            <div className="flex h-28 items-end gap-[3px]" role="img" aria-label={`${total} leads in the last 30 days`}>
+              {days.map((d) => (
+                <div
+                  key={d.day}
+                  className="flex h-full flex-1 flex-col justify-end rounded-[3px] transition-colors hover:bg-raised"
+                  title={`${d.day}: ${d.qualified} strong, ${d.review} worth a look`}
+                >
+                  <div className="rounded-t-[3px] bg-system-yellow" style={{ height: `${(d.review / max) * 100}%` }} />
+                  <div className={cn("bg-system-green", d.review === 0 && "rounded-t-[3px]")} style={{ height: `${(d.qualified / max) * 100}%` }} />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-    </Card>
+            <div className="mt-2 flex items-center justify-end gap-3 pt-1 text-xs text-muted">
+              <span className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-system-green" /> Strong match
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-system-yellow" /> Worth a look
+              </span>
+            </div>
+          </>
+        )}
+      </Group>
+    </Section>
   );
 }
 
@@ -335,33 +396,39 @@ function NewestLeads({ playId, onOpen, onReviewAll }: { playId: string; onOpen: 
   const toReview = counts.data?.counts.to_review ?? 0;
   if (!newest.data?.items.length) return null;
   return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Newest leads</h2>
-        {toReview > 0 && (
-          <button onClick={onReviewAll} className="flex items-center gap-1 text-xs text-muted hover:text-ink">
-            Review all {toReview} <ArrowRight size={12} />
-          </button>
-        )}
-      </div>
-      <ul className="flex flex-col divide-y divide-line">
-        {newest.data.items.map((l) => (
-          <li key={l.id}>
-            <button onClick={() => onOpen(l.id)} className="flex w-full items-center gap-3 py-2.5 text-left hover:opacity-80">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-raised text-[11px] font-semibold text-muted">{initials(l.person.name)}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm">{l.person.name}</span>
-                <span className="block truncate text-xs text-muted">
-                  {l.person.title}
-                  {l.person.company && ` @ ${l.person.company}`}
-                </span>
-              </span>
-              <span className={cn("rounded-full px-2 py-0.5 text-xs", (l.isNew ? STATUS.new : STATUS[l.status])?.className)}>{(l.isNew ? STATUS.new : STATUS[l.status])?.label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </Card>
+    <Section
+      title="Newest leads"
+      actions={
+        toReview > 0 && (
+          <TextButton onClick={onReviewAll}>
+            Review all {toReview} <CaretRight size={11} weight="bold" />
+          </TextButton>
+        )
+      }
+    >
+      <Group>
+        <ul>
+          {newest.data.items.map((l) => {
+            const status = l.isNew ? STATUS.new : STATUS[l.status];
+            return (
+              <li key={l.id}>
+                <button onClick={() => onOpen(l.id)} className="flex min-h-11 w-full items-center gap-3 px-4 py-2 text-left transition-colors duration-150 hover:bg-raised">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-control text-[11px] font-semibold text-muted">{initials(l.person.name)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm">{l.person.name}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {l.person.title}
+                      {l.person.company && ` @ ${l.person.company}`}
+                    </span>
+                  </span>
+                  {status && <span className={cn(PILL_BASE, status.className)}>{status.label}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Group>
+    </Section>
   );
 }
 
@@ -369,23 +436,27 @@ function Activity({ playId }: { playId: string }) {
   const trpc = useTRPC();
   const activity = useQuery(trpc.plays.activity.queryOptions({ id: playId }));
   const spend = useQuery(trpc.credits.play.queryOptions({ playId }));
+  const spent = spend.data && (spend.data.allTime.billed > 0 || spend.data.allTime.unbilled > 0) ? spend.data : null;
   return (
-    <Card className="self-start">
-      <h2 className="mb-3 text-sm font-semibold">Activity</h2>
-      {activity.data?.length ? <ActivityFeed items={activity.data} compact /> : <p className="text-sm text-faint">Nothing yet.</p>}
-      {spend.data && (spend.data.allTime.billed > 0 || spend.data.allTime.unbilled > 0) && (
-        <div className="mt-4 border-t border-line pt-3 text-xs text-muted">
-          <p>
-            Spent {usd(spend.data.periodSpend.billed, { precise: true })} this period, {usd(spend.data.allTime.billed, { precise: true })} in all
-            {spend.data.perLeadMicroUsd !== null && ` · ${usd(spend.data.perLeadMicroUsd, { precise: true })} per lead`}
-          </p>
-          {spend.data.allTime.unbilled > 0 && <p className="mt-0.5 text-faint">+ {usd(spend.data.allTime.unbilled, { precise: true })} of Claude covered by your subscription</p>}
-          <Link to="/workspace/usage" className="mt-1 inline-block text-accent hover:underline">
-            Usage →
-          </Link>
+    <Section title="Activity" className="min-w-0 self-start">
+      <Group>
+        <div className="px-4 py-3">
+          {activity.data?.length ? <ActivityFeed items={activity.data} compact /> : <p className="text-sm text-muted">Nothing yet.</p>}
         </div>
-      )}
-    </Card>
+        {spent && (
+          <div className="px-4 pt-1 pb-3.5 text-xs text-muted">
+            <p>
+              Spent {usd(spent.periodSpend.billed, { precise: true })} this period, {usd(spent.allTime.billed, { precise: true })} in all
+              {spent.perLeadMicroUsd !== null && ` · ${usd(spent.perLeadMicroUsd, { precise: true })} per lead`}
+            </p>
+            {spent.allTime.unbilled > 0 && <p className="mt-0.5">+ {usd(spent.allTime.unbilled, { precise: true })} of Claude covered by your subscription</p>}
+            <Link to="/workspace/usage" className="mt-2 inline-flex items-center gap-1 text-sm text-accent hover:underline hover:underline-offset-2">
+              Usage <CaretRight size={11} weight="bold" />
+            </Link>
+          </div>
+        )}
+      </Group>
+    </Section>
   );
 }
 
@@ -404,28 +475,35 @@ function RunEstimate({ playId }: { playId: string }) {
     `cap ${usd(capMicroUsd)}`,
     availableMicroUsd === null ? null : `${usd(availableMicroUsd)} left this period`,
   ].filter(Boolean);
-  return <p className={cn("text-right text-xs", availableMicroUsd !== null && availableMicroUsd < 10_000 ? "text-cat-orange" : "text-faint")}>{parts.join(" · ")}</p>;
+  return (
+    <p className={cn("text-right text-xs max-sm:text-left", availableMicroUsd !== null && availableMicroUsd < 10_000 ? "text-system-orange" : "text-muted")}>
+      {parts.join(" · ")}
+    </p>
+  );
 }
 
 function RunHistory({ runs }: { runs: Run[] }) {
   return (
-    <div>
-      <h2 className="mb-3 text-sm font-semibold">Past runs</h2>
-      <ul className="flex flex-col divide-y divide-line rounded-2xl bg-panel shadow-card">
+    <Section title="Past runs">
+      <Group>
         {runs.map((r) => (
-          <li key={r.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="text-muted">
-              {new Date(r.createdAt).toLocaleString()}
-              {r.trigger === "schedule" && <span className="ml-2 text-xs text-faint">scheduled</span>}
-            </span>
-            <span className="text-xs text-faint">
+          <Row
+            key={r.id}
+            label={
+              <span className="tabular-nums">
+                {new Date(r.createdAt).toLocaleString()}
+                {r.trigger === "schedule" && <span className="ml-2 text-xs text-muted">scheduled</span>}
+              </span>
+            }
+          >
+            <span className="shrink-0 text-right text-xs text-muted">
               {r.report ? `${r.report.qualified} qualified · ${r.report.needsReview} to review · ` : ""}
               {r.stopReason ? STOP_LABELS[r.stopReason] : r.status}
             </span>
-          </li>
+          </Row>
         ))}
-      </ul>
-    </div>
+      </Group>
+    </Section>
   );
 }
 
@@ -447,50 +525,42 @@ function Sourcing({ data: { play, runs } }: { data: PlayData }) {
   ];
   const rejections = Object.entries(report?.rejections ?? {}).sort((x, y) => y[1].count - x[1].count);
 
+  const shownRows = rows.filter(([, v]) => v.length > 0);
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <Card>
-        <h2 className="text-sm font-semibold">What it looks for</h2>
-        <p className="mt-1 text-xs text-muted">{PIPELINE_LABELS[play.pipeline]}</p>
-        <dl className="mt-4 flex flex-col gap-3">
-          {rows
-            .filter(([, v]) => v.length > 0)
-            .map(([label, values]) => (
-              <div key={label}>
-                <dt className="text-xs text-faint">{label}</dt>
-                <dd className="mt-1 flex flex-wrap gap-1.5">
-                  {values.map((v) => (
-                    <span key={v} className="rounded-md bg-raised px-2 py-0.5 text-xs">
-                      {v}
-                    </span>
-                  ))}
-                </dd>
-              </div>
-            ))}
+    <div className="grid items-start gap-x-6 gap-y-8 lg:grid-cols-2">
+      <Section title="What it looks for" description={PIPELINE_LABELS[play.pipeline]}>
+        <Group>
+          {shownRows.map(([label, values]) => (
+            <SourcingRow key={label} label={label}>
+              <span className="flex flex-wrap gap-1.5">
+                {values.map((v) => (
+                  <span key={v} className={CHIP}>
+                    {v}
+                  </span>
+                ))}
+              </span>
+            </SourcingRow>
+          ))}
           {play.definition.criteria && (
-            <div>
-              <dt className="text-xs text-faint">Criteria</dt>
-              <dd className="mt-1 text-sm">{play.definition.criteria}</dd>
-            </div>
+            <SourcingRow label="Criteria">
+              <p className="text-sm leading-relaxed">{play.definition.criteria}</p>
+            </SourcingRow>
           )}
-          <div>
-            <dt className="text-xs text-faint">Limits</dt>
-            <dd className="mt-1 text-sm text-muted">
+          <SourcingRow label="Limits">
+            <p className="text-sm text-muted">
               {play.definition.policy?.maxMinutes ?? 15} min of research per run · signals from the last {play.definition.policy?.freshnessDays ?? 60} days
-            </dd>
-          </div>
-        </dl>
-      </Card>
+            </p>
+          </SourcingRow>
+        </Group>
+      </Section>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-8">
         {report?.stages && (
-          <Card>
-            <h2 className="text-sm font-semibold">Main Play, latest run</h2>
-            <ul className="mt-3 flex flex-col gap-2">
+          <Section title="Main Play, latest run">
+            <Group>
               {report.stages.map((s) => (
-                <li key={s.pipeline} className="flex items-center justify-between text-sm">
-                  <span className={cn(s.skipped && "text-faint")}>{PIPELINE_LABELS[s.pipeline] ?? s.pipeline}</span>
-                  <span className="text-xs text-faint">
+                <Row key={s.pipeline} label={<span className={cn(s.skipped && "text-muted")}>{PIPELINE_LABELS[s.pipeline] ?? s.pipeline}</span>}>
+                  <span className="shrink-0 text-xs text-muted tabular-nums">
                     {s.skipped === "unavailable"
                       ? "needs a key"
                       : s.skipped === "target_met"
@@ -499,35 +569,50 @@ function Sourcing({ data: { play, runs } }: { data: PlayData }) {
                           ? "out of time"
                           : `${s.discovered} found · ${s.qualified} qualified`}
                   </span>
-                </li>
+                </Row>
               ))}
-            </ul>
-          </Card>
+            </Group>
+          </Section>
         )}
-        <Card>
-          <h2 className="text-sm font-semibold">Set aside in the latest completed run</h2>
-          {rejections.length === 0 ? (
-            <p className="mt-2 text-sm text-faint">Nothing set aside.</p>
-          ) : (
-            <ul className="mt-3 flex flex-col gap-3">
-              {rejections.map(([reason, v]) => (
-                <li key={reason} className="text-sm">
-                  <p>
-                    <span className="tabular-nums">{v.count}</span> · {REJECTION_LABELS[reason] ?? reason}
-                  </p>
-                  <ul className="mt-1 flex flex-col gap-0.5">
-                    {v.examples.map((ex) => (
-                      <li key={ex} className="text-xs text-faint">
-                        {ex}
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        <Section title="Set aside in the latest completed run">
+          <Group>
+            {rejections.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-muted">Nothing set aside.</p>
+            ) : (
+              rejections.map(([reason, v]) => (
+                <Row
+                  key={reason}
+                  className="items-start!"
+                  label={REJECTION_LABELS[reason] ?? reason}
+                  description={
+                    v.examples.length > 0 && (
+                      <ul className="flex flex-col gap-0.5">
+                        {v.examples.map((ex) => (
+                          <li key={ex} className="truncate" title={ex}>
+                            {ex}
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  }
+                >
+                  <span className="shrink-0 text-sm text-muted tabular-nums">{v.count}</span>
+                </Row>
+              ))
+            )}
+          </Group>
+        </Section>
       </div>
     </div>
+  );
+}
+
+/** A label column and its values, the layout of an inspector. Stacks on phones. */
+function SourcingRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <Row className="items-baseline! max-sm:flex-col max-sm:items-start! max-sm:gap-1.5">
+      <span className="w-32 shrink-0 text-sm text-muted">{label}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </Row>
   );
 }

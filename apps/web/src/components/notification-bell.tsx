@@ -32,7 +32,10 @@ export function NotificationBell() {
       <button
         ref={button}
         onClick={() => setOpen((o) => !o)}
-        className={cn("relative flex size-7 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-ink", open && "bg-raised text-ink")}
+        className={cn(
+          "relative flex size-7 items-center justify-center rounded-full text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90",
+          open && "bg-raised text-ink",
+        )}
         aria-label={n ? `${n} unread notification${n === 1 ? "" : "s"}` : "Notifications"}
         title="Notifications"
       >
@@ -83,11 +86,11 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
     <div
       ref={ref}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: Math.min(WIDTH, window.innerWidth - 16) }}
-      className="glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden rounded-2xl origin-top-left"
+      className="glass popover-motion fixed z-50 flex max-h-[70vh] origin-top-left flex-col overflow-hidden rounded-2xl"
       role="dialog"
       aria-label="Notifications"
     >
-      <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-1.5">
         <span className="text-sm font-semibold">Notifications</span>
         <div className="flex items-center gap-3 text-xs">
           {unread.length > 0 && (
@@ -100,8 +103,8 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
           </Link>
         </div>
       </div>
-      <ul className="min-h-0 flex-1 overflow-y-auto py-1">
-        {items.length === 0 && <li className="px-4 py-10 text-center text-sm text-faint">{list.isLoading ? "Loading…" : "Nothing yet. New leads, replies and budget alerts show up here."}</li>}
+      <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1.5 py-1">
+        {items.length === 0 && <li className="px-4 py-10 text-center text-sm text-muted">{list.isLoading ? "Loading…" : "Nothing yet. New leads, replies and budget alerts show up here."}</li>}
         {items.map((item) => (
           <li key={item.id}>
             <Entry
@@ -114,9 +117,11 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
           </li>
         ))}
       </ul>
-      <Link to="/workspace/activity" onClick={onClose} className="border-t border-line px-4 py-2 text-center text-xs text-muted hover:text-ink">
-        See all activity
-      </Link>
+      <div className="p-1.5 pt-1">
+        <Link to="/workspace/activity" onClick={onClose} className="flex h-7 items-center justify-center rounded-lg text-xs text-muted transition-colors duration-150 hover:bg-raised hover:text-ink">
+          See all activity
+        </Link>
+      </div>
     </div>,
     document.body,
   );
@@ -126,16 +131,17 @@ function Entry({ item, onOpen }: { item: Item; onOpen: () => void }) {
   const { icon: Icon, cls } = TONE[item.tone];
   const body = (
     <>
-      <Icon size={16} weight="fill" className={cn("mt-0.5 shrink-0", cls)} />
+      <Icon size={16} weight="fill" className={cn("mt-px shrink-0", cls)} />
       <span className="min-w-0 flex-1">
         <span className={cn("block text-sm", item.readAt ? "text-muted" : "font-medium text-ink")}>{item.title}</span>
         {item.body && <span className="mt-0.5 line-clamp-2 block text-xs text-muted">{item.body}</span>}
-        <span className="mt-1 block text-[11px] text-faint">{timeAgo(item.createdAt)}</span>
+        <span className="mt-1 block text-xs text-muted tabular-nums">{timeAgo(item.createdAt)}</span>
       </span>
-      {!item.readAt && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
+      {!item.readAt && <span className="mt-1 size-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
     </>
   );
-  const cls2 = "flex gap-3 px-4 py-2.5 text-left hover:bg-raised";
+    // Rows highlight as rounded rects inset from the panel edge, like a macOS menu.
+  const cls2 = "flex gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors duration-150 hover:bg-raised";
   return item.link ? (
     <AppLink href={item.link} className={cls2} onNavigate={onOpen}>
       {body}

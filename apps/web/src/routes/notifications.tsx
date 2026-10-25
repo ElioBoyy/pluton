@@ -4,13 +4,19 @@ import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
-import { Button, Card, Input, PageHeader } from "../components/ui.tsx";
+import { Button, Group, Input, PageHeader, Row, Section, Segmented, Switch } from "../components/ui.tsx";
 import { DigestView } from "../features/activity/digest-view.tsx";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { useChannel } from "../lib/use-job-events.ts";
 
 type Settings = inferRouterOutputs<AppRouter>["notifications"]["settings"]["settings"];
+
+const FREQUENCIES: Array<{ value: Settings["digest"]; label: string }> = [
+  { value: "daily", label: "Every weekday" },
+  { value: "weekly", label: "Mondays" },
+  { value: "off", label: "Off" },
+];
 
 export function NotificationsPage() {
   const trpc = useTRPC();
@@ -29,94 +35,80 @@ export function NotificationsPage() {
   if (!data.data || !form) return null;
   const saved = data.data.settings;
   const dirty = JSON.stringify(form) !== JSON.stringify(saved);
+  const off = form.digest === "off";
 
   return (
     <>
       <PageHeader title="Notifications" description="What reaches the bell in the sidebar, and the morning digest." />
       <form
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-8"
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate(form);
         }}
       >
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold">In the app</h2>
-          <ul className="flex flex-col divide-y divide-line">
+        <Section title="In the app">
+          <Group>
             {data.data.categories
               .filter((c) => c.key !== "digest")
               .map((c) => (
-                <li key={c.key} className="flex items-center justify-between gap-4 py-2.5">
-                  <span>
-                    <span className="block text-sm">{c.label}</span>
-                    <span className="block text-xs text-muted">{c.description}</span>
-                  </span>
-                  <Toggle checked={form.categories[c.key]} onChange={(v) => setForm({ ...form, categories: { ...form.categories, [c.key]: v } })} label={c.label} />
-                </li>
+                <Row key={c.key} label={c.label} description={c.description}>
+                  <Switch checked={form.categories[c.key]} onChange={(v) => setForm({ ...form, categories: { ...form.categories, [c.key]: v } })} label={c.label} />
+                </Row>
               ))}
-          </ul>
-        </Card>
+          </Group>
+        </Section>
 
-        <Card>
-          <h2 className="mb-1 text-sm font-semibold">Morning digest</h2>
-          <p className="mb-4 text-xs text-muted">What waits for you (leads to review, replies, LinkedIn steps, Brain suggestions) and what you spent. Skipped when there's nothing new.</p>
-          <div className="flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">Frequency</span>
-              <select
-                value={form.digest}
-                onChange={(e) => setForm({ ...form, digest: e.target.value as Settings["digest"] })}
-                className="h-7 rounded-md border border-line bg-canvas px-2 text-sm outline-none focus:focus-ring"
-              >
-                <option value="daily">Every weekday</option>
-                <option value="weekly">Mondays</option>
-                <option value="off">Off</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">At</span>
-              <Input type="time" className="w-28" value={form.digestTime} onChange={(e) => setForm({ ...form, digestTime: e.target.value })} disabled={form.digest === "off"} />
-            </label>
-            <span className="pb-1.5 text-xs text-faint">Your workspace timezone</span>
-          </div>
-
-          <div className={cn("mt-5 flex flex-col gap-3 border-t border-line pt-4", form.digest === "off" && "opacity-50")}>
-            <label className="flex items-center justify-between gap-4">
-              <span>
-                <span className="block text-sm">Also send it by email</span>
-                <span className="block text-xs text-muted">
-                  {data.data.smtpConfigured ? (
-                    <span className="inline-flex items-center gap-1">
-                      <CheckCircle size={12} weight="fill" className="text-cat-green" /> SMTP is set up
-                    </span>
-                  ) : (
-                    <>
-                      Needs your SMTP server in{" "}
-                      <Link to="/workspace/api-keys" className="text-accent hover:underline">
-                        API keys → Email
-                      </Link>
-                    </>
-                  )}
-                </span>
-              </span>
-              <Toggle checked={form.email} onChange={(v) => setForm({ ...form, email: v })} label="Email the digest" disabled={form.digest === "off"} />
-            </label>
+        <Section
+          title="Morning digest"
+          description="What waits for you (leads to review, replies, LinkedIn steps, Brain suggestions) and what you spent. Skipped when there's nothing new."
+        >
+          <Group>
+            <Row label="Frequency">
+              <Segmented label="Frequency" size="sm" options={FREQUENCIES} value={form.digest} onChange={(digest) => setForm({ ...form, digest })} />
+            </Row>
+            <Row label={<label htmlFor="digest-time">At</label>} description="Your workspace timezone" className={cn(off && "opacity-50")}>
+              {/* Input is w-full: the wrapper sets its width. */}
+              <div className="w-28 shrink-0">
+                <Input id="digest-time" type="time" value={form.digestTime} onChange={(e) => setForm({ ...form, digestTime: e.target.value })} disabled={off} />
+              </div>
+            </Row>
+            <Row
+              label="Also send it by email"
+              description={
+                data.data.smtpConfigured ? (
+                  <span className="inline-flex items-center gap-1">
+                    <CheckCircle size={12} weight="fill" className="text-system-green" /> SMTP is set up
+                  </span>
+                ) : (
+                  <>
+                    Needs your SMTP server in{" "}
+                    <Link to="/workspace/api-keys" className="text-accent hover:underline">
+                      API keys → Email
+                    </Link>
+                  </>
+                )
+              }
+              className={cn(off && "opacity-50")}
+            >
+              <Switch checked={form.email} onChange={(v) => setForm({ ...form, email: v })} label="Email the digest" disabled={off} />
+            </Row>
             {form.email && (
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Send to</span>
-                <Input type="email" placeholder="you@company.com" value={form.emailTo} onChange={(e) => setForm({ ...form, emailTo: e.target.value })} required />
-              </label>
+              <Row label={<label htmlFor="digest-to">Send to</label>} className={cn(off && "opacity-50")}>
+                <div className="w-60 shrink-0 max-sm:w-40">
+                  <Input id="digest-to" type="email" placeholder="you@company.com" value={form.emailTo} onChange={(e) => setForm({ ...form, emailTo: e.target.value })} required />
+                </div>
+              </Row>
             )}
+          </Group>
+          <div className="mt-3 flex items-center justify-end gap-3 px-1">
+            {save.isSuccess && !dirty && <span className="text-sm text-muted">Saved</span>}
+            {save.error && <span className="min-w-0 text-sm text-system-orange">{save.error.message}</span>}
+            <Button type="submit" disabled={!dirty || save.isPending}>
+              Save
+            </Button>
           </div>
-        </Card>
-
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={!dirty || save.isPending}>
-            Save
-          </Button>
-          {save.isSuccess && !dirty && <span className="text-sm text-muted">Saved</span>}
-          {save.error && <span className="text-sm text-cat-orange">{save.error.message}</span>}
-        </div>
+        </Section>
       </form>
 
       <DigestPreview canEmail={saved.email && Boolean(saved.emailTo) && data.data.smtpConfigured} />
@@ -140,9 +132,16 @@ function DigestPreview({ canEmail }: { canEmail: boolean }) {
   const failed = last?.type === "error" ? (last.message ?? "Failed") : null;
 
   return (
-    <section className="mt-8">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Next digest, as of now</h2>
+    <Section
+      title="Next digest, as of now"
+      description={
+        failed ? (
+          <span className="text-system-orange">{failed}</span>
+        ) : jobId && last ? (
+          `Sent${canEmail ? " to your inbox and" : ""} to the bell.`
+        ) : undefined
+      }
+      actions={
         <Button
           variant="ghost"
           disabled={send.isPending || (jobId !== null && !last)}
@@ -153,26 +152,10 @@ function DigestPreview({ canEmail }: { canEmail: boolean }) {
         >
           {canEmail ? "Send it now" : "Put it in the app now"}
         </Button>
-      </div>
-      {jobId && last && !failed && <p className="mb-3 text-xs text-muted">Sent{canEmail ? " to your inbox and" : ""} to the bell.</p>}
-      {failed && <p className="mb-3 text-xs text-cat-orange">{failed}</p>}
-      {preview.data && <DigestView digest={preview.data} />}
-    </section>
-  );
-}
-
-function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={cn("relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50", checked ? "bg-system-green" : "bg-control-pressed")}
+      }
+      className="mt-8"
     >
-      <span className={cn("absolute top-[2px] size-[18px] rounded-full bg-white shadow-control left-[2px] transition-[translate] duration-200 ease-[var(--ease-drawer)]", checked && "translate-x-4")} />
-    </button>
+      {preview.data && <DigestView digest={preview.data} />}
+    </Section>
   );
 }

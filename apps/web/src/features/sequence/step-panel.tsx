@@ -1,42 +1,40 @@
-import { BracketsCurly, CircleNotch, Sparkle, X } from "@phosphor-icons/react";
+import { BracketsCurly, CircleNotch, Sparkle } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
-import { Button, Input } from "../../components/ui.tsx";
+import { Button, Group, Input, Row, Section, Segmented, Switch } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
+import { PanelHeader } from "./configure-panel.tsx";
 import { ENROLLMENT, REVIEW } from "./labels.ts";
 
 type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 export type Step = Data["campaign"]["steps"][number];
 
 const textarea =
-  "w-full resize-y rounded-lg border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none placeholder:text-faint focus:focus-ring";
+  "block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring";
 
 /** Side panel for one step: what it does (Configure) and who is at it (Leads). */
 export function StepPanel({ data, step, onClose, onSaved, onEditTone }: { data: Data; step: Step; onClose: () => void; onSaved: () => void; onEditTone: () => void }) {
   const [tab, setTab] = useState<"configure" | "leads">("configure");
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(460px,calc(100vw-24px))] flex-col rounded-2xl" aria-label={step.label}>
-      <div className="flex items-start justify-between px-5 pt-4">
-        <div>
-          <p className="text-sm font-semibold text-muted">{step.kind === "message" ? "Campaign message" : "Campaign step"}</p>
-          <h2 className="text-lg font-bold">{step.label}</h2>
-        </div>
-        <button onClick={onClose} aria-label="Close" className="rounded-full p-1.5 text-muted hover:bg-raised hover:text-ink">
-          <X size={15} />
-        </button>
+    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(460px,calc(100vw-24px))] flex-col rounded-3xl" aria-label={step.label}>
+      <PanelHeader eyebrow={step.kind === "message" ? "Campaign message" : "Campaign step"} title={step.label} onClose={onClose} />
+      <div className="flex shrink-0 justify-center px-5 pb-2">
+        <Segmented
+          label="Step view"
+          size="sm"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "configure", label: "Configure" },
+            { value: "leads", label: "Leads" },
+          ]}
+        />
       </div>
-      <div className="mx-5 mt-3 flex gap-1 rounded-lg bg-raised p-0.5 text-sm">
-        {(["configure", "leads"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={cn("flex-1 rounded-md py-1 capitalize", tab === t ? "bg-canvas shadow-control" : "text-muted")}>
-            {t}
-          </button>
-        ))}
-      </div>
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6">
         {tab === "configure" ? <Configure key={step.id + step.revision} data={data} step={step} onSaved={onSaved} onEditTone={onEditTone} /> : <StepLeads data={data} step={step} />}
       </div>
     </aside>
@@ -66,67 +64,73 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
   const isFirstMessage = step.kind === "message" && data.campaign.steps.find((s) => s.kind === "message")?.id === step.id;
 
   return (
-    <div className="flex flex-col gap-5">
-      <label className="flex items-center justify-between text-sm">
-        <span>
-          <span className="font-medium">Step on</span>
-          <span className="block text-xs text-muted">Off: every lead skips it.</span>
-        </span>
-        <input type="checkbox" className="size-4 accent-[var(--color-accent)]" checked={draft.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
-      </label>
-
-      <label className="text-sm">
-        <span className="font-medium">{isFirstMessage ? "Hours after they accept" : step.kind === "visit_profile" ? "Hours after they join" : "Hours after the previous step"}</span>
-        <Input type="number" min={0} max={720} value={draft.delayHours} onChange={(e) => set({ delayHours: Math.max(0, Number(e.target.value)) })} className="mt-1.5 w-28" />
-      </label>
+    <div className="flex flex-col gap-8 [&>*]:shrink-0">
+      <Group>
+        <Row label="Step on" description="Off: every lead skips it.">
+          <Switch checked={draft.enabled} onChange={(v) => set({ enabled: v })} label="Step on" />
+        </Row>
+        <Row label={isFirstMessage ? "Hours after they accept" : step.kind === "visit_profile" ? "Hours after they join" : "Hours after the previous step"}>
+          <Input type="number" min={0} max={720} value={draft.delayHours} onChange={(e) => set({ delayHours: Math.max(0, Number(e.target.value)) })} className="w-20 text-right tabular-nums" aria-label="Hours" />
+        </Row>
+      </Group>
 
       {step.kind === "invite" && <InviteSettings data={data} />}
-      {step.kind === "follow_profile" && <p className="text-xs text-muted">With Unipile accounts this step is skipped (their API can't follow). Manual accounts get it as a task.</p>}
+      {step.kind === "follow_profile" && <p className="-mt-6 px-1 text-xs text-muted">With Unipile accounts this step is skipped (their API can't follow). Manual accounts get it as a task.</p>}
 
       {step.kind === "message" && (
         <>
-          <div className="grid gap-2">
+          <Group>
             {(["ai", "template"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => set({ mode: m })}
-                className={cn("rounded-xl border p-3 text-left text-sm", (draft.mode ?? "ai") === m ? "border-accent bg-accent/8" : "border-line hover:bg-raised")}
-              >
-                <span className="font-medium">{m === "ai" ? "AI" : "Template"}</span>
-                <span className="block text-xs text-muted">
-                  {m === "ai" ? "I write it for each lead from their activity, following your guidelines." : "Your exact words for everyone, with details like their first name filled in."}
+              <label key={m} className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-raised">
+                <input type="radio" name="message-mode" checked={(draft.mode ?? "ai") === m} onChange={() => set({ mode: m })} className="size-4 shrink-0 accent-[var(--color-accent)]" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1 text-sm">
+                    {m === "ai" ? "AI" : "Template"}
+                    {m === "ai" && <Sparkle size={11} weight="fill" className="text-accent" />}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {m === "ai" ? "I write it for each lead from their activity, following your guidelines." : "Your exact words for everyone, with details like their first name filled in."}
+                  </span>
                 </span>
-              </button>
+              </label>
             ))}
-          </div>
+          </Group>
 
           {(draft.mode ?? "ai") === "ai" ? (
-            <div>
-              <div className="flex items-end justify-between">
-                <span>
-                  <span className="text-sm font-medium">Guidelines</span>
-                  <span className="block text-xs text-muted">What this message should achieve. I follow them for every lead.</span>
-                </span>
-                <button
+            <Section
+              title="Guidelines"
+              description="What this message should achieve. I follow them for every lead."
+              actions={
+                <Button
+                  variant="ghost"
                   type="button"
                   disabled={sharpen.isPending}
                   onClick={() => sharpen.mutate({ campaignId: data.campaign.id, stepId: step.id, guidelines: draft.guidelines ?? "" })}
                   title="Sharpen these guidelines"
-                  className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-accent hover:bg-raised disabled:opacity-50"
+                  className={cn("!text-accent", sharpen.isPending && "ai-glow")}
                 >
                   {sharpen.isPending ? <CircleNotch size={12} className="animate-spin" /> : <Sparkle size={12} weight="fill" />} Sharpen
-                </button>
-              </div>
-              <textarea value={draft.guidelines ?? ""} onChange={(e) => set({ guidelines: e.target.value })} maxLength={2000} rows={7} className={cn(textarea, "mt-1.5")} />
-              <p className="text-right text-xs text-faint">{(draft.guidelines ?? "").length} / 2,000</p>
+                </Button>
+              }
+              footnote={
+                <>
+                  Written in your campaign's tone of voice.{" "}
+                  <button type="button" onClick={onEditTone} className="text-accent hover:underline">
+                    Edit tone
+                  </button>
+                  {" · "}Language: {data.campaign.language ?? `same as your Brain (${data.effectiveLanguage})`}
+                </>
+              }
+            >
+              <textarea value={draft.guidelines ?? ""} onChange={(e) => set({ guidelines: e.target.value })} maxLength={2000} rows={7} className={textarea} aria-label="Guidelines" />
+              <p className="mt-1 px-1 text-right text-xs text-muted tabular-nums">{(draft.guidelines ?? "").length} / 2,000</p>
               {suggestion && (
-                <div className="mt-2 rounded-xl border border-accent/40 bg-accent/5 p-3">
+                <div className="mt-2 rounded-xl bg-accent/10 p-4">
                   <p className="flex items-center gap-1 text-xs font-semibold text-accent">
-                    <Sparkle size={11} weight="fill" /> SUGGESTED
+                    <Sparkle size={11} weight="fill" /> Suggested
                   </p>
                   <p className="mt-1.5 text-sm whitespace-pre-wrap">{suggestion}</p>
-                  <div className="mt-2 flex justify-end gap-2">
+                  <div className="mt-3 flex justify-end gap-2">
                     <Button variant="ghost" onClick={() => setSuggestion(null)}>
                       Dismiss
                     </Button>
@@ -141,30 +145,23 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
                   </div>
                 </div>
               )}
-              <p className="mt-3 text-xs text-muted">
-                Written in your campaign's tone of voice.{" "}
-                <button type="button" onClick={onEditTone} className="text-accent hover:underline">
-                  Edit tone
-                </button>
-                {" · "}Language: {data.campaign.language ?? `same as your Brain (${data.effectiveLanguage})`}
-              </p>
-            </div>
+            </Section>
           ) : (
             <TemplateEditor data={data} draft={draft} set={set} />
           )}
         </>
       )}
 
-      <div className="relative flex justify-end gap-2 border-t border-line pt-4">
+      <div className="relative flex justify-end">
         <Button disabled={save.isPending} onClick={() => (step.kind === "message" && data.stats.enrolled > 0 ? setConfirming(true) : submit(false))}>
           {save.isPending && <CircleNotch size={12} className="animate-spin" />} Save
         </Button>
         {confirming && (
-          <div className="glass absolute right-0 bottom-full mb-2 w-80 rounded-xl p-4 text-sm">
+          <div className="popover absolute right-0 bottom-full mb-2 w-80 origin-bottom-right rounded-2xl p-4 text-sm">
             <p className="font-semibold">Apply to all future leads?</p>
             <p className="mt-1 text-xs text-muted">Leads you add from now on get this version. Leads already in the campaign keep their messages.</p>
             <label className="mt-3 flex items-start gap-2 text-xs">
-              <input type="checkbox" checked={rewrite} onChange={(e) => setRewrite(e.target.checked)} className="mt-0.5 accent-[var(--color-accent)]" />
+              <input type="checkbox" checked={rewrite} onChange={(e) => setRewrite(e.target.checked)} className="mt-px accent-[var(--color-accent)]" />
               Also rewrite the unsent messages of leads already in (your edits to them are replaced)
             </label>
             <div className="mt-3 flex justify-end gap-2">
@@ -204,28 +201,27 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
   const len = (draft.template ?? "").length;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <div className="flex items-end justify-between">
-          <span>
-            <span className="text-sm font-medium">Message text</span>
-            <span className="block text-xs text-muted">Sent exactly as you write it, with variables filled in for each lead.</span>
-          </span>
+    <div className="flex flex-col gap-8">
+      <Section
+        title="Message text"
+        description="Sent exactly as you write it, with variables filled in for each lead."
+        actions={
           <div className="relative">
-            <button type="button" onClick={() => setMenu((m) => !m)} className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-accent hover:bg-raised">
+            <Button variant="ghost" type="button" onClick={() => setMenu((m) => !m)} aria-expanded={menu} className="!text-accent">
               <BracketsCurly size={12} /> Insert variable
-            </button>
+            </Button>
             {menu && (
-              <div className="glass absolute top-full right-0 z-10 mt-1 w-48 rounded-xl p-1">
+              <div role="menu" className="popover absolute top-full right-0 z-10 mt-2 w-52 origin-top-right rounded-xl p-1.5">
                 {vars.data?.variables.map((v) => (
-                  <button key={v.key} onClick={() => insert(v.key)} className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm hover:bg-raised">
+                  <button key={v.key} role="menuitem" onClick={() => insert(v.key)} className="flex h-7 w-full items-center rounded-md px-2.5 text-left text-sm hover:bg-raised">
                     {v.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
-        </div>
+        }
+      >
         <textarea
           ref={ref}
           value={draft.template ?? ""}
@@ -233,41 +229,37 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
           rows={6}
           maxLength={2000}
           placeholder={'Hi {{ person.first_name | "there" }}, …'}
-          className={cn(textarea, "mt-1.5 font-mono text-[12px]")}
+          aria-label="Message text"
+          className={cn(textarea, "font-mono text-[12px]")}
         />
-        <p className={cn("text-right text-xs", len > 500 ? "text-system-orange" : "text-faint")}>{len} / 500 characters recommended</p>
-      </div>
-      <div className="rounded-xl border border-line bg-canvas p-3">
-        <p className="text-sm font-semibold text-muted">Preview · Sample person</p>
-        <p className="mt-1.5 text-sm whitespace-pre-wrap">
-          {preview.data?.skipReason ? <span className="text-muted">This lead would be skipped ({preview.data.skipReason.toLowerCase()}).</span> : preview.data?.text || <span className="text-faint">Write your message to see a preview</span>}
-        </p>
-      </div>
-      <div>
-        <p className="text-sm font-medium">Default values</p>
-        <p className="text-xs text-muted">What I write when a lead is missing a detail.</p>
-        {(
-          [
-            ["firstName", "First name", "there"],
-            ["company", "Company", "your team"],
-          ] as const
-        ).map(([key, label, placeholder]) => (
-          <div key={key} className="mt-2 grid grid-cols-[6rem_1fr] items-center gap-2 text-sm">
-            <span className="text-muted">{label}</span>
-            <Input value={draft.defaults?.[key] ?? ""} placeholder={`No default (e.g. "${placeholder}")`} onChange={(e) => set({ defaults: { ...draft.defaults, [key]: e.target.value || undefined } })} />
-            <span />
-            <label className="flex items-center gap-2 text-xs text-muted">
-              <input
-                type="checkbox"
-                className="accent-[var(--color-accent)]"
-                checked={Boolean(draft.skipIfMissing?.[key])}
-                onChange={(e) => set({ skipIfMissing: { ...draft.skipIfMissing, [key]: e.target.checked } })}
-              />
-              Skip leads with no {label.toLowerCase()}
-            </label>
-          </div>
-        ))}
-      </div>
+        <p className={cn("mt-1 px-1 text-right text-xs tabular-nums", len > 500 ? "text-system-orange" : "text-muted")}>{len} / 500 characters recommended</p>
+      </Section>
+      <Section title="Preview · Sample person">
+        <Group className="px-4 py-3">
+          <p className="text-sm whitespace-pre-wrap">
+            {preview.data?.skipReason ? <span className="text-muted">This lead would be skipped ({preview.data.skipReason.toLowerCase()}).</span> : preview.data?.text || <span className="text-muted">Write your message to see a preview</span>}
+          </p>
+        </Group>
+      </Section>
+      <Section title="Default values" description="What I write when a lead is missing a detail.">
+        <Group>
+          {(
+            [
+              ["firstName", "First name", "there"],
+              ["company", "Company", "your team"],
+            ] as const
+          ).map(([key, label, placeholder]) => (
+            <div key={key}>
+              <Row label={label} className="[&>div:first-child]:flex-none">
+                <Input value={draft.defaults?.[key] ?? ""} placeholder={`No default (e.g. "${placeholder}")`} onChange={(e) => set({ defaults: { ...draft.defaults, [key]: e.target.value || undefined } })} className="ml-auto max-w-64" aria-label={`${label} default`} />
+              </Row>
+              <Row label={<span className="text-muted">Skip leads with no {label.toLowerCase()}</span>} className="min-h-9 pt-0">
+                <Switch checked={Boolean(draft.skipIfMissing?.[key])} onChange={(v) => set({ skipIfMissing: { ...draft.skipIfMissing, [key]: v } })} label={`Skip leads with no ${label.toLowerCase()}`} />
+              </Row>
+            </div>
+          ))}
+        </Group>
+      </Section>
     </div>
   );
 }
@@ -278,21 +270,26 @@ function InviteSettings({ data }: { data: Data }) {
   const [expiry, setExpiry] = useState(data.campaign.inviteExpiryDays);
   const save = useMutation(trpc.campaigns.update.mutationOptions({ onSuccess: () => toast("Invitation settings saved"), onError: (e) => toast(e.message, { tone: "error" }) }));
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-raised p-3">
-      <label className="text-sm">
-        <span className="font-medium">Note with the invitation</span>
-        <span className="block text-xs text-muted">Empty sends it without a note, which tends to get accepted more. Variables work here.</span>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={3} className={cn(textarea, "mt-1.5")} placeholder="No note" />
-        <span className="block text-right text-xs text-faint">{note.length} / 300</span>
-      </label>
-      <label className="text-sm">
-        <span className="font-medium">Give up after (days)</span>
-        <Input type="number" min={1} max={30} value={expiry} onChange={(e) => setExpiry(Number(e.target.value))} className="mt-1.5 w-24" />
-      </label>
-      <Button variant="ghost" className="self-start" onClick={() => save.mutate({ id: data.campaign.id, revision: data.campaign.revision, patch: { inviteNote: note.trim() || null, inviteExpiryDays: expiry } })}>
-        Save invitation settings
-      </Button>
-    </div>
+    <Section title="Invitation">
+      <Group>
+        <div className="px-4 py-3">
+          <label className="block text-sm">
+            Note with the invitation
+            <span className="mt-0.5 block text-xs text-muted">Empty sends it without a note, which tends to get accepted more. Variables work here.</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={3} className={cn(textarea, "mt-2")} placeholder="No note" />
+          </label>
+          <span className="mt-1 block text-right text-xs text-muted tabular-nums">{note.length} / 300</span>
+        </div>
+        <Row label="Give up after (days)">
+          <Input type="number" min={1} max={30} value={expiry} onChange={(e) => setExpiry(Number(e.target.value))} className="w-20 text-right tabular-nums" aria-label="Give up after (days)" />
+        </Row>
+      </Group>
+      <div className="mt-3 flex justify-end">
+        <Button variant="ghost" onClick={() => save.mutate({ id: data.campaign.id, revision: data.campaign.revision, patch: { inviteNote: note.trim() || null, inviteExpiryDays: expiry } })}>
+          Save invitation settings
+        </Button>
+      </div>
+    </Section>
   );
 }
 
@@ -301,17 +298,22 @@ function StepLeads({ data, step }: { data: Data; step: Step }) {
   const trpc = useTRPC();
   const list = useQuery(trpc.campaigns.enrollments.list.queryOptions({ campaignId: data.campaign.id }));
   const here = (list.data ?? []).filter((e) => e.stepId === step.id);
-  if (!list.data) return <CircleNotch size={16} className="animate-spin text-faint" />;
-  if (here.length === 0) return <p className="text-sm text-muted">Nobody is at this step right now.</p>;
+  if (!list.data)
+    return (
+      <div className="flex justify-center py-8 text-muted">
+        <CircleNotch size={16} className="animate-spin" />
+      </div>
+    );
+  if (here.length === 0) return <p className="py-8 text-center text-sm text-muted">Nobody is at this step right now.</p>;
   return (
-    <ul className="flex flex-col divide-y divide-line">
+    <ul className="flex flex-col gap-2">
       {here.map((e) => {
         const draft = e.drafts.find((d) => d.stepId === step.id);
         return (
-          <li key={e.id} className="py-2.5 text-sm">
+          <li key={e.id} className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-medium">{e.person.name}</span>
-              <span className={cn("rounded-full px-2 py-0.5 text-xs", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
+              <span className="truncate font-medium">{e.person.name}</span>
+              <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
             </div>
             {step.kind === "message" && (
               <p className="mt-1 line-clamp-3 text-xs text-muted">

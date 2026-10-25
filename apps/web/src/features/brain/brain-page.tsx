@@ -1,10 +1,9 @@
-import { Sparkle } from "@phosphor-icons/react";
+import { Brain, Sparkle } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import type { BrainItemView } from "@pluton/core";
-import { Button, PageHeader } from "../../components/ui.tsx";
-import { cn } from "../../lib/cn.ts";
+import { Button, PageHeader, Segmented } from "../../components/ui.tsx";
 import { useTRPC } from "../../lib/trpc.ts";
 import { BrainGraph } from "../onboarding/brain-graph.tsx";
 import type { BrainSection } from "./fields.ts";
@@ -40,10 +39,14 @@ export function BrainPage({ tabSlug, onTab }: { tabSlug: BrainTabSlug; onTab: (s
     return (
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
         <PageHeader title="Brain" description="Your company, ideal customers, market and voice." />
-        <div className="rounded-xl border border-dashed border-line py-16 text-center">
-          <p className="text-sm text-muted">Your Brain is empty. Onboarding builds it from your website.</p>
-          <Link to="/onboarding">
-            <Button className="mt-4">Start onboarding</Button>
+        {/* Empty, it reads like a fresh start, as on the Agent page: a mark, one line, the way in. */}
+        <div className="flex flex-col items-center px-4 py-16 text-center">
+          <span className="flex size-11 items-center justify-center rounded-xl bg-system-pink/15 text-system-pink">
+            <Brain size={22} weight="fill" />
+          </span>
+          <p className="mt-4 max-w-sm text-base text-balance text-muted">Your Brain is empty. Onboarding builds it from your website.</p>
+          <Link to="/onboarding" className="mt-5">
+            <Button>Start onboarding</Button>
           </Link>
         </div>
       </div>
@@ -56,32 +59,27 @@ export function BrainPage({ tabSlug, onTab }: { tabSlug: BrainTabSlug; onTab: (s
     // Fills main edge to edge, past the room main keeps for the Ask bar: the columns scroll on their own.
     <div className="flex h-full md:absolute md:inset-0">
       <div className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl px-4 pt-6 pb-24 sm:px-8 sm:pt-10">
+        <div className="mx-auto max-w-4xl px-4 pt-6 pb-24 sm:px-8 sm:pt-10 xl:px-6 2xl:px-8">
           <PageHeader
             title="Brain"
             description="What Pluton knows about your company, who buys from you and how you sound. Every Play starts from here."
             actions={
               <Button variant="ghost" className="xl:hidden" onClick={() => setPanelOpen(true)}>
-                <Sparkle size={14} /> Suggestions{pendingCount ? ` · ${pendingCount}` : ""}
+                <Sparkle size={14} /> Suggestions
+                {pendingCount > 0 && (
+                  <span className="-mr-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-semibold text-on-accent tabular-nums">
+                    {pendingCount}
+                  </span>
+                )}
               </Button>
             }
           />
-          <nav className="mb-6 flex gap-1 border-b border-line">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={cn(
-                  "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
-                  tab === t ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink",
-                )}
-              >
-                {t}
-              </button>
-            ))}
-          </nav>
+          {/* Seven segments only just fit beside the docked Suggestions; on narrower panes the control scrolls instead of wrapping. */}
+          <div className="-mx-1 mb-8 overflow-x-auto px-1 py-1 [scrollbar-width:none]">
+            <Segmented label="Brain sections" options={TABS.map((t) => ({ value: t, label: t }))} value={tab} onChange={setTab} />
+          </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-8">
             {tab === "Company" && <SingletonSection section="company" item={one("company")} />}
             {tab === "ICPs" && (
               <>
@@ -114,7 +112,7 @@ export function BrainPage({ tabSlug, onTab }: { tabSlug: BrainTabSlug; onTab: (s
               </>
             )}
             {tab === "Graph" && (
-              <div className="h-[620px] overflow-hidden rounded-2xl bg-panel shadow-card">
+              <div className="h-[620px] overflow-hidden rounded-xl bg-panel shadow-card">
                 <BrainGraph items={items} rootLabel={companyName} selectedHub={null} onSelectHub={() => {}} />
               </div>
             )}

@@ -2,9 +2,9 @@ import { ArrowSquareOut, X } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
-import { Button, Input } from "../../components/ui.tsx";
+import { Button, Group, Input, Row, Section, Switch } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
@@ -17,14 +17,9 @@ const LANGUAGES = ["French", "English", "Spanish", "German", "Italian", "Portugu
 /** Campaign settings: objective, tone (saved to the Brain), language, send window and accounts. */
 export function ConfigurePanel({ data, onClose, onSaved, focus }: { data: Data; onClose: () => void; onSaved: () => void; focus?: "tone" }) {
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(480px,calc(100vw-24px))] flex-col rounded-2xl" aria-label="Configure sequence">
-      <div className="flex items-center justify-between px-5 pt-4 pb-2">
-        <h2 className="text-lg font-bold">Configure</h2>
-        <button onClick={onClose} aria-label="Close" className="rounded-full p-1.5 text-muted hover:bg-raised hover:text-ink">
-          <X size={15} />
-        </button>
-      </div>
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-5">
+    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(480px,calc(100vw-24px))] flex-col rounded-3xl" aria-label="Configure sequence">
+      <PanelHeader title="Configure" onClose={onClose} />
+      <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-1 pb-6 [&>*]:shrink-0">
         {focus === "tone" ? (
           <>
             <Tone data={data} onSaved={onSaved} />
@@ -44,15 +39,31 @@ export function ConfigurePanel({ data, onClose, onSaved, focus }: { data: Data; 
   );
 }
 
-function Section({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+/** The side panels' title bar: the title leading, a round close button trailing. */
+export function PanelHeader({ eyebrow, title, onClose, closeLabel = "Close" }: { eyebrow?: string; title: string; onClose: () => void; closeLabel?: string }) {
   return (
-    <section className="rounded-xl border border-line bg-canvas/60 p-4">
-      <h3 className="text-sm font-semibold">{title}</h3>
-      <p className="mt-0.5 mb-3 text-xs text-muted">{hint}</p>
-      {children}
-    </section>
+    <div className="flex shrink-0 items-start justify-between gap-3 px-5 pt-4 pb-3">
+      <div className="min-w-0">
+        {eyebrow && <p className="text-xs text-muted">{eyebrow}</p>}
+        <h2 className="truncate text-lg font-semibold">{title}</h2>
+      </div>
+      <button
+        onClick={onClose}
+        aria-label={closeLabel}
+        title={closeLabel}
+        className="capsule flex size-8 shrink-0 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90"
+      >
+        <X size={15} />
+      </button>
+    </div>
   );
 }
+
+/** A stacked block inside a Group, for fields that need the full width (text areas, chips). */
+const Block = ({ className, children }: { className?: string; children: React.ReactNode }) => <div className={cn("px-4 py-3", className)}>{children}</div>;
+
+const textarea =
+  "block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring";
 
 function useUpdate(data: Data, onSaved: () => void, done = "Saved") {
   const trpc = useTRPC();
@@ -80,33 +91,33 @@ function Objective({ data, onSaved }: { data: Data; onSaved: () => void }) {
     { k: "none", label: "Just start conversations", hint: "Positive replies wait for you" },
   ] as const;
   return (
-    <Section title="Objective" hint="The link Pluton answers with when a lead replies positively. A reply always stops the sequence.">
-      <div className="flex flex-col gap-1.5">
+    <Section title="Objective" description="The link Pluton answers with when a lead replies positively. A reply always stops the sequence.">
+      <Group>
         {options.map((opt) => (
-          <label key={opt.k} className={cn("flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2 text-sm", kind === opt.k ? "border-accent bg-accent/8" : "border-line")}>
-            <input type="radio" name="objective" checked={kind === opt.k} onChange={() => setKind(opt.k)} className="mt-0.5 accent-[var(--color-accent)]" />
-            <span>
-              {opt.label}
-              <span className="block text-xs text-muted">{opt.hint}</span>
+          <label key={opt.k} className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-raised">
+            <input type="radio" name="objective" checked={kind === opt.k} onChange={() => setKind(opt.k)} className="size-4 shrink-0 accent-[var(--color-accent)]" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm">{opt.label}</span>
+              <span className="mt-0.5 block text-xs text-muted">{opt.hint}</span>
             </span>
           </label>
         ))}
-      </div>
+      </Group>
       {kind !== "none" && (
-        <>
-          <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://cal.com/you/20min" className="mt-3" />
-          <label className="mt-3 flex items-start gap-2 text-xs">
-            <input type="checkbox" checked={autoReply} onChange={(e) => setAutoReply(e.target.checked)} className="mt-0.5 accent-[var(--color-accent)]" />
-            <span>
-              Answer positive replies with this link automatically (once per lead)
-              <span className="block text-muted">Off: every positive reply waits for you.</span>
-            </span>
-          </label>
-        </>
+        <Group className="mt-3">
+          <Block>
+            <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://cal.com/you/20min" aria-label="Link" />
+          </Block>
+          <Row label="Answer positive replies with this link automatically (once per lead)" description="Off: every positive reply waits for you.">
+            <Switch checked={autoReply} onChange={setAutoReply} label="Answer positive replies automatically" />
+          </Row>
+        </Group>
       )}
-      <Button className="mt-3" disabled={kind !== "none" && !/^https?:\/\//.test(link)} onClick={() => update({ objective: { kind, link: kind === "none" ? "" : link, autoReply } })}>
-        Save objective
-      </Button>
+      <div className="mt-3 flex justify-end">
+        <Button disabled={kind !== "none" && !/^https?:\/\//.test(link)} onClick={() => update({ objective: { kind, link: kind === "none" ? "" : link, autoReply } })}>
+          Save objective
+        </Button>
+      </div>
     </Section>
   );
 }
@@ -126,23 +137,24 @@ function Tone({ data, onSaved }: { data: Data; onSaved: () => void }) {
     }),
   );
   return (
-    <Section title="Tone of voice" hint="How every AI message sounds. It comes from your Brain, so a change here updates your Brain.">
-      <label className="text-xs text-muted">
-        Archetype
-        <Input value={archetype} onChange={(e) => setArchetype(e.target.value)} placeholder="warm, plain-spoken peer" maxLength={80} className="mt-1" />
-      </label>
-      <label className="mt-3 block text-xs text-muted">
-        Guidelines (one per line)
-        <textarea
-          value={guidelines}
-          onChange={(e) => setGuidelines(e.target.value)}
-          rows={5}
-          className="mt-1 w-full rounded-lg border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none focus:focus-ring"
-        />
-      </label>
-      <div className="mt-3 flex items-center justify-between">
-        <Link to="/brain" className="flex items-center gap-1 text-xs text-accent hover:underline">
-          Open in your Brain <ArrowSquareOut size={11} />
+    <Section title="Tone of voice" description="How every AI message sounds. It comes from your Brain, so a change here updates your Brain.">
+      <Group>
+        <Block>
+          <label className="block text-sm">
+            Archetype
+            <Input value={archetype} onChange={(e) => setArchetype(e.target.value)} placeholder="warm, plain-spoken peer" maxLength={80} className="mt-1.5" />
+          </label>
+        </Block>
+        <Block className="pt-0">
+          <label className="block text-sm">
+            Guidelines <span className="text-muted">(one per line)</span>
+            <textarea value={guidelines} onChange={(e) => setGuidelines(e.target.value)} rows={5} className={cn(textarea, "mt-1.5")} />
+          </label>
+        </Block>
+      </Group>
+      <div className="mt-3 flex items-center justify-between gap-3 px-1">
+        <Link to="/brain" className="flex items-center gap-1 text-sm text-accent hover:underline">
+          Open in your Brain <ArrowSquareOut size={12} />
         </Link>
         <Button
           disabled={save.isPending}
@@ -168,19 +180,24 @@ function Language({ data, onSaved }: { data: Data; onSaved: () => void }) {
   const update = useUpdate(data, onSaved, "Language saved");
   const value = data.campaign.language ?? "";
   return (
-    <Section title="Language" hint="The language I write every AI message in. Applies to leads you add from now on; leads already in keep their messages.">
-      <select
-        value={value}
-        onChange={(e) => update({ language: e.target.value || null })}
-        className="h-7 w-full rounded-lg border border-line bg-canvas px-2 text-sm outline-none focus:focus-ring"
-      >
-        <option value="">Same as your Brain ({(data.voice?.data as { language?: string } | undefined)?.language ?? "not set"})</option>
-        {LANGUAGES.map((l) => (
-          <option key={l} value={l}>
-            {l}
-          </option>
-        ))}
-      </select>
+    <Section title="Language" description="The language I write every AI message in. Applies to leads you add from now on; leads already in keep their messages.">
+      <Group>
+        <Row label="Language">
+          <select
+            value={value}
+            onChange={(e) => update({ language: e.target.value || null })}
+            aria-label="Language"
+            className="capsule h-7 max-w-[60%] min-w-0 truncate pl-3 text-sm outline-none focus:focus-ring"
+          >
+            <option value="">Same as your Brain ({(data.voice?.data as { language?: string } | undefined)?.language ?? "not set"})</option>
+            {LANGUAGES.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </Row>
+      </Group>
     </Section>
   );
 }
@@ -192,28 +209,40 @@ function Window({ data, onSaved }: { data: Data; onSaved: () => void }) {
   const [end, setEnd] = useState(w.endHour);
   const update = useUpdate(data, onSaved, "Send window saved");
   return (
-    <Section title="When it sends" hint={`Actions only happen inside this window, in your timezone (${data.timezone}), spread out with random gaps.`}>
-      <div className="flex flex-wrap gap-1">
-        {[1, 2, 3, 4, 5, 6, 0].map((d) => (
-          <button
-            key={d}
-            type="button"
-            onClick={() => setDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d]))}
-            className={cn("rounded-full px-2.5 py-1 text-xs", days.includes(d) ? "bg-accent text-on-accent" : "bg-raised text-muted")}
-          >
-            {DAYS[d]}
-          </button>
-        ))}
+    <Section title="When it sends" description={`Actions only happen inside this window, in your timezone (${data.timezone}), spread out with random gaps.`}>
+      <Group>
+        <Row label="Days">
+          <div className="flex flex-wrap justify-end gap-1">
+            {[1, 2, 3, 4, 5, 6, 0].map((d) => (
+              <button
+                key={d}
+                type="button"
+                aria-pressed={days.includes(d)}
+                onClick={() => setDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d]))}
+                className={cn(
+                  "inline-flex h-6 min-w-10 items-center justify-center rounded-full px-2 text-xs transition-colors duration-150",
+                  days.includes(d) ? "bg-accent font-medium text-on-accent" : "bg-control text-muted hover:bg-control-hover hover:text-ink",
+                )}
+              >
+                {DAYS[d]}
+              </button>
+            ))}
+          </div>
+        </Row>
+        <Row label="Hours">
+          <div className="flex items-center gap-2 text-sm text-muted">
+            From
+            <Input type="number" min={0} max={23} value={start} onChange={(e) => setStart(Number(e.target.value))} className="w-16 tabular-nums" aria-label="From hour" />
+            to
+            <Input type="number" min={1} max={24} value={end} onChange={(e) => setEnd(Number(e.target.value))} className="w-16 tabular-nums" aria-label="To hour" />h
+          </div>
+        </Row>
+      </Group>
+      <div className="mt-3 flex justify-end">
+        <Button disabled={end <= start || days.length === 0} onClick={() => update({ sendWindow: { days: days.sort(), startHour: start, endHour: end } })}>
+          Save window
+        </Button>
       </div>
-      <div className="mt-3 flex items-center gap-2 text-sm">
-        From
-        <Input type="number" min={0} max={23} value={start} onChange={(e) => setStart(Number(e.target.value))} className="w-16" />
-        to
-        <Input type="number" min={1} max={24} value={end} onChange={(e) => setEnd(Number(e.target.value))} className="w-16" />h
-      </div>
-      <Button className="mt-3" disabled={end <= start || days.length === 0} onClick={() => update({ sendWindow: { days: days.sort(), startHour: start, endHour: end } })}>
-        Save window
-      </Button>
     </Section>
   );
 }
@@ -223,34 +252,36 @@ function Accounts({ data, onSaved }: { data: Data; onSaved: () => void }) {
   const chosen = data.campaign.senderIds;
   if (data.senders.length === 0)
     return (
-      <Section title="LinkedIn accounts" hint="Outreach goes out from your own accounts. Nothing sends until one is connected.">
-        <Link to="/workspace/linkedin" className="text-sm text-accent hover:underline">
-          Connect a LinkedIn account →
-        </Link>
+      <Section title="LinkedIn accounts" description="Outreach goes out from your own accounts. Nothing sends until one is connected.">
+        <Group>
+          <Row>
+            <Link to="/workspace/linkedin" className="text-sm text-accent hover:underline">
+              Connect a LinkedIn account →
+            </Link>
+          </Row>
+        </Group>
       </Section>
     );
   return (
-    <Section title="LinkedIn accounts" hint="New people are shared between these accounts in turn. Each person keeps the same account for the whole sequence. Changes apply to people you add from now on.">
-      {data.senders.map((s) => {
-        const on = chosen.length === 0 || chosen.includes(s.id);
-        return (
-          <label key={s.id} className="flex items-center justify-between py-1 text-sm">
-            <span>
-              {s.name} <span className="text-xs text-muted">· {s.provider === "manual" ? "manual" : "Unipile"} · {s.status}</span>
-            </span>
-            <input
-              type="checkbox"
-              className="accent-[var(--color-accent)]"
-              checked={on}
-              onChange={() => {
-                const current = chosen.length === 0 ? data.senders.map((x) => x.id) : chosen;
-                const next = on ? current.filter((id) => id !== s.id) : [...current, s.id];
-                update({ senderIds: next.length === data.senders.length ? [] : next });
-              }}
-            />
-          </label>
-        );
-      })}
+    <Section title="LinkedIn accounts" description="New people are shared between these accounts in turn. Each person keeps the same account for the whole sequence. Changes apply to people you add from now on.">
+      <Group>
+        {data.senders.map((s) => {
+          const on = chosen.length === 0 || chosen.includes(s.id);
+          return (
+            <Row key={s.id} label={<span className="block truncate">{s.name}</span>} description={`${s.provider === "manual" ? "manual" : "Unipile"} · ${s.status}`}>
+              <Switch
+                checked={on}
+                label={`Send from ${s.name}`}
+                onChange={() => {
+                  const current = chosen.length === 0 ? data.senders.map((x) => x.id) : chosen;
+                  const next = on ? current.filter((id) => id !== s.id) : [...current, s.id];
+                  update({ senderIds: next.length === data.senders.length ? [] : next });
+                }}
+              />
+            </Row>
+          );
+        })}
+      </Group>
     </Section>
   );
 }

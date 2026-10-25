@@ -9,13 +9,17 @@ export const LEAD_TABS = [
 ] as const;
 export type LeadTabKey = (typeof LEAD_TABS)[number]["key"];
 
+/*
+ * Status pills: a 15% tint of the system color behind its text. Yellow and green are too pale to
+ * read on white, so in the light appearance their text is darkened (Apple's accessible variants).
+ */
 export const STATUS: Record<string, { label: string; className: string }> = {
-  new: { label: "New", className: "bg-cat-blue/15 text-cat-blue" },
-  to_review: { label: "To review", className: "bg-cat-yellow/15 text-cat-yellow" },
-  approved: { label: "Approved", className: "bg-cat-green/15 text-cat-green" },
-  in_campaign: { label: "In campaign", className: "bg-cat-purple/15 text-cat-purple" },
-  contacted: { label: "Contacted", className: "bg-cat-pink/15 text-cat-pink" },
-  rejected: { label: "Rejected", className: "bg-raised text-faint" },
+  new: { label: "New", className: "bg-system-blue/15 text-system-blue" },
+  to_review: { label: "To review", className: "bg-system-yellow/20 text-[color-mix(in_srgb,var(--color-system-yellow),black_45%)] dark:text-system-yellow" },
+  approved: { label: "Approved", className: "bg-system-green/15 text-[color-mix(in_srgb,var(--color-system-green),black_30%)] dark:text-system-green" },
+  in_campaign: { label: "In campaign", className: "bg-system-purple/15 text-system-purple" },
+  contacted: { label: "Contacted", className: "bg-system-pink/15 text-system-pink" },
+  rejected: { label: "Rejected", className: "bg-control text-muted" },
 };
 
 export const STAGE_LABELS: Record<string, string> = {

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { BrainData } from "@pluton/core";
-import { Input } from "../../components/ui.tsx";
+import { Button, Input } from "../../components/ui.tsx";
 import { WorkspaceMenu } from "../workspaces/workspace-menu.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
@@ -75,33 +75,34 @@ function OnboardingForm() {
         </Field>
 
         {describe ? (
-          <Field label="What are you building?" className="mt-5">
+          <Field label="What are you building?" className="mt-4">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               autoFocus
               placeholder="Two short sentences: what it does and for whom."
-              className="w-full resize-none rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none placeholder:text-faint focus:focus-ring"
+              className="block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
             />
           </Field>
         ) : (
-          <Field label="Your website" className="mt-5">
+          <Field label="Your website" className="mt-4">
             <Input value={site} onChange={(e) => setWebsite(e.target.value)} placeholder="example.com" autoFocus />
           </Field>
         )}
-        <button type="button" onClick={() => setDescribe(!describe)} className="mt-6 text-xs text-muted hover:text-ink">
+        <button type="button" onClick={() => setDescribe(!describe)} className="mt-3 text-xs text-accent hover:underline">
           {describe ? "I have a website" : "No website yet? Describe what you're building."}
         </button>
 
-        <div className="mt-6 border-t border-line pt-4">
+        <div className="mt-8">
           <button
             type="button"
+            aria-expanded={showContext}
             onClick={() => setShowContext(!showContext)}
-            className="flex w-full items-center justify-between text-sm font-medium"
+            className="flex w-full items-center gap-1.5 text-sm font-medium"
           >
+            <CaretRight size={12} weight="bold" className={cn("text-muted transition-transform duration-150", showContext && "rotate-90")} />
             Add context (optional)
-            <CaretRight size={14} className={cn("text-muted transition-transform", showContext && "rotate-90")} />
           </button>
           {showContext && (
             <textarea
@@ -109,20 +110,16 @@ function OnboardingForm() {
               onChange={(e) => setContext(e.target.value)}
               rows={4}
               placeholder="Customers you love, markets to ignore, anything the site doesn't say."
-              className="mt-3 w-full resize-none rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none placeholder:text-faint focus:focus-ring"
+              className={cn("mt-3", "block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring")}
             />
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={!canSubmit || start.isPending}
-          className="mt-7 flex h-8 w-full items-center justify-center gap-2 rounded-md bg-accent text-sm font-medium text-on-accent transition-[filter] hover:brightness-110 disabled:opacity-50"
-        >
+        <Button type="submit" disabled={!canSubmit || start.isPending} className="mt-8 h-8 w-full">
           {start.isPending && <CircleNotch size={14} className="animate-spin" />}
           Start deepsearch
-        </button>
-        {start.error && <p className="mt-3 text-sm text-cat-orange">{start.error.message}</p>}
+        </Button>
+        {start.error && <p className="mt-3 text-sm text-system-orange">{start.error.message}</p>}
       </form>
     </div>
   );
@@ -131,8 +128,8 @@ function OnboardingForm() {
 function Field({ label, optional, className, children }: { label: string; optional?: boolean; className?: string; children: ReactNode }) {
   return (
     <label className={cn("flex flex-col gap-1.5", className)}>
-      <span className="text-xs font-medium">
-        {label} {optional && <span className="font-normal text-faint">(optional)</span>}
+      <span className="px-0.5 text-xs font-medium">
+        {label} {optional && <span className="font-normal text-muted">(optional)</span>}
       </span>
       {children}
     </label>
@@ -166,8 +163,8 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
 
   return (
     <div className="flex h-full">
-      <aside className="flex w-[300px] shrink-0 flex-col border-r border-line bg-panel">
-        <div className="flex border-b border-line px-3 py-2.5">
+      <aside className="flex w-[300px] shrink-0 flex-col bg-panel">
+        <div className="flex px-3 pt-2.5">
           <WorkspaceMenu className="pl-1" />
         </div>
         <div className="min-h-0 flex-1">
@@ -178,11 +175,11 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
         <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />
 
         {hub && leaves.length > 0 && (
-          <div className="absolute right-5 top-5 w-60 rounded-2xl glass p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">{hubMeta(hub)?.label}</h3>
+          <div className="glass absolute top-5 right-5 w-64 rounded-3xl p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="truncate text-sm font-semibold">{hubMeta(hub)?.label}</h3>
               {pickedHub && (
-                <button onClick={() => setPickedHub(null)} className="text-xs text-faint hover:text-ink">
+                <button onClick={() => setPickedHub(null)} className="text-xs text-accent hover:underline">
                   Follow
                 </button>
               )}

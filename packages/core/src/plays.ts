@@ -26,7 +26,7 @@ import { createHold, planReservation } from "./credits.ts";
 import { getSetting } from "@pluton/db";
 import { getSingleton, listBrain } from "./brain.ts";
 import { recordActivity } from "./events.ts";
-import { enqueueJob } from "./jobs.ts";
+import { enqueueJob, requestJobCancel } from "./jobs.ts";
 import { addLeadEvent, describeFeedback, feedbackDigest, warmnessFor } from "./leads.ts";
 
 export const runChannel = (runId: string) => `run:${runId}`;
@@ -527,4 +527,19 @@ export async function leadOutcomes(db: Db, workspaceId: string) {
     reviewSample,
     founderFeedback: { reasonCounts: feedback.reasonCounts, examples: describeFeedback(feedback, 15) },
   };
+}
+
+/**
+ * Deletes a Play with its runs, leads and campaigns (the schema cascades); spend already recorded
+ * stays in the ledger without the Play. A search still running is cancelled first. The Main Play
+ * can't be deleted: it is recreated whenever it is missing.
+ */
+export async function deletePlay(db: Db, playId: string) {
+  const play = await getPlay(db, playId);
+  if (!play) return null;
+  if (play.isMain) throw new PlayConflictError("The Main Play can't be deleted. Pause it instead.");
+  const live = await activeRun(db, playId);
+  if (live?.jobId) await requestJobCancel(db, live.jobId);
+  await db.delete(plays).where(eq(plays.id, playId));
+  return play;
 }

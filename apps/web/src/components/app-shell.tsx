@@ -20,6 +20,8 @@ import { useTRPC } from "../lib/trpc.ts";
 import { AppLink } from "./app-link.tsx";
 import { AppearanceControl } from "./appearance-control.tsx";
 import { CommandPalette } from "./command-palette.tsx";
+import { ConfirmHost, ContextMenuHost, contextMenu } from "./context-menu.tsx";
+import { usePlayMenu } from "../features/plays/play-menu.ts";
 import { LiquidGlassLayer, refractionSupported } from "./liquid-glass.tsx";
 import { NotificationBell } from "./notification-bell.tsx";
 import { Toaster } from "./toast.tsx";
@@ -46,6 +48,7 @@ export function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => setNavOpen(false), [pathname]);
   const [playsOpen, setPlaysOpen] = usePlaysOpen();
+  const playMenu = usePlayMenu();
   // The floating "Ask Pluton" bar; the page keeps room at its foot so nothing ends up behind it.
   const askBar = !pathname.startsWith("/plays/new") && !pathname.startsWith("/agent");
 
@@ -69,7 +72,9 @@ export function AppShell() {
       {/* macOS 27 sidebar: opaque, full height and flush with the window edge. A drawer on phones. */}
       <aside
         className={cn(
-          "flex w-60 shrink-0 flex-col border-r border-line bg-sidebar",
+          // macOS 27: the sidebar floats as a rounded pane inset from the window edges; a full-height drawer on phones.
+          "flex w-60 shrink-0 flex-col bg-sidebar",
+          "md:my-2 md:ml-2 md:rounded-[18px] md:shadow-[0_0_0_0.5px_var(--color-line),0_6px_24px_rgb(0_0_0/0.08)]",
           "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-72 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]",
           "max-md:transition-transform max-md:duration-200 max-md:ease-out motion-reduce:transition-none",
           navOpen ? "max-md:translate-x-0 max-md:shadow-2xl" : "max-md:-translate-x-full",
@@ -126,6 +131,7 @@ export function AppShell() {
                         <Link
                           to="/plays/$playId"
                           params={{ playId: p.id }}
+                          onContextMenu={contextMenu(() => playMenu(p))}
                           className="flex h-7 items-center gap-2 rounded-md px-2 text-sm text-muted hover:bg-raised hover:text-ink"
                           activeProps={{ className: "!bg-selected !text-ink" }}
                         >
@@ -158,7 +164,7 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
+        <header className="flex h-12 shrink-0 items-center gap-2 bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
           <button
             onClick={() => setNavOpen(true)}
             aria-label="Open menu"
@@ -186,7 +192,7 @@ export function AppShell() {
               // With refraction the glass layer inside does the backdrop work; the bar itself must not, or the layer would see only the bar.
               style={refractionSupported ? { backdropFilter: "none", WebkitBackdropFilter: "none" } : undefined}
               data-refract={refractionSupported || undefined}
-              className="glass glass-thin fixed bottom-5 left-[calc(50%+7.5rem-10rem)] flex h-11 w-80 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-colors duration-200 ease-out hover:text-ink max-md:hidden"
+              className="glass glass-thin fixed bottom-5 left-[calc(50%+124px-10rem)] flex h-11 w-80 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-colors duration-200 ease-out hover:text-ink max-md:hidden"
             >
               <MagnifyingGlass size={18} />
               Ask Pluton anything
@@ -199,6 +205,8 @@ export function AppShell() {
 
       <CommandPalette key={workspace.data?.id} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <Toaster />
+      <ContextMenuHost />
+      <ConfirmHost />
     </div>
   );
 }

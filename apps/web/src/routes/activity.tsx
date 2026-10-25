@@ -2,9 +2,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import type { inferRouterInputs } from "@trpc/server";
 import { useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
-import { Button, PageHeader } from "../components/ui.tsx";
+import { Button, PageHeader, Segmented } from "../components/ui.tsx";
 import { ActivityFeed } from "../features/activity/activity-feed.tsx";
-import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
 type Context = NonNullable<inferRouterInputs<AppRouter>["activity"]["list"]["contexts"]>[number];
@@ -30,28 +29,20 @@ export function ActivityPage() {
   return (
     <>
       <PageHeader title="Activity" description="Everything that happened in the workspace, by you and by Pluton." />
-      <div className="mb-5 flex gap-1" role="tablist">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            role="tab"
-            aria-selected={filter === f.key}
-            onClick={() => setFilter(f.key)}
-            className={cn("h-7 rounded-md px-3 text-sm", filter === f.key ? "bg-selected font-medium text-ink" : "text-muted hover:bg-raised hover:text-ink")}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="-mt-3 mb-6">
+        <Segmented label="Show" options={FILTERS.map((f) => ({ value: f.key, label: f.label }))} value={filter} onChange={setFilter} />
       </div>
       {items.length === 0 ? (
-        <p className="py-16 text-center text-sm text-faint">{feed.isLoading ? "Loading…" : "Nothing here yet."}</p>
+        <p className="py-16 text-center text-sm text-muted">{feed.isLoading ? "Loading…" : "Nothing here yet."}</p>
       ) : (
         <ActivityFeed items={items} />
       )}
       {feed.hasNextPage && (
-        <Button variant="ghost" className="mt-4" disabled={feed.isFetchingNextPage} onClick={() => feed.fetchNextPage()}>
-          Show older
-        </Button>
+        <div className="mt-6 flex justify-center">
+          <Button variant="ghost" disabled={feed.isFetchingNextPage} onClick={() => feed.fetchNextPage()}>
+            Show older
+          </Button>
+        </div>
       )}
     </>
   );

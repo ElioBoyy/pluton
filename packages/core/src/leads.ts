@@ -471,3 +471,13 @@ export async function exportLeadsCsv(db: Db, input: { filter: LeadFilter; leadId
   // BOM so Excel opens accents correctly.
   return { csv: `﻿${[header.join(","), ...lines].join("\r\n")}\r\n`, count: rows.length };
 }
+
+/** Deletes leads for good, with their notes, feedback and sequence enrollments (the schema cascades). */
+export async function deleteLeads(db: Db, workspaceId: string, leadIds: string[]) {
+  if (!leadIds.length) return 0;
+  const gone = await db
+    .delete(leads)
+    .where(and(eq(leads.workspaceId, workspaceId), inArray(leads.id, leadIds)))
+    .returning({ id: leads.id });
+  return gone.length;
+}

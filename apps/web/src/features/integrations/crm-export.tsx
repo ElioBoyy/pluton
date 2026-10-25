@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
+import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
 
@@ -60,11 +61,25 @@ export function LeadCrmBlock({ leadId }: { leadId: string }) {
   return (
     <div className="flex flex-col gap-2">
       {(exports.data ?? []).map((e) => (
-        <p key={e.id} className="flex items-center gap-2 text-sm">
+        <p key={e.id} className="flex min-w-0 items-center gap-2 text-sm">
           <span className="font-medium">{NAMES[e.provider]}</span>
-          <span className="text-muted">{e.status === "created" ? "created" : e.status === "exists" ? "already there" : `failed: ${e.error ?? ""}`}</span>
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+              e.status === "created" ? "bg-system-green/15 text-system-green" : e.status === "exists" ? "bg-control text-muted" : "bg-system-orange/15 text-system-orange",
+            )}
+          >
+            {e.status === "created" ? "created" : e.status === "exists" ? "already there" : "failed"}
+          </span>
+          {e.status === "failed" && e.error && <span className="min-w-0 truncate text-xs text-muted" title={e.error}>{e.error}</span>}
           {e.url && (
-            <a href={e.url} target="_blank" rel="noreferrer" className="text-accent hover:underline" aria-label={`Open in ${NAMES[e.provider]}`}>
+            <a
+              href={e.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+              aria-label={`Open in ${NAMES[e.provider]}`}
+            >
               <ArrowSquareOut size={13} />
             </a>
           )}

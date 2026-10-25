@@ -5,11 +5,11 @@ import type { inferRouterInputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Composer } from "../../components/composer.tsx";
-import { Button, Card } from "../../components/ui.tsx";
+import { Button, Group, Input, Section } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
-import { PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
+import { CHIP, PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
 
 type NewPlay = inferRouterInputs<AppRouter>["plays"]["create"]["play"];
 type Turn = { role: "user" | "assistant"; text: string };
@@ -69,11 +69,11 @@ export function NewPlayPage() {
             {!started && <Intro onPick={send} />}
             {transcript.map((t, i) =>
               t.role === "user" ? (
-                <div key={i} className="max-w-[85%] self-end rounded-2xl bg-accent px-3.5 py-2 text-sm text-on-accent">
+                <div key={i} className="max-w-[85%] self-end rounded-[18px] bg-accent px-3.5 py-2 text-sm leading-5 text-on-accent">
                   {t.text}
                 </div>
               ) : (
-                <div key={i} className="max-w-[85%] rounded-xl bg-raised px-3.5 py-2 text-sm">
+                <div key={i} className="max-w-[85%] self-start rounded-[18px] bg-control px-3.5 py-2 text-sm leading-5">
                   {t.text.startsWith("Here is the Play I'd run") ? "Here is the Play I'd run." : t.text}
                 </div>
               ),
@@ -84,7 +84,7 @@ export function NewPlayPage() {
                 <CircleNotch size={14} className="animate-spin" /> <span className="ai-text">Thinking about who to find…</span>
               </p>
             )}
-            {error && <p className="text-sm text-cat-orange">{error}</p>}
+            {error && <p className="text-sm text-system-orange">{error}</p>}
           </div>
         </div>
         <Composer
@@ -120,24 +120,26 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
 
   return (
     <div className="mb-6">
-      <span className="flex size-9 items-center justify-center rounded-lg bg-cat-pink/15 text-cat-pink">
-        <Lightning size={18} weight="fill" />
+      <span className="flex size-11 items-center justify-center rounded-xl bg-system-pink/15 text-system-pink">
+        <Lightning size={22} weight="fill" />
       </span>
-      <h1 className="mt-4 text-xl font-semibold tracking-tight">What should this play find?</h1>
-      <p className="mt-1 text-sm text-muted">Describe who you want to reach. Pluton asks what it needs, then proposes the Play.</p>
+      <h1 className="mt-5 text-2xl font-semibold tracking-[-0.02em]">What should this play find?</h1>
+      <p className="mt-1.5 text-base text-muted">Describe who you want to reach. Pluton asks what it needs, then proposes the Play.</p>
       {ideas.length > 0 && (
-        <div className="mt-5 flex flex-col gap-2">
-          <p className="text-sm font-semibold text-muted">Ideas from your Brain</p>
-          {ideas.map((idea) => (
-            <button
-              key={idea}
-              onClick={() => onPick(idea)}
-              className="rounded-xl bg-raised px-3 py-2.5 text-left text-sm text-muted transition-colors duration-150 hover:bg-control-hover hover:text-ink"
-            >
-              {idea}
-            </button>
-          ))}
-        </div>
+        <Section title="Ideas from your Brain" className="mt-8">
+          <div className="flex flex-col gap-2">
+            {ideas.map((idea) => (
+              <button
+                key={idea}
+                onClick={() => onPick(idea)}
+                className="flex items-center gap-3 rounded-xl bg-panel px-3.5 py-3 text-left text-sm shadow-card transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.99]"
+              >
+                <Lightning size={15} weight="fill" className="shrink-0 text-system-pink" />
+                <span className="min-w-0 flex-1">{idea}</span>
+              </button>
+            ))}
+          </div>
+        </Section>
       )}
     </div>
   );
@@ -153,9 +155,10 @@ function QuestionOptions({ question, onAnswer }: { question: Question; onAnswer:
           onClick={() =>
             question.multiSelect ? setPicked((p) => (p.includes(o) ? p.filter((x) => x !== o) : [...p, o])) : onAnswer(o)
           }
+          aria-pressed={question.multiSelect ? picked.includes(o) : undefined}
           className={cn(
-            "rounded-full border px-3 py-1.5 text-sm",
-            picked.includes(o) ? "border-cat-pink/60 bg-cat-pink/15 text-ink" : "border-line text-muted hover:bg-raised hover:text-ink",
+            "inline-flex min-h-8 items-center rounded-full px-3.5 py-1.5 text-sm transition-[background-color,scale] duration-150 ease-out motion-safe:active:scale-[0.97]",
+            picked.includes(o) ? "bg-accent text-on-accent" : "capsule text-ink hover:bg-(--capsule-bg-hover)",
           )}
         >
           {o}
@@ -195,98 +198,113 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
   ];
 
   return (
-    <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-line bg-panel p-5 max-md:max-h-[55%] max-md:w-full max-md:border-t max-md:border-l-0">
-      <p className="text-sm font-semibold text-muted">New Play</p>
-      {editingName ? (
-        <input
-          autoFocus
-          value={proposal.name}
-          onChange={(e) => onChange({ ...proposal, name: e.target.value })}
-          onBlur={() => setEditingName(false)}
-          className="mt-1 w-full rounded-md border border-line bg-raised px-2 py-1 text-lg font-semibold outline-none"
-        />
-      ) : (
-        <button onClick={() => setEditingName(true)} className="group mt-1 flex items-center gap-2 text-left text-lg font-semibold">
-          {proposal.name}
-          <PencilSimple size={14} className="text-faint opacity-0 group-hover:opacity-100" />
-        </button>
-      )}
+    // An inspector on its own tone (no rule against the chat): grouped fields that scroll, the actions pinned at the bottom.
+    <aside className="flex w-[380px] shrink-0 flex-col bg-panel max-md:max-h-[55%] max-md:w-full">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 pb-6">
+        <div className="px-1">
+          <p className="text-xs font-medium text-muted">New Play</p>
+          {editingName ? (
+            <Input
+              autoFocus
+              value={proposal.name}
+              onChange={(e) => onChange({ ...proposal, name: e.target.value })}
+              onBlur={() => setEditingName(false)}
+              aria-label="Play name"
+              className="mt-1 h-8 text-lg font-semibold"
+            />
+          ) : (
+            <button
+              onClick={() => setEditingName(true)}
+              className="group mt-1 flex w-full min-w-0 items-center gap-2 rounded-md text-left text-lg font-semibold tracking-[-0.01em]"
+            >
+              <span className="min-w-0">{proposal.name}</span>
+              <PencilSimple size={14} className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+            </button>
+          )}
+        </div>
 
-      <div className="mt-5 flex flex-col gap-4">
-        <Slot label="Who">{proposal.summary.who}</Slot>
-        <Slot label="How we find them">
-          <span className="mr-1.5 rounded-md bg-raised px-1.5 py-0.5 text-xs">{PIPELINE_LABELS[proposal.pipeline]}</span>
-          {proposal.summary.how}
-        </Slot>
-        <Slot label="How many">{proposal.summary.howMany}</Slot>
-        <Slot label="When">
-          <select
-            value={proposal.schedule ?? "off"}
-            onChange={(e) => onChange({ ...proposal, schedule: e.target.value as NewPlay["schedule"] })}
-            className="mt-1 h-8 w-full rounded-lg border border-line bg-raised px-2 text-sm outline-none"
-          >
-            {Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </Slot>
-        {chips.length > 0 && (
-          <Slot label="Targeting">
-            <span className="mt-1 flex flex-wrap gap-1.5">
-              {chips.map((c) => (
-                <span key={c} className="rounded-md bg-raised px-2 py-0.5 text-xs text-muted">
-                  {c}
-                </span>
+        <Group className="mt-5 bg-canvas">
+          <Slot label="Who">{proposal.summary.who}</Slot>
+          <Slot label="How we find them">
+            <span className={cn(CHIP, "mb-1.5 bg-system-pink/15 text-system-pink")}>{PIPELINE_LABELS[proposal.pipeline]}</span>
+            <span className="block">{proposal.summary.how}</span>
+          </Slot>
+          <Slot label="How many">{proposal.summary.howMany}</Slot>
+          <Slot label="When">
+            <select
+              value={proposal.schedule ?? "off"}
+              onChange={(e) => onChange({ ...proposal, schedule: e.target.value as NewPlay["schedule"] })}
+              aria-label="When"
+              className="capsule h-7 w-full pl-3 text-sm outline-none focus:focus-ring"
+            >
+              {Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
               ))}
+            </select>
+          </Slot>
+        </Group>
+
+        <Group className="mt-4 bg-canvas">
+          {chips.length > 0 && (
+            <Slot label="Targeting">
+              <span className="flex flex-wrap gap-1.5">
+                {chips.map((c) => (
+                  <span key={c} className={CHIP}>
+                    {c}
+                  </span>
+                ))}
+              </span>
+            </Slot>
+          )}
+          {proposal.definition.criteria && <Slot label="Criteria">{proposal.definition.criteria}</Slot>}
+          {proposal.definition.referenceCompanies && proposal.definition.referenceCompanies.length > 0 && (
+            <Slot label="Lookalikes of">{proposal.definition.referenceCompanies.join(", ")}</Slot>
+          )}
+          <Slot label="Limits">
+            <span className="flex flex-col gap-2">
+              <NumberField
+                label="min of research"
+                value={proposal.definition.policy?.maxMinutes ?? 15}
+                min={3}
+                max={60}
+                onChange={(maxMinutes) => onChange(withPolicy(proposal, { maxMinutes }))}
+              />
+              <NumberField
+                label="days freshness"
+                value={proposal.definition.policy?.freshnessDays ?? 60}
+                min={1}
+                max={365}
+                onChange={(freshnessDays) => onChange(withPolicy(proposal, { freshnessDays }))}
+              />
             </span>
           </Slot>
-        )}
-        {proposal.definition.criteria && <Slot label="Criteria">{proposal.definition.criteria}</Slot>}
-        {proposal.definition.referenceCompanies && proposal.definition.referenceCompanies.length > 0 && (
-          <Slot label="Lookalikes of">{proposal.definition.referenceCompanies.join(", ")}</Slot>
-        )}
-        <Slot label="Limits">
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <NumberField
-              label="min of research"
-              value={proposal.definition.policy?.maxMinutes ?? 15}
-              min={3}
-              max={60}
-              onChange={(maxMinutes) => onChange(withPolicy(proposal, { maxMinutes }))}
-            />
-            <NumberField
-              label="days freshness"
-              value={proposal.definition.policy?.freshnessDays ?? 60}
-              min={1}
-              max={365}
-              onChange={(freshnessDays) => onChange(withPolicy(proposal, { freshnessDays }))}
-            />
-          </span>
-        </Slot>
+        </Group>
+
         <Estimate pipeline={proposal.pipeline} target={proposal.definition.target ?? 10} />
       </div>
 
-      <div className="mt-6 flex flex-col gap-2">
+      <div className="flex flex-col gap-2 px-5 pt-2 pb-5">
         <Button disabled={create.isPending} onClick={() => create.mutate({ play: proposal, runNow: true })}>
           {create.isPending && <CircleNotch size={14} className="animate-spin" />} Create and run search
         </Button>
         <Button variant="ghost" disabled={create.isPending} onClick={() => create.mutate({ play: proposal, runNow: false })}>
           Create only
         </Button>
-        {create.error && <p className="text-sm text-cat-orange">{create.error.message}</p>}
+        {create.error && <p className="text-sm text-system-orange">{create.error.message}</p>}
       </div>
     </aside>
   );
 }
 
+/** One inspector row: the label in a fixed leading column, its value beside it. */
 function Slot({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Card className="p-3.5">
-      <p className="text-xs font-medium text-faint">{label}</p>
-      <div className="mt-1 text-sm leading-relaxed">{children}</div>
-    </Card>
+    <div className="relative flex min-h-11 items-baseline gap-3 px-4 py-2.5">
+      <span className="w-24 shrink-0 text-sm text-muted">{label}</span>
+      <div className="min-w-0 flex-1 text-sm leading-relaxed">{children}</div>
+    </div>
   );
 }
 
@@ -297,14 +315,14 @@ function withPolicy(p: NewPlay, patch: Partial<{ maxMinutes: number; freshnessDa
 
 function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
   return (
-    <label className="flex items-center gap-1.5 text-xs text-muted">
-      <input
+    <label className="flex items-center gap-2 text-sm text-muted">
+      <Input
         type="number"
         min={min}
         max={max}
         value={value}
         onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || min)))}
-        className="h-7 w-14 rounded-md border border-line bg-raised px-1.5 text-sm text-ink outline-none"
+        className="w-16 text-right tabular-nums"
       />
       {label}
     </label>
@@ -318,12 +336,16 @@ function Estimate({ pipeline, target }: { pipeline: NewPlay["pipeline"]; target:
   if (!estimate.data) return null;
   const e = estimate.data;
   return (
-    <Slot label="What to expect">
-      {e.qualified[0]}–{e.qualified[1]} qualified leads per run · {e.minutes[0]}–{e.minutes[1]} min
-      <span className="mt-1 block text-xs text-faint">
-        {e.basis === "history" ? `From your last ${e.runs} runs of this kind.` : "Rough guess until a few runs have completed."} Uses your
-        Claude access{e.paid.length ? `, plus ${e.paid.join(", ")}` : ", no paid data source"}.
-      </span>
-    </Slot>
+    <Section title="What to expect" className="mt-6">
+      <Group className="bg-canvas px-4 py-3">
+        <p className="text-sm tabular-nums">
+          {e.qualified[0]}–{e.qualified[1]} qualified leads per run · {e.minutes[0]}–{e.minutes[1]} min
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-muted">
+          {e.basis === "history" ? `From your last ${e.runs} runs of this kind.` : "Rough guess until a few runs have completed."} Uses your
+          Claude access{e.paid.length ? `, plus ${e.paid.join(", ")}` : ", no paid data source"}.
+        </p>
+      </Group>
+    </Section>
   );
 }

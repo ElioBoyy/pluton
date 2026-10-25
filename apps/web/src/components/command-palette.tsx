@@ -13,19 +13,21 @@ import {
 } from "@phosphor-icons/react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { SearchHit } from "@pluton/core";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
-/** Each kind of result: its icon, and the word shown at the end of the row. */
-const KINDS: Record<SearchHit["kind"], { icon: Icon; label: string }> = {
-  page: { icon: ArrowSquareOut, label: "Page" },
-  lead: { icon: User, label: "Lead" },
-  play: { icon: Lightning, label: "Play" },
-  brain: { icon: Brain, label: "Brain" },
-  conversation: { icon: ChatCircle, label: "Agent" },
+/** Each kind of result: its icon, and the title of its group in the list (sentence case, as Spotlight). */
+const KINDS: Record<SearchHit["kind"], { icon: Icon; group: string }> = {
+  page: { icon: ArrowSquareOut, group: "Pages" },
+  lead: { icon: User, group: "Leads" },
+  play: { icon: Lightning, group: "Plays" },
+  brain: { icon: Brain, group: "Brain" },
+  conversation: { icon: ChatCircle, group: "Agent" },
 };
+
+type Result = { ask: true; label: string } | ({ ask: false } & SearchHit);
 
 /** Waits for a pause in typing before searching, so each keystroke doesn't embed a query. */
 const DEBOUNCE_MS = 120;
@@ -40,8 +42,6 @@ const QUICK: Array<{ label: string; to: string; icon: Icon }> = [
 
 /** How long the palette stays mounted after closing, so it can fade out (matches the exit duration). */
 const EXIT_MS = 150;
-/** Result rows are a fixed height (py-2 + 20px line), which lets the highlight slide by index. */
-const ROW_PX = 36;
 
 /** Spotlight's pop: in with a slight scale-up, out a little faster; movement is dropped with reduced motion. */
 const POP =
@@ -97,27 +97,52 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     return () => clearTimeout(t);
   }, [open]);
 
-  const results = useMemo((): Array<{ ask: true; label: string } | ({ ask: false } & SearchHit)> => {
+  // Results in sections, as Spotlight lists them; `results` is the same rows flat, in display order.
+  const { results, sections } = useMemo(() => {
     const q = query.trim();
-    if (!q) return [];
+    if (!q) return { results: [] as Result[], sections: [] as Array<{ title?: string; items: Result[] }> };
     const hits = (searched ? (search.data ?? []) : []).map((h) => ({ ...h, ask: false as const }));
+    const byKind = (list: Result[]) => {
+      const groups = new Map<string, Result[]>();
+      for (const h of list) if (!h.ask) groups.set(h.kind, [...(groups.get(h.kind) ?? []), h]);
+      return [...groups].map(([kind, items]) => ({ title: KINDS[kind as SearchHit["kind"]].group, items }));
+    };
     // Something typed by name opens on Enter; anything else is a question for the agent.
-    const askItem = { label: q, ask: true as const };
-    return hits[0]?.named ? [...hits, askItem] : [askItem, ...hits];
+    const askItem: Result = { label: q, ask: true };
+    const out: Array<{ title?: string; items: Result[] }> = hits[0]?.named
+      ? [{ title: "Top hit", items: [hits[0]] }, ...byKind(hits.slice(1)), { items: [askItem] }]
+      : [{ items: [askItem] }, ...byKind(hits)];
+    return { results: out.flatMap((g) => g.items), sections: out };
   }, [query, searched, search.data]);
 
-  useEffect(() => {
-    listRef.current?.querySelectorAll("button")[active]?.scrollIntoView({ block: "nearest" });
-  }, [active]);
+  // One highlight slides between rows; it is measured, since section titles sit between them.
+  const [highlight, setHighlight] = useState<{ top: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const row = listRef.current?.querySelectorAll("button")[active];
+    setHighlight(row ? { top: row.offsetTop, height: row.offsetHeight } : null);
+    row?.scrollIntoView({ block: "nearest" });
+  }, [active, results]);
 
-  useEffect(() => {
+  // Focus the field the moment it opens, every time (a reopen mid-exit included): in a layout
+  // effect, so the input already exists and nothing paints first, and again on the next frame in
+  // case the trigger's own click handling takes focus back after us.
+  useLayoutEffect(() => {
     if (!open) return;
     setQuery("");
     setActive(0);
-    requestAnimationFrame(() => inputRef.current?.focus());
+    const focus = () => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.select();
+    };
+    focus();
+    const raf = requestAnimationFrame(focus);
+    return () => cancelAnimationFrame(raf);
   }, [open]);
 
-  if (!mounted) return null;
+  // Rendered as soon as `open` turns true, not a render later when `mounted` catches up.
+  if (!open && !mounted) return null;
 
   const go = (to: string) => {
     onClose();
@@ -188,43 +213,53 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
         {typing && (
           <ul
+            ref={listRef}
             className={cn(
-              "glass mt-2.5 max-h-80 overflow-y-auto rounded-[26px] p-2",
+              "glass mt-2.5 max-h-[min(26rem,60vh)] overflow-y-auto rounded-[26px] p-2",
               "transition-[opacity,translate] duration-200 ease-out starting:opacity-0 motion-safe:starting:-translate-y-1 group-data-[state=closed]:opacity-0",
             )}
           >
-            {results.length > 0 && (
-              // One highlight that slides between rows instead of jumping.
+            {highlight && (
               <span
                 aria-hidden
-                className="absolute inset-x-2 top-2 h-9 rounded-2xl bg-accent transition-transform duration-150 ease-out motion-reduce:transition-none"
-                style={{ transform: `translateY(${active * ROW_PX}px)` }}
+                className="absolute inset-x-2 top-0 rounded-[14px] bg-accent transition-[translate,height] duration-150 ease-out motion-reduce:transition-none"
+                style={{ height: highlight.height, translate: `0 ${highlight.top}px` }}
               />
             )}
-            {results.map((c, i) => (
-              <li key={c.ask ? "ask" : c.id}>
-                <button
-                  onMouseEnter={() => setActive(i)}
-                  onClick={() => run(i)}
-                  className={cn(
-                    "relative flex h-9 w-full items-center gap-2 rounded-2xl px-3.5 text-left text-base transition-colors duration-150",
-                    i === active ? "text-on-accent" : "text-ink",
-                  )}
-                >
-                  {c.ask ? (
-                    <>
-                      <Sparkle size={16} weight="fill" className="shrink-0" />
-                      <span className="truncate">
-                        Ask Pluton: <span className="opacity-80">{c.label}</span>
-                      </span>
-                    </>
-                  ) : (
-                    <ResultRow hit={c} />
-                  )}
-                </button>
+            {sections.map((section, si) => (
+              <li key={section.title ?? `ask-${si}`} className={cn(si > 0 && "mt-2")}>
+                {section.title && <p className="px-3.5 pt-1 pb-1 text-xs font-semibold text-muted">{section.title}</p>}
+                <ul>
+                  {section.items.map((c) => {
+                    const i = results.indexOf(c);
+                    return (
+                      <li key={c.ask ? "ask" : c.id}>
+                        <button
+                          onMouseEnter={() => setActive(i)}
+                          onClick={() => run(i)}
+                          className={cn(
+                            "relative flex h-9 w-full items-center gap-2.5 rounded-[14px] px-3.5 text-left text-base transition-colors duration-150",
+                            i === active ? "text-on-accent" : "text-ink",
+                          )}
+                        >
+                          {c.ask ? (
+                            <>
+                              <Sparkle size={16} weight="fill" className={cn("shrink-0", i !== active && "text-accent")} />
+                              <span className="truncate">
+                                Ask Pluton: <span className="opacity-80">{c.label}</span>
+                              </span>
+                            </>
+                          ) : (
+                            <ResultRow hit={c} active={i === active} />
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               </li>
             ))}
-            {ask.error && <li className="px-3.5 py-2 text-sm text-cat-orange">{ask.error.message}</li>}
+            {ask.error && <li className="px-3.5 py-2 text-sm text-system-orange">{ask.error.message}</li>}
           </ul>
         )}
       </div>
@@ -232,16 +267,15 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   );
 }
 
-function ResultRow({ hit }: { hit: SearchHit }) {
-  const { icon: KindIcon, label } = KINDS[hit.kind];
+function ResultRow({ hit, active }: { hit: SearchHit; active: boolean }) {
+  const { icon: KindIcon } = KINDS[hit.kind];
   return (
     <>
-      <KindIcon size={16} className="shrink-0" />
+      <KindIcon size={16} className={cn("shrink-0", !active && "text-muted")} />
       <span className="min-w-0 flex-1 truncate">
         {hit.title}
-        {hit.subtitle && <span className="ml-2 text-sm opacity-60">{hit.subtitle}</span>}
+        {hit.subtitle && <span className={cn("ml-2 text-sm", active ? "opacity-75" : "text-muted")}>{hit.subtitle}</span>}
       </span>
-      <span className="shrink-0 text-xs opacity-60">{label}</span>
     </>
   );
 }
