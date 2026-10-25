@@ -1,23 +1,34 @@
-import { Brain, CircleNotch, Lightning, MagnifyingGlass, Plus, Sparkle, UsersThree, type Icon } from "@phosphor-icons/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import {
+  ArrowSquareOut,
+  Brain,
+  ChatCircle,
+  CircleNotch,
+  Lightning,
+  MagnifyingGlass,
+  Plus,
+  Sparkle,
+  User,
+  UsersThree,
+  type Icon,
+} from "@phosphor-icons/react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { SearchHit } from "@pluton/core";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
-const COMMANDS = [
-  { label: "Go to Home", to: "/home" },
-  { label: "Go to Brain", to: "/brain" },
-  { label: "Go to Agent", to: "/agent" },
-  { label: "Go to Plays", to: "/plays" },
-  { label: "New Play", to: "/plays/new" },
-  { label: "Go to Leads", to: "/leads" },
-  { label: "Workspace settings", to: "/workspace/settings" },
-  { label: "Usage", to: "/workspace/usage" },
-  { label: "Activity", to: "/workspace/activity" },
-  { label: "What's new", to: "/workspace/whats-new" },
-  { label: "Start onboarding", to: "/onboarding" },
-] as const;
+/** Each kind of result: its icon, and the word shown at the end of the row. */
+const KINDS: Record<SearchHit["kind"], { icon: Icon; label: string }> = {
+  page: { icon: ArrowSquareOut, label: "Page" },
+  lead: { icon: User, label: "Lead" },
+  play: { icon: Lightning, label: "Play" },
+  brain: { icon: Brain, label: "Brain" },
+  conversation: { icon: ChatCircle, label: "Agent" },
+};
+
+/** Waits for a pause in typing before searching, so each keystroke doesn't embed a query. */
+const DEBOUNCE_MS = 120;
 
 /** The round buttons beside the field, like Spotlight's Applications / Files / Shortcuts. */
 const QUICK: Array<{ label: string; to: string; icon: Icon }> = [
@@ -43,6 +54,7 @@ const POP =
  */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
+  const router = useRouter();
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const ask = useMutation(
@@ -58,6 +70,17 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const [active, setActive] = useState(0);
   const [mounted, setMounted] = useState(open);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const [searched, setSearched] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearched(query.trim()), DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [query]);
+  // Keeps the last results on screen while the next ones load, so the list doesn't flicker.
+  const search = useQuery(
+    trpc.search.query.queryOptions({ q: searched }, { enabled: open && searched.length > 0, placeholderData: keepPreviousData }),
+  );
 
   // Stay mounted through the exit transition; reopening mid-exit just retargets it.
   useEffect(() => {
@@ -69,15 +92,18 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     return () => clearTimeout(t);
   }, [open]);
 
-  const results = useMemo(() => {
+  const results = useMemo((): Array<{ ask: true; label: string } | ({ ask: false } & SearchHit)> => {
     const q = query.trim();
     if (!q) return [];
-    const pages = COMMANDS.filter((c) => c.label.toLowerCase().includes(q.toLowerCase())).map((c) => ({ ...c, ask: false }));
-    // A page whose name was typed whole goes first; anything else is a question for the agent.
-    const exact = pages.length > 0 && pages[0]!.label.toLowerCase().replace(/^go to /, "") === q.toLowerCase();
-    const askItem = { label: q, to: "", ask: true };
-    return exact ? [...pages, askItem] : [askItem, ...pages];
-  }, [query]);
+    const hits = (searched ? (search.data ?? []) : []).map((h) => ({ ...h, ask: false as const }));
+    // Something typed by name opens on Enter; anything else is a question for the agent.
+    const askItem = { label: q, ask: true as const };
+    return hits[0]?.named ? [...hits, askItem] : [askItem, ...hits];
+  }, [query, searched, search.data]);
+
+  useEffect(() => {
+    listRef.current?.querySelectorAll("button")[active]?.scrollIntoView({ block: "nearest" });
+  }, [active]);
 
   useEffect(() => {
     if (!open) return;
@@ -97,7 +123,11 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     if (!command) return;
     if (command.ask) {
       if (!ask.isPending) ask.mutate({ text: command.label });
-    } else go(command.to);
+    } else {
+      onClose();
+      // The href carries its search params (?lead=, ?tab=), which a typed navigate can't take as a string.
+      router.history.push(command.href);
+    }
   };
   const typing = query.trim().length > 0;
 
@@ -167,7 +197,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               />
             )}
             {results.map((c, i) => (
-              <li key={c.ask ? "ask" : c.to}>
+              <li key={c.ask ? "ask" : c.id}>
                 <button
                   onMouseEnter={() => setActive(i)}
                   onClick={() => run(i)}
@@ -184,7 +214,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                       </span>
                     </>
                   ) : (
-                    c.label
+                    <ResultRow hit={c} />
                   )}
                 </button>
               </li>
@@ -194,5 +224,19 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         )}
       </div>
     </div>
+  );
+}
+
+function ResultRow({ hit }: { hit: SearchHit }) {
+  const { icon: KindIcon, label } = KINDS[hit.kind];
+  return (
+    <>
+      <KindIcon size={16} className="shrink-0" />
+      <span className="min-w-0 flex-1 truncate">
+        {hit.title}
+        {hit.subtitle && <span className="ml-2 text-sm opacity-60">{hit.subtitle}</span>}
+      </span>
+      <span className="shrink-0 text-xs opacity-60">{label}</span>
+    </>
   );
 }

@@ -1,0 +1,460 @@
+import { createHash } from "node:crypto";
+import path from "node:path";
+import type { FeatureExtractionPipeline } from "@huggingface/transformers";
+import {
+  and,
+  asc,
+  brainItems,
+  copilotConversations,
+  copilotMessages,
+  enrollments,
+  eq,
+  inArray,
+  leads,
+  or,
+  people,
+  plays,
+  replies,
+  repoRoot,
+  searchDocuments,
+  sql,
+  workspaces,
+  type BrainSection,
+  type Db,
+  type SearchKind,
+} from "@pluton/db";
+
+// ── Model ────────────────────────────────────────────────────────────────────
+
+/**
+ * Runs on this machine (ONNX, ~120 MB downloaded once into data/models), so nothing leaves it.
+ * Multilingual: a French query finds an English lead and the other way round. It reads the first
+ * 128 tokens of a document, which is why documents start with what identifies them.
+ */
+export const SEARCH_MODEL = "Xenova/paraphrase-multilingual-MiniLM-L12-v2";
+
+let model: Promise<FeatureExtractionPipeline> | undefined;
+let modelReady = false;
+
+function loadModel() {
+  model ??= import("@huggingface/transformers").then(async ({ env, pipeline }) => {
+    env.cacheDir = path.resolve(repoRoot, "data/models");
+    // The generic overloads of pipeline() are too deep for the type checker; the task fixes the type.
+    const extractor = (await (pipeline as (...args: unknown[]) => Promise<unknown>)("feature-extraction", SEARCH_MODEL, {
+      dtype: "q8",
+    })) as FeatureExtractionPipeline;
+    modelReady = true;
+    return extractor;
+  });
+  // Offline on first start: forget the failure so the next sync tries the download again.
+  model.catch(() => (model = undefined));
+  return model;
+}
+
+async function embed(texts: string[]): Promise<number[][]> {
+  const extractor = await loadModel();
+  const output = await extractor(texts, { pooling: "mean", normalize: true });
+  return output.tolist() as number[][];
+}
+
+// ── Documents ────────────────────────────────────────────────────────────────
+
+type Doc = { kind: SearchKind; refId: string; title: string; subtitle: string | null; href: string; text: string };
+
+/** Name matches search the whole text; the model only reads its start. */
+const MAX_TEXT = 1500;
+
+/** `about` holds the words people type for a page, in English and French (the founder may write either). */
+const PAGES: Array<{ ref: string; title: string; href: string; about: string }> = [
+  { ref: "home", title: "Home", href: "/home", about: "Overview, what needs you today, getting started checklist. Accueil" },
+  { ref: "brain", title: "Brain", href: "/brain", about: "Company, ideal customers, personas, competitors, market and voice. Entreprise, clients idéaux, concurrents, marché" },
+  { ref: "agent", title: "Agent", href: "/agent", about: "Talk to Pluton, ask questions, conversations. Agent, discuter, poser une question" },
+  { ref: "plays", title: "Plays", href: "/plays", about: "Lead-finding campaigns run on a schedule. Campagnes de prospection" },
+  { ref: "new-play", title: "New Play", href: "/plays/new", about: "Describe who you want to reach and create a Play. Nouvelle campagne, créer" },
+  { ref: "leads", title: "Leads", href: "/leads", about: "People found by your Plays, to review, approve or reject. Prospects, contacts à valider" },
+  { ref: "onboarding", title: "Start onboarding", href: "/onboarding", about: "Research your website and build the Brain again. Recommencer, analyser mon site" },
+  { ref: "settings", title: "Workspace settings", href: "/workspace/settings", about: "Workspace name, website, icon, timezone. Paramètres, réglages, fuseau horaire" },
+  { ref: "appearance", title: "Appearance", href: "/workspace/appearance", about: "Light and dark mode, wallpaper, theme. Apparence, mode sombre, fond d'écran" },
+  { ref: "notifications", title: "Notifications", href: "/workspace/notifications", about: "Notification bell, morning digest, email. Résumé du matin" },
+  { ref: "linkedin", title: "LinkedIn accounts", href: "/workspace/linkedin", about: "Connect LinkedIn senders, daily limits, Unipile. Comptes LinkedIn, connecter" },
+  { ref: "mcp", title: "Connect your AI", href: "/workspace/mcp", about: "MCP server for Claude Code, Claude Desktop and Codex. Connecter mon IA" },
+  { ref: "api-keys", title: "API keys", href: "/workspace/api-keys", about: "Anthropic, TheirStack, Apify, Hunter, Unipile, SMTP keys. Clés API, token" },
+  { ref: "data-sources", title: "Data sources", href: "/workspace/data-sources", about: "Where leads come from: registries, careers pages, providers. Sources de données" },
+  { ref: "integrations", title: "Integrations", href: "/workspace/integrations", about: "Slack, HubSpot, Attio, Pipedrive CRM export. Intégrations, exporter vers le CRM" },
+  { ref: "usage", title: "Usage", href: "/workspace/usage", about: "Spend per Play and per lead, provider calls, costs. Consommation, coûts, dépenses" },
+  { ref: "billing", title: "Budget", href: "/workspace/billing", about: "Monthly budget, daily cap, spend limit per run. Budget mensuel, plafond, facturation" },
+  { ref: "activity", title: "Activity", href: "/workspace/activity", about: "Everything that happened: runs, leads, replies, history. Activité, historique, réponses" },
+  { ref: "whats-new", title: "What's new", href: "/workspace/whats-new", about: "Release notes, changelog. Nouveautés" },
+];
+
+const BRAIN_LABELS: Record<BrainSection, string> = {
+  company: "Company",
+  icp: "Ideal customer profile",
+  persona: "Buyer persona",
+  competitor: "Competitor",
+  influencer: "Influencer",
+  message_pillar: "Message pillar",
+  voice: "Voice",
+  keyword: "Keyword",
+  hiring_signal: "Hiring signal",
+  stack_signal: "Stack signal",
+  tracked_profile: "Tracked LinkedIn profile",
+};
+
+/** The same labels in French: a one-word query like "concurrents" finds the section's items. */
+const BRAIN_LABELS_FR: Record<BrainSection, string> = {
+  company: "Entreprise",
+  icp: "Client idéal",
+  persona: "Persona acheteur",
+  competitor: "Concurrent",
+  influencer: "Influenceur",
+  message_pillar: "Pilier de message",
+  voice: "Ton de voix",
+  keyword: "Mot-clé",
+  hiring_signal: "Signal de recrutement",
+  stack_signal: "Signal technologique",
+  tracked_profile: "Profil LinkedIn suivi",
+};
+
+/** The field that names an item in lists; sections without one go by their label. */
+const BRAIN_TITLE_KEY: Partial<Record<BrainSection, string>> = {
+  company: "name",
+  persona: "title",
+  competitor: "name",
+  influencer: "name",
+  message_pillar: "title",
+  keyword: "phrase",
+  tracked_profile: "name",
+};
+
+/** Brain tab each section lives on (the `tab` search param of /brain). */
+export const BRAIN_TAB: Record<BrainSection, string> = {
+  company: "company",
+  icp: "icps",
+  persona: "icps",
+  competitor: "competitors",
+  influencer: "influencers",
+  voice: "outreach",
+  message_pillar: "outreach",
+  tracked_profile: "market",
+  keyword: "market",
+  hiring_signal: "market",
+  stack_signal: "market",
+};
+
+/** Every string inside a Brain item's data, in field order. */
+function strings(value: unknown): string[] {
+  if (typeof value === "string") return value.trim() ? [value.trim()] : [];
+  if (Array.isArray(value)) return value.flatMap(strings);
+  if (value && typeof value === "object") return Object.values(value).flatMap(strings);
+  return [];
+}
+
+/** Lowercase without accents: "Marié" and "marie" match. */
+const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+const join = (...parts: Array<string | null | undefined | false>) => parts.filter(Boolean).join(" · ");
+
+async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
+  const [leadRows, replyRows, playRows, brainRows, conversationRows, messageRows] = await Promise.all([
+    db
+      .select({
+        id: leads.id,
+        status: leads.status,
+        reason: leads.reason,
+        signal: leads.signal,
+        play: plays.name,
+        name: people.name,
+        title: people.title,
+        company: people.company,
+        companyWebsite: people.companyWebsite,
+        location: people.location,
+      })
+      .from(leads)
+      .innerJoin(people, eq(people.id, leads.personId))
+      .innerJoin(plays, eq(plays.id, leads.playId))
+      .where(eq(leads.workspaceId, workspaceId)),
+    db
+      .select({ leadId: enrollments.leadId, text: replies.text })
+      .from(replies)
+      .innerJoin(enrollments, eq(enrollments.id, replies.enrollmentId))
+      .where(eq(enrollments.workspaceId, workspaceId))
+      .orderBy(asc(replies.receivedAt)),
+    db.select().from(plays).where(eq(plays.workspaceId, workspaceId)),
+    db
+      .select()
+      .from(brainItems)
+      .where(and(eq(brainItems.workspaceId, workspaceId), eq(brainItems.status, "active"))),
+    db.select().from(copilotConversations).where(eq(copilotConversations.workspaceId, workspaceId)),
+    db
+      .select({ conversationId: copilotMessages.conversationId, text: copilotMessages.text })
+      .from(copilotMessages)
+      .innerJoin(copilotConversations, eq(copilotConversations.id, copilotMessages.conversationId))
+      .where(and(eq(copilotConversations.workspaceId, workspaceId), eq(copilotMessages.role, "user")))
+      .orderBy(asc(copilotMessages.createdAt)),
+  ]);
+
+  const repliesByLead = new Map<string, string[]>();
+  for (const r of replyRows) repliesByLead.set(r.leadId, [...(repliesByLead.get(r.leadId) ?? []), r.text]);
+  const asksByConversation = new Map<string, string[]>();
+  for (const m of messageRows) asksByConversation.set(m.conversationId, [...(asksByConversation.get(m.conversationId) ?? []), m.text]);
+
+  const docs: Doc[] = PAGES.map((p) => ({
+    kind: "page",
+    refId: p.ref,
+    title: p.title,
+    subtitle: null,
+    href: p.href,
+    text: `${p.title}: ${p.about}`,
+  }));
+
+  for (const l of leadRows) {
+    const role = [l.title, l.company].filter(Boolean).join(" at ");
+    const said = repliesByLead.get(l.id);
+    docs.push({
+      kind: "lead",
+      refId: l.id,
+      title: l.name,
+      subtitle: join(l.title, l.company) || null,
+      href: `/leads?tab=all&lead=${l.id}`,
+      text: [
+        join(l.name, role, l.location, l.companyWebsite),
+        l.signal,
+        l.reason,
+        said && `Replied: ${said.join(" / ")}`,
+        `Play: ${l.play}. Status: ${l.status.replace("_", " ")}.`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    });
+  }
+
+  for (const p of playRows) {
+    docs.push({
+      kind: "play",
+      refId: p.id,
+      title: p.name,
+      subtitle: p.status === "active" ? p.summary.who : join(p.status, p.summary.who),
+      href: `/plays/${p.id}`,
+      text: [p.name, p.ask, p.summary.who, p.summary.how].join("\n"),
+    });
+  }
+
+  for (const b of brainRows) {
+    const label = BRAIN_LABELS[b.section];
+    const key = BRAIN_TITLE_KEY[b.section];
+    const title = (key && typeof b.data[key] === "string" && (b.data[key] as string)) || label;
+    docs.push({
+      kind: "brain",
+      refId: b.id,
+      title,
+      subtitle: title === label ? "Brain" : label,
+      href: `/brain?tab=${BRAIN_TAB[b.section]}`,
+      text: [`${label} (${BRAIN_LABELS_FR[b.section]})`, ...strings(b.data)].join("\n"),
+    });
+  }
+
+  for (const c of conversationRows) {
+    docs.push({
+      kind: "conversation",
+      refId: c.id,
+      title: c.title,
+      subtitle: "Agent conversation",
+      href: `/agent/${c.id}`,
+      text: [c.title, ...(asksByConversation.get(c.id) ?? [])].join("\n"),
+    });
+  }
+
+  return docs.map((d) => ({ ...d, text: d.text.slice(0, MAX_TEXT) }));
+}
+
+// ── Index ────────────────────────────────────────────────────────────────────
+
+const hashOf = (d: Doc) => createHash("sha1").update(JSON.stringify([SEARCH_MODEL, d.title, d.subtitle, d.href, d.text])).digest("hex");
+
+const EMBED_BATCH = 16;
+const WRITE_CHUNK = 200;
+
+/**
+ * Brings search_document in line with the source tables: new and changed rows are written at once
+ * (so ⌘K finds them by name straight away), then embedded; rows whose source is gone are deleted.
+ */
+export async function syncSearchIndex(db: Db, workspaceId: string) {
+  const docs = (await collectDocuments(db, workspaceId)).map((d) => ({ ...d, id: `${d.kind}:${d.refId}`, hash: hashOf(d) }));
+  const existing = new Map(
+    (
+      await db
+        .select({ id: searchDocuments.id, hash: searchDocuments.hash, embedded: sql<number>`${searchDocuments.embedding} is not null` })
+        .from(searchDocuments)
+        .where(eq(searchDocuments.workspaceId, workspaceId))
+    ).map((r) => [r.id, r]),
+  );
+
+  const wanted = new Set(docs.map((d) => d.id));
+  const gone = [...existing.keys()].filter((id) => !wanted.has(id));
+  for (let i = 0; i < gone.length; i += WRITE_CHUNK) {
+    await db.delete(searchDocuments).where(inArray(searchDocuments.id, gone.slice(i, i + WRITE_CHUNK)));
+  }
+
+  const changed = docs.filter((d) => existing.get(d.id)?.hash !== d.hash);
+  for (let i = 0; i < changed.length; i += WRITE_CHUNK) {
+    const rows = changed
+      .slice(i, i + WRITE_CHUNK)
+      .map((d) => ({ ...d, workspaceId, folded: fold([d.title, d.subtitle, d.text].join("\n")), embedding: null }));
+    await db
+      .insert(searchDocuments)
+      .values(rows)
+      .onConflictDoUpdate({
+        target: searchDocuments.id,
+        set: {
+          title: sql`excluded.title`,
+          subtitle: sql`excluded.subtitle`,
+          href: sql`excluded.href`,
+          text: sql`excluded.text`,
+          folded: sql`excluded.folded`,
+          hash: sql`excluded.hash`,
+          embedding: null,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  // Changed rows, plus any left unembedded by an earlier sync that couldn't load the model.
+  const toEmbed = docs.filter((d) => existing.get(d.id)?.hash !== d.hash || !existing.get(d.id)?.embedded);
+  for (let i = 0; i < toEmbed.length; i += EMBED_BATCH) {
+    const batch = toEmbed.slice(i, i + EMBED_BATCH);
+    const vectors = await embed(batch.map((d) => d.text));
+    for (const [j, d] of batch.entries()) {
+      await db
+        .update(searchDocuments)
+        .set({ embedding: vectors[j]! })
+        // A newer sync may have rewritten the row meanwhile: its own embedding wins.
+        .where(and(eq(searchDocuments.id, d.id), eq(searchDocuments.hash, d.hash)));
+    }
+  }
+
+  return { documents: docs.length, written: changed.length, embedded: toEmbed.length, deleted: gone.length };
+}
+
+/** Per workspace: the sync in flight, whether another was asked for meanwhile, when the last began. */
+const syncs = new Map<string, { running: Promise<void> | null; again: boolean; lastAt: number }>();
+
+/**
+ * Starts a sync unless one is running (then one more runs after it). Never throws: a failed sync,
+ * offline before the model is downloaded for instance, is retried on the next request.
+ */
+export function requestSearchSync(db: Db, workspaceId: string, minGapMs = 0): Promise<void> {
+  const state = syncs.get(workspaceId) ?? { running: null, again: false, lastAt: 0 };
+  syncs.set(workspaceId, state);
+  if (state.running) {
+    state.again = true;
+    return state.running;
+  }
+  if (Date.now() - state.lastAt < minGapMs) return Promise.resolve();
+  state.lastAt = Date.now();
+  state.running = syncSearchIndex(db, workspaceId)
+    .then((r) => void (r.embedded > 0 && console.log(`[search] embedded ${r.embedded} of ${r.documents} documents`)))
+    .catch((error) => console.warn(`[search] index sync failed: ${(error as Error).message}`))
+    .finally(() => {
+      state.running = null;
+      if (state.again) {
+        state.again = false;
+        void requestSearchSync(db, workspaceId);
+      }
+    });
+  return state.running;
+}
+
+/** Keeps every workspace's index fresh: now, then on an interval (each search nudges it too). */
+export function watchSearchIndex(db: Db, everyMs = 30_000) {
+  const tick = async () => {
+    for (const w of await db.select({ id: workspaces.id }).from(workspaces)) await requestSearchSync(db, w.id);
+  };
+  void tick().catch(() => {});
+  setInterval(() => void tick().catch(() => {}), everyMs).unref();
+}
+
+// ── Search ───────────────────────────────────────────────────────────────────
+
+export type SearchHit = {
+  id: string;
+  kind: SearchKind;
+  title: string;
+  subtitle: string | null;
+  href: string;
+  /** The query appears in the title: the founder is looking for this item by name. */
+  named: boolean;
+  score: number;
+};
+
+/** Below this cosine similarity a match is noise (unrelated texts score 0.1–0.35 with this model). */
+const MIN_SIMILARITY = 0.38;
+/** Meaning matches this far below the best one are dropped: a strong match hides the vague ones. */
+const SIMILARITY_SPREAD = 0.12;
+/** When the query names something, meaning matches must be this close to show beside it. */
+const MIN_SIMILARITY_BESIDE_NAMES = 0.5;
+/** Shorter queries are a name being typed: matching letters says more than meaning. */
+const MIN_SEMANTIC_QUERY = 3;
+
+const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/**
+ * Finds anything in the workspace by name or by meaning. Name matches come from the folded text
+ * and work before the model is downloaded; meaning comes from the embeddings.
+ */
+export async function searchWorkspace(db: Db, workspaceId: string, query: string, limit = 8): Promise<SearchHit[]> {
+  const q = query.trim().replace(/\s+/g, " ");
+  if (!q) return [];
+  const folded = fold(q);
+  const columns = {
+    id: searchDocuments.id,
+    kind: searchDocuments.kind,
+    title: searchDocuments.title,
+    subtitle: searchDocuments.subtitle,
+    href: searchDocuments.href,
+  };
+
+  // "concurrents" also finds "Concurrent": a plural tries its singular too (not a short word, "clés" isn't "Clément").
+  const forms = [folded, ...(folded.length >= 5 && /[^s]s$/.test(folded) ? [folded.slice(0, -1)] : [])];
+  const named = db
+    .select(columns)
+    .from(searchDocuments)
+    .where(
+      and(
+        eq(searchDocuments.workspaceId, workspaceId),
+        or(...forms.map((f) => sql`${searchDocuments.folded} like ${`%${escapeLike(f)}%`} escape '\\'`)),
+      ),
+    )
+    .limit(50);
+
+  // Only once the model is loaded: a search never waits for the download.
+  const vector = q.length >= MIN_SEMANTIC_QUERY && modelReady ? (await embed([q]))[0] : undefined;
+  const similar = vector
+    ? db
+        .select({ ...columns, similarity: sql<number>`1 - vector_distance_cos(${searchDocuments.embedding}, vector32(${JSON.stringify(vector)}))`.as("similarity") })
+        .from(searchDocuments)
+        .where(and(eq(searchDocuments.workspaceId, workspaceId), sql`${searchDocuments.embedding} is not null`))
+        .orderBy(sql`similarity desc`)
+        .limit(30)
+    : Promise.resolve([]);
+  if (!modelReady) void loadModel().catch(() => {});
+
+  const [byName, byMeaning] = await Promise.all([named, similar]);
+  const hits = new Map<string, SearchHit>();
+  for (const r of byName) {
+    const title = fold(r.title);
+    // A name match outranks any meaning match; a title beats a mention deeper in the text.
+    const score = forms.some((f) => title.startsWith(f)) ? 1.3 : forms.some((f) => title.includes(f)) ? 1.2 : 1;
+    hits.set(r.id, { ...r, named: score > 1, score });
+  }
+  const floor = Math.max(
+    (byMeaning[0]?.similarity ?? 0) - SIMILARITY_SPREAD,
+    [...hits.values()].some((h) => h.named) ? MIN_SIMILARITY_BESIDE_NAMES : MIN_SIMILARITY,
+  );
+  for (const { similarity, ...r } of byMeaning) {
+    const hit = hits.get(r.id);
+    if (hit) hit.score += similarity / 10;
+    else if (similarity >= floor) hits.set(r.id, { ...r, named: false, score: similarity });
+  }
+  return [...hits.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+}

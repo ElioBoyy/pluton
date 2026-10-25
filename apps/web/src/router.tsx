@@ -1,7 +1,7 @@
 import { createRootRoute, createRoute, createRouter, Link, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell.tsx";
 import { AgentPage } from "./features/agent/agent-page.tsx";
-import { BrainPage } from "./features/brain/brain-page.tsx";
+import { BRAIN_TAB_SLUGS, BrainPage, type BrainTabSlug } from "./features/brain/brain-page.tsx";
 import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
 import { NewPlayPage } from "./features/plays/new-play-page.tsx";
 import { PlayPage } from "./features/plays/play-page.tsx";
@@ -147,6 +147,19 @@ const leadsRoute = createRoute({
   },
 });
 
+const brainRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/brain",
+  validateSearch: (s: Record<string, unknown>): { tab?: BrainTabSlug } => ({
+    tab: BRAIN_TAB_SLUGS.includes(s.tab as BrainTabSlug) ? (s.tab as BrainTabSlug) : undefined,
+  }),
+  component: function Brain() {
+    const search = brainRoute.useSearch();
+    const navigate = brainRoute.useNavigate();
+    return <BrainPage tabSlug={search.tab ?? "company"} onTab={(tab) => void navigate({ search: { tab }, replace: true })} />;
+  },
+});
+
 const agentConversationRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/agent/$conversationId",
@@ -161,7 +174,7 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     indexRoute,
     homeRoute,
-    createRoute({ getParentRoute: () => appRoute, path: "/brain", component: BrainPage }),
+    brainRoute,
     createRoute({ getParentRoute: () => appRoute, path: "/agent", component: () => <AgentPage /> }),
     agentConversationRoute,
     createRoute({ getParentRoute: () => appRoute, path: "/plays", component: PlaysPage }),
