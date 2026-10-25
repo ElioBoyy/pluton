@@ -32,21 +32,39 @@ export async function findEmail(db: Db, person: { firstName: string; lastName: s
       );
       const value: EmailResult = { email: res.data.email, confidence: res.data.score, source: PROVIDER };
       // Paid plans cost about $0.049 a search; the free plan costs nothing until its 25 run out.
-      return { value, items: value.email ? 1 : 0, costMicroUsd: value.email ? 49_000 : 0, ttlMs: 30 * 24 * 3600_000 };
+      const paid = value.email ? !(await onFreePlan(key)) : false;
+      return { value, items: value.email ? 1 : 0, costMicroUsd: paid ? 49_000 : 0, ttlMs: 30 * 24 * 3600_000 };
     },
   );
 }
 
-export type HunterQuota = { used: number; available: number; resetDate: string | null; plan: string | null };
+export type HunterQuota = { used: number; available: number; resetDate: string | null; plan: string | null; free: boolean };
+
+const PLAN_TTL_MS = 6 * 3600_000;
+const planCache = new Map<string, { free: boolean; at: number }>();
+
+/**
+ * Whether the key is on Hunter's free plan, asked at most every 6 hours. When Hunter can't be
+ * reached the search is counted as paid, so spend is never under-reported.
+ */
+async function onFreePlan(key: string) {
+  const cached = planCache.get(key);
+  if (cached && Date.now() - cached.at < PLAN_TTL_MS) return cached.free;
+  const free = await hunterQuota().then((q) => q.free, () => false);
+  planCache.set(key, { free, at: Date.now() });
+  return free;
+}
 
 /** Searches left this month. Account calls are free on Hunter. */
 export async function hunterQuota(): Promise<HunterQuota> {
   const key = requireKey(PROVIDER, HUNTER_KEY);
   const res = await httpJson<{
-    data: { plan_name?: string; reset_date?: string; requests?: { searches?: { used: number; available: number } } };
+    data: { plan_name?: string; plan_level?: number; reset_date?: string; requests?: { searches?: { used: number; available: number } } };
   }>(PROVIDER, `https://api.hunter.io/v2/account?api_key=${encodeURIComponent(key)}`, { retries: 1 });
   const searches = res.data.requests?.searches ?? { used: 0, available: 0 };
-  return { used: searches.used, available: searches.available, resetDate: res.data.reset_date ?? null, plan: res.data.plan_name ?? null };
+  const plan = res.data.plan_name ?? null;
+  const free = res.data.plan_level === 0 || /^free$/i.test(plan ?? "");
+  return { used: searches.used, available: searches.available, resetDate: res.data.reset_date ?? null, plan, free };
 }
 
 /** "Marie-Anne de La Tour" → first "Marie-Anne", last "de La Tour". */

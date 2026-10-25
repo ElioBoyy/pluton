@@ -31,6 +31,8 @@ const TOOLS = [
   "credits_get_usage",
   "activity_since",
   "crm_export_leads",
+  "docs_read",
+  "docs_search",
   "WebSearch",
   "WebFetch",
 ] as const;

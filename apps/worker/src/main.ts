@@ -1,6 +1,7 @@
 import os from "node:os";
 import {
   claimNextJob,
+  heartbeatJob,
   completeJob,
   duePlays,
   enqueueJob,
@@ -69,6 +70,8 @@ const PURPOSE: Record<JobType, CostPurpose> = {
 
 const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY ?? 4);
 const IDLE_POLL_MS = 500;
+// Well under the 10 minutes after which a running job without a heartbeat counts as abandoned.
+const HEARTBEAT_MS = 60_000;
 const workerId = `${os.hostname()}:${process.pid}`;
 
 const db = createDb();
@@ -108,6 +111,8 @@ async function runLoop(slot: number) {
     const cancelPoll = setInterval(() => {
       void isCancelRequested(db, job.id).then((yes) => yes && jobAbort.abort("cancel")).catch(() => {});
     }, 2000);
+    // Proof of life: without it, a search longer than the stale delay would be queued a second time.
+    const heartbeat = setInterval(() => void heartbeatJob(db, job.id, `${workerId}#${slot}`).catch(() => {}), HEARTBEAT_MS);
     try {
       if (!handler) throw new Error(`No handler for job type "${job.type}"`);
       const workspace = job.workspaceId ? await db.query.workspaces.findFirst({ where: eq(workspaces.id, job.workspaceId) }) : await getCurrentWorkspace(db);
@@ -132,6 +137,7 @@ async function runLoop(slot: number) {
       }
     } finally {
       clearInterval(cancelPoll);
+      clearInterval(heartbeat);
       shutdown.signal.removeEventListener("abort", onShutdown);
     }
   }
