@@ -187,6 +187,7 @@ export function AppShell() {
               onClick={() => setPaletteOpen(true)}
               // With refraction the glass layer inside does the backdrop work; the bar itself must not, or the layer would see only the bar.
               style={refractionSupported ? { backdropFilter: "none", WebkitBackdropFilter: "none" } : undefined}
+              data-refract={refractionSupported || undefined}
               className="glass glass-thin fixed bottom-5 left-[calc(50%+7.5rem-10rem)] flex h-11 w-80 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-colors duration-200 ease-out hover:text-ink max-md:hidden"
             >
               <MagnifyingGlass size={18} />
