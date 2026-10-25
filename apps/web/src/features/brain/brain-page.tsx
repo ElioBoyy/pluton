@@ -48,7 +48,8 @@ export function BrainPage() {
   const companyName = (one("company")?.data.name as string | undefined) ?? "brain";
 
   return (
-    <div className="flex h-full">
+    // Fills main edge to edge, past the room main keeps for the Ask bar: the columns scroll on their own.
+    <div className="flex h-full md:absolute md:inset-0">
       <div className="min-w-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl px-4 pt-6 pb-24 sm:px-8 sm:pt-10">
           <PageHeader

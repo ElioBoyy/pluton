@@ -182,7 +182,7 @@ export function AppShell() {
           {askBar && (
             <button
               onClick={() => setPaletteOpen(true)}
-              className="glass fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-[color,scale] duration-200 ease-out hover:text-ink max-md:hidden motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]"
+              className="glass glass-thin fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-[color,scale] duration-200 ease-out hover:text-ink max-md:hidden motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]"
             >
               <MagnifyingGlass size={18} />
               Ask Pluton anything
