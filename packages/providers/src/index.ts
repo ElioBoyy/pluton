@@ -108,5 +108,6 @@ export * from "./hunter.ts";
 export * from "./email.ts";
 export * from "./unipile.ts";
 export * from "./mailer.ts";
+export * from "./imap.ts";
 export * from "./slack.ts";
 export * from "./crm.ts";

@@ -13,10 +13,13 @@
   "dependencies": {
     "@pluton/db": "workspace:*",
     "@pluton/i18n": "workspace:*",
+    "imapflow": "^2.9.1",
+    "mailparser": "^3.12.4",
     "nodemailer": "^10.2.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.9.0",
     "@types/node": "^26.6.5",
     "@types/nodemailer": "^8.0.2",
     "typescript": "^7.0.2"

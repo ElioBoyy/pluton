@@ -681,6 +681,9 @@ export const ENROLLMENT_STATUSES = [
 ] as const;
 export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
 /** Statuses after which the sequence does nothing more for the lead. */
+export const OUTREACH_CHANNELS = ["linkedin", "email"] as const;
+export type OutreachChannel = (typeof OUTREACH_CHANNELS)[number];
+
 export const ENDED_ENROLLMENT: EnrollmentStatus[] = ["reply_received", "auto_reply_sent", "marked_lost", "needs_you", "failed", "stopped", "completed"];
 
 export const enrollments = sqliteTable(
@@ -710,6 +713,10 @@ export const enrollments = sqliteTable(
     acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
     providerUserId: text("provider_user_id"),
     chatId: text("chat_id"),
+    /** How the sequence reaches them: by email when they have no LinkedIn profile but an address. */
+    channel: text("channel", { enum: OUTREACH_CHANNELS }).notNull().default("linkedin"),
+    /** The first email's subject; follow-ups answer it in the same thread. */
+    emailSubject: text("email_subject"),
     lastReplyCheckAt: integer("last_reply_check_at", { mode: "timestamp_ms" }),
     note: text("note"),
     endedAt: integer("ended_at", { mode: "timestamp_ms" }),
@@ -741,6 +748,8 @@ export const messageDrafts = sqliteTable(
     skipReason: text("skip_reason"),
     error: text("error"),
     sentAt: integer("sent_at", { mode: "timestamp_ms" }),
+    /** Email subject, written with the first message for people reached by email. */
+    subject: text("subject"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -750,7 +759,7 @@ export const messageDrafts = sqliteTable(
 export const ACTION_KINDS = ["visit_profile", "follow_profile", "like_post", "invite", "message", "auto_reply"] as const;
 export const ACTION_STATUSES = ["pending_manual", "done", "skipped", "failed"] as const;
 
-/** Every action taken (or to take by hand) on LinkedIn: the journey, the to-do list and the daily quotas. */
+/** Every action taken (or to take by hand) on LinkedIn or by email: the journey, the to-do list and the daily quotas. */
 export const outreachActions = sqliteTable(
   "outreach_action",
   {
@@ -767,6 +776,8 @@ export const outreachActions = sqliteTable(
     status: text("status", { enum: ACTION_STATUSES }).notNull(),
     text: text("text"),
     detail: text("detail"),
+    /** An email's Message-ID: replies point back to it. */
+    externalId: text("external_id"),
     doneAt: integer("done_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
   },
@@ -786,7 +797,7 @@ export const replies = sqliteTable(
     text: text("text").notNull(),
     label: text("label", { enum: REPLY_LABELS }),
     summary: text("summary"),
-    source: text("source", { enum: ["unipile", "manual"] }).notNull(),
+    source: text("source", { enum: ["unipile", "email", "manual"] }).notNull(),
     receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
     handledAt: integer("handled_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),

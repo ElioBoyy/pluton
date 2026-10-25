@@ -125,7 +125,11 @@ export function toDomain(input: string) {
 
 /** Checks a data-source key against its provider's account endpoint. */
 export async function checkProviderKey(settingKey: string): Promise<string> {
-  if (settingKey.startsWith("smtp_")) {
+  if (settingKey.startsWith("imap_")) {
+    const { verifyInbox } = await import("./imap.ts");
+    return verifyInbox();
+  }
+  if (settingKey.startsWith("smtp_") || settingKey === "email_daily_limit") {
     const { verifyMailer } = await import("./mailer.ts");
     return verifyMailer();
   }

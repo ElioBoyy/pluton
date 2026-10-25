@@ -49,10 +49,10 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
           }
           description={sentMessages.length === 0 ? t("block.noneSent") : t("block.sent", { count: sentMessages.length, when: when(sentMessages[0]!.doneAt) })}
         >
-          {(d.campaignStatus === "paused" || d.sender) && (
+          {(d.campaignStatus === "paused" || d.sender || e.channel === "email") && (
             <span className="flex shrink-0 flex-col items-end text-xs text-muted">
               {d.campaignStatus === "paused" && <span>{t("block.campaignPaused")}</span>}
-              {d.sender && <span>{t("from", { name: d.sender.name })}</span>}
+              {e.channel === "email" ? <span>{t("byEmail", { email: d.email ?? "" })}</span> : d.sender && <span>{t("from", { name: d.sender.name })}</span>}
             </span>
           )}
         </Row>

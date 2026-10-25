@@ -439,7 +439,7 @@ function EnrolledRow({ e }: { e: Enrollment }) {
         <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
       </div>
       <p className="mt-0.5 text-xs text-muted">
-        {e.sender ? t("from", { name: e.sender.name }) : t("enrolled.noAccount")}
+        {e.channel === "email" ? t("byEmail", { email: e.person.email ?? "" }) : e.sender ? t("from", { name: e.sender.name }) : t("enrolled.noAccount")}
         {e.nextStep &&
           ` · ${t("enrolled.upNext", {
             next: e.nextActionAt ? t("nextStepAt", { step: e.nextStep, when: when(e.nextActionAt) }) : t("nextStepWaiting", { step: e.nextStep }),

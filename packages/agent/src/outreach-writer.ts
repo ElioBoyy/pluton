@@ -115,9 +115,19 @@ export async function writeDrafts(
       await upsertDraft(db, { campaignId: campaign.id, leadId, stepId: s.id, text: "", origin: "generated", review: "being_written", stepRevision: s.revision });
     }
     try {
-      const texts = await writeForLead(db, { campaign, steps, aiSteps, lead: row.lead, person: row.person, brain: brain.text, language, signal: opts.signal });
+      const { texts, subject } = await writeForLead(db, { campaign, steps, aiSteps, lead: row.lead, person: row.person, brain: brain.text, language, sender: sender?.name, signal: opts.signal });
       for (const s of aiSteps) {
-        await upsertDraft(db, { campaignId: campaign.id, leadId, stepId: s.id, text: texts.get(s.id) ?? "", origin: "generated", review: texts.get(s.id) ? "not_reviewed" : "failed", stepRevision: s.revision, error: texts.get(s.id) ? null : t("draftNotWritten") });
+        await upsertDraft(db, {
+          campaignId: campaign.id,
+          leadId,
+          stepId: s.id,
+          text: texts.get(s.id) ?? "",
+          origin: "generated",
+          review: texts.get(s.id) ? "not_reviewed" : "failed",
+          stepRevision: s.revision,
+          error: texts.get(s.id) ? null : t("draftNotWritten"),
+          subject: s.id === steps[0]?.id ? (subject ?? null) : undefined,
+        });
       }
       written++;
       await opts.onLead?.(leadId, true);
@@ -134,10 +144,12 @@ export async function writeDrafts(
 
 async function writeForLead(
   db: Db,
-  o: { campaign: Campaign; steps: CampaignStep[]; aiSteps: CampaignStep[]; lead: Lead; person: Person; brain: string; language: string; signal?: AbortSignal },
+  o: { campaign: Campaign; steps: CampaignStep[]; aiSteps: CampaignStep[]; lead: Lead; person: Person; brain: string; language: string; sender?: string; signal?: AbortSignal },
 ) {
   const activity = await recentActivity(db, o.person);
   const texts = new Map<string, string>();
+  let subject: string | undefined;
+  const firstWritten = o.aiSteps.some((s) => s.id === o.steps[0]?.id);
   await runAgent({
     system: WRITER_SYSTEM,
     model: WRITER_MODEL,
@@ -157,14 +169,19 @@ Signal: ${o.lead.signal}
 Evidence: ${o.lead.evidence.map((e) => e.label).join(" | ") || "none"}
 Their recent LinkedIn posts: ${activity.length ? `\n${activity.join("\n---\n")}` : "unknown"}
 
+${byEmail(o.person) ? `${EMAIL_CHANNEL(o.sender)}${firstWritten ? "\nAlso give the first email a subject: 2 to 6 plain words, specific to them, no clickbait, no capitals for effect." : ""}\n` : ""}
 Write these messages (the sequence sends them in this order, each only if there was no reply):
 ${o.aiSteps.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHours} h after the previous step): ${s.guidelines ?? ""}`).join("\n")}`,
     tools: [
       localTool({
         name: "write_messages",
         description: "Save one message per step, by stepId.",
-        schema: z.object({ messages: z.array(z.object({ stepId: z.string(), text: z.string().trim().min(1).max(1500) })) }),
-        run: async ({ messages }) => {
+        schema: z.object({
+          messages: z.array(z.object({ stepId: z.string(), text: z.string().trim().min(1).max(1500) })),
+          subject: z.string().trim().min(1).max(120).optional().describe("The first email's subject, only when the messages go out by email."),
+        }),
+        run: async ({ messages, subject: s }) => {
+          if (s) subject = s;
           for (const m of messages) if (o.aiSteps.some((s) => s.id === m.stepId)) texts.set(m.stepId, m.text);
           const missing = o.aiSteps.filter((s) => !texts.has(s.id));
           return missing.length ? `Missing: ${missing.map((s) => s.id).join(", ")}` : "saved";
@@ -172,7 +189,38 @@ ${o.aiSteps.map((s) => `- stepId ${s.id} (${stepLabel(o.steps, s)}, ${s.delayHou
       }),
     ],
   });
-  return texts;
+  return { texts, subject };
+}
+
+/** No LinkedIn profile but an address: the sequence emails them instead (see the sequence engine). */
+export const byEmail = (person: Pick<Person, "linkedinUrl" | "email">) => !person.linkedinUrl && Boolean(person.email);
+
+const EMAIL_CHANNEL = (sender?: string) =>
+  `This person has no LinkedIn profile: these messages go out as plain-text emails from the founder's own mailbox, replies in one thread. Write them as short emails: open with their first name, never mention LinkedIn or connecting, keep the same length and tone, and end with the founder's first name${sender ? ` (${sender.split(/\s+/)[0]})` : ""} on its own line. No links unless a step's guidelines ask for one.`;
+
+/** A subject for a first email whose text came from a template or an older draft. */
+export async function writeEmailSubject(opts: { text: string; language: string }) {
+  let subject = "";
+  await runAgent({
+    system: "You write the subject line of a short cold email. 2 to 6 plain words, specific to its content, no clickbait, no capitals for effect, no punctuation at the end.",
+    model: FAST_MODEL,
+    noWeb: true,
+    maxTurns: 2,
+    required: ["subject"],
+    prompt: `Language: ${opts.language}\n\nThe email:\n${opts.text}`,
+    tools: [
+      localTool({
+        name: "subject",
+        description: "The subject line.",
+        schema: z.object({ subject: z.string().trim().min(1).max(120) }),
+        run: async ({ subject: s }) => {
+          subject = s;
+          return "saved";
+        },
+      }),
+    ],
+  });
+  return subject;
 }
 
 /** "✦ Sharpen": a tighter version of a step's guidelines, for the founder to confirm or dismiss. */
@@ -215,7 +263,7 @@ export type ReplyVerdict = { label: "positive" | "in_your_hands" | "not_interest
 export async function classifyReply(opts: { reply: string; lastMessage?: string }): Promise<ReplyVerdict> {
   let verdict: ReplyVerdict = { label: "in_your_hands", summary: "" };
   await runAgent({
-    system: `Classify a reply to a LinkedIn outreach message.
+    system: `Classify a reply to an outreach message (LinkedIn or email).
 - positive: interested, wants to talk, asks for the link or a time.
 - not_interested: declines, asks to stop, wrong person with no lead.
 - in_your_hands: anything else (a question, a referral, an out-of-office, ambiguity). When unsure, in_your_hands.

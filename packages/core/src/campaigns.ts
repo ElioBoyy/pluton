@@ -260,6 +260,50 @@ export async function usageToday(db: Db, senderId: string, timeZone: string, now
   return used;
 }
 
+// ── Email ────────────────────────────────────────────────────────────────────
+
+/** Emails sent today from the workspace's mailbox, for its daily limit. */
+export async function emailsToday(db: Db, workspaceId: string, timeZone: string, now = new Date()) {
+  const [row] = await db
+    .select({ n: count() })
+    .from(outreachActions)
+    .where(and(eq(outreachActions.workspaceId, workspaceId), isNotNull(outreachActions.externalId), gte(outreachActions.createdAt, localDayStart(now, timeZone))));
+  return row?.n ?? 0;
+}
+
+/** When the mailbox last sent: emails go out minutes apart, like a person's. */
+export async function lastEmailAt(db: Db, workspaceId: string) {
+  const [row] = await db
+    .select({ at: outreachActions.createdAt })
+    .from(outreachActions)
+    .where(and(eq(outreachActions.workspaceId, workspaceId), isNotNull(outreachActions.externalId)))
+    .orderBy(desc(outreachActions.createdAt))
+    .limit(1);
+  return row?.at ?? null;
+}
+
+/** The Message-IDs already sent to this person, oldest first: a follow-up threads under them. */
+export async function emailThread(db: Db, enrollmentId: string) {
+  const rows = await db
+    .select({ id: outreachActions.externalId })
+    .from(outreachActions)
+    .where(and(eq(outreachActions.enrollmentId, enrollmentId), isNotNull(outreachActions.externalId)))
+    .orderBy(asc(outreachActions.createdAt));
+  return rows.map((r) => r.id!);
+}
+
+/** Every email sent in the last `days`, with whom it went to: what a reply in the inbox can answer. */
+export async function sentEmails(db: Db, now = new Date(), days = 30) {
+  return db
+    .select({ enrollment: enrollments, messageId: outreachActions.externalId, sentAt: outreachActions.createdAt, email: people.email })
+    .from(outreachActions)
+    .innerJoin(enrollments, eq(enrollments.id, outreachActions.enrollmentId))
+    .innerJoin(leads, eq(leads.id, enrollments.leadId))
+    .innerJoin(people, eq(people.id, leads.personId))
+    .where(and(isNotNull(outreachActions.externalId), gte(outreachActions.createdAt, new Date(now.getTime() - days * 24 * HOUR))))
+    .orderBy(asc(outreachActions.createdAt));
+}
+
 // ── Templates ────────────────────────────────────────────────────────────────
 
 export const TEMPLATE_VARIABLE_KEYS = ["person.first_name", "person.last_name", "person.full_name", "person.company", "person.title", "sender.first_name", "objective.link"] as const;
@@ -357,14 +401,23 @@ export function draftState(drafts: MessageDraft[], messageSteps: CampaignStep[])
 
 export async function upsertDraft(
   db: Db,
-  values: Pick<MessageDraft, "campaignId" | "leadId" | "stepId" | "text" | "origin" | "review" | "stepRevision"> & { skipReason?: string | null; error?: string | null },
+  values: Pick<MessageDraft, "campaignId" | "leadId" | "stepId" | "text" | "origin" | "review" | "stepRevision"> & { skipReason?: string | null; error?: string | null; subject?: string | null },
 ) {
   await db
     .insert(messageDrafts)
     .values(values)
     .onConflictDoUpdate({
       target: [messageDrafts.campaignId, messageDrafts.leadId, messageDrafts.stepId],
-      set: { text: values.text, origin: values.origin, review: values.review, stepRevision: values.stepRevision, skipReason: values.skipReason ?? null, error: values.error ?? null },
+      set: {
+        text: values.text,
+        origin: values.origin,
+        review: values.review,
+        stepRevision: values.stepRevision,
+        skipReason: values.skipReason ?? null,
+        error: values.error ?? null,
+        // Left as is unless given: only the first email of a sequence has one.
+        ...(values.subject !== undefined ? { subject: values.subject } : {}),
+      },
     });
 }
 
@@ -526,7 +579,7 @@ export async function endEnrollment(db: Db, enrollmentId: string, status: Enroll
 
 export async function logAction(
   db: Db,
-  values: Pick<OutreachAction, "workspaceId" | "enrollmentId" | "kind" | "status"> & Partial<Pick<OutreachAction, "senderId" | "stepId" | "text" | "detail">>,
+  values: Pick<OutreachAction, "workspaceId" | "enrollmentId" | "kind" | "status"> & Partial<Pick<OutreachAction, "senderId" | "stepId" | "text" | "detail" | "externalId">>,
 ) {
   const [row] = await db
     .insert(outreachActions)
@@ -712,6 +765,8 @@ export async function leadCampaignDetail(db: Db, leadId: string) {
     playId: campaign.playId,
     campaignStatus: campaign.status,
     sender: sender ? { id: sender.id, name: sender.name, provider: sender.provider } : null,
+    // Email actions record the address they went to.
+    email: actions.find((a) => a.externalId)?.detail ?? null,
     nextStep: !ended && step ? stepLabel(campaign.steps, step) : null,
     actions: actions.map((a) => ({ ...a, label: a.stepId ? stepLabel(campaign.steps, campaign.steps.find((s) => s.id === a.stepId) ?? campaign.steps[0]!) : a.kind })),
     replies: replyRows,

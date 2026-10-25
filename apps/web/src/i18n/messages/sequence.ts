@@ -3,6 +3,7 @@ import { defineMessages } from "../define.ts";
 export default defineMessages({
   en: {
     from: "From {name}",
+    byEmail: "By email to {email}",
     nextStepAt: "{step}, {when}",
     nextStepWaiting: "{step} (waiting for you)",
     removeFromCampaign: "Remove from campaign",
@@ -276,6 +277,7 @@ export default defineMessages({
   },
   fr: {
     from: "Depuis {name}",
+    byEmail: "Par e-mail à {email}",
     nextStepAt: "{step}, {when}",
     nextStepWaiting: "{step} (en attente de vous)",
     removeFromCampaign: "Retirer de la campagne",
@@ -549,6 +551,7 @@ export default defineMessages({
   },
   it: {
     from: "Da {name}",
+    byEmail: "Via email a {email}",
     nextStepAt: "{step}, {when}",
     nextStepWaiting: "{step} (aspetta te)",
     removeFromCampaign: "Rimuovi dalla campagna",
@@ -822,6 +825,7 @@ export default defineMessages({
   },
   es: {
     from: "Desde {name}",
+    byEmail: "Por correo a {email}",
     nextStepAt: "{step}, {when}",
     nextStepWaiting: "{step} (esperándote)",
     removeFromCampaign: "Quitar de la campaña",
@@ -1095,6 +1099,7 @@ export default defineMessages({
   },
   de: {
     from: "Von {name}",
+    byEmail: "Per E-Mail an {email}",
     nextStepAt: "{step}, {when}",
     nextStepWaiting: "{step} (wartet auf Sie)",
     removeFromCampaign: "Aus Kampagne entfernen",

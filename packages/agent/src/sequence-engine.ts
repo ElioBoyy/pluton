@@ -4,10 +4,13 @@ import {
   advance,
   campaignsText,
   dueEnrollments,
+  emailThread,
+  emailsToday,
   endEnrollment,
   enrollmentsToPoll,
   inSendWindow,
   jitterMs,
+  lastEmailAt,
   logAction,
   markContacted,
   nextLocalDay,
@@ -15,6 +18,7 @@ import {
   pickSender,
   recordActivity,
   renderTemplate,
+  sentEmails,
   stepLabel,
   templateVars,
   usageToday,
@@ -26,6 +30,7 @@ import {
   desc,
   enrollments,
   eq,
+  getSetting,
   leads,
   messageDrafts,
   ne,
@@ -44,7 +49,13 @@ import {
 } from "@pluton/db";
 import {
   UnipileError,
+  inboxConfigured,
+  isBounceSender,
   linkedinPublicId,
+  mailerConfigured,
+  readInbox,
+  sendOutreachEmail,
+  stripQuoted,
   unipileFindChat,
   unipileInvite,
   unipileLatestPost,
@@ -54,7 +65,7 @@ import {
   unipileSendMessage,
 } from "@pluton/providers";
 import { localized } from "@pluton/i18n/server";
-import { classifyReply, writeAutoReply, writeDrafts } from "./outreach-writer.ts";
+import { byEmail, campaignLanguage, classifyReply, writeAutoReply, writeDrafts, writeEmailSubject } from "./outreach-writer.ts";
 import messages from "./messages/sequence.ts";
 
 const t = localized(messages);
@@ -62,6 +73,9 @@ const t = localized(messages);
 const HOUR = 3_600_000;
 /** Minimum gap between two actions of one account, so a day's actions spread out like a person's. */
 const MIN_GAP_MS = 3 * 60_000;
+/** How often each workspace's inbox is read for replies to outreach emails. */
+const INBOX_EVERY_MS = 3 * 60_000;
+const lastInboxRead = new Map<string, number>();
 
 type Ctx = { db: Db; now: Date; timeZone: string; busy: Set<string> };
 
@@ -81,6 +95,7 @@ export async function runSequenceTick(db: Db, now = new Date()) {
     await inWorkspace(enrollment.workspaceId, () => pollReplies(db, enrollment)).catch((error) => console.error("[sequence] reply check failed", (error as Error).message));
     polled++;
   }
+  polled += await readInboxes(db, now, inWorkspace);
   let acted = 0;
   for (const { enrollment, campaign } of await dueEnrollments(db, now)) {
     // Claim it: only the pass that moves next_action_at from the value it read may act.
@@ -112,8 +127,10 @@ async function personOf(db: Db, e: Enrollment) {
 /** Returns true when an action was taken or handed to you. */
 async function runStep(ctx: Ctx, e: Enrollment, campaign: Campaign): Promise<boolean> {
   const { db, now } = ctx;
-  let sender = e.senderId ? await db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : null;
   const person = await personOf(db, e);
+  // No LinkedIn profile but an address: the whole sequence goes by email from your mailbox.
+  if (e.channel === "email" || (byEmail(person) && !e.providerUserId && mailerConfigured())) return emailStep(ctx, e, campaign, person);
+  let sender = e.senderId ? await db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : null;
   if (!sender) {
     sender = await pickSender(db, campaign, person.id);
     if (!sender) {
@@ -178,7 +195,7 @@ async function messageFor(db: Db, e: Enrollment, campaign: Campaign, step: Campa
   }
   if (draft?.skipReason) return { text: null, skipped: true, reason: t("skipped", { reason: draft.skipReason }) };
   if (!draft?.text) return { text: null, skipped: false, reason: t("notWritten", { step: stepLabel(campaign.steps, step) }) };
-  return { text: draft.text, skipped: false, reason: null };
+  return { text: draft.text, subject: draft.subject, skipped: false, reason: null };
 }
 
 async function markSent(db: Db, campaign: Campaign, e: Enrollment, step: CampaignStep) {
@@ -225,7 +242,7 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
   const account = sender.externalId!;
   const identifier = e.providerUserId ?? (person.linkedinUrl ? linkedinPublicId(person.linkedinUrl) : null);
   if (!identifier) {
-    await endEnrollment(db, e.id, "failed", t("noProfile"));
+    await endEnrollment(db, e.id, "failed", person.email ? t("noProfile") : t("noChannel"));
     return false;
   }
   const base = { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, stepId: step.id };
@@ -360,6 +377,141 @@ async function manualStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Cam
   return true;
 }
 
+// ── Email ────────────────────────────────────────────────────────────────────
+
+/**
+ * People with no LinkedIn profile: message steps go out as emails in one thread from your SMTP
+ * mailbox, minutes apart and within its daily limit; the LinkedIn-only steps are skipped.
+ */
+async function emailStep(ctx: Ctx, e: Enrollment, campaign: Campaign, person: Person) {
+  const { db, now } = ctx;
+  if (e.channel !== "email") {
+    // A LinkedIn account picked when they joined has nothing to do here.
+    await db.update(enrollments).set({ channel: "email", senderId: null }).where(eq(enrollments.id, e.id));
+    e = { ...e, channel: "email", senderId: null };
+  }
+  if (!inSendWindow(now, campaign.sendWindow, ctx.timeZone)) {
+    await defer(db, e.id, nextWindowStart(now, campaign.sendWindow, ctx.timeZone));
+    return false;
+  }
+  const step = campaign.steps[e.stepIndex];
+  if (!step) {
+    await endEnrollment(db, e.id, "completed");
+    return false;
+  }
+  if (!step.enabled) {
+    await advance(db, e, campaign, {}, now);
+    return false;
+  }
+  const base = { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: null, stepId: step.id };
+  if (step.kind !== "message") {
+    // Every LinkedIn-only step up to the next message is skipped at once, so their delays don't add up.
+    let i = e.stepIndex;
+    for (; i < campaign.steps.length && campaign.steps[i]!.kind !== "message"; i++) {
+      const s = campaign.steps[i]!;
+      if (s.enabled) await logAction(db, { ...base, stepId: s.id, kind: s.kind, status: "skipped", detail: t("emailOnlyStep") });
+    }
+    const next = campaign.steps[i];
+    if (!next) {
+      await endEnrollment(db, e.id, "completed");
+      return false;
+    }
+    // The opener goes out now; later messages keep their own delays.
+    const opener = (await emailThread(db, e.id)).length === 0;
+    await db
+      .update(enrollments)
+      .set({ stepIndex: i, nextActionAt: new Date(now.getTime() + (opener ? 0 : next.delayHours * HOUR) + jitterMs(1, 10)) })
+      .where(eq(enrollments.id, e.id));
+    return false;
+  }
+  const mailbox = `mailbox:${e.workspaceId}`;
+  const last = await lastEmailAt(db, e.workspaceId);
+  if (ctx.busy.has(mailbox) || (last && now.getTime() - last.getTime() < MIN_GAP_MS)) {
+    await defer(db, e.id, new Date(now.getTime() + jitterMs(3, 9)));
+    return false;
+  }
+  const limit = Number(getSetting("email_daily_limit") ?? 30) || 30;
+  if ((await emailsToday(db, e.workspaceId, ctx.timeZone, now)) >= limit) {
+    await defer(db, e.id, nextWindowStart(nextLocalDay(now, ctx.timeZone), campaign.sendWindow, ctx.timeZone), t("emailLimit", { count: limit }));
+    return false;
+  }
+
+  const { text, subject: written, skipped, reason } = await messageFor(db, e, campaign, step);
+  if (!text) {
+    await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
+    return false;
+  }
+  const thread = await emailThread(db, e.id);
+  const subject =
+    e.emailSubject ?? written ?? ((await writeEmailSubject({ text, language: await campaignLanguage(db, campaign) })) || text.split(/[.!?\n]/)[0]!.slice(0, 60));
+  const { messageId } = await sendOutreachEmail({
+    to: person.email!,
+    subject: thread.length ? `Re: ${subject}` : subject,
+    text,
+    inReplyTo: thread.at(-1),
+    references: thread.length ? thread : undefined,
+  });
+  await logAction(db, { ...base, kind: "message", status: "done", text, externalId: messageId, detail: person.email });
+  await markSent(db, campaign, e, step);
+  await markContacted(db, e.leadId);
+  await addLeadEvent(db, e.leadId, "outreach", { kind: "message", channel: "email", step: stepLabel(campaign.steps, step), to: person.email });
+  await advance(db, e, campaign, { status: "message_sent", emailSubject: subject }, now);
+  ctx.busy.add(mailbox);
+  return true;
+}
+
+/** Each workspace's inbox, every few minutes while it has emails out in the last 30 days. */
+async function readInboxes(db: Db, now: Date, inWorkspace: <T>(workspaceId: string, fn: (ctx: Ctx) => Promise<T>) => Promise<T>) {
+  const sent = await sentEmails(db, now);
+  const byWorkspace = new Map<string, typeof sent>();
+  for (const r of sent) byWorkspace.set(r.enrollment.workspaceId, [...(byWorkspace.get(r.enrollment.workspaceId) ?? []), r]);
+  let read = 0;
+  for (const [workspaceId, rows] of byWorkspace) {
+    if (now.getTime() - (lastInboxRead.get(workspaceId) ?? 0) < INBOX_EVERY_MS) continue;
+    lastInboxRead.set(workspaceId, now.getTime());
+    read += await inWorkspace(workspaceId, () => readWorkspaceInbox(db, rows)).catch((error) => {
+      console.error("[sequence] inbox check failed", (error as Error).message);
+      return 0;
+    });
+  }
+  return read;
+}
+
+/** Matches new mail to the emails it answers (In-Reply-To / References, else the sender's address). */
+async function readWorkspaceInbox(db: Db, sent: Awaited<ReturnType<typeof sentEmails>>) {
+  if (!inboxConfigured()) return 0;
+  const byMessageId = new Map(sent.map((r) => [r.messageId!, r.enrollment]));
+  // Oldest first, so an address maps to its latest sequence.
+  const byAddress = new Map(sent.filter((r) => r.email).map((r) => [r.email!.toLowerCase(), r.enrollment]));
+  const ours = (getSetting("smtp_from") || getSetting("smtp_user") || "").toLowerCase();
+  const answered = (h: { inReplyTo: string | null; references: string[]; from: string | null }) =>
+    (h.inReplyTo ? byMessageId.get(h.inReplyTo) : undefined) ?? h.references.map((id) => byMessageId.get(id)).find(Boolean) ?? (h.from ? byAddress.get(h.from) : undefined);
+  const messages = await readInbox({
+    since: new Date(sent[0]!.sentAt.getTime() - 24 * HOUR),
+    wanted: (h) => h.from !== ours && (isBounceSender(h.from) || Boolean(answered(h))),
+  });
+  let handled = 0;
+  for (const m of messages.sort((a, b) => a.date.getTime() - b.date.getTime())) {
+    if (m.bounce) {
+      const hit = [...byMessageId].find(([id]) => m.text.includes(id))?.[1];
+      const current = hit && (await db.query.enrollments.findFirst({ where: eq(enrollments.id, hit.id) }));
+      if (current && !["reply_received", "auto_reply_sent", "needs_you", "marked_lost", "failed"].includes(current.status)) {
+        await endEnrollment(db, current.id, "failed", t("emailBounced"));
+        await addLeadEvent(db, current.leadId, "outreach", { kind: "bounced", channel: "email" });
+        handled++;
+      }
+      continue;
+    }
+    const e = answered(m);
+    // An out-of-office isn't an answer: the sequence carries on.
+    if (!e || m.automatic) continue;
+    const text = stripQuoted(m.text) || m.text.trim();
+    if (!text) continue;
+    if (await handleReply(db, e.id, { text, source: "email", externalId: m.messageId ?? `uid:${m.uid}`, at: m.date })) handled++;
+  }
+  return handled;
+}
+
 // ── Replies ──────────────────────────────────────────────────────────────────
 
 async function pollReplies(db: Db, e: Enrollment) {
@@ -375,11 +527,11 @@ async function pollReplies(db: Db, e: Enrollment) {
  * A reply stops the sequence, is classified, and gets the one automatic answer when it's positive
  * and the objective has a link (and auto-reply is on). Otherwise it waits for you.
  */
-export async function handleReply(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "manual"; externalId?: string; at?: Date }) {
+export async function handleReply(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "email" | "manual"; externalId?: string; at?: Date }) {
   return withinCostScope({ db, purpose: "replies" }, () => handleReplyInScope(db, enrollmentId, reply));
 }
 
-async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "manual"; externalId?: string; at?: Date }) {
+async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "email" | "manual"; externalId?: string; at?: Date }) {
   const e = await db.query.enrollments.findFirst({ where: eq(enrollments.id, enrollmentId) });
   if (!e) throw new Error(campaignsText("notInSequence"));
   const [row] = await db
@@ -411,7 +563,19 @@ async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: s
     const sender = e.senderId ? await db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : null;
     try {
       const text = await writeAutoReply(db, { campaign, person, reply: reply.text });
-      if (sender?.provider === "unipile" && sender.status === "connected" && e.providerUserId) {
+      if (e.channel === "email" && person.email && mailerConfigured()) {
+        const thread = await emailThread(db, e.id);
+        const theirs = reply.externalId?.startsWith("<") ? reply.externalId : undefined;
+        const { messageId } = await sendOutreachEmail({
+          to: person.email,
+          subject: `Re: ${e.emailSubject ?? ""}`.trim(),
+          text,
+          inReplyTo: theirs ?? thread.at(-1),
+          references: [...thread, ...(theirs ? [theirs] : [])],
+        });
+        await logAction(db, { workspaceId: e.workspaceId, enrollmentId: e.id, kind: "auto_reply", status: "done", text, externalId: messageId, detail: person.email });
+        await db.update(enrollments).set({ status: "auto_reply_sent" }).where(eq(enrollments.id, e.id));
+      } else if (sender?.provider === "unipile" && sender.status === "connected" && e.providerUserId) {
         const sent = await unipileSendMessage(sender.externalId!, { chatId: e.chatId, providerId: e.providerUserId, text });
         await logAction(db, { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, kind: "auto_reply", status: "done", text });
         await db.update(enrollments).set({ status: "auto_reply_sent", chatId: sent.chatId ?? e.chatId }).where(eq(enrollments.id, e.id));

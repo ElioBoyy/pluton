@@ -24,6 +24,10 @@ export default defineMessages({
     answerPositive: "Send this answer to their positive reply",
     couldntClassify: "Couldn't classify; read it yourself",
     draftNotWritten: "Not written",
+    emailOnlyStep: "LinkedIn step skipped: reached by email",
+    emailLimit: "Today's email limit reached ({count})",
+    emailBounced: "The email bounced",
+    noChannel: "No LinkedIn profile and no email for this person",
   },
   fr: {
     waitingAccount: "En attente d’un compte LinkedIn connecté",
@@ -47,6 +51,10 @@ export default defineMessages({
     answerPositive: "Envoyer cette réponse à sa réponse positive",
     couldntClassify: "Classement impossible ; lisez-la vous-même",
     draftNotWritten: "Non rédigé",
+    emailOnlyStep: "Étape LinkedIn ignorée : contacté par e-mail",
+    emailLimit: "Limite d’e-mails du jour atteinte ({count})",
+    emailBounced: "L’e-mail n’a pas été distribué",
+    noChannel: "Ni profil LinkedIn ni e-mail pour cette personne",
   },
   it: {
     waitingAccount: "In attesa di un account LinkedIn collegato",
@@ -70,6 +78,10 @@ export default defineMessages({
     answerPositive: "Invia questa risposta alla sua risposta positiva",
     couldntClassify: "Impossibile classificarla; leggila tu",
     draftNotWritten: "Non scritto",
+    emailOnlyStep: "Passo LinkedIn saltato: contattato via email",
+    emailLimit: "Limite di email di oggi raggiunto ({count})",
+    emailBounced: "L’email non è stata consegnata",
+    noChannel: "Nessun profilo LinkedIn e nessuna email per questa persona",
   },
   es: {
     waitingAccount: "Esperando una cuenta de LinkedIn conectada",
@@ -93,6 +105,10 @@ export default defineMessages({
     answerPositive: "Envía esta respuesta a su respuesta positiva",
     couldntClassify: "No se pudo clasificar; léela tú",
     draftNotWritten: "Sin redactar",
+    emailOnlyStep: "Paso de LinkedIn omitido: contactado por correo",
+    emailLimit: "Límite de correos de hoy alcanzado ({count})",
+    emailBounced: "El correo no se entregó",
+    noChannel: "Ni perfil de LinkedIn ni correo para esta persona",
   },
   de: {
     waitingAccount: "Wartet auf ein verbundenes LinkedIn-Konto",
@@ -116,5 +132,9 @@ export default defineMessages({
     answerPositive: "Diese Antwort auf die positive Rückmeldung senden",
     couldntClassify: "Konnte nicht eingeordnet werden; bitte selbst lesen",
     draftNotWritten: "Nicht geschrieben",
+    emailOnlyStep: "LinkedIn-Schritt übersprungen: per E-Mail kontaktiert",
+    emailLimit: "Heutiges E-Mail-Limit erreicht ({count})",
+    emailBounced: "Die E-Mail wurde nicht zugestellt",
+    noChannel: "Weder LinkedIn-Profil noch E-Mail für diese Person",
   },
 });
