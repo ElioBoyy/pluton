@@ -7,7 +7,6 @@ import {
   deleteConversation,
   getConversation,
   getCopilotAction,
-  getJob,
   getCurrentWorkspace,
   listConversations,
   renameConversation,
@@ -78,11 +77,12 @@ export const copilotRouter = router({
   cancel: publicProcedure.input(z.object({ conversationId: z.string() })).mutation(async ({ ctx, input }) => {
     const job = await activeTurn(ctx.db, input.conversationId);
     if (!job) return;
-    await requestJobCancel(ctx.db, job.id);
-    // A turn cancelled before it ran its approved action: put the card back so it can be decided again.
+    // An approved action the turn hasn't started yet goes back to its card, queued or running alike.
+    // Only "approved" is reset: the worker can then no longer move it to "executing", so it never
+    // runs; one already executing or done is left to finish, since it can't be taken back.
     const { actionId } = (job.payload ?? {}) as { actionId?: string };
-    const after = await getJob(ctx.db, job.id);
-    if (actionId && after?.status === "cancelled") await setCopilotActionStatus(ctx.db, actionId, "proposed", { decidedAt: null }, ["approved"]);
+    if (actionId) await setCopilotActionStatus(ctx.db, actionId, "proposed", { decidedAt: null }, ["approved"]);
+    await requestJobCancel(ctx.db, job.id);
   }),
   rename: publicProcedure
     .input(z.object({ id: z.string(), title: z.string().trim().min(1).max(80) }))
