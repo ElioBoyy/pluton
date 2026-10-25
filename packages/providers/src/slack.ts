@@ -1,5 +1,9 @@
 import { getSetting } from "@pluton/db";
 import { http, ProviderError } from "./runtime.ts";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/providers.ts";
+
+const t = localized(messages);
 
 /**
  * Slack Web API with a bot token, plus Socket Mode with an app-level token: button clicks arrive
@@ -11,14 +15,14 @@ export class SlackError extends ProviderError {
   constructor(readonly code: string) {
     super(
       PROVIDER,
-      code === "not_in_channel" ? "the Pluton app isn't in this channel: invite it with /invite @YourApp" : code,
+      code === "not_in_channel" ? t("error.slackNotInChannel") : code,
       ["invalid_auth", "not_authed", "token_revoked", "account_inactive"].includes(code) ? 401 : undefined,
     );
   }
 }
 
 async function call<T>(method: string, body: Record<string, unknown>, token = getSetting("slack_bot_token")): Promise<T> {
-  if (!token) throw new ProviderError(PROVIDER, "not configured: add the bot token in Settings → Integrations → Slack");
+  if (!token) throw new ProviderError(PROVIDER, t("error.slackMissingToken"));
   const res = await http(PROVIDER, `https://slack.com/api/${method}`, {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json; charset=utf-8" },

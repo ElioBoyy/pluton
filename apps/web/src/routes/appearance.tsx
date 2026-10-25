@@ -2,6 +2,7 @@ import { ImageSquare, Moon, Sparkle, Sun, Trash, UploadSimple } from "@phosphor-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Button, Group, PageHeader, Section } from "../components/ui.tsx";
+import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { useChannel } from "../lib/use-job-events.ts";
@@ -10,16 +11,17 @@ type Theme = "light" | "dark";
 const MAX_BYTES = 15 * 1024 * 1024;
 
 export function AppearancePage() {
+  const t = useT("settings");
   const trpc = useTRPC();
   const wallpapers = useQuery(trpc.appearance.wallpapers.queryOptions());
   return (
     <>
       <PageHeader
-        title="Appearance"
-        description="A picture behind the whole app, one for the light appearance and one for dark. Panels blur what sits behind them, so everything stays readable."
+        title={t("appearance.title")}
+        description={t("appearance.description")}
       />
       <div className="flex flex-col gap-8">
-        <Section title="Wallpapers">
+        <Section title={t("appearance.wallpapers")}>
           <Group className="grid gap-x-4 gap-y-6 p-4 sm:grid-cols-2">
             <WallpaperSlot theme="light" url={wallpapers.data?.light?.url ?? null} />
             <WallpaperSlot theme="dark" url={wallpapers.data?.dark?.url ?? null} />
@@ -32,6 +34,8 @@ export function AppearancePage() {
 }
 
 function WallpaperSlot({ theme, url }: { theme: Theme; url: string | null }) {
+  const t = useT("settings");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
@@ -44,8 +48,8 @@ function WallpaperSlot({ theme, url }: { theme: Theme; url: string | null }) {
   const take = (file: File | undefined) => {
     setError(null);
     if (!file) return;
-    if (!file.type.startsWith("image/")) return setError("Choose an image file.");
-    if (file.size > MAX_BYTES) return setError("That image is over 15 MB. Try a smaller one.");
+    if (!file.type.startsWith("image/")) return setError(t("appearance.notAnImage"));
+    if (file.size > MAX_BYTES) return setError(t("appearance.tooLarge"));
     const reader = new FileReader();
     reader.onload = () => upload.mutate({ theme, dataUrl: String(reader.result) });
     reader.readAsDataURL(file);
@@ -55,7 +59,7 @@ function WallpaperSlot({ theme, url }: { theme: Theme; url: string | null }) {
   return (
     <div className="flex min-w-0 flex-col gap-2.5">
       <p className="flex items-center gap-1.5 text-sm">
-        <Icon size={15} className="text-muted" /> {theme === "light" ? "Light" : "Dark"}
+        <Icon size={15} className="text-muted" /> {t(`appearance.theme.${theme}`)}
       </p>
       <button
         type="button"
@@ -70,7 +74,7 @@ function WallpaperSlot({ theme, url }: { theme: Theme; url: string | null }) {
           setDragging(false);
           take(e.dataTransfer.files[0]);
         }}
-        aria-label={`Choose the ${theme} wallpaper`}
+        aria-label={t(`appearance.choose.${theme}`)}
         className={cn(
           "group relative aspect-video overflow-hidden rounded-lg bg-raised text-muted shadow-[inset_0_0_0_0.5px_var(--color-line)] transition-[box-shadow,scale] duration-200 ease-out",
           "hover:text-ink motion-safe:active:scale-[0.99]",
@@ -83,18 +87,18 @@ function WallpaperSlot({ theme, url }: { theme: Theme; url: string | null }) {
         ) : (
           <span className="flex size-full flex-col items-center justify-center gap-1.5 px-4 text-center text-sm">
             <ImageSquare size={22} />
-            {dragging ? "Drop it here" : "Drop an image or click to choose"}
+            {dragging ? t("appearance.dropHere") : t("appearance.dropOrClick")}
           </span>
         )}
       </button>
       <input ref={input} type="file" accept="image/png,image/jpeg,image/webp,image/avif" hidden onChange={(e) => take(e.target.files?.[0])} />
       <div className="flex items-center gap-2">
         <Button variant="ghost" disabled={upload.isPending} onClick={() => input.current?.click()}>
-          <UploadSimple size={14} /> {url ? "Replace" : "Choose image"}
+          <UploadSimple size={14} /> {url ? t("appearance.replace") : t("appearance.chooseImage")}
         </Button>
         {url && (
           <Button variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate({ theme })}>
-            <Trash size={14} /> Remove
+            <Trash size={14} /> {tc("remove")}
           </Button>
         )}
       </div>
@@ -105,6 +109,7 @@ function WallpaperSlot({ theme, url }: { theme: Theme; url: string | null }) {
 
 /** One prompt, two wallpapers: Codex draws the light one, then the same scene at night. */
 function GenerateSection({ codex }: { codex: boolean }) {
+  const t = useT("settings");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState("");
@@ -117,7 +122,7 @@ function GenerateSection({ codex }: { codex: boolean }) {
     trpc.appearance.generate.mutationOptions({
       onSuccess: () => {
         setError(null);
-        setStatus("Starting Codex…");
+        setStatus(t("appearance.startingCodex"));
         void refreshActive();
       },
       onError: (e) => setError(e.message),
@@ -129,7 +134,7 @@ function GenerateSection({ codex }: { codex: boolean }) {
     const payload = event.payload as { message?: string };
     if (event.type === "progress") setStatus(payload.message ?? null);
     if (event.type === "saved") void queryClient.invalidateQueries({ queryKey: trpc.appearance.wallpapers.queryKey() });
-    if (event.type === "error") setError(payload.message ?? "Codex could not draw the wallpaper.");
+    if (event.type === "error") setError(payload.message ?? t("appearance.codexFailed"));
     if (event.type === "done" || event.type === "error" || event.type === "cancelled") {
       setStatus(null);
       void refreshActive();
@@ -141,11 +146,11 @@ function GenerateSection({ codex }: { codex: boolean }) {
     <Section
       title={
         <span className="flex items-center gap-1.5">
-          <Sparkle size={14} weight="fill" className="text-system-purple" /> Generate with Codex
+          <Sparkle size={14} weight="fill" className="text-system-purple" /> {t("appearance.generateTitle")}
         </span>
       }
-      description="Describe a picture once. Codex draws it for the light appearance, then repaints the same scene at night for dark."
-      footnote={codex && !working ? "Takes a few minutes. Uses your ChatGPT plan through Codex." : undefined}
+      description={t("appearance.generateDescription")}
+      footnote={codex && !working ? t("appearance.generateFootnote") : undefined}
     >
       {codex ? (
         <Group>
@@ -161,20 +166,20 @@ function GenerateSection({ codex }: { codex: boolean }) {
               onChange={(e) => setPrompt(e.target.value)}
               rows={3}
               disabled={working}
-              aria-label="Describe the wallpaper"
-              placeholder="Misty pine forest above a still lake, soft morning haze"
+              aria-label={t("appearance.promptLabel")}
+              placeholder={t("appearance.promptPlaceholder")}
               className="w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring disabled:opacity-60"
             />
             <div className="flex flex-wrap items-center justify-end gap-3">
-              {working && <span className="ai-text mr-auto min-w-0 text-sm">{status ?? "Codex is drawing…"}</span>}
+              {working && <span className="ai-text mr-auto min-w-0 text-sm">{status ?? t("appearance.drawing")}</span>}
               {error && <p className="mr-auto min-w-0 text-sm text-system-orange">{error}</p>}
               {working ? (
                 <Button type="button" variant="ghost" disabled={!jobId || cancel.isPending} onClick={() => jobId && cancel.mutate({ jobId })}>
-                  Stop
+                  {t("appearance.stop")}
                 </Button>
               ) : (
                 <Button type="submit" disabled={prompt.trim().length < 3}>
-                  <Sparkle size={14} weight="fill" /> Generate both
+                  <Sparkle size={14} weight="fill" /> {t("appearance.generateBoth")}
                 </Button>
               )}
             </div>
@@ -182,8 +187,9 @@ function GenerateSection({ codex }: { codex: boolean }) {
         </Group>
       ) : (
         <Group className="px-4 py-3.5 text-sm text-muted">
-          Codex isn't installed on this computer. Install the Codex CLI and sign in with ChatGPT, then come back here:{" "}
-          <code className="rounded-md bg-control px-1.5 py-0.5 font-mono text-xs whitespace-nowrap text-ink">npm i -g @openai/codex</code>
+          {t.rich("appearance.codexMissing", {
+            command: <code className="rounded-md bg-control px-1.5 py-0.5 font-mono text-xs whitespace-nowrap text-ink">npm i -g @openai/codex</code>,
+          })}
         </Group>
       )}
     </Section>

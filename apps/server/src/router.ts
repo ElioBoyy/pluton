@@ -19,6 +19,7 @@ import {
   listRuns,
   newPlaySchema,
   pipelineCapabilities,
+  playsText,
   playDefinitionSchema,
   startRun,
   updatePlay,
@@ -49,6 +50,7 @@ import {
   jobPayloads,
   listBrain,
   listCards,
+  localizeStreamEvent,
   onboardingInputSchema,
   retryFailedStages,
   startOnboarding,
@@ -184,7 +186,8 @@ const events = router({
     .subscription(async function* ({ ctx, input, signal }) {
       const afterId = input.lastEventId ? Number(input.lastEventId) : 0;
       for await (const event of tailStreamEvents(ctx.db, input.channel, { afterId, signal })) {
-        yield tracked(String(event.id), event);
+        // Onboarding's fixed labels read in the current language, whatever language they were stored in.
+        yield tracked(String(event.id), localizeStreamEvent(event));
       }
     }),
 });
@@ -367,7 +370,7 @@ const playsRouter = router({
   }),
   get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
     const play = await getPlay(ctx.db, input.id);
-    if (!play) throw new TRPCError({ code: "NOT_FOUND", message: "Play not found" });
+    if (!play) throw new TRPCError({ code: "NOT_FOUND", message: playsText("notFound") });
     return { play, runs: await listRuns(ctx.db, play.id) };
   }),
   activity: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {

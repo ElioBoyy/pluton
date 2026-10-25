@@ -15,6 +15,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { AppLink } from "./app-link.tsx";
@@ -28,15 +29,18 @@ import { Toaster } from "./toast.tsx";
 import { Wallpaper } from "./wallpaper.tsx";
 import { WorkspaceMenu } from "../features/workspaces/workspace-menu.tsx";
 
-const NAV: Array<{ to: string; label: string; icon: Icon }> = [
-  { to: "/home", label: "Home", icon: House },
-  { to: "/brain", label: "Brain", icon: Brain },
-  { to: "/agent", label: "Agent", icon: Sparkle },
-  { to: "/plays", label: "Plays", icon: Lightning },
-  { to: "/leads", label: "Leads", icon: UsersThree },
+/** Each link's name is the shell namespace's `nav.<key>` string. */
+const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads"; icon: Icon }> = [
+  { to: "/home", key: "home", icon: House },
+  { to: "/brain", key: "brain", icon: Brain },
+  { to: "/agent", key: "agent", icon: Sparkle },
+  { to: "/plays", key: "plays", icon: Lightning },
+  { to: "/leads", key: "leads", icon: UsersThree },
 ];
 
 export function AppShell() {
+  const t = useT("shell");
+  const tc = useT("common");
   const trpc = useTRPC();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
   const plays = useQuery(trpc.plays.list.queryOptions());
@@ -80,13 +84,13 @@ export function AppShell() {
           navOpen ? "max-md:translate-x-0 max-md:shadow-2xl" : "max-md:-translate-x-full",
         )}
       >
-        <div className="flex items-center gap-2 px-3 pt-4 pb-3">
-          <WorkspaceMenu className="pl-1" />
+        <div className="flex items-center gap-1.5 px-2.5 pt-3 pb-3">
+          <WorkspaceMenu />
           <NotificationBell />
         </div>
 
         <nav className="flex min-h-0 flex-col gap-px overflow-y-auto px-2.5">
-          {NAV.map(({ to, label, icon: IconCmp }) => (
+          {NAV.map(({ to, key, icon: IconCmp }) => (
             <div key={to} className="group/nav relative">
               <Link
                 to={to}
@@ -95,11 +99,11 @@ export function AppShell() {
                 activeOptions={{ exact: to === "/plays" }}
               >
                 <IconCmp size={16} className="text-accent" />
-                <span className="flex-1">{label}</span>
+                <span className="flex-1">{t(`nav.${key}`)}</span>
                 {/* Room for the collapse toggle, which sits over the row's right edge. */}
                 {to === "/plays" && <span className="w-5" aria-hidden />}
                 {to === "/leads" && toReview > 0 && (
-                  <span className="text-xs tabular-nums text-muted" title={`${toReview} to review`}>
+                  <span className="text-xs tabular-nums text-muted" title={t("nav.toReview", { count: toReview })}>
                     {toReview}
                   </span>
                 )}
@@ -108,7 +112,7 @@ export function AppShell() {
                 <button
                   onClick={() => setPlaysOpen(!playsOpen)}
                   aria-expanded={playsOpen}
-                  aria-label={playsOpen ? "Hide Plays" : "Show Plays"}
+                  aria-label={playsOpen ? t("nav.hidePlays") : t("nav.showPlays")}
                   className="absolute top-1 right-1.5 flex size-5 items-center justify-center rounded text-faint transition-colors duration-150 hover:bg-raised hover:text-ink"
                 >
                   <CaretRight size={11} weight="bold" className={cn("transition-transform duration-200 ease-out", playsOpen && "rotate-90")} />
@@ -156,7 +160,7 @@ export function AppShell() {
               activeProps={{ className: "!bg-selected" }}
             >
               <Gear size={16} className="text-accent" />
-              Settings
+              {tc("settings")}
             </Link>
             <AppearanceControl />
           </div>
@@ -167,7 +171,7 @@ export function AppShell() {
         <header className="flex h-12 shrink-0 items-center gap-2 bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
           <button
             onClick={() => setNavOpen(true)}
-            aria-label="Open menu"
+            aria-label={t("nav.openMenu")}
             className="flex size-9 items-center justify-center rounded-md text-ink hover:bg-raised"
           >
             <List size={20} />
@@ -175,7 +179,7 @@ export function AppShell() {
           <span className="flex-1 truncate text-sm font-semibold">{name}</span>
           <button
             onClick={() => setPaletteOpen(true)}
-            aria-label="Ask Pluton"
+            aria-label={t("askPluton")}
             className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-ink"
           >
             <MagnifyingGlass size={18} />
@@ -195,7 +199,7 @@ export function AppShell() {
               className="glass glass-thin fixed bottom-5 left-[calc(50%+124px-10rem)] flex h-11 w-80 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-colors duration-200 ease-out hover:text-ink max-md:hidden"
             >
               <MagnifyingGlass size={18} />
-              Ask Pluton anything
+              {t("askAnything")}
               <kbd className="ml-auto font-sans text-xs text-faint">⌘K</kbd>
               {refractionSupported && <LiquidGlassLayer id="ask-glass" width={320} height={44} radius={22} />}
             </button>
@@ -213,6 +217,7 @@ export function AppShell() {
 
 /** The first things to try; each step ticks itself once the workspace shows it happened, and the card leaves when all are done. */
 function GetStarted() {
+  const t = useT("shell");
   const trpc = useTRPC();
   const checklist = useQuery({ ...trpc.workspace.checklist.queryOptions(), refetchInterval: 60_000 });
   const steps = checklist.data ?? [];
@@ -220,7 +225,7 @@ function GetStarted() {
   return (
     <div className="rounded-lg bg-raised p-3">
       <p className="mb-2 flex items-center text-xs font-semibold text-muted">
-        <span className="flex-1">Get started</span>
+        <span className="flex-1">{t("getStarted")}</span>
         <span className="font-normal tabular-nums text-faint">
           {steps.filter((s) => s.done).length}/{steps.length}
         </span>
@@ -233,7 +238,7 @@ function GetStarted() {
               className={cn("flex items-center gap-2 rounded py-0.5 text-xs hover:text-ink", step.done ? "text-faint line-through" : "text-muted")}
             >
               {step.done ? <CheckCircle size={13} weight="fill" className="text-cat-green" /> : <Circle size={13} className="text-faint" />}
-              {step.label}
+              {CHECKLIST_KEYS.includes(step.key as ChecklistKey) ? t(`getStarted.${step.key as ChecklistKey}`) : step.label}
             </AppLink>
           </li>
         ))}
@@ -241,6 +246,10 @@ function GetStarted() {
     </div>
   );
 }
+
+/** The server's checklist steps we have words for; a step added later shows the server's label until it gets some. */
+const CHECKLIST_KEYS = ["review", "play", "brain", "agent", "mcp"] as const;
+type ChecklistKey = (typeof CHECKLIST_KEYS)[number];
 
 const PLAYS_OPEN_KEY = "pluton.sidebar.playsOpen";
 

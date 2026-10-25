@@ -29,6 +29,9 @@ import {
   type Db,
   type SearchKind,
 } from "@pluton/db";
+import { format, LOCALES, type Locale } from "@pluton/i18n";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/search.ts";
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
@@ -70,57 +73,36 @@ type Doc = { kind: SearchKind; refId: string; title: string; subtitle: string | 
 /** Beyond this a document is cut (a very long conversation): the index stays small. */
 const MAX_TEXT = 40_000;
 
-/** `about` holds the words people type for a page, in English and French (the founder may write either). */
-const PAGES: Array<{ ref: string; title: string; href: string; about: string }> = [
-  { ref: "home", title: "Home", href: "/home", about: "Overview, what needs you today, getting started checklist. Accueil" },
-  { ref: "brain", title: "Brain", href: "/brain", about: "Company, ideal customers, personas, competitors, market and voice. Entreprise, clients idéaux, concurrents, marché" },
-  { ref: "agent", title: "Agent", href: "/agent", about: "Talk to Pluton, ask questions, conversations. Agent, discuter, poser une question" },
-  { ref: "plays", title: "Plays", href: "/plays", about: "Lead-finding campaigns run on a schedule. Campagnes de prospection" },
-  { ref: "new-play", title: "New Play", href: "/plays/new", about: "Describe who you want to reach and create a Play. Nouvelle campagne, créer" },
-  { ref: "leads", title: "Leads", href: "/leads", about: "People found by your Plays, to review, approve or reject. Prospects, contacts à valider" },
-  { ref: "onboarding", title: "Start onboarding", href: "/onboarding", about: "Research your website and build the Brain again. Recommencer, analyser mon site" },
-  { ref: "settings", title: "Workspace settings", href: "/workspace/settings", about: "Workspace name, website, icon, timezone. Paramètres, réglages, fuseau horaire" },
-  { ref: "appearance", title: "Appearance", href: "/workspace/appearance", about: "Light and dark mode, wallpaper, theme. Apparence, mode sombre, fond d'écran" },
-  { ref: "notifications", title: "Notifications", href: "/workspace/notifications", about: "Notification bell, morning digest, email. Résumé du matin" },
-  { ref: "linkedin", title: "LinkedIn accounts", href: "/workspace/linkedin", about: "Connect LinkedIn senders, daily limits, Unipile. Comptes LinkedIn, connecter" },
-  { ref: "mcp", title: "Connect your AI", href: "/workspace/mcp", about: "MCP server for Claude Code, Claude Desktop and Codex. Connecter mon IA" },
-  { ref: "api-keys", title: "API keys", href: "/workspace/api-keys", about: "Anthropic, TheirStack, Apify, Hunter, Unipile, SMTP keys. Clés API, token" },
-  { ref: "data-sources", title: "Data sources", href: "/workspace/data-sources", about: "Where leads come from: registries, careers pages, providers. Sources de données" },
-  { ref: "integrations", title: "Integrations", href: "/workspace/integrations", about: "Slack, HubSpot, Attio, Pipedrive CRM export. Intégrations, exporter vers le CRM" },
-  { ref: "usage", title: "Usage", href: "/workspace/usage", about: "Spend per Play and per lead, provider calls, costs. Consommation, coûts, dépenses" },
-  { ref: "billing", title: "Budget", href: "/workspace/billing", about: "Monthly budget, daily cap, spend limit per run. Budget mensuel, plafond, facturation" },
-  { ref: "activity", title: "Activity", href: "/workspace/activity", about: "Everything that happened: runs, leads, replies, history. Activité, historique, réponses" },
-  { ref: "whats-new", title: "What's new", href: "/workspace/whats-new", about: "Release notes, changelog. Nouveautés" },
-];
+/**
+ * `about` holds the words people type for a page, in English and French. Its title, in every
+ * language, goes into the index too (a query in any of them finds it) and is shown in the founder's.
+ */
+const PAGES = [
+  { ref: "home", href: "/home", about: "Overview, what needs you today, getting started checklist. Accueil" },
+  { ref: "brain", href: "/brain", about: "Company, ideal customers, personas, competitors, market and voice. Entreprise, clients idéaux, concurrents, marché" },
+  { ref: "agent", href: "/agent", about: "Talk to Pluton, ask questions, conversations. Agent, discuter, poser une question" },
+  { ref: "plays", href: "/plays", about: "Lead-finding campaigns run on a schedule. Campagnes de prospection" },
+  { ref: "new-play", href: "/plays/new", about: "Describe who you want to reach and create a Play. Nouvelle campagne, créer" },
+  { ref: "leads", href: "/leads", about: "People found by your Plays, to review, approve or reject. Prospects, contacts à valider" },
+  { ref: "onboarding", href: "/onboarding", about: "Research your website and build the Brain again. Recommencer, analyser mon site" },
+  { ref: "settings", href: "/workspace/settings", about: "Workspace name, website, icon, timezone. Paramètres, réglages, fuseau horaire" },
+  { ref: "appearance", href: "/workspace/appearance", about: "Light and dark mode, wallpaper, theme. Apparence, mode sombre, fond d'écran" },
+  { ref: "notifications", href: "/workspace/notifications", about: "Notification bell, morning digest, email. Résumé du matin" },
+  { ref: "linkedin", href: "/workspace/linkedin", about: "Connect LinkedIn senders, daily limits, Unipile. Comptes LinkedIn, connecter" },
+  { ref: "mcp", href: "/workspace/mcp", about: "MCP server for Claude Code, Claude Desktop and Codex. Connecter mon IA" },
+  { ref: "api-keys", href: "/workspace/api-keys", about: "Anthropic, TheirStack, Apify, Hunter, Unipile, SMTP keys. Clés API, token" },
+  { ref: "data-sources", href: "/workspace/data-sources", about: "Where leads come from: registries, careers pages, providers. Sources de données" },
+  { ref: "integrations", href: "/workspace/integrations", about: "Slack, HubSpot, Attio, Pipedrive CRM export. Intégrations, exporter vers le CRM" },
+  { ref: "usage", href: "/workspace/usage", about: "Spend per Play and per lead, provider calls, costs. Consommation, coûts, dépenses" },
+  { ref: "billing", href: "/workspace/billing", about: "Monthly budget, daily cap, spend limit per run. Budget mensuel, plafond, facturation" },
+  { ref: "activity", href: "/workspace/activity", about: "Everything that happened: runs, leads, replies, history. Activité, historique, réponses" },
+  { ref: "whats-new", href: "/workspace/whats-new", about: "Release notes, changelog. Nouveautés" },
+] as const satisfies ReadonlyArray<{ ref: string; href: string; about: string }>;
 
-const BRAIN_LABELS: Record<BrainSection, string> = {
-  company: "Company",
-  icp: "Ideal customer profile",
-  persona: "Buyer persona",
-  competitor: "Competitor",
-  influencer: "Influencer",
-  message_pillar: "Message pillar",
-  voice: "Voice",
-  keyword: "Keyword",
-  hiring_signal: "Hiring signal",
-  stack_signal: "Stack signal",
-  tracked_profile: "Tracked LinkedIn profile",
-};
-
-/** The same labels in French: a one-word query like "concurrents" finds the section's items. */
-const BRAIN_LABELS_FR: Record<BrainSection, string> = {
-  company: "Entreprise",
-  icp: "Client idéal",
-  persona: "Persona acheteur",
-  competitor: "Concurrent",
-  influencer: "Influenceur",
-  message_pillar: "Pilier de message",
-  voice: "Ton de voix",
-  keyword: "Mot-clé",
-  hiring_signal: "Signal de recrutement",
-  stack_signal: "Signal technologique",
-  tracked_profile: "Profil LinkedIn suivi",
-};
+const t = localized(messages);
+const inEnglish = (key: Parameters<typeof t>[0]) => format(messages, "en", key);
+/** A label in every language, for the indexed text. */
+const inEveryLanguage = (key: Parameters<typeof t>[0]) => [...new Set(LOCALES.map((l: Locale) => format(messages, l, key)))].join(" · ");
 
 /** The field that names an item in lists; sections without one go by their label. */
 const BRAIN_TITLE_KEY: Partial<Record<BrainSection, string>> = {
@@ -238,13 +220,14 @@ async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
   const campaignOf = new Map(campaignRows.map((c) => [c.playId, c]));
   const messagesOf = groupBy(messageRows, (r) => r.conversationId);
 
+  // Stored in English; searchWorkspace shows them in the founder's language.
   const docs: Doc[] = PAGES.map((p) => ({
     kind: "page",
     refId: p.ref,
-    title: p.title,
+    title: inEnglish(`page.${p.ref}`),
     subtitle: null,
     href: p.href,
-    text: `${p.title}: ${p.about}`,
+    text: `${inEveryLanguage(`page.${p.ref}`)}: ${p.about}`,
   }));
 
   for (const { lead: l, person: p, play } of leadRows) {
@@ -313,7 +296,7 @@ async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
   }
 
   for (const b of brainRows) {
-    const label = BRAIN_LABELS[b.section];
+    const label = inEnglish(`brain.${b.section}`);
     const key = BRAIN_TITLE_KEY[b.section];
     const title = (key && typeof b.data[key] === "string" && (b.data[key] as string)) || label;
     docs.push({
@@ -322,7 +305,7 @@ async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
       title,
       subtitle: title === label ? "Brain" : label,
       href: `/brain?tab=${BRAIN_TAB[b.section]}`,
-      text: [`${label} (${BRAIN_LABELS_FR[b.section]})`, ...strings(b.data)].join("\n"),
+      text: [inEveryLanguage(`brain.${b.section}`), ...strings(b.data)].join("\n"),
     });
   }
 
@@ -331,7 +314,7 @@ async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
       kind: "conversation",
       refId: c.id,
       title: c.title,
-      subtitle: "Agent conversation",
+      subtitle: inEnglish("conversation"),
       href: `/agent/${c.id}`,
       text: [c.title, ...messagesOf(c.id).map((m) => `${m.role === "user" ? "You" : "Pluton"}: ${m.text}`)].join("\n\n"),
     });
@@ -532,5 +515,35 @@ export async function searchWorkspace(db: Db, workspaceId: string, query: string
     if (hit) hit.score += similarity / 10;
     else if (similarity >= floor) hits.set(r.id, { ...r, named: false, score: similarity });
   }
-  return [...hits.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+  return [...hits.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(inFoundersLanguage);
+}
+
+const BRAIN_SECTIONS_BY_LABEL = new Map(Object.keys(BRAIN_TAB).map((s) => [inEnglish(`brain.${s as BrainSection}`), s as BrainSection]));
+const PLAY_STATUS_PREFIX = /^(draft|active|paused|archived) · /;
+
+/** The index stores page titles and labels in English: shown in the founder's language. */
+function inFoundersLanguage(hit: SearchHit): SearchHit {
+  const refId = hit.id.split(":").slice(2).join(":");
+  const label = (english: string | null) => {
+    const section = english ? BRAIN_SECTIONS_BY_LABEL.get(english) : undefined;
+    return section ? t(`brain.${section}`) : english;
+  };
+  switch (hit.kind) {
+    case "page":
+      return PAGES.some((p) => p.ref === refId) ? { ...hit, title: t(`page.${refId as (typeof PAGES)[number]["ref"]}`) } : hit;
+    case "brain":
+      return { ...hit, title: label(hit.title)!, subtitle: label(hit.subtitle) };
+    case "conversation":
+      return { ...hit, subtitle: t("conversation") };
+    case "play":
+      return {
+        ...hit,
+        subtitle: hit.subtitle?.replace(PLAY_STATUS_PREFIX, (_, status: "draft" | "active" | "paused" | "archived") => `${t(`playStatus.${status}`)} · `) ?? null,
+      };
+    default:
+      return hit;
+  }
 }

@@ -1,4 +1,5 @@
 import { PageHeader } from "../../components/ui.tsx";
+import { useT } from "../../i18n/index.ts";
 import type { LeadTabKey } from "./labels.ts";
 import { LeadsView } from "./leads-view.tsx";
 
@@ -12,10 +13,11 @@ export function LeadsPage({
   leadId?: string;
   onChange: (next: { tab?: LeadTabKey; lead?: string }) => void;
 }) {
+  const t = useT("leads");
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10">
-      <PageHeader title="Leads" description="Everyone your Plays found and qualified, with why they fit. Approve the right ones; reject the rest with a reason so the next search is better." />
-      <LeadsView tab={tab} onTab={(t) => onChange({ tab: t })} openLeadId={leadId} onOpenLead={(id) => onChange({ tab, lead: id })} />
+      <PageHeader title={t("page.title")} description={t("page.description")} />
+      <LeadsView tab={tab} onTab={(next) => onChange({ tab: next })} openLeadId={leadId} onOpenLead={(id) => onChange({ tab, lead: id })} />
     </div>
   );
 }

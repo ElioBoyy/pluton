@@ -1,10 +1,11 @@
 import {
   buildDigest,
+  digestEmailFailed,
   digestWindowStart,
   getCurrentWorkspace,
   jobPayloads,
   notificationSettings,
-  notify,
+  notifyDescribed,
   recordActivity,
   renderDigest,
   type JobHandler,
@@ -41,17 +42,16 @@ export const sendDigest: JobHandler = async ({ db, job, emit }) => {
       emailError = (error as Error).message;
     }
   }
-  await notify(db, ws.id, {
+  // Worded when read (see describeNotification), so the bell shows it in the founder's language.
+  await notifyDescribed(db, ws.id, {
     category: "digest",
     kind: "digest",
-    title: manual ? "Your digest" : "Your morning digest",
-    body: digest.sections.find((s) => s.title === "Waiting for you")?.lines.map((l) => l.text).join(" · ") ?? "Nothing waiting for you.",
     link: "/home",
-    payload: digest,
+    payload: { manual: Boolean(manual), facts: digest.facts },
     dedupeKey: manual ? undefined : `digest:${ws.id}:${job.idempotencyKey ?? job.id}`,
   });
   await recordActivity(db, ws.id, "system", "digest.sent", { emailed, emailError });
-  if (emailError) throw new Error(`Digest saved in the app, but the email failed: ${emailError}`);
+  if (emailError) throw new Error(digestEmailFailed(emailError));
   await emit("done", { emailed });
   return { emailed, sections: digest.sections.length };
 };

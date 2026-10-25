@@ -30,6 +30,7 @@ import { leadsFindEmails } from "./handlers/leads.ts";
 import { sendDigest } from "./handlers/notifications.ts";
 import { crmExport, handleSlackAction, slackPostRun } from "./handlers/integrations.ts";
 import { runSlackSocket } from "@pluton/providers";
+import { withLocale } from "@pluton/i18n/server";
 import { leadFindingRun, playsPlan } from "./handlers/plays.ts";
 import { systemPing } from "./handlers/system-ping.ts";
 
@@ -109,9 +110,13 @@ async function runLoop(slot: number) {
     }, 2000);
     try {
       if (!handler) throw new Error(`No handler for job type "${job.type}"`);
-      const workspaceId = job.workspaceId ?? (await getCurrentWorkspace(db)).id;
-      const result = await withCostScope({ db, workspaceId, purpose: PURPOSE[job.type as JobType] ?? "other", jobId: job.id }, () =>
-        handler({ db, job, emit, signal: jobAbort.signal }),
+      const workspace = job.workspaceId ? await db.query.workspaces.findFirst({ where: eq(workspaces.id, job.workspaceId) }) : await getCurrentWorkspace(db);
+      const workspaceId = job.workspaceId ?? workspace!.id;
+      // A job writes what the founder reads (activity, notifications, the agent's replies) in their language.
+      const result = await withLocale(workspace?.language ?? "en", () =>
+        withCostScope({ db, workspaceId, purpose: PURPOSE[job.type as JobType] ?? "other", jobId: job.id }, () =>
+          handler({ db, job, emit, signal: jobAbort.signal }),
+        ),
       );
       await completeJob(db, job.id, result);
       console.log(`[worker] ${job.type} ${job.id} done in ${Date.now() - started}ms`);
@@ -138,7 +143,9 @@ async function scheduleLoop() {
     try {
       // Each workspace on its own clock and settings; what a scheduled run spends is charged to it.
       for (const workspace of await db.select().from(workspaces)) {
-        await withCostScope({ db, workspaceId: workspace.id, purpose: "lead_finding" }, () => scheduleWorkspace(workspace));
+        await withLocale(workspace.language ?? "en", () =>
+          withCostScope({ db, workspaceId: workspace.id, purpose: "lead_finding" }, () => scheduleWorkspace(workspace)),
+        );
       }
       const settled = await settleOrphanHolds(db);
       if (settled) console.log(`[worker] settled ${settled} orphaned budget hold(s)`);

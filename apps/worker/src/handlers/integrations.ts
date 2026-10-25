@@ -6,8 +6,9 @@ import {
   getCurrentWorkspace,
   getRun,
   INTEGRATION_INFO,
+  integrationText as t,
   jobPayloads,
-  notify,
+  notifyDescribed,
   recordActivity,
   recordCrmExport,
   reviewLeads,
@@ -15,7 +16,8 @@ import {
   slackConfig,
   type JobHandler,
 } from "@pluton/core";
-import { and, eq, inArray, leads, people, plays, slackPosts, withinCostScope, type Db } from "@pluton/db";
+import { and, eq, inArray, leads, people, plays, slackPosts, withinCostScope, workspaces, type Db } from "@pluton/db";
+import { withLocale } from "@pluton/i18n/server";
 import { crmAdapter, ProviderError, slackPost, slackUpdate, SlackError, type SlackAction, type SlackBlock } from "@pluton/providers";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -48,8 +50,8 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 /** One lead: who, why, and Approve/Reject, or the verdict once given (from Slack or the app). */
 function leadBlocks(l: LeadRow, detailed: boolean): SlackBlock[] {
   const who = l.linkedinUrl ? `<${l.linkedinUrl}|${esc(l.name)}>` : `*${esc(l.name)}*`;
-  const role = [l.title, l.company].filter(Boolean).map((s) => esc(s!)).join(" at ");
-  const lines = [`${who}${role ? ` · ${role}` : ""}${l.fit !== null ? ` · fit ${l.fit}` : ""}`];
+  const role = l.title && l.company ? t("slack.role", { title: esc(l.title), company: esc(l.company) }) : esc(l.title ?? l.company ?? "");
+  const lines = [`${who}${role ? ` · ${role}` : ""}${l.fit !== null ? ` · ${t("slack.fit", { fit: l.fit })}` : ""}`];
   if (l.signal) lines.push(`_${esc(l.signal.slice(0, 200))}_`);
   if (detailed && l.reason) lines.push(esc(l.reason.slice(0, 600)));
   const blocks: SlackBlock[] = [{ type: "section", text: { type: "mrkdwn", text: lines.join("\n") } }];
@@ -57,23 +59,30 @@ function leadBlocks(l: LeadRow, detailed: boolean): SlackBlock[] {
     blocks.push({
       type: "actions",
       elements: [
-        { type: "button", style: "primary", text: { type: "plain_text", text: "Approve" }, action_id: `approve:${l.id}`, value: l.id },
-        { type: "button", text: { type: "plain_text", text: "Reject" }, action_id: `reject:${l.id}`, value: l.id },
+        { type: "button", style: "primary", text: { type: "plain_text", text: t("slack.approve") }, action_id: `approve:${l.id}`, value: l.id },
+        { type: "button", text: { type: "plain_text", text: t("slack.reject") }, action_id: `reject:${l.id}`, value: l.id },
       ],
     });
   } else {
-    const verdict = l.status === "rejected" ? ":x: Rejected" : l.status === "approved" ? ":white_check_mark: Approved" : `:white_check_mark: ${l.status.replace("_", " ")}`;
+    const verdict = `${l.status === "rejected" ? ":x:" : ":white_check_mark:"} ${verdictLabel(l.status)}`;
     blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: verdict }] });
   }
   return blocks;
 }
+
+const VERDICTS = ["approved", "rejected", "in_campaign", "contacted"] as const;
+const verdictLabel = (status: string) =>
+  VERDICTS.includes(status as (typeof VERDICTS)[number]) ? t(`slack.status.${status as (typeof VERDICTS)[number]}`) : status.replace("_", " ");
+
+const newLeadsTitle = (count: number, detailed: boolean, play: string | undefined) =>
+  detailed ? t("slack.newLead", { play: play ?? t("slack.aPlay") }) : t("slack.newLeads", { count, play: play ?? t("slack.aPlay") });
 
 function messageBlocks(title: string, rows: LeadRow[], playId: string, detailed: boolean, more: number) {
   const blocks: SlackBlock[] = [{ type: "section", text: { type: "mrkdwn", text: `*${esc(title)}*` } }];
   for (const l of rows) blocks.push({ type: "divider" }, ...leadBlocks(l, detailed));
   blocks.push({
     type: "context",
-    elements: [{ type: "mrkdwn", text: `${more > 0 ? `${more} more · ` : ""}<${APP_URL}/plays/${playId}?tab=leads&status=to_review|Review in Pluton>` }],
+    elements: [{ type: "mrkdwn", text: `${more > 0 ? `${t("slack.more", { count: more })} · ` : ""}<${APP_URL}/plays/${playId}?tab=leads&status=to_review|${t("slack.review")}>` }],
   });
   return blocks;
 }
@@ -102,13 +111,13 @@ export const slackPostRun: JobHandler = async ({ db, job }) => {
     const posts: Array<{ ts: string; leadIds: string[] }> = [];
     if (config.delivery === "detailed") {
       for (const l of rows.slice(0, 25)) {
-        const title = `New lead for ${play?.name ?? "a Play"}`;
-        const r = await slackPost(config.channelId, `${title}: ${l.name}`, messageBlocks(title, [l], run.playId, true, 0));
+        const title = newLeadsTitle(1, true, play?.name);
+        const r = await slackPost(config.channelId, t("slack.newLeadText", { play: play?.name ?? t("slack.aPlay"), name: l.name }), messageBlocks(title, [l], run.playId, true, 0));
         posts.push({ ts: r.ts, leadIds: [l.id] });
       }
     } else {
       const shown = rows.slice(0, SHORT_MAX);
-      const title = `${rows.length} new lead${rows.length === 1 ? "" : "s"} for ${play?.name ?? "a Play"}`;
+      const title = newLeadsTitle(rows.length, false, play?.name);
       const r = await slackPost(config.channelId, title, messageBlocks(title, shown, run.playId, false, rows.length - shown.length));
       posts.push({ ts: r.ts, leadIds: shown.map((l) => l.id) });
     }
@@ -129,10 +138,11 @@ export async function handleSlackAction(db: Db, a: SlackAction) {
   if ((verdict !== "approve" && verdict !== "reject") || !leadId) return;
   const lead = await db.query.leads.findFirst({ where: eq(leads.id, leadId) });
   if (!lead) return;
-  // Workspaces copied from one another share a Slack app: the lead's own workspace and settings apply.
-  await withinCostScope({ workspaceId: lead.workspaceId }, async () => {
+  // Workspaces copied from one another share a Slack app: the lead's own workspace, settings and language apply.
+  const workspace = await db.query.workspaces.findFirst({ where: eq(workspaces.id, lead.workspaceId) });
+  await withLocale(workspace?.language ?? "en", () => withinCostScope({ workspaceId: lead.workspaceId }, async () => {
     if (lead.status === "to_review" || lead.status === "new") {
-      await reviewLeads(db, { workspaceId: lead.workspaceId, leadIds: [leadId], verdict: verdict === "approve" ? "up" : "down", via: "slack", comment: `From Slack (${a.userName})` });
+      await reviewLeads(db, { workspaceId: lead.workspaceId, leadIds: [leadId], verdict: verdict === "approve" ? "up" : "down", via: "slack", comment: t("slack.comment", { user: a.userName }) });
     }
     const post = await db.query.slackPosts.findFirst({ where: and(eq(slackPosts.channelId, a.channelId), eq(slackPosts.ts, a.messageTs)) });
     if (!post) return;
@@ -140,9 +150,9 @@ export async function handleSlackAction(db: Db, a: SlackAction) {
     const detailed = slackConfig(integration ?? undefined).delivery === "detailed";
     const rows = await loadLeads(db, post.leadIds);
     const play = await db.query.plays.findFirst({ where: eq(plays.id, lead.playId) });
-    const title = detailed ? `New lead for ${play?.name ?? "a Play"}` : `${rows.length} new lead${rows.length === 1 ? "" : "s"} for ${play?.name ?? "a Play"}`;
+    const title = newLeadsTitle(rows.length, detailed, play?.name);
     await slackUpdate(a.channelId, a.messageTs, title, messageBlocks(title, rows, lead.playId, detailed, 0));
-  });
+  }));
 }
 
 /** Create-only export: people already in the CRM (same email) are left as they are. */
@@ -150,7 +160,7 @@ export const crmExport: JobHandler = async ({ db, job, emit, signal }) => {
   const { provider, leadIds, trigger } = jobPayloads["integrations.crm_export"].parse(job.payload);
   const workspaceId = job.workspaceId ?? (await getCurrentWorkspace(db)).id;
   const integration = await activeIntegration(db, workspaceId, provider);
-  if (!integration) throw new Error(`${provider} is not connected`);
+  if (!integration) throw new Error(t("error.notConnected", { name: INTEGRATION_INFO[provider].name }));
   const config = crmConfig(integration, provider);
   const crm = crmAdapter(provider);
   const done = await alreadyExported(db, provider, leadIds);
@@ -197,12 +207,12 @@ export const crmExport: JobHandler = async ({ db, job, emit, signal }) => {
   }
   await recordActivity(db, workspaceId, "crm", "crm.exported", { provider, trigger, ...counts });
   if (counts.failed) {
-    await notify(db, workspaceId, {
+    // Worded when read, so it follows the founder's language.
+    await notifyDescribed(db, workspaceId, {
       category: "runs",
       kind: "crm.failed",
       tone: "warning",
-      title: `${counts.failed} lead${counts.failed === 1 ? "" : "s"} not exported to ${INTEGRATION_INFO[provider].name}`,
-      body: "See the export log for the error.",
+      payload: { failed: counts.failed, provider },
       link: `/workspace/integrations/${provider}`,
     });
   }

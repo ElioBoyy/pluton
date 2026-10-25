@@ -14,6 +14,7 @@ import {
   getCurrentWorkspace,
   leadCounts,
   leadIdsFor,
+  leadsText,
   listLeads,
   markLeadsSeen,
   reviewLeads,
@@ -48,7 +49,7 @@ export const leadsRouter = router({
   ids: publicProcedure.input(filterInput).query(async ({ ctx, input }) => leadIdsFor(ctx.db, { ...input, workspaceId: await workspaceId(ctx.db) })),
   get: publicProcedure.input(z.object({ leadId: z.string() })).query(async ({ ctx, input }) => {
     const lead = await getLeadDetail(ctx.db, input.leadId);
-    if (!lead) throw new TRPCError({ code: "NOT_FOUND", message: "Lead not found" });
+    if (!lead) throw new TRPCError({ code: "NOT_FOUND", message: leadsText("notFound") });
     return lead;
   }),
   markSeen: publicProcedure.input(idsInput).mutation(({ ctx, input }) => markLeadsSeen(ctx.db, input.leadIds)),
@@ -94,13 +95,13 @@ export const leadsRouter = router({
   /** Many leads at once run as a job; progress streams on its channel. */
   findEmails: publicProcedure.input(z.object({ leadIds: z.array(z.string()).min(1).max(200) })).mutation(async ({ ctx, input }) => {
     const ws = await workspaceId(ctx.db);
-    if (await findActiveJob(ctx.db, ws, "leads.find_emails")) throw new TRPCError({ code: "CONFLICT", message: "Already finding emails; wait for it to finish" });
+    if (await findActiveJob(ctx.db, ws, "leads.find_emails")) throw new TRPCError({ code: "CONFLICT", message: leadsText("alreadyFindingEmails") });
     return enqueueJob(ctx.db, { type: "leads.find_emails", workspaceId: ws, payload: { workspaceId: ws, leadIds: input.leadIds }, maxAttempts: 1 });
   }),
   activeEmailJob: publicProcedure.query(async ({ ctx }) => (await findActiveJob(ctx.db, await workspaceId(ctx.db), "leads.find_emails")) ?? null),
   findLinkedin: publicProcedure.input(z.object({ leadId: z.string() })).mutation(async ({ ctx, input }) => {
     const row = await getLeadWithPerson(ctx.db, input.leadId);
-    if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Lead not found" });
+    if (!row) throw new TRPCError({ code: "NOT_FOUND", message: leadsText("notFound") });
     const { person } = row;
     const found = await findLinkedinProfiles(ctx.db, [{ name: person.name, company: person.company ?? undefined, title: person.title ?? undefined }]);
     const url = found.get(0) ?? null;

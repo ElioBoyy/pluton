@@ -7,12 +7,13 @@ import { contextMenu } from "../../components/context-menu.tsx";
 import { usePlayMenu } from "./play-menu.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
+import { useT } from "../../i18n/index.ts";
 import { PILL, PILL_BASE, PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
 
 const FILTERS = ["active", "paused", "archived"] as const;
-const FILTER_LABELS = { active: "Active", paused: "Paused", archived: "Archived" } as const;
 
 export function PlaysPage() {
+  const t = useT("plays");
   const playMenu = usePlayMenu();
   const trpc = useTRPC();
   const plays = useQuery({ ...trpc.plays.list.queryOptions(), refetchInterval: 10_000 });
@@ -24,24 +25,24 @@ export function PlaysPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
       <PageHeader
-        title="Plays"
-        description="Each Play turns one go-to-market idea into a recurring search for people."
+        title={t("list.title")}
+        description={t("list.description")}
         actions={
           <Link to="/plays/new">
             <Button>
-              <Plus size={14} /> New Play
+              <Plus size={14} /> {t("list.new")}
             </Button>
           </Link>
         }
       />
       <div className="mb-8 grid gap-3 sm:grid-cols-3">
-        <Stat label="Active Plays" value={all.filter((p) => p.status === "active").length} />
-        <Stat label="Qualified leads" value={totals.q} />
-        <Stat label="To review" value={totals.r} />
+        <Stat label={t("list.activePlays")} value={all.filter((p) => p.status === "active").length} />
+        <Stat label={t("list.qualifiedLeads")} value={totals.q} />
+        <Stat label={t("list.toReview")} value={totals.r} />
       </div>
       {plays.isSuccess && !all.some((p) => p.isMain) && <CreateMainPlay />}
       <div className="mb-4">
-        <Segmented label="Show" options={FILTERS.map((f) => ({ value: f, label: FILTER_LABELS[f] }))} value={filter} onChange={setFilter} />
+        <Segmented label={t("list.show")} options={FILTERS.map((f) => ({ value: f, label: t(`filter.${f}`) }))} value={filter} onChange={setFilter} />
       </div>
       {shown.length === 0 ? (
         // An empty list reads like a fresh start, as on the Agent page: a mark, one line, the way in.
@@ -49,10 +50,10 @@ export function PlaysPage() {
           <span className="flex size-11 items-center justify-center rounded-xl bg-system-pink/15 text-system-pink">
             <Lightning size={22} weight="fill" />
           </span>
-          <p className="mt-4 max-w-sm text-base text-balance text-muted">{filter === "active" ? "No Play yet. Describe who you want to reach." : `No ${filter} Play.`}</p>
+          <p className="mt-4 max-w-sm text-base text-balance text-muted">{t(`list.empty.${filter}`)}</p>
           {filter === "active" && (
             <Link to="/plays/new" className="mt-5">
-              <Button>Create your first Play</Button>
+              <Button>{t("list.createFirst")}</Button>
             </Link>
           )}
         </div>
@@ -77,12 +78,12 @@ export function PlaysPage() {
                     <p className="min-w-0 truncate text-sm font-semibold" title={p.name}>
                       {p.name}
                     </p>
-                    {p.isMain && <span className={cn(PILL_BASE, PILL.pink)}>Main</span>}
+                    {p.isMain && <span className={cn(PILL_BASE, PILL.pink)}>{t("list.main")}</span>}
                     <span className="flex-1" />
                     {searching ? (
-                      <span className={cn(PILL_BASE, PILL.blue)}>Searching</span>
+                      <span className={cn(PILL_BASE, PILL.blue)}>{t("list.searching")}</span>
                     ) : (
-                      attention && <span className={cn(PILL_BASE, PILL.orange)}>Needs attention</span>
+                      attention && <span className={cn(PILL_BASE, PILL.orange)}>{t("list.needsAttention")}</span>
                     )}
                   </div>
                   <p className="mt-1 line-clamp-2 text-sm text-muted">{p.summary.who}</p>
@@ -92,9 +93,9 @@ export function PlaysPage() {
                     <span aria-hidden>·</span>
                     <span>{SCHEDULE_LABELS[p.schedule]}</span>
                     <span aria-hidden>·</span>
-                    <span className="text-system-green tabular-nums">{p.leadCounts.qualified} qualified</span>
+                    <span className="text-system-green tabular-nums">{t("list.qualified", { count: p.leadCounts.qualified })}</span>
                     <span aria-hidden>·</span>
-                    <span className="tabular-nums">{p.leadCounts.needsReview} to review</span>
+                    <span className="tabular-nums">{t("list.reviewCount", { count: p.leadCounts.needsReview })}</span>
                   </div>
                 </Link>
               </li>
@@ -108,6 +109,7 @@ export function PlaysPage() {
 
 /** Offered when the workspace has no Main Play yet (onboarding normally creates it). */
 function CreateMainPlay() {
+  const t = useT("plays");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -126,11 +128,11 @@ function CreateMainPlay() {
           <Lightning size={16} weight="fill" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">Main Play</p>
-          <p className="mt-0.5 text-xs text-muted">One Play that tries every signal from your Brain in turn until it reaches its target.</p>
+          <p className="text-sm font-medium">{t("main.title")}</p>
+          <p className="mt-0.5 text-xs text-muted">{t("main.description")}</p>
         </div>
         <Button disabled={create.isPending} onClick={() => create.mutate()}>
-          Create Main Play
+          {t("main.create")}
         </Button>
       </div>
     </Group>

@@ -1,19 +1,23 @@
-/** Money is micro-USD integers end to end; this is the one place it becomes text. */
+import { getLocale } from "../i18n/locale.ts";
+
+/** Money is micro-USD integers end to end; this is the one place it becomes text ("$1.20", "1,20 $US"). */
 export function usd(micro: number | null | undefined, opts: { precise?: boolean } = {}) {
   const v = (micro ?? 0) / 1_000_000;
-  if (v === 0) return "$0";
   const abs = Math.abs(v);
-  const digits = abs >= 100 ? 0 : abs >= 1 || !opts.precise ? 2 : abs >= 0.01 ? 3 : 4;
-  return `${v < 0 ? "−" : ""}$${abs.toFixed(digits)}`;
+  const digits = v === 0 ? 0 : abs >= 100 ? 0 : abs >= 1 || !opts.precise ? 2 : abs >= 0.01 ? 3 : 4;
+  return new Intl.NumberFormat(getLocale(), { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits })
+    .format(v)
+    .replace("-", "−");
 }
 
 export function timeAgo(date: Date | string | number) {
   const s = Math.round((Date.now() - new Date(date).getTime()) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86_400) return `${Math.floor(s / 3600)} h ago`;
-  if (s < 7 * 86_400) return `${Math.floor(s / 86_400)} d ago`;
-  return new Date(date).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const rtf = new Intl.RelativeTimeFormat(getLocale(), { numeric: "auto", style: "short" });
+  if (s < 60) return rtf.format(0, "second");
+  if (s < 3600) return rtf.format(-Math.floor(s / 60), "minute");
+  if (s < 86_400) return rtf.format(-Math.floor(s / 3600), "hour");
+  if (s < 7 * 86_400) return rtf.format(-Math.floor(s / 86_400), "day");
+  return formatDate(date, { day: "numeric", month: "short" });
 }
 
 /** "Today", "Yesterday", or "Monday 20 Oct": the feed's day headers. */
@@ -21,9 +25,16 @@ export function dayLabel(date: Date | string | number) {
   const d = new Date(date);
   const today = new Date();
   const yesterday = new Date(Date.now() - 86_400_000);
-  if (d.toDateString() === today.toDateString()) return "Today";
-  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+  const rtf = new Intl.RelativeTimeFormat(getLocale(), { numeric: "auto" });
+  const capitalize = (s: string) => s.charAt(0).toLocaleUpperCase(getLocale()) + s.slice(1);
+  if (d.toDateString() === today.toDateString()) return capitalize(rtf.format(0, "day"));
+  if (d.toDateString() === yesterday.toDateString()) return capitalize(rtf.format(-1, "day"));
+  return capitalize(formatDate(d, { weekday: "long", day: "numeric", month: "short" }));
 }
 
-export const clock = (date: Date | string | number) => new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+export const clock = (date: Date | string | number) => formatTime(date, { hour: "2-digit", minute: "2-digit" });
+
+/** Dates and times in the app's language, not the browser's: always go through these rather than toLocale*(undefined). */
+export const formatDate = (date: Date | string | number, opts?: Intl.DateTimeFormatOptions) => new Date(date).toLocaleDateString(getLocale(), opts);
+export const formatDateTime = (date: Date | string | number, opts?: Intl.DateTimeFormatOptions) => new Date(date).toLocaleString(getLocale(), opts);
+export const formatTime = (date: Date | string | number, opts?: Intl.DateTimeFormatOptions) => new Date(date).toLocaleTimeString(getLocale(), opts);

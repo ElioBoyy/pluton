@@ -21,17 +21,21 @@ import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
 import { AppearancePage } from "./routes/appearance.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
+import { useT } from "./i18n/index.ts";
 
 const rootRoute = createRootRoute({
   component: Outlet,
-  notFoundComponent: () => (
-    <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted">
-      Page not found
-      <Link to="/home" className="text-ink underline">
-        Back home
-      </Link>
-    </div>
-  ),
+  notFoundComponent: function NotFound() {
+    const t = useT("shell");
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted">
+        {t("notFound")}
+        <Link to="/home" className="text-ink underline">
+          {t("backHome")}
+        </Link>
+      </div>
+    );
+  },
 });
 
 // Full-screen flow without the sidebar.
@@ -85,9 +89,10 @@ const integrationRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "integrations/$provider",
   component: function Integration() {
+    const t = useT("shell");
     const { provider } = integrationRoute.useParams();
     const known = INTEGRATION_PROVIDERS.find((p) => p === provider);
-    return known ? <IntegrationPage key={known} provider={known} /> : <p className="text-sm text-muted">Unknown integration.</p>;
+    return known ? <IntegrationPage key={known} provider={known} /> : <p className="text-sm text-muted">{t("unknownIntegration")}</p>;
   },
 });
 

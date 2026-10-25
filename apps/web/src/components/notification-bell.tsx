@@ -5,6 +5,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AppRouter } from "@pluton/server/router";
+import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { timeAgo } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -21,6 +22,7 @@ const TONE = {
 
 /** Sidebar bell: unread count, and the list in a popover. Polls, since the worker writes them. */
 export function NotificationBell() {
+  const t = useT("shell");
   const trpc = useTRPC();
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
@@ -36,8 +38,8 @@ export function NotificationBell() {
           "relative flex size-7 items-center justify-center rounded-full text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90",
           open && "bg-raised text-ink",
         )}
-        aria-label={n ? `${n} unread notification${n === 1 ? "" : "s"}` : "Notifications"}
-        title="Notifications"
+        aria-label={n ? t("bell.unread", { count: n }) : t("bell.title")}
+        title={t("bell.title")}
       >
         <Bell size={16} />
         {n > 0 && (
@@ -52,6 +54,8 @@ export function NotificationBell() {
 }
 
 function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null>; onClose: () => void }) {
+  const t = useT("shell");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const list = useQuery({ ...trpc.notifications.list.queryOptions({}), refetchInterval: 15_000 });
@@ -88,23 +92,23 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: Math.min(WIDTH, window.innerWidth - 16) }}
       className="glass popover-motion fixed z-50 flex max-h-[70vh] origin-top-left flex-col overflow-hidden rounded-2xl"
       role="dialog"
-      aria-label="Notifications"
+      aria-label={t("bell.title")}
     >
       <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-1.5">
-        <span className="text-sm font-semibold">Notifications</span>
+        <span className="text-sm font-semibold">{t("bell.title")}</span>
         <div className="flex items-center gap-3 text-xs">
           {unread.length > 0 && (
             <button onClick={() => markRead.mutate({})} className="text-accent hover:underline">
-              Mark all read
+              {t("bell.markAllRead")}
             </button>
           )}
           <Link to="/workspace/notifications" onClick={onClose} className="text-muted hover:text-ink">
-            Settings
+            {tc("settings")}
           </Link>
         </div>
       </div>
       <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1.5 py-1">
-        {items.length === 0 && <li className="px-4 py-10 text-center text-sm text-muted">{list.isLoading ? "Loading…" : "Nothing yet. New leads, replies and budget alerts show up here."}</li>}
+        {items.length === 0 && <li className="px-4 py-10 text-center text-sm text-muted">{list.isLoading ? tc("loading") : t("bell.empty")}</li>}
         {items.map((item) => (
           <li key={item.id}>
             <Entry
@@ -119,7 +123,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
       </ul>
       <div className="p-1.5 pt-1">
         <Link to="/workspace/activity" onClick={onClose} className="flex h-7 items-center justify-center rounded-lg text-xs text-muted transition-colors duration-150 hover:bg-raised hover:text-ink">
-          See all activity
+          {t("bell.seeAll")}
         </Link>
       </div>
     </div>,
@@ -128,6 +132,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
 }
 
 function Entry({ item, onOpen }: { item: Item; onOpen: () => void }) {
+  const t = useT("shell");
   const { icon: Icon, cls } = TONE[item.tone];
   const body = (
     <>
@@ -137,7 +142,7 @@ function Entry({ item, onOpen }: { item: Item; onOpen: () => void }) {
         {item.body && <span className="mt-0.5 line-clamp-2 block text-xs text-muted">{item.body}</span>}
         <span className="mt-1 block text-xs text-muted tabular-nums">{timeAgo(item.createdAt)}</span>
       </span>
-      {!item.readAt && <span className="mt-1 size-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
+      {!item.readAt && <span className="mt-1 size-2 shrink-0 rounded-full bg-accent" aria-label={t("bell.unreadDot")} />}
     </>
   );
     // Rows highlight as rounded rects inset from the panel edge, like a macOS menu.

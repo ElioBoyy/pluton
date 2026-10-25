@@ -4,14 +4,16 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import type { PlanStep } from "@pluton/core";
 import { Button } from "../../components/ui.tsx";
+import { getLocale, translate, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import type { OnboardingState, StepState } from "./use-onboarding.ts";
 
 export function formatDuration(ms: number) {
   const s = Math.max(0, ms) / 1000;
-  if (s < 60) return `${s.toFixed(1)}s`;
-  return `${Math.floor(s / 60)}m, ${(s % 60).toFixed(1)}s`;
+  const seconds = (n: number) => n.toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  if (s < 60) return translate("onboarding", "duration.seconds", { s: seconds(s) });
+  return translate("onboarding", "duration.minutes", { m: Math.floor(s / 60), s: seconds(s % 60) });
 }
 
 /** Re-renders every 100ms while something is running so timers tick. */
@@ -36,6 +38,7 @@ export function ChatPanel({
   startedAt: number;
   onActivated: () => void;
 }) {
+  const t = useT("onboarding");
   const working = state.status === "researching" || state.status === "needs_input";
   const now = useNow(working);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -51,11 +54,8 @@ export function ChatPanel({
   return (
     <div ref={scrollRef} className="flex h-full flex-col gap-3 overflow-y-auto px-4 py-5">
       <div className="rounded-xl bg-raised p-3.5">
-        <p className="text-sm font-semibold">Start with your website</p>
-        <p className="mt-1 text-sm leading-relaxed text-muted">
-          Pluton will map your market and draft your Brain. Your first result appears quickly while deeper research
-          continues in the background.
-        </p>
+        <p className="text-sm font-semibold">{t("chat.introTitle")}</p>
+        <p className="mt-1 text-sm leading-relaxed text-muted">{t("chat.intro")}</p>
       </div>
 
       {head.map((t) => (
@@ -69,7 +69,7 @@ export function ChatPanel({
       {working && lastAssistant && (
         <p className="flex items-start gap-2 text-sm text-muted">
           <CircleNotch size={14} className="mt-0.5 shrink-0 animate-spin" />
-          {state.status === "needs_input" ? "Waiting for your answer…" : <span className="ai-text">{lastAssistant.text}</span>}
+          {state.status === "needs_input" ? t("chat.waiting") : <span className="ai-text">{lastAssistant.text}</span>}
         </p>
       )}
 
@@ -95,11 +95,12 @@ function Bubble({ role, text }: { role: "assistant" | "user"; text: string }) {
 }
 
 function PlanBox({ plan, now }: { plan: PlanStep[]; now: number }) {
+  const t = useT("onboarding");
   const done = plan.filter((p) => p.status === "done").length;
   return (
     <div className="rounded-2xl bg-canvas p-2 shadow-card">
       <div className="flex items-center justify-between px-2 py-1.5 text-sm font-semibold text-muted">
-        <span>Plan</span>
+        <span>{t("chat.plan")}</span>
         <span className="tabular-nums">
           {done}/{plan.length}
         </span>
@@ -132,13 +133,14 @@ function PlanBox({ plan, now }: { plan: PlanStep[]; now: number }) {
 }
 
 function StepList({ steps }: { steps: StepState[] }) {
+  const t = useT("onboarding");
   const [open, setOpen] = useState(true);
   const finished = steps.filter((s) => s.status !== "running").length;
   return (
     <div className="text-sm">
       <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-muted hover:text-ink">
         <CaretDown size={12} className={cn("transition-transform", !open && "-rotate-90")} />
-        Worked through {finished} step{finished === 1 ? "" : "s"}
+        {t("chat.workedThrough", { count: finished })}
       </button>
       {open && (
         <ul className="mt-2 flex flex-col gap-1.5 pl-1">
@@ -161,11 +163,12 @@ function StepList({ steps }: { steps: StepState[] }) {
 function RetryBox({ sessionId }: { sessionId: string }) {
   const trpc = useTRPC();
   const retry = useMutation(trpc.onboarding.retry.mutationOptions());
+  const t = useT("onboarding");
   return (
     <div className="rounded-xl bg-system-orange/10 p-3.5 text-sm">
-      <p>Research stopped on an error.</p>
+      <p>{t("chat.failed")}</p>
       <Button variant="ghost" className="mt-3" disabled={retry.isPending} onClick={() => retry.mutate({ sessionId })}>
-        <ArrowClockwise size={14} /> Retry
+        <ArrowClockwise size={14} /> {t("chat.retry")}
       </Button>
     </div>
   );
@@ -174,28 +177,29 @@ function RetryBox({ sessionId }: { sessionId: string }) {
 function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; state: OnboardingState; onActivated: () => void }) {
   const trpc = useTRPC();
   const activate = useMutation(trpc.onboarding.activate.mutationOptions());
+  const t = useT("onboarding");
   const count = (section: string) => [...state.brain.values()].filter((i) => i.section === section).length;
   const stats = [
-    ["personas", count("persona")],
-    ["competitors", count("competitor")],
-    ["influencers", count("influencer")],
-    ["keywords", count("keyword")],
-  ] as const;
+    t("ready.personas", { count: count("persona") }),
+    t("ready.competitors", { count: count("competitor") }),
+    t("ready.influencers", { count: count("influencer") }),
+    t("ready.keywords", { count: count("keyword") }),
+  ];
 
   return (
     <div className="rounded-2xl bg-canvas p-4 shadow-card">
       <p className="flex items-center gap-2 text-sm font-semibold">
-        <Sparkle size={15} className="text-cat-pink" /> Your Brain is ready
+        <Sparkle size={15} className="text-cat-pink" /> {t("ready.title")}
       </p>
       <p className="mt-1 text-sm text-muted">
-        {stats.map(([label, n]) => `${n} ${label}`).join(" · ")}. Review it, then activate it.
+        {t("ready.summary", { stats: stats.join(" · ") })}
       </p>
       <Button
         className="mt-3 w-full"
         disabled={activate.isPending}
         onClick={() => activate.mutate({ sessionId }, { onSuccess: onActivated })}
       >
-        Activate
+        {t("ready.activate")}
       </Button>
       {activate.error && <p className="mt-2 text-xs text-system-orange">{activate.error.message}</p>}
     </div>
@@ -204,13 +208,14 @@ function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; sta
 
 function CompletedBox() {
   const navigate = useNavigate();
+  const t = useT("onboarding");
   return (
     <div className="rounded-2xl bg-canvas p-4 text-sm shadow-card">
-      <p className="font-semibold">Onboarding complete</p>
+      <p className="font-semibold">{t("completed.title")}</p>
       <div className="mt-3 flex gap-2">
-        <Button onClick={() => void navigate({ to: "/home" })}>Open Pluton</Button>
+        <Button onClick={() => void navigate({ to: "/home" })}>{t("completed.open")}</Button>
         <Button variant="ghost" onClick={() => void navigate({ to: "/onboarding", search: { new: true } })}>
-          Start over
+          {t("completed.startOver")}
         </Button>
       </div>
     </div>

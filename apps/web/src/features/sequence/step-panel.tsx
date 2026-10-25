@@ -5,10 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, Row, Section, Segmented, Switch } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
+import { getLocale, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { PanelHeader } from "./configure-panel.tsx";
-import { ENROLLMENT, REVIEW } from "./labels.ts";
+import { ENROLLMENT, REVIEW, languageName } from "./labels.ts";
 
 type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 export type Step = Data["campaign"]["steps"][number];
@@ -18,19 +19,20 @@ const textarea =
 
 /** Side panel for one step: what it does (Configure) and who is at it (Leads). */
 export function StepPanel({ data, step, onClose, onSaved, onEditTone }: { data: Data; step: Step; onClose: () => void; onSaved: () => void; onEditTone: () => void }) {
+  const t = useT("sequence");
   const [tab, setTab] = useState<"configure" | "leads">("configure");
   return (
     <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(460px,calc(100vw-24px))] flex-col rounded-3xl" aria-label={step.label}>
-      <PanelHeader eyebrow={step.kind === "message" ? "Campaign message" : "Campaign step"} title={step.label} onClose={onClose} />
+      <PanelHeader eyebrow={step.kind === "message" ? t("step.eyebrowMessage") : t("step.eyebrowStep")} title={step.label} onClose={onClose} />
       <div className="flex shrink-0 justify-center px-5 pb-2">
         <Segmented
-          label="Step view"
+          label={t("step.view")}
           size="sm"
           value={tab}
           onChange={setTab}
           options={[
-            { value: "configure", label: "Configure" },
-            { value: "leads", label: "Leads" },
+            { value: "configure", label: t("configure.title") },
+            { value: "leads", label: t("step.leads") },
           ]}
         />
       </div>
@@ -42,6 +44,8 @@ export function StepPanel({ data, step, onClose, onSaved, onEditTone }: { data: 
 }
 
 function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step; onSaved: () => void; onEditTone: () => void }) {
+  const t = useT("sequence");
+  const tc = useT("common");
   const trpc = useTRPC();
   const [draft, setDraft] = useState<Step>(step);
   const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -50,7 +54,7 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
   const save = useMutation(
     trpc.campaigns.updateStep.mutationOptions({
       onSuccess: () => {
-        toast("Step saved");
+        toast(t("step.saved"));
         setConfirming(false);
         onSaved();
       },
@@ -66,16 +70,16 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
   return (
     <div className="flex flex-col gap-8 [&>*]:shrink-0">
       <Group>
-        <Row label="Step on" description="Off: every lead skips it.">
-          <Switch checked={draft.enabled} onChange={(v) => set({ enabled: v })} label="Step on" />
+        <Row label={t("step.on")} description={t("step.onHint")}>
+          <Switch checked={draft.enabled} onChange={(v) => set({ enabled: v })} label={t("step.on")} />
         </Row>
-        <Row label={isFirstMessage ? "Hours after they accept" : step.kind === "visit_profile" ? "Hours after they join" : "Hours after the previous step"}>
-          <Input type="number" min={0} max={720} value={draft.delayHours} onChange={(e) => set({ delayHours: Math.max(0, Number(e.target.value)) })} className="w-20 text-right tabular-nums" aria-label="Hours" />
+        <Row label={isFirstMessage ? t("step.hoursAfterAccept") : step.kind === "visit_profile" ? t("step.hoursAfterJoin") : t("step.hoursAfterPrevious")}>
+          <Input type="number" min={0} max={720} value={draft.delayHours} onChange={(e) => set({ delayHours: Math.max(0, Number(e.target.value)) })} className="w-20 text-right tabular-nums" aria-label={t("step.hours")} />
         </Row>
       </Group>
 
       {step.kind === "invite" && <InviteSettings data={data} />}
-      {step.kind === "follow_profile" && <p className="-mt-6 px-1 text-xs text-muted">With Unipile accounts this step is skipped (their API can't follow). Manual accounts get it as a task.</p>}
+      {step.kind === "follow_profile" && <p className="-mt-6 px-1 text-xs text-muted">{t("step.followHint")}</p>}
 
       {step.kind === "message" && (
         <>
@@ -85,11 +89,11 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
                 <input type="radio" name="message-mode" checked={(draft.mode ?? "ai") === m} onChange={() => set({ mode: m })} className="size-4 shrink-0 accent-[var(--color-accent)]" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1 text-sm">
-                    {m === "ai" ? "AI" : "Template"}
+                    {m === "ai" ? t("step.modeAi") : t("step.modeTemplate")}
                     {m === "ai" && <Sparkle size={11} weight="fill" className="text-accent" />}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted">
-                    {m === "ai" ? "I write it for each lead from their activity, following your guidelines." : "Your exact words for everyone, with details like their first name filled in."}
+                    {m === "ai" ? t("step.modeAiHint") : t("step.modeTemplateHint")}
                   </span>
                 </span>
               </label>
@@ -98,41 +102,44 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
 
           {(draft.mode ?? "ai") === "ai" ? (
             <Section
-              title="Guidelines"
-              description="What this message should achieve. I follow them for every lead."
+              title={t("step.guidelines")}
+              description={t("step.guidelinesHint")}
               actions={
                 <Button
                   variant="ghost"
                   type="button"
                   disabled={sharpen.isPending}
                   onClick={() => sharpen.mutate({ campaignId: data.campaign.id, stepId: step.id, guidelines: draft.guidelines ?? "" })}
-                  title="Sharpen these guidelines"
+                  title={t("step.sharpenHint")}
                   className={cn("!text-accent", sharpen.isPending && "ai-glow")}
                 >
-                  {sharpen.isPending ? <CircleNotch size={12} className="animate-spin" /> : <Sparkle size={12} weight="fill" />} Sharpen
+                  {sharpen.isPending ? <CircleNotch size={12} className="animate-spin" /> : <Sparkle size={12} weight="fill" />} {t("step.sharpen")}
                 </Button>
               }
               footnote={
                 <>
-                  Written in your campaign's tone of voice.{" "}
+                  {t("step.toneNote")}{" "}
                   <button type="button" onClick={onEditTone} className="text-accent hover:underline">
-                    Edit tone
+                    {t("step.editTone")}
                   </button>
-                  {" · "}Language: {data.campaign.language ?? `same as your Brain (${data.effectiveLanguage})`}
+                  {" · "}
+                  {t("step.language", {
+                    language: data.campaign.language ? languageName(data.campaign.language) : t("step.languageSameAsBrain", { language: languageName(data.effectiveLanguage) }),
+                  })}
                 </>
               }
             >
-              <textarea value={draft.guidelines ?? ""} onChange={(e) => set({ guidelines: e.target.value })} maxLength={2000} rows={7} className={textarea} aria-label="Guidelines" />
-              <p className="mt-1 px-1 text-right text-xs text-muted tabular-nums">{(draft.guidelines ?? "").length} / 2,000</p>
+              <textarea value={draft.guidelines ?? ""} onChange={(e) => set({ guidelines: e.target.value })} maxLength={2000} rows={7} className={textarea} aria-label={t("step.guidelines")} />
+              <p className="mt-1 px-1 text-right text-xs text-muted tabular-nums">{(draft.guidelines ?? "").length.toLocaleString(getLocale())} / {(2000).toLocaleString(getLocale())}</p>
               {suggestion && (
                 <div className="mt-2 rounded-xl bg-accent/10 p-4">
                   <p className="flex items-center gap-1 text-xs font-semibold text-accent">
-                    <Sparkle size={11} weight="fill" /> Suggested
+                    <Sparkle size={11} weight="fill" /> {t("step.suggested")}
                   </p>
                   <p className="mt-1.5 text-sm whitespace-pre-wrap">{suggestion}</p>
                   <div className="mt-3 flex justify-end gap-2">
                     <Button variant="ghost" onClick={() => setSuggestion(null)}>
-                      Dismiss
+                      {t("step.dismiss")}
                     </Button>
                     <Button
                       onClick={() => {
@@ -140,7 +147,7 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
                         setSuggestion(null);
                       }}
                     >
-                      Confirm
+                      {t("step.confirm")}
                     </Button>
                   </div>
                 </div>
@@ -154,21 +161,21 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
 
       <div className="relative flex justify-end">
         <Button disabled={save.isPending} onClick={() => (step.kind === "message" && data.stats.enrolled > 0 ? setConfirming(true) : submit(false))}>
-          {save.isPending && <CircleNotch size={12} className="animate-spin" />} Save
+          {save.isPending && <CircleNotch size={12} className="animate-spin" />} {tc("save")}
         </Button>
         {confirming && (
           <div className="popover absolute right-0 bottom-full mb-2 w-80 origin-bottom-right rounded-2xl p-4 text-sm">
-            <p className="font-semibold">Apply to all future leads?</p>
-            <p className="mt-1 text-xs text-muted">Leads you add from now on get this version. Leads already in the campaign keep their messages.</p>
+            <p className="font-semibold">{t("step.applyTitle")}</p>
+            <p className="mt-1 text-xs text-muted">{t("step.applyBody")}</p>
             <label className="mt-3 flex items-start gap-2 text-xs">
               <input type="checkbox" checked={rewrite} onChange={(e) => setRewrite(e.target.checked)} className="mt-px accent-[var(--color-accent)]" />
-              Also rewrite the unsent messages of leads already in (your edits to them are replaced)
+              {t("step.alsoRewrite")}
             </label>
             <div className="mt-3 flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setConfirming(false)}>
-                Cancel
+                {tc("cancel")}
               </Button>
-              <Button onClick={() => submit(rewrite)}>Apply</Button>
+              <Button onClick={() => submit(rewrite)}>{t("step.apply")}</Button>
             </div>
           </div>
         )}
@@ -178,14 +185,15 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
 }
 
 function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p: Partial<Step>) => void }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const vars = useQuery(trpc.campaigns.variables.queryOptions());
   const ref = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState(false);
   const [debounced, setDebounced] = useState(draft.template ?? "");
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(draft.template ?? ""), 250);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(draft.template ?? ""), 250);
+    return () => clearTimeout(timer);
   }, [draft.template]);
   const preview = useQuery(
     trpc.campaigns.preview.queryOptions({ campaignId: data.campaign.id, template: debounced, step: { defaults: draft.defaults, skipIfMissing: draft.skipIfMissing } }),
@@ -203,12 +211,12 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
   return (
     <div className="flex flex-col gap-8">
       <Section
-        title="Message text"
-        description="Sent exactly as you write it, with variables filled in for each lead."
+        title={t("template.title")}
+        description={t("template.description")}
         actions={
           <div className="relative">
             <Button variant="ghost" type="button" onClick={() => setMenu((m) => !m)} aria-expanded={menu} className="!text-accent">
-              <BracketsCurly size={12} /> Insert variable
+              <BracketsCurly size={12} /> {t("template.insertVariable")}
             </Button>
             {menu && (
               <div role="menu" className="popover absolute top-full right-0 z-10 mt-2 w-52 origin-top-right rounded-xl p-1.5">
@@ -228,33 +236,28 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
           onChange={(e) => set({ template: e.target.value })}
           rows={6}
           maxLength={2000}
-          placeholder={'Hi {{ person.first_name | "there" }}, …'}
-          aria-label="Message text"
+          placeholder={t("template.placeholder")}
+          aria-label={t("template.title")}
           className={cn(textarea, "font-mono text-[12px]")}
         />
-        <p className={cn("mt-1 px-1 text-right text-xs tabular-nums", len > 500 ? "text-system-orange" : "text-muted")}>{len} / 500 characters recommended</p>
+        <p className={cn("mt-1 px-1 text-right text-xs tabular-nums", len > 500 ? "text-system-orange" : "text-muted")}>{t("template.length", { count: len, max: 500 })}</p>
       </Section>
-      <Section title="Preview · Sample person">
+      <Section title={t("template.preview")}>
         <Group className="px-4 py-3">
           <p className="text-sm whitespace-pre-wrap">
-            {preview.data?.skipReason ? <span className="text-muted">This lead would be skipped ({preview.data.skipReason.toLowerCase()}).</span> : preview.data?.text || <span className="text-muted">Write your message to see a preview</span>}
+            {preview.data?.skipReason ? <span className="text-muted">{t("template.wouldSkip", { reason: preview.data.skipReason })}</span> : preview.data?.text || <span className="text-muted">{t("template.previewEmpty")}</span>}
           </p>
         </Group>
       </Section>
-      <Section title="Default values" description="What I write when a lead is missing a detail.">
+      <Section title={t("template.defaults")} description={t("template.defaultsHint")}>
         <Group>
-          {(
-            [
-              ["firstName", "First name", "there"],
-              ["company", "Company", "your team"],
-            ] as const
-          ).map(([key, label, placeholder]) => (
+          {(["firstName", "company"] as const).map((key) => (
             <div key={key}>
-              <Row label={label} className="[&>div:first-child]:flex-none">
-                <Input value={draft.defaults?.[key] ?? ""} placeholder={`No default (e.g. "${placeholder}")`} onChange={(e) => set({ defaults: { ...draft.defaults, [key]: e.target.value || undefined } })} className="ml-auto max-w-64" aria-label={`${label} default`} />
+              <Row label={t(`template.${key}`)} className="[&>div:first-child]:flex-none">
+                <Input value={draft.defaults?.[key] ?? ""} placeholder={t("template.noDefault", { example: t(`template.${key}Example`) })} onChange={(e) => set({ defaults: { ...draft.defaults, [key]: e.target.value || undefined } })} className="ml-auto max-w-64" aria-label={t(`template.${key}Default`)} />
               </Row>
-              <Row label={<span className="text-muted">Skip leads with no {label.toLowerCase()}</span>} className="min-h-9 pt-0">
-                <Switch checked={Boolean(draft.skipIfMissing?.[key])} onChange={(v) => set({ skipIfMissing: { ...draft.skipIfMissing, [key]: v } })} label={`Skip leads with no ${label.toLowerCase()}`} />
+              <Row label={<span className="text-muted">{t(`template.${key}Skip`)}</span>} className="min-h-9 pt-0">
+                <Switch checked={Boolean(draft.skipIfMissing?.[key])} onChange={(v) => set({ skipIfMissing: { ...draft.skipIfMissing, [key]: v } })} label={t(`template.${key}Skip`)} />
               </Row>
             </div>
           ))}
@@ -265,28 +268,29 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
 }
 
 function InviteSettings({ data }: { data: Data }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const [note, setNote] = useState(data.campaign.inviteNote ?? "");
   const [expiry, setExpiry] = useState(data.campaign.inviteExpiryDays);
-  const save = useMutation(trpc.campaigns.update.mutationOptions({ onSuccess: () => toast("Invitation settings saved"), onError: (e) => toast(e.message, { tone: "error" }) }));
+  const save = useMutation(trpc.campaigns.update.mutationOptions({ onSuccess: () => toast(t("invite.saved")), onError: (e) => toast(e.message, { tone: "error" }) }));
   return (
-    <Section title="Invitation">
+    <Section title={t("invite.title")}>
       <Group>
         <div className="px-4 py-3">
           <label className="block text-sm">
-            Note with the invitation
-            <span className="mt-0.5 block text-xs text-muted">Empty sends it without a note, which tends to get accepted more. Variables work here.</span>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={3} className={cn(textarea, "mt-2")} placeholder="No note" />
+            {t("invite.note")}
+            <span className="mt-0.5 block text-xs text-muted">{t("invite.noteHint")}</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={3} className={cn(textarea, "mt-2")} placeholder={t("invite.noNote")} />
           </label>
           <span className="mt-1 block text-right text-xs text-muted tabular-nums">{note.length} / 300</span>
         </div>
-        <Row label="Give up after (days)">
-          <Input type="number" min={1} max={30} value={expiry} onChange={(e) => setExpiry(Number(e.target.value))} className="w-20 text-right tabular-nums" aria-label="Give up after (days)" />
+        <Row label={t("invite.giveUpAfter")}>
+          <Input type="number" min={1} max={30} value={expiry} onChange={(e) => setExpiry(Number(e.target.value))} className="w-20 text-right tabular-nums" aria-label={t("invite.giveUpAfter")} />
         </Row>
       </Group>
       <div className="mt-3 flex justify-end">
         <Button variant="ghost" onClick={() => save.mutate({ id: data.campaign.id, revision: data.campaign.revision, patch: { inviteNote: note.trim() || null, inviteExpiryDays: expiry } })}>
-          Save invitation settings
+          {t("invite.save")}
         </Button>
       </div>
     </Section>
@@ -295,6 +299,7 @@ function InviteSettings({ data }: { data: Data }) {
 
 /** Who is at this step now, and (for messages) their text's review state. */
 function StepLeads({ data, step }: { data: Data; step: Step }) {
+  const t = useT("sequence");
   const trpc = useTRPC();
   const list = useQuery(trpc.campaigns.enrollments.list.queryOptions({ campaignId: data.campaign.id }));
   const here = (list.data ?? []).filter((e) => e.stepId === step.id);
@@ -304,7 +309,7 @@ function StepLeads({ data, step }: { data: Data; step: Step }) {
         <CircleNotch size={16} className="animate-spin" />
       </div>
     );
-  if (here.length === 0) return <p className="py-8 text-center text-sm text-muted">Nobody is at this step right now.</p>;
+  if (here.length === 0) return <p className="py-8 text-center text-sm text-muted">{t("step.nobodyHere")}</p>;
   return (
     <ul className="flex flex-col gap-2">
       {here.map((e) => {

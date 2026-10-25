@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
 import { eq, getSetting, providerCache, providerCalls, recordCost, type Db } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/providers.ts";
+
+const t = localized(messages);
 
 export class ProviderError extends Error {
   constructor(
@@ -13,7 +17,7 @@ export class ProviderError extends Error {
 
 export class MissingKeyError extends ProviderError {
   constructor(provider: string, readonly settingKey: string) {
-    super(provider, "not configured: add its key in Settings → API keys");
+    super(provider, t("error.missingKey"));
   }
 }
 
@@ -129,7 +133,7 @@ export async function checkProviderKey(settingKey: string): Promise<string> {
     // Loaded lazily: the Unipile adapter itself builds on this module.
     const { unipileAccounts } = await import("./unipile.ts");
     const accounts = await unipileAccounts();
-    return `Unipile works (${accounts.length} LinkedIn account${accounts.length === 1 ? "" : "s"} connected there)`;
+    return t("check.unipile", { count: accounts.length });
   }
   const key = requireKey(settingKey, settingKey);
   switch (settingKey) {
@@ -138,7 +142,7 @@ export async function checkProviderKey(settingKey: string): Promise<string> {
         headers: { authorization: `Bearer ${key}` },
         retries: 0,
       });
-      return `Apify token works (account ${me.data.username})`;
+      return t("check.apify", { account: me.data.username });
     }
     case "hunter_api_key": {
       const acct = await httpJson<{ data: { requests: { searches: { available: number; used: number } } } }>(
@@ -147,10 +151,10 @@ export async function checkProviderKey(settingKey: string): Promise<string> {
         { retries: 0 },
       );
       const s = acct.data.requests.searches;
-      return `Hunter key works (${s.available - s.used} searches left this month)`;
+      return t("check.hunter", { count: s.available - s.used });
     }
     default:
-      return "Saved (this provider has no free check endpoint; it will be checked on first use)";
+      return t("check.saved");
   }
 }
 

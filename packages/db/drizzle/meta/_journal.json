@@ -120,6 +120,13 @@
       "when": 1792936772922,
       "tag": "0016_search_ids_per_workspace",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1792939793987,
+      "tag": "0017_workspace_language",
+      "breakpoints": true
     }
   ]
 }

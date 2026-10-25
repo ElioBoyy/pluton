@@ -9,8 +9,12 @@ import {
   SINGLETON_SECTIONS,
 } from "@pluton/core";
 import { BRAIN_SECTIONS, type Db } from "@pluton/db";
+import { languageInstruction, localized } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
+import messages from "./messages/onboarding.ts";
 import { localTool } from "./run-agent.ts";
+
+const t = localized(messages);
 
 const SYSTEM = `You review the go-to-market "Brain" of a B2B company and propose improvements. A person accepts or rejects each proposal; you never edit the Brain yourself.
 
@@ -38,7 +42,7 @@ export async function runBrainReview(opts: {
 }) {
   const { db, workspaceId, jobId } = opts;
   const company = await getSingleton(db, workspaceId, "company");
-  if (!company) throw new Error("The Brain has no company profile yet; run onboarding first");
+  if (!company) throw new Error(t("review.noCompany"));
 
   const items = await listBrain(db, workspaceId);
   const outcomes = await leadOutcomes(db, workspaceId);
@@ -60,7 +64,9 @@ export async function runBrainReview(opts: {
   const evidence = z.array(z.string().url()).max(5).describe("Source URLs");
 
   const result = await runAgent({
-    system: SYSTEM,
+    // Rationales, questions and narration are for the founder; proposed data keeps the market's language.
+    system: `${SYSTEM}
+- ${languageInstruction()} That covers rationales, questions and what you narrate, not the data you propose.`,
     prompt: `Current Brain (id, section, revision, data):
 ${items.map((i) => JSON.stringify({ id: i.id, section: i.section, revision: i.revision, data: i.data })).join("\n")}
 

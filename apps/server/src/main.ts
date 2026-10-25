@@ -33,7 +33,7 @@ app.get("/api/backgrounds/:theme", async (c) => {
   if (!found) return c.notFound();
   return c.body(await fs.readFile(found.file), 200, { "Content-Type": found.type, "Cache-Control": "public, max-age=31536000, immutable" });
 });
-app.use("/rpc/*", trpcServer({ endpoint: "/rpc", router: appRouter, createContext: () => ({ db }) }));
+app.use("/rpc/*", trpcServer({ endpoint: "/rpc", router: appRouter, createContext: ({ req }) => ({ db, locale: req.headers.get("x-pluton-locale") }) }));
 
 const port = Number(process.env.SERVER_PORT ?? 8787);
 serve({ fetch: app.fetch, port }, () => console.log(`[server] listening on http://localhost:${port} (MCP at ${MCP_URL})`));

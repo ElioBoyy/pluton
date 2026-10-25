@@ -27,23 +27,19 @@ import {
   type Person,
   type Pipeline,
 } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
 import { recordActivity } from "./events.ts";
 import { enqueueJob, findActiveJob } from "./jobs.ts";
+import messages from "./messages/leads.ts";
+
+const t = localized(messages);
+/** The leads area's strings, for the RPC layer's errors. */
+export const leadsText = t;
 
 // ── Labels ───────────────────────────────────────────────────────────────────
 
 /** Short "why they fit" per pipeline, shown as the lead's signal pill. */
-export const SIGNAL_LABELS: Record<Pipeline, string> = {
-  post_watchlist: "Engaged with a post you track",
-  post_keyword: "Posted about your topics",
-  company_hiring: "Their company is hiring",
-  funding: "Their company just raised",
-  company_stack: "Their company uses your target stack",
-  web_evidence: "Matches your criteria",
-  lookalikes: "Looks like your best customers",
-  persona_sweep: "Matches your ideal customer",
-  waterfall: "Matches your ideal customer",
-};
+export const signalLabel = (pipeline: Pipeline) => t(`signal.${pipeline}`);
 
 /** Timing intent each signal carries: someone engaging with posts this week is warmer than a title match. */
 export function warmnessFor(pipeline: Pipeline | null) {
@@ -67,20 +63,22 @@ export function warmnessFor(pipeline: Pipeline | null) {
   }
 }
 
-const SENIORITY: Array<[string, RegExp]> = [
-  ["Founder", /\b(founder|fondat(eur|rice)|co-?fondat|co-?founder)/i],
-  ["C-level", /\b(ceo|cto|cfo|coo|cmo|cio|chief|pdg|president|présidente?|directeur général|directrice générale|dg|délégué[e]? général[e]?|secrétaire général[e]?|managing director)\b/i],
-  ["VP", /\b(vp|vice[- ]president|vice[- ]présidente?)\b/i],
-  ["Director", /\b(director|directeur|directrice|head of|directeur|direction)\b/i],
-  ["Manager", /\b(manager|responsable|lead|chef|team lead|chargé de mission senior)\b/i],
-  ["Intern", /\b(intern|stagiaire|alternante?|apprentie?)\b/i],
-  ["Individual contributor", /\b(chargée?|specialist|analyst|analyste|consultante?|officer|assistante?|coordinat|engineer|ingénieure?|developer|développeu)/i],
+/** Read from English and French titles; the label is translated when shown. */
+const SENIORITY: Array<["founder" | "c_level" | "vp" | "director" | "manager" | "intern" | "individual", RegExp]> = [
+  ["founder", /\b(founder|fondat(eur|rice)|co-?fondat|co-?founder)/i],
+  ["c_level", /\b(ceo|cto|cfo|coo|cmo|cio|chief|pdg|president|présidente?|directeur général|directrice générale|dg|délégué[e]? général[e]?|secrétaire général[e]?|managing director)\b/i],
+  ["vp", /\b(vp|vice[- ]president|vice[- ]présidente?)\b/i],
+  ["director", /\b(director|directeur|directrice|head of|directeur|direction)\b/i],
+  ["manager", /\b(manager|responsable|lead|chef|team lead|chargé de mission senior)\b/i],
+  ["intern", /\b(intern|stagiaire|alternante?|apprentie?)\b/i],
+  ["individual", /\b(chargée?|specialist|analyst|analyste|consultante?|officer|assistante?|coordinat|engineer|ingénieure?|developer|développeu)/i],
 ];
 
 /** Seniority read from the job title, labelled as such in the UI ("C-level (from title)"). */
 export function seniorityFromTitle(title?: string | null) {
   if (!title) return null;
-  return SENIORITY.find(([, re]) => re.test(title))?.[0] ?? null;
+  const level = SENIORITY.find(([, re]) => re.test(title))?.[0];
+  return level ? t(`seniority.${level}`) : null;
 }
 
 // ── Listing ──────────────────────────────────────────────────────────────────
@@ -129,7 +127,7 @@ function toRow(r: { lead: Lead; person: Person; playName: string; playPipeline: 
     ...r.lead,
     person: r.person,
     playName: r.playName,
-    signalLabel: SIGNAL_LABELS[r.lead.pipeline ?? r.playPipeline],
+    signalLabel: signalLabel(r.lead.pipeline ?? r.playPipeline),
     seniority: seniorityFromTitle(r.person.title),
     isNew: r.lead.status === "to_review" && !r.lead.seenAt,
     sequenceStatus: r.sequenceStatus,
@@ -421,27 +419,9 @@ export async function exportLeadsCsv(db: Db, input: { filter: LeadFilter; leadId
       .where(where)
       .orderBy(asc(plays.name), desc(leads.fit))
   ).map(toRow);
-  const header = [
-    "Name",
-    "Title",
-    "Seniority (from title)",
-    "Company",
-    "Company website",
-    "Location",
-    "LinkedIn",
-    "Email",
-    "Email confidence",
-    "Email source",
-    "Play",
-    "Status",
-    "Judge verdict",
-    "Fit",
-    "Warmness",
-    "Signal",
-    "Why they fit",
-    "Evidence",
-    "Found at",
-  ];
+  const header = (
+    ["name", "title", "seniority", "company", "companyWebsite", "location", "linkedin", "email", "emailConfidence", "emailSource", "play", "status", "verdict", "fit", "warmness", "signal", "why", "evidence", "foundAt"] as const
+  ).map((k) => t(`csv.${k}`));
   const lines = rows.map((r) =>
     [
       r.person.name,

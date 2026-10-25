@@ -2,6 +2,7 @@ import { CornersOut, Minus, Plus } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { BrainItemView } from "@pluton/core";
+import { translate, useLocale, useT } from "../../i18n/index.ts";
 import { useTheme } from "../../lib/theme.ts";
 
 type Kind = "root" | "hub" | "leaf";
@@ -20,40 +21,40 @@ const C = {
   root: "var(--color-ink)",
 };
 
-type HubDef = { id: string; label: string; color: string; parent?: string; leaves: (items: BrainItemView[]) => string[] };
+type HubId = "company" | "market" | "icp" | "personas" | "competitors" | "influencers" | "voice" | "keywords" | "pillars" | "hiring_stack" | "hiring" | "stack";
+/** A hub's name is the onboarding namespace's `hub.<id>`. */
+type HubDef = { id: HubId; color: string; parent?: HubId; leaves: (items: BrainItemView[]) => string[] };
 
 const of = (items: BrainItemView[], section: string) => items.filter((i) => i.section === section).map((i) => i.data as Record<string, any>);
 const one = (items: BrainItemView[], section: string) => of(items, section)[0];
 
 /** Each Brain section becomes a colored cluster around the company. */
 const HUBS: HubDef[] = [
-  { id: "company", label: "Company", color: C.pink, leaves: (i) => [one(i, "company")?.category, ...(one(i, "company")?.products ?? [])] },
-  { id: "market", label: "Market profile", color: C.pink, leaves: (i) => one(i, "icp")?.geographies ?? one(i, "company")?.geographies ?? [] },
+  { id: "company", color: C.pink, leaves: (i) => [one(i, "company")?.category, ...(one(i, "company")?.products ?? [])] },
+  { id: "market", color: C.pink, leaves: (i) => one(i, "icp")?.geographies ?? one(i, "company")?.geographies ?? [] },
   {
     id: "icp",
-    label: "ICP",
     color: C.pink,
     parent: "market",
     leaves: (i) => [...(one(i, "icp")?.industries ?? []), sizeRange(one(i, "icp")?.companySizes ?? [])],
   },
-  { id: "personas", label: "Buyer personas", color: C.purple, leaves: (i) => of(i, "persona").map((p) => p.title) },
-  { id: "competitors", label: "Competitors", color: C.orange, leaves: (i) => of(i, "competitor").map((c) => c.name) },
-  { id: "influencers", label: "Influencers & experts", color: C.yellow, leaves: (i) => of(i, "influencer").map((p) => p.name) },
-  { id: "voice", label: "Voice", color: C.green, leaves: (i) => [...(one(i, "voice")?.traits ?? []), one(i, "voice")?.language] },
-  { id: "keywords", label: "Keywords", color: C.lime, leaves: (i) => of(i, "keyword").map((k) => k.phrase) },
-  { id: "pillars", label: "Message pillars", color: C.blue, leaves: (i) => of(i, "message_pillar").map((m) => m.title) },
-  { id: "hiring_stack", label: "Hiring & stack", color: C.blue, leaves: () => [] },
-  { id: "hiring", label: "Hiring signal", color: C.blue, parent: "hiring_stack", leaves: (i) => one(i, "hiring_signal")?.roles ?? [] },
+  { id: "personas", color: C.purple, leaves: (i) => of(i, "persona").map((p) => p.title) },
+  { id: "competitors", color: C.orange, leaves: (i) => of(i, "competitor").map((c) => c.name) },
+  { id: "influencers", color: C.yellow, leaves: (i) => of(i, "influencer").map((p) => p.name) },
+  { id: "voice", color: C.green, leaves: (i) => [...(one(i, "voice")?.traits ?? []), one(i, "voice")?.language] },
+  { id: "keywords", color: C.lime, leaves: (i) => of(i, "keyword").map((k) => k.phrase) },
+  { id: "pillars", color: C.blue, leaves: (i) => of(i, "message_pillar").map((m) => m.title) },
+  { id: "hiring_stack", color: C.blue, leaves: () => [] },
+  { id: "hiring", color: C.blue, parent: "hiring_stack", leaves: (i) => one(i, "hiring_signal")?.roles ?? [] },
   {
     id: "stack",
-    label: "Stack signal",
     color: C.blue,
     parent: "hiring_stack",
     leaves: (i) => (one(i, "stack_signal")?.technologies ?? []).map((t: { name: string }) => t.name),
   },
 ];
 
-const SECTION_TO_HUB: Record<string, string> = {
+const SECTION_TO_HUB: Record<string, HubId> = {
   company: "company",
   icp: "icp",
   persona: "personas",
@@ -71,7 +72,7 @@ function sizeRange(sizes: string[]) {
   // Bands arrive in ascending order ("11–50", …, "10,001+"): label the overall span.
   const lo = sizes[0]!.split("–")[0]!.replace("+", "");
   const last = sizes.at(-1)!;
-  return last.endsWith("+") ? `${lo}+ employees` : `${lo}–${last.split("–")[1]} employees`;
+  return translate("onboarding", "graph.employees", { range: last.endsWith("+") ? `${lo}+` : `${lo}–${last.split("–")[1]}` });
 }
 
 export function buildGraph(items: BrainItemView[], rootLabel: string) {
@@ -89,7 +90,7 @@ export function buildGraph(items: BrainItemView[], rootLabel: string) {
   for (const hub of HUBS) {
     if (!visible(hub)) continue;
     const id = `hub:${hub.id}`;
-    nodes.push({ id, label: hub.label, kind: "hub", color: hub.color, hub: hub.id });
+    nodes.push({ id, label: hubLabel(hub.id), kind: "hub", color: hub.color, hub: hub.id });
     links.push({ source: hub.parent ? `hub:${hub.parent}` : "root", target: id });
     for (const leaf of hubLeaves.get(hub.id)!) {
       const leafId = `leaf:${hub.id}:${leaf}`;
@@ -102,6 +103,7 @@ export function buildGraph(items: BrainItemView[], rootLabel: string) {
 
 export const hubForSection = (section: string | null) => (section ? (SECTION_TO_HUB[section] ?? null) : null);
 export const hubMeta = (hubId: string) => HUBS.find((h) => h.id === hubId);
+export const hubLabel = (hubId: HubId) => translate("onboarding", `hub.${hubId}`);
 
 const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
@@ -137,6 +139,9 @@ export function BrainGraph({
   const nodeCache = useRef(new Map<string, GraphNode>());
   const [size, setSize] = useState({ width: 0, height: 0 });
   const color = useCssColor();
+  const t = useT("onboarding");
+  // Hub names and the size range are read in the current language when the graph is built.
+  const locale = useLocale();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -160,7 +165,7 @@ export function BrainGraph({
     });
     nodeCache.current = next;
     return { nodes: merged, links };
-  }, [items, rootLabel]);
+  }, [items, rootLabel, locale]);
 
   const mounted = size.width > 0;
   useEffect(() => {
@@ -228,9 +233,9 @@ export function BrainGraph({
       )}
       <div className="glass absolute bottom-5 left-5 flex flex-col overflow-hidden rounded-xl">
         {[
-          { icon: Plus, label: "Zoom in", run: () => graphRef.current?.zoom(graphRef.current.zoom() * 1.3, 300) },
-          { icon: Minus, label: "Zoom out", run: () => graphRef.current?.zoom(graphRef.current.zoom() / 1.3, 300) },
-          { icon: CornersOut, label: "Fit", run: () => graphRef.current?.zoomToFit(400, 80) },
+          { icon: Plus, label: t("graph.zoomIn"), run: () => graphRef.current?.zoom(graphRef.current.zoom() * 1.3, 300) },
+          { icon: Minus, label: t("graph.zoomOut"), run: () => graphRef.current?.zoom(graphRef.current.zoom() / 1.3, 300) },
+          { icon: CornersOut, label: t("graph.fit"), run: () => graphRef.current?.zoomToFit(400, 80) },
         ].map(({ icon: Icon, label, run }) => (
           <button key={label} aria-label={label} onClick={run} className="p-2 text-muted hover:bg-raised hover:text-ink">
             <Icon size={14} />

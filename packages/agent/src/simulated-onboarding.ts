@@ -1,5 +1,9 @@
 import { emitBrain, saveBrainItems, say, setStep, type BrainData, type ResearchStepKey } from "@pluton/core";
 import type { BrainSection, Db, OnboardingStage } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/onboarding.ts";
+
+const t = localized(messages);
 
 /**
  * Dev-only stand-in for the research agent (PLUTON_SIMULATE_AGENT=1): replays a canned Brain with
@@ -9,9 +13,9 @@ type Ctx = { db: Db; sessionId: string; workspaceId: string; signal: AbortSignal
 
 const pause = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
-    const t = setTimeout(resolve, ms);
+    const timer = setTimeout(resolve, ms);
     signal.addEventListener("abort", () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       reject(new Error("aborted"));
     });
   });
@@ -25,7 +29,7 @@ const step = (ctx: Ctx, key: ResearchStepKey) => setStep(ctx.db, ctx.sessionId, 
 const script: Record<OnboardingStage, (ctx: Ctx) => Promise<void>> = {
   async company(ctx) {
     await pause(1500, ctx.signal);
-    await say(ctx.db, ctx.sessionId, "[simulated] The homepage pitches vote-by-vote transparency for every deputy and senator.");
+    await say(ctx.db, ctx.sessionId, t("simulated.company"));
     await pause(1500, ctx.signal);
     await put(ctx, "company", [
       {
@@ -44,7 +48,7 @@ const script: Record<OnboardingStage, (ctx: Ctx) => Promise<void>> = {
 
   async audience(ctx) {
     await pause(2000, ctx.signal);
-    await say(ctx.db, ctx.sessionId, "[simulated] Pricing tiers point at teams that monitor Parliament for a living.");
+    await say(ctx.db, ctx.sessionId, t("simulated.audience"));
     await put(ctx, "icp", [
       {
         summary: "Organizations in France that professionally monitor the French Parliament and need verifiable, source-linked vote data.",
@@ -65,7 +69,7 @@ const script: Record<OnboardingStage, (ctx: Ctx) => Promise<void>> = {
 
   async market(ctx) {
     await pause(2500, ctx.signal);
-    await say(ctx.db, ctx.sessionId, "[simulated] Found several French civic-tech players covering parliamentary data.");
+    await say(ctx.db, ctx.sessionId, t("simulated.market"));
     await put(ctx, "competitor", [
       { name: "Datan", note: "Deputy voting records" },
       { name: "NosParlementaires", note: "Parliamentary activity tracker" },

@@ -6,19 +6,19 @@ import { useEffect, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader, Row, Section, Segmented, Switch } from "../components/ui.tsx";
 import { DigestView } from "../features/activity/digest-view.tsx";
+import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { useChannel } from "../lib/use-job-events.ts";
 
 type Settings = inferRouterOutputs<AppRouter>["notifications"]["settings"]["settings"];
 
-const FREQUENCIES: Array<{ value: Settings["digest"]; label: string }> = [
-  { value: "daily", label: "Every weekday" },
-  { value: "weekly", label: "Mondays" },
-  { value: "off", label: "Off" },
-];
+/** Each option's name is the activity namespace's `digest.<value>` string. */
+const FREQUENCIES: Array<Settings["digest"]> = ["daily", "weekly", "off"];
 
 export function NotificationsPage() {
+  const t = useT("activity");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const data = useQuery(trpc.notifications.settings.queryOptions());
@@ -39,7 +39,7 @@ export function NotificationsPage() {
 
   return (
     <>
-      <PageHeader title="Notifications" description="What reaches the bell in the sidebar, and the morning digest." />
+      <PageHeader title={t("notifications.title")} description={t("notifications.description")} />
       <form
         className="flex flex-col gap-8"
         onSubmit={(e) => {
@@ -47,7 +47,7 @@ export function NotificationsPage() {
           save.mutate(form);
         }}
       >
-        <Section title="In the app">
+        <Section title={t("notifications.inApp")}>
           <Group>
             {data.data.categories
               .filter((c) => c.key !== "digest")
@@ -60,52 +60,59 @@ export function NotificationsPage() {
         </Section>
 
         <Section
-          title="Morning digest"
-          description="What waits for you (leads to review, replies, LinkedIn steps, Brain suggestions) and what you spent. Skipped when there's nothing new."
+          title={t("digest.title")}
+          description={t("digest.description")}
         >
           <Group>
-            <Row label="Frequency">
-              <Segmented label="Frequency" size="sm" options={FREQUENCIES} value={form.digest} onChange={(digest) => setForm({ ...form, digest })} />
+            <Row label={t("digest.frequency")}>
+              <Segmented
+                label={t("digest.frequency")}
+                size="sm"
+                options={FREQUENCIES.map((value) => ({ value, label: t(`digest.${value}`) }))}
+                value={form.digest}
+                onChange={(digest) => setForm({ ...form, digest })}
+              />
             </Row>
-            <Row label={<label htmlFor="digest-time">At</label>} description="Your workspace timezone" className={cn(off && "opacity-50")}>
+            <Row label={<label htmlFor="digest-time">{t("digest.at")}</label>} description={t("digest.atHint")} className={cn(off && "opacity-50")}>
               {/* Input is w-full: the wrapper sets its width. */}
               <div className="w-28 shrink-0">
                 <Input id="digest-time" type="time" value={form.digestTime} onChange={(e) => setForm({ ...form, digestTime: e.target.value })} disabled={off} />
               </div>
             </Row>
             <Row
-              label="Also send it by email"
+              label={t("digest.email")}
               description={
                 data.data.smtpConfigured ? (
                   <span className="inline-flex items-center gap-1">
-                    <CheckCircle size={12} weight="fill" className="text-system-green" /> SMTP is set up
+                    <CheckCircle size={12} weight="fill" className="text-system-green" /> {t("digest.smtpReady")}
                   </span>
                 ) : (
-                  <>
-                    Needs your SMTP server in{" "}
-                    <Link to="/workspace/api-keys" className="text-accent hover:underline">
-                      API keys → Email
-                    </Link>
-                  </>
+                  t.rich("digest.smtpNeeded", {
+                    link: (
+                      <Link to="/workspace/api-keys" className="text-accent hover:underline">
+                        {t("digest.smtpLink")}
+                      </Link>
+                    ),
+                  })
                 )
               }
               className={cn(off && "opacity-50")}
             >
-              <Switch checked={form.email} onChange={(v) => setForm({ ...form, email: v })} label="Email the digest" disabled={off} />
+              <Switch checked={form.email} onChange={(v) => setForm({ ...form, email: v })} label={t("digest.emailSwitch")} disabled={off} />
             </Row>
             {form.email && (
-              <Row label={<label htmlFor="digest-to">Send to</label>} className={cn(off && "opacity-50")}>
+              <Row label={<label htmlFor="digest-to">{t("digest.sendTo")}</label>} className={cn(off && "opacity-50")}>
                 <div className="w-60 shrink-0 max-sm:w-40">
-                  <Input id="digest-to" type="email" placeholder="you@company.com" value={form.emailTo} onChange={(e) => setForm({ ...form, emailTo: e.target.value })} required />
+                  <Input id="digest-to" type="email" placeholder={t("digest.emailPlaceholder")} value={form.emailTo} onChange={(e) => setForm({ ...form, emailTo: e.target.value })} required />
                 </div>
               </Row>
             )}
           </Group>
           <div className="mt-3 flex items-center justify-end gap-3 px-1">
-            {save.isSuccess && !dirty && <span className="text-sm text-muted">Saved</span>}
+            {save.isSuccess && !dirty && <span className="text-sm text-muted">{tc("saved")}</span>}
             {save.error && <span className="min-w-0 text-sm text-system-orange">{save.error.message}</span>}
             <Button type="submit" disabled={!dirty || save.isPending}>
-              Save
+              {tc("save")}
             </Button>
           </div>
         </Section>
@@ -117,6 +124,7 @@ export function NotificationsPage() {
 }
 
 function DigestPreview({ canEmail }: { canEmail: boolean }) {
+  const t = useT("activity");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const preview = useQuery(trpc.notifications.previewDigest.queryOptions());
@@ -129,16 +137,16 @@ function DigestPreview({ canEmail }: { canEmail: boolean }) {
     void queryClient.invalidateQueries({ queryKey: trpc.notifications.pathKey() });
     void queryClient.invalidateQueries({ queryKey: trpc.activity.pathKey() });
   });
-  const failed = last?.type === "error" ? (last.message ?? "Failed") : null;
+  const failed = last?.type === "error" ? (last.message ?? t("preview.failed")) : null;
 
   return (
     <Section
-      title="Next digest, as of now"
+      title={t("preview.title")}
       description={
         failed ? (
           <span className="text-system-orange">{failed}</span>
         ) : jobId && last ? (
-          `Sent${canEmail ? " to your inbox and" : ""} to the bell.`
+          canEmail ? t("preview.sentInbox") : t("preview.sentBell")
         ) : undefined
       }
       actions={
@@ -150,7 +158,7 @@ function DigestPreview({ canEmail }: { canEmail: boolean }) {
             send.mutate();
           }}
         >
-          {canEmail ? "Send it now" : "Put it in the app now"}
+          {canEmail ? t("preview.sendNow") : t("preview.putInApp")}
         </Button>
       }
       className="mt-8"

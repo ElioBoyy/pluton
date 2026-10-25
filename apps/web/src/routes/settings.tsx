@@ -16,24 +16,27 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Button, Group, Input, PageHeader, Row } from "../components/ui.tsx";
+import { Button, Group, Input, PageHeader, Row, Section } from "../components/ui.tsx";
 import { WorkspacesSection } from "../features/workspaces/workspaces-section.tsx";
+import { LOCALES, LOCALE_NAMES, setLanguagePreference, useLanguagePreference, useT, type Locale } from "../i18n/index.ts";
+import { browserLocale } from "../i18n/locale.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
+/** Each pane's name is the settings namespace's `section.<slug>` string. */
 export const SETTINGS_SECTIONS = [
-  { slug: "settings", label: "General" },
-  { slug: "appearance", label: "Appearance" },
-  { slug: "notifications", label: "Notifications" },
-  { slug: "linkedin", label: "LinkedIn accounts" },
-  { slug: "mcp", label: "Connect your AI" },
-  { slug: "api-keys", label: "API keys" },
-  { slug: "data-sources", label: "Data sources" },
-  { slug: "integrations", label: "Integrations" },
-  { slug: "usage", label: "Usage" },
-  { slug: "billing", label: "Budget" },
-  { slug: "activity", label: "Activity" },
-  { slug: "whats-new", label: "What's new" },
+  { slug: "settings" },
+  { slug: "appearance" },
+  { slug: "notifications" },
+  { slug: "linkedin" },
+  { slug: "mcp" },
+  { slug: "api-keys" },
+  { slug: "data-sources" },
+  { slug: "integrations" },
+  { slug: "usage" },
+  { slug: "billing" },
+  { slug: "activity" },
+  { slug: "whats-new" },
 ] as const;
 
 /** Each pane's icon, a white glyph on a colored rounded square as in the System Settings sidebar. */
@@ -53,11 +56,12 @@ const SECTION_ICONS: Record<(typeof SETTINGS_SECTIONS)[number]["slug"], { icon: 
 };
 
 export function SettingsShell() {
+  const t = useT("settings");
   return (
     <div className="mx-auto flex max-w-5xl gap-10 px-4 py-6 max-md:flex-col max-md:gap-6 sm:px-8 sm:py-10">
       {/* A column beside the page from md up; a row of tabs that scrolls sideways on phones. */}
       <nav className="flex w-48 shrink-0 flex-col gap-px md:sticky md:top-10 md:self-start max-md:-mx-4 max-md:w-auto max-md:flex-row max-md:overflow-x-auto max-md:px-4 max-md:[scrollbar-width:none]">
-        <p className="mb-1 px-2 text-xs font-semibold text-muted max-md:hidden">Workspace</p>
+        <p className="mb-1 px-2 text-xs font-semibold text-muted max-md:hidden">{t("workspace")}</p>
         {SETTINGS_SECTIONS.map((s) => {
           const { icon: IconCmp, color } = SECTION_ICONS[s.slug];
           return (
@@ -77,7 +81,7 @@ export function SettingsShell() {
               >
                 <IconCmp size={13} weight="fill" />
               </span>
-              {s.label}
+              {t(`section.${s.slug}`)}
             </Link>
           );
         })}
@@ -92,6 +96,8 @@ export function SettingsShell() {
 const TIMEZONES = Intl.supportedValuesOf("timeZone");
 
 export function GeneralSettingsPage() {
+  const t = useT("settings");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
@@ -125,7 +131,7 @@ export function GeneralSettingsPage() {
 
   return (
     <>
-      <PageHeader title="General" description="This workspace's name, website and timezone, and your other workspaces." />
+      <PageHeader title={t("general.title")} description={t("general.description")} />
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -138,17 +144,17 @@ export function GeneralSettingsPage() {
       >
         {/* System Settings rows: the label leads, the field trails at one width so they line up. */}
         <Group>
-          <Row label={<label htmlFor="ws-name">Workspace name</label>}>
+          <Row label={<label htmlFor="ws-name">{t("general.name")}</label>}>
             <div className={FIELD}>
               <Input id="ws-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             </div>
           </Row>
-          <Row label={<label htmlFor="ws-website">Website</label>} description="The Brain is researched from this site during onboarding.">
+          <Row label={<label htmlFor="ws-website">{t("general.website")}</label>} description={t("general.websiteHint")}>
             <div className={FIELD}>
               <Input id="ws-website" value={form.website} placeholder="example.com" onChange={(e) => setForm({ ...form, website: e.target.value })} />
             </div>
           </Row>
-          <Row label={<label htmlFor="ws-timezone">Timezone</label>} description="Sequences send on weekdays 9:00–18:00 in this timezone.">
+          <Row label={<label htmlFor="ws-timezone">{t("general.timezone")}</label>} description={t("general.timezoneHint")}>
             <select
               id="ws-timezone"
               value={form.timezone}
@@ -162,15 +168,43 @@ export function GeneralSettingsPage() {
           </Row>
         </Group>
         <div className="mt-3 flex items-center justify-end gap-3 px-1">
-          {save.isSuccess && !dirty && <span className="text-sm text-muted">Saved</span>}
+          {save.isSuccess && !dirty && <span className="text-sm text-muted">{tc("saved")}</span>}
           {save.error && <span className="min-w-0 text-sm text-system-orange">{save.error.message}</span>}
           <Button type="submit" disabled={!dirty || save.isPending}>
-            Save
+            {tc("save")}
           </Button>
         </div>
       </form>
+      <LanguageSection />
       <WorkspacesSection />
     </>
+  );
+}
+
+/** The app's language, kept in this browser. Automatic follows the browser's own languages. */
+function LanguageSection() {
+  const t = useT("settings");
+  const preference = useLanguagePreference();
+  return (
+    <Section title={t("language.title")} className="mt-8">
+      <Group>
+        <Row label={<label htmlFor="app-language">{t("language.label")}</label>} description={t("language.hint")}>
+          <select
+            id="app-language"
+            value={preference}
+            onChange={(e) => setLanguagePreference(e.target.value as Locale | "auto")}
+            className={cn("capsule h-7 truncate pl-3 text-sm outline-none focus:focus-ring", FIELD)}
+          >
+            <option value="auto">{t("language.auto", { language: LOCALE_NAMES[browserLocale()] })}</option>
+            {LOCALES.map((l) => (
+              <option key={l} value={l}>
+                {LOCALE_NAMES[l]}
+              </option>
+            ))}
+          </select>
+        </Row>
+      </Group>
+    </Section>
   );
 }
 

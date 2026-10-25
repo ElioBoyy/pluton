@@ -1,43 +1,45 @@
-export const PIPELINE_LABELS: Record<string, string> = {
-  persona_sweep: "Role match",
-  company_hiring: "Companies hiring",
-  company_stack: "Tech stack",
-  web_evidence: "Web evidence",
-  lookalikes: "Lookalikes of your customers",
-  funding: "Recently funded",
-  post_watchlist: "Engagement on tracked profiles",
-  post_keyword: "People posting about keywords",
-  waterfall: "Main Play (every signal in turn)",
-};
+import { translate, type MessageKey } from "../../i18n/index.ts";
 
-export const SCHEDULE_LABELS: Record<string, string> = {
-  off: "Run on demand",
-  daily: "Every day",
-  weekdays: "Every weekday",
-  weekly: "Every Monday",
-};
+/**
+ * Label maps keyed by the server's values. Each label is looked up in the plays namespace when read,
+ * so it is in the current language wherever it's rendered (Object.entries reads it too).
+ */
+function labels<K extends string>(prefix: string, keys: readonly K[]): Record<string, string> {
+  const map = {};
+  for (const key of keys) {
+    Object.defineProperty(map, key, { enumerable: true, get: () => translate("plays", `${prefix}.${key}` as MessageKey<"plays">) });
+  }
+  return map;
+}
 
-export const STOP_LABELS: Record<string, string> = {
-  target_met: "Target reached",
-  deadline: "Time limit reached",
-  budget: "Spend cap reached",
-  sources_dry: "Sources ran dry before the target",
-  error: "Stopped on an error",
-  cancelled: "Cancelled",
-};
+export const PIPELINE_LABELS = labels("pipeline", [
+  "persona_sweep",
+  "company_hiring",
+  "company_stack",
+  "web_evidence",
+  "lookalikes",
+  "funding",
+  "post_watchlist",
+  "post_keyword",
+  "waterfall",
+]);
 
-export const REJECTION_LABELS: Record<string, string> = {
-  incomplete_profile: "Missing title or company",
-  own_company_or_competitor: "Your company or a competitor",
-  rejected_before: "You rejected them before",
-  excluded: "Matched an exclusion",
-  wrong_persona: "Wrong role",
-  wrong_seniority: "Wrong seniority",
-  wrong_company: "Organization outside the ICP",
-  wrong_geography: "Wrong geography",
-  judge_skipped: "Not scored",
-  other: "Other",
-};
+export const SCHEDULE_LABELS = labels("schedule", ["off", "daily", "weekdays", "weekly"]);
+
+export const STOP_LABELS = labels("stop", ["target_met", "deadline", "budget", "sources_dry", "error", "cancelled"]);
+
+export const REJECTION_LABELS = labels("rejection", [
+  "incomplete_profile",
+  "own_company_or_competitor",
+  "rejected_before",
+  "excluded",
+  "wrong_persona",
+  "wrong_seniority",
+  "wrong_company",
+  "wrong_geography",
+  "judge_skipped",
+  "other",
+]);
 
 /*
  * Golden Gate tags for the Play screens. Chips list values (titles, regions); pills state a status

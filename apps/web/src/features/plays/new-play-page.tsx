@@ -9,6 +9,7 @@ import { Button, Group, Input, Section } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
+import { getLocale, useT } from "../../i18n/index.ts";
 import { CHIP, PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
 
 type NewPlay = inferRouterInputs<AppRouter>["plays"]["create"]["play"];
@@ -16,7 +17,11 @@ type Turn = { role: "user" | "assistant"; text: string };
 type Question = { question: string; options: string[]; multiSelect: boolean; allowCustom: boolean };
 type PlannerResult = ({ type: "question" } & Question) | { type: "proposal"; play: NewPlay };
 
+/** Starts the assistant turn that carries a proposal for the planner; shown as the translated "proposal" line. */
+const PROPOSAL_PREFIX = "Here is the Play I'd run";
+
 export function NewPlayPage() {
+  const t = useT("plays");
   const trpc = useTRPC();
   const [transcript, setTranscript] = useState<Turn[]>([]);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -36,7 +41,7 @@ export function NewPlayPage() {
       } else {
         setProposal(result.play);
         // The planner is stateless: carrying the proposal in the transcript lets a correction start from it.
-        setTranscript((t) => [...t, { role: "assistant", text: `Here is the Play I'd run: ${JSON.stringify(result.play)}` }]);
+        setTranscript((t) => [...t, { role: "assistant", text: `${PROPOSAL_PREFIX}: ${JSON.stringify(result.play)}` }]);
       }
     }
     if (event.type === "error") {
@@ -67,28 +72,28 @@ export function NewPlayPage() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 pt-8 pb-6 sm:px-6 sm:pt-12">
             {!started && <Intro onPick={send} />}
-            {transcript.map((t, i) =>
-              t.role === "user" ? (
+            {transcript.map((turn, i) =>
+              turn.role === "user" ? (
                 <div key={i} className="max-w-[85%] self-end rounded-[18px] bg-accent px-3.5 py-2 text-sm leading-5 text-on-accent">
-                  {t.text}
+                  {turn.text}
                 </div>
               ) : (
                 <div key={i} className="max-w-[85%] self-start rounded-[18px] bg-control px-3.5 py-2 text-sm leading-5">
-                  {t.text.startsWith("Here is the Play I'd run") ? "Here is the Play I'd run." : t.text}
+                  {turn.text.startsWith(PROPOSAL_PREFIX) ? t("new.proposal") : turn.text}
                 </div>
               ),
             )}
             {question && !thinking && <QuestionOptions question={question} onAnswer={send} />}
             {thinking && (
               <p className="flex items-center gap-2 text-sm text-muted">
-                <CircleNotch size={14} className="animate-spin" /> <span className="ai-text">Thinking about who to find…</span>
+                <CircleNotch size={14} className="animate-spin" /> <span className="ai-text">{t("new.thinking")}</span>
               </p>
             )}
             {error && <p className="text-sm text-system-orange">{error}</p>}
           </div>
         </div>
         <Composer
-          placeholder={started ? (proposal ? "Change something…" : "Answer or add detail…") : "What should this play find?"}
+          placeholder={started ? (proposal ? t("new.changeSomething") : t("new.answer")) : t("new.title")}
           disabled={thinking}
           onSend={send}
         />
@@ -99,6 +104,7 @@ export function NewPlayPage() {
 }
 
 function Intro({ onPick }: { onPick: (text: string) => void }) {
+  const t = useT("plays");
   const trpc = useTRPC();
   const brain = useQuery(trpc.brain.list.queryOptions());
   // Starting ideas built from the Brain.
@@ -112,21 +118,25 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
       (t) => t.relation === "replaces",
     )?.name;
     return [
-      persona && icp && `Find ${persona} at ${(icp.industries as string[])[0] ?? "my target organizations"}`,
-      role && `Organizations hiring a ${role}`,
-      replaced && `Organizations using ${replaced}`,
+      persona &&
+        icp &&
+        ((icp.industries as string[])[0]
+          ? t("idea.personaAt", { persona, industry: (icp.industries as string[])[0]! })
+          : t("idea.personaAtTargets", { persona })),
+      role && t("idea.hiring", { role }),
+      replaced && t("idea.using", { technology: replaced }),
     ].filter(Boolean) as string[];
-  }, [brain.data]);
+  }, [brain.data, t]);
 
   return (
     <div className="mb-6">
       <span className="flex size-11 items-center justify-center rounded-xl bg-system-pink/15 text-system-pink">
         <Lightning size={22} weight="fill" />
       </span>
-      <h1 className="mt-5 text-2xl font-semibold tracking-[-0.02em]">What should this play find?</h1>
-      <p className="mt-1.5 text-base text-muted">Describe who you want to reach. Pluton asks what it needs, then proposes the Play.</p>
+      <h1 className="mt-5 text-2xl font-semibold tracking-[-0.02em]">{t("new.title")}</h1>
+      <p className="mt-1.5 text-base text-muted">{t("new.description")}</p>
       {ideas.length > 0 && (
-        <Section title="Ideas from your Brain" className="mt-8">
+        <Section title={t("new.ideas")} className="mt-8">
           <div className="flex flex-col gap-2">
             {ideas.map((idea) => (
               <button
@@ -146,6 +156,7 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
 }
 
 function QuestionOptions({ question, onAnswer }: { question: Question; onAnswer: (text: string) => void }) {
+  const t = useT("plays");
   const [picked, setPicked] = useState<string[]>([]);
   return (
     <div className="flex flex-wrap gap-2">
@@ -166,7 +177,7 @@ function QuestionOptions({ question, onAnswer }: { question: Question; onAnswer:
       ))}
       {question.multiSelect && (
         <Button className="h-8" disabled={picked.length === 0} onClick={() => onAnswer(picked.join(", "))}>
-          Use selected · {picked.length}
+          {t("new.useSelected", { count: picked.length })}
         </Button>
       )}
     </div>
@@ -175,6 +186,7 @@ function QuestionOptions({ question, onAnswer }: { question: Question; onAnswer:
 
 /** The right-hand recap: Who / How we find them / How many / When, then create. */
 function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p: NewPlay) => void }) {
+  const t = useT("plays");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -191,10 +203,10 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
   const chips = [
     ...(a?.personas ?? []),
     ...(a?.industries ?? []),
-    ...(a?.companySizes ?? []).map((s) => `${s} employees`),
+    ...(a?.companySizes ?? []).map((size) => t("proposal.employees", { size })),
     ...(a?.geographies ?? []),
-    ...(a?.hiringRoles ?? []).map((r) => `Hiring: ${r}`),
-    ...(a?.technologies ?? []).map((t) => `Uses: ${t}`),
+    ...(a?.hiringRoles ?? []).map((role) => t("proposal.hiring", { role })),
+    ...(a?.technologies ?? []).map((technology) => t("proposal.uses", { technology })),
   ];
 
   return (
@@ -202,14 +214,14 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
     <aside className="flex w-[380px] shrink-0 flex-col bg-panel max-md:max-h-[55%] max-md:w-full">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 pb-6">
         <div className="px-1">
-          <p className="text-xs font-medium text-muted">New Play</p>
+          <p className="text-xs font-medium text-muted">{t("list.new")}</p>
           {editingName ? (
             <Input
               autoFocus
               value={proposal.name}
               onChange={(e) => onChange({ ...proposal, name: e.target.value })}
               onBlur={() => setEditingName(false)}
-              aria-label="Play name"
+              aria-label={t("proposal.name")}
               className="mt-1 h-8 text-lg font-semibold"
             />
           ) : (
@@ -224,17 +236,17 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
         </div>
 
         <Group className="mt-5 bg-canvas">
-          <Slot label="Who">{proposal.summary.who}</Slot>
-          <Slot label="How we find them">
+          <Slot label={t("summary.who")}>{proposal.summary.who}</Slot>
+          <Slot label={t("summary.how")}>
             <span className={cn(CHIP, "mb-1.5 bg-system-pink/15 text-system-pink")}>{PIPELINE_LABELS[proposal.pipeline]}</span>
             <span className="block">{proposal.summary.how}</span>
           </Slot>
-          <Slot label="How many">{proposal.summary.howMany}</Slot>
-          <Slot label="When">
+          <Slot label={t("summary.howMany")}>{proposal.summary.howMany}</Slot>
+          <Slot label={t("proposal.when")}>
             <select
               value={proposal.schedule ?? "off"}
               onChange={(e) => onChange({ ...proposal, schedule: e.target.value as NewPlay["schedule"] })}
-              aria-label="When"
+              aria-label={t("proposal.when")}
               className="capsule h-7 w-full pl-3 text-sm outline-none focus:focus-ring"
             >
               {Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
@@ -248,7 +260,7 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
 
         <Group className="mt-4 bg-canvas">
           {chips.length > 0 && (
-            <Slot label="Targeting">
+            <Slot label={t("proposal.targeting")}>
               <span className="flex flex-wrap gap-1.5">
                 {chips.map((c) => (
                   <span key={c} className={CHIP}>
@@ -258,21 +270,21 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
               </span>
             </Slot>
           )}
-          {proposal.definition.criteria && <Slot label="Criteria">{proposal.definition.criteria}</Slot>}
+          {proposal.definition.criteria && <Slot label={t("sourcing.criteria")}>{proposal.definition.criteria}</Slot>}
           {proposal.definition.referenceCompanies && proposal.definition.referenceCompanies.length > 0 && (
-            <Slot label="Lookalikes of">{proposal.definition.referenceCompanies.join(", ")}</Slot>
+            <Slot label={t("proposal.lookalikesOf")}>{proposal.definition.referenceCompanies.join(", ")}</Slot>
           )}
-          <Slot label="Limits">
+          <Slot label={t("sourcing.limits")}>
             <span className="flex flex-col gap-2">
               <NumberField
-                label="min of research"
+                label={t("proposal.minutes")}
                 value={proposal.definition.policy?.maxMinutes ?? 15}
                 min={3}
                 max={60}
                 onChange={(maxMinutes) => onChange(withPolicy(proposal, { maxMinutes }))}
               />
               <NumberField
-                label="days freshness"
+                label={t("proposal.freshness")}
                 value={proposal.definition.policy?.freshnessDays ?? 60}
                 min={1}
                 max={365}
@@ -287,10 +299,10 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
 
       <div className="flex flex-col gap-2 px-5 pt-2 pb-5">
         <Button disabled={create.isPending} onClick={() => create.mutate({ play: proposal, runNow: true })}>
-          {create.isPending && <CircleNotch size={14} className="animate-spin" />} Create and run search
+          {create.isPending && <CircleNotch size={14} className="animate-spin" />} {t("proposal.createAndRun")}
         </Button>
         <Button variant="ghost" disabled={create.isPending} onClick={() => create.mutate({ play: proposal, runNow: false })}>
-          Create only
+          {t("proposal.createOnly")}
         </Button>
         {create.error && <p className="text-sm text-system-orange">{create.error.message}</p>}
       </div>
@@ -331,19 +343,20 @@ function NumberField({ label, value, min, max, onChange }: { label: string; valu
 
 /** Expected yield and duration, from this workspace's past runs of the same pipeline. */
 function Estimate({ pipeline, target }: { pipeline: NewPlay["pipeline"]; target: number }) {
+  const t = useT("plays");
   const trpc = useTRPC();
   const estimate = useQuery(trpc.plays.estimate.queryOptions({ pipeline, target }));
   if (!estimate.data) return null;
   const e = estimate.data;
   return (
-    <Section title="What to expect" className="mt-6">
+    <Section title={t("expect.title")} className="mt-6">
       <Group className="bg-canvas px-4 py-3">
         <p className="text-sm tabular-nums">
-          {e.qualified[0]}–{e.qualified[1]} qualified leads per run · {e.minutes[0]}–{e.minutes[1]} min
+          {t("expect.range", { low: e.qualified[0], high: e.qualified[1], minLow: e.minutes[0], minHigh: e.minutes[1] })}
         </p>
         <p className="mt-1 text-xs leading-relaxed text-muted">
-          {e.basis === "history" ? `From your last ${e.runs} runs of this kind.` : "Rough guess until a few runs have completed."} Uses your
-          Claude access{e.paid.length ? `, plus ${e.paid.join(", ")}` : ", no paid data source"}.
+          {e.basis === "history" ? t("expect.history", { count: e.runs }) : t("expect.guess")}{" "}
+          {e.paid.length ? t("expect.usesPaid", { sources: new Intl.ListFormat(getLocale()).format(e.paid) }) : t("expect.usesFree")}
         </p>
       </Group>
     </Section>

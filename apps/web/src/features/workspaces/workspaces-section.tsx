@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { Button } from "../../components/ui.tsx";
+import { useT } from "../../i18n/index.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { NewWorkspaceDialog, useOpenWorkspace, WorkspaceIcon, type WorkspaceItem } from "./workspace-menu.tsx";
 
 /** Settings → General: every workspace, to open, add or delete one. */
 export function WorkspacesSection() {
+  const t = useT("workspaces");
+  const tc = useT("common");
   const trpc = useTRPC();
   const list = useQuery(trpc.workspace.list.queryOptions());
   const workspaces = list.data ?? [];
@@ -19,11 +22,11 @@ export function WorkspacesSection() {
     <section className="mt-8">
       <div className="mb-2 flex items-end justify-between gap-4 px-1">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">Workspaces</h2>
-          <p className="mt-0.5 text-xs text-muted">One per company. Settings, API keys and integrations on these pages apply to the open workspace only.</p>
+          <h2 className="text-sm font-semibold">{t("workspaces")}</h2>
+          <p className="mt-0.5 text-xs text-muted">{t("sectionDescription")}</p>
         </div>
         <Button variant="ghost" onClick={() => setCreating(true)}>
-          New workspace
+          {t("newWorkspace")}
         </Button>
       </div>
       <div className="overflow-hidden rounded-2xl bg-panel shadow-card">
@@ -39,16 +42,16 @@ export function WorkspacesSection() {
                   <span className="truncate">{ws.name}</span>
                 </span>
               }
-              description={ws.current ? "Open now" : ws.onboarded ? ws.website ?? undefined : "Onboarding not finished"}
+              description={ws.current ? t("openNow") : ws.onboarded ? ws.website ?? undefined : t("onboardingNotFinished")}
             >
               {!ws.current && (
                 <Button variant="ghost" disabled={pending} onClick={() => open(ws)}>
-                  Open
+                  {tc("open")}
                 </Button>
               )}
               {workspaces.length > 1 && (
                 <button onClick={() => setConfirming(ws.id)} className="text-sm text-muted hover:text-system-red">
-                  Delete…
+                  {t("deleteMenu")}
                 </button>
               )}
             </WorkspaceRow>
@@ -74,6 +77,8 @@ function WorkspaceRow({ label, description, children }: { label: ReactNode; desc
 }
 
 function DeleteRow({ workspace, onDone }: { workspace: WorkspaceItem; onDone: () => void }) {
+  const t = useT("workspaces");
+  const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -88,12 +93,12 @@ function DeleteRow({ workspace, onDone }: { workspace: WorkspaceItem; onDone: ()
     }),
   );
   return (
-    <WorkspaceRow label={`Delete ${workspace.name}?`} description={remove.error?.message ?? "Its Brain, Plays, leads, sequences and settings are deleted for good."}>
+    <WorkspaceRow label={t("deleteConfirm", { name: workspace.name })} description={remove.error?.message ?? t("deleteDescription")}>
       <Button variant="ghost" onClick={onDone} disabled={remove.isPending}>
-        Cancel
+        {tc("cancel")}
       </Button>
       <Button className="bg-system-red" onClick={() => remove.mutate({ id: workspace.id })} disabled={remove.isPending}>
-        Delete
+        {tc("delete")}
       </Button>
     </WorkspaceRow>
   );

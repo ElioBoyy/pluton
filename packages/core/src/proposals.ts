@@ -8,6 +8,7 @@ import {
   type BrainSection,
   type Db,
 } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
 import {
   archiveBrainItems,
   BrainConflictError,
@@ -16,6 +17,9 @@ import {
   updateBrainItem,
 } from "./brain.ts";
 import { recordActivity } from "./events.ts";
+import messages from "./messages/brain.ts";
+
+const t = localized(messages);
 
 export type NewProposal =
   | { kind: "create"; section: BrainSection; data: unknown; rationale: string; evidence?: string[] }
@@ -63,7 +67,7 @@ export async function listProposals(db: Db, workspaceId: string, statuses: Brain
 async function getProposal(db: Db, id: string) {
   const p = await db.query.brainProposals.findFirst({ where: eq(brainProposals.id, id) });
   if (!p) throw new Error("Proposal not found");
-  if (p.status !== "proposed") throw new Error(`Proposal already ${p.status}`);
+  if (p.status !== "proposed") throw new Error(t("proposalHandled"));
   return p;
 }
 

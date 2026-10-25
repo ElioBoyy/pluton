@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { listBrain, newPlaySchema, pipelineCapabilities, type NewPlay } from "@pluton/core";
+import { listBrain, newPlaySchema, pipelineCapabilities, playsText, type NewPlay } from "@pluton/core";
 import type { Db } from "@pluton/db";
 import { runAgent } from "./backend.ts";
 import { localTool } from "./run-agent.ts";
+import { languageInstruction } from "@pluton/i18n/server";
 
 export type PlannerTurn = { role: "user" | "assistant"; text: string };
 
@@ -28,7 +29,7 @@ How you work:
 - Propose as soon as you can; after 3 questions, always propose. Fill the definition from the founder's words first, the Brain second.
 - When the conversation already contains a proposal and the founder asks for a change, start from that last proposal and change only what they asked; keep every other title, filter and setting.
 - policy.freshnessDays: how recent signals must be (default 60). policy.maxMinutes: research time per run (default 15).
-- Write questions and the summary in the founder's language. Keep job titles and keywords in the market's language.
+- Keep job titles and keywords in the market's language (as people write them on LinkedIn and job boards), whatever language you write in.
 - Only use pipelines marked available. target defaults to 10 leads per run; schedule defaults to "off" unless the founder asks for recurrence.`;
 
 export async function planPlay(opts: { db: Db; workspaceId: string; transcript: PlannerTurn[]; signal?: AbortSignal }) {
@@ -39,7 +40,8 @@ export async function planPlay(opts: { db: Db; workspaceId: string; transcript: 
   const definitionShape = JSON.stringify(z.toJSONSchema(newPlaySchema));
 
   await runAgent({
-    system: SYSTEM,
+    // Questions, options and the Play's summary are what the founder reads.
+    system: `${SYSTEM}\n${languageInstruction()} That covers questions, options, the Play's name and its summary.`,
     noWeb: true,
     maxTurns: 6,
     signal: opts.signal,
@@ -88,6 +90,6 @@ ${opts.transcript.map((t) => `${t.role === "user" ? "Founder" : "You"}: ${t.text
     ],
   });
 
-  if (!result) throw new Error("The planner ended without a question or a proposal");
+  if (!result) throw new Error(playsText("plannerEmpty"));
   return result as PlannerResult;
 }

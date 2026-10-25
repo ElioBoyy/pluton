@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   addAdjustment,
+  amountNotZeroMessage,
   budgetPeriod,
   budgetSettings,
   budgetStatus,
@@ -15,10 +16,10 @@ import {
   listCreditEntries,
   listNotifications,
   markNotificationsRead,
-  NOTIFICATION_CATEGORY_LABELS,
+  notificationCategoryLabel,
   notificationSettings,
   playConsumption,
-  PURPOSE_LABELS,
+  purposeLabels,
   saveBudget,
   saveNotificationSettings,
   unreadNotificationCount,
@@ -65,7 +66,7 @@ export const creditsRouter = router({
         : input.range === "previous"
           ? { from: budgetPeriod(new Date(current.start.getTime() - 1000), periodStartDay, w.timezone).start, to: current.start }
           : { from: new Date(now.getTime() - (input.range === "30d" ? 30 : 90) * 86_400_000), to: new Date(now.getTime() + 60_000) };
-    return { ...(await usageReport(ctx.db, w.id, range)), purposeLabels: PURPOSE_LABELS };
+    return { ...(await usageReport(ctx.db, w.id, range)), purposeLabels: purposeLabels() };
   }),
   entries: publicProcedure
     .input(
@@ -82,7 +83,7 @@ export const creditsRouter = router({
   estimateRun: publicProcedure.input(z.object({ playId: z.string() })).query(({ ctx, input }) => estimateRun(ctx.db, input.playId)),
   play: publicProcedure.input(z.object({ playId: z.string() })).query(({ ctx, input }) => playConsumption(ctx.db, input.playId)),
   addAdjustment: publicProcedure
-    .input(z.object({ amountUsd: z.number().min(-10_000).max(10_000).refine((v) => v !== 0, "Amount can't be zero"), note: z.string().trim().min(2).max(200), source: z.string().trim().max(40).optional() }))
+    .input(z.object({ amountUsd: z.number().min(-10_000).max(10_000).refine((v) => v !== 0, { error: () => amountNotZeroMessage() }), note: z.string().trim().min(2).max(200), source: z.string().trim().max(40).optional() }))
     .mutation(async ({ ctx, input }) => addAdjustment(ctx.db, (await ws(ctx.db)).id, input)),
   deleteAdjustment: publicProcedure
     .input(z.object({ id: z.number().int() }))
@@ -112,7 +113,7 @@ export const notificationsRouter = router({
     .mutation(async ({ ctx, input }) => markNotificationsRead(ctx.db, (await ws(ctx.db)).id, input.ids)),
   settings: publicProcedure.query(async ({ ctx }) => ({
     settings: notificationSettings(await ws(ctx.db)),
-    categories: NOTIFICATION_CATEGORIES.map((c) => ({ key: c, ...NOTIFICATION_CATEGORY_LABELS[c] })),
+    categories: NOTIFICATION_CATEGORIES.map((c) => ({ key: c, ...notificationCategoryLabel(c) })),
     smtpConfigured: mailerConfigured(),
   })),
   saveSettings: publicProcedure

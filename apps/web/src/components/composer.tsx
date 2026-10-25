@@ -1,5 +1,6 @@
 import { ArrowUp, Stop } from "@phosphor-icons/react";
 import { useState } from "react";
+import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 
 /** The chat field at the bottom of the agent and new-Play pages: Enter sends, Shift+Enter breaks a line. */
@@ -17,6 +18,7 @@ export function Composer({
   onStop?: () => void;
   autoFocus?: boolean;
 }) {
+  const t = useT("shell");
   const [text, setText] = useState("");
   const ready = Boolean(text.trim()) && !disabled;
   const submit = () => {
@@ -50,7 +52,7 @@ export function Composer({
           className="max-h-48 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-base outline-none [field-sizing:content] placeholder:text-faint"
         />
         <button
-          aria-label={stopping ? "Stop" : "Send"}
+          aria-label={stopping ? t("composer.stop") : t("composer.send")}
           onClick={stopping ? onStop : submit}
           disabled={!stopping && !ready}
           className={cn(

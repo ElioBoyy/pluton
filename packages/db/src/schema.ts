@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { Locale } from "@pluton/i18n";
 import { customType, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 const id = () =>
@@ -50,6 +51,8 @@ export const workspaces = sqliteTable("workspace", {
   website: text("website"),
   icon: text("icon"),
   timezone: text("timezone").notNull().default("Europe/Paris"),
+  /** The language its founder last used the app in ("fr"…): jobs, the digest and Slack write in it. Null is English. */
+  language: text("language").$type<Locale>(),
   /** Monthly spend limit and how runs are held to it. Null means the defaults in core/credits. */
   budget: text("budget", { mode: "json" }).$type<BudgetSettings>(),
   /** Which events notify, and the morning digest. Null means the defaults in core/notifications. */

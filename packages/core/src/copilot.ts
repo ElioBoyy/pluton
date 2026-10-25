@@ -13,14 +13,18 @@ import {
   type CopilotActionStatus,
   type Db,
 } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
 import { emitStreamEvent } from "./events.ts";
 import { enqueueJob } from "./jobs.ts";
+import messages from "./messages/copilot.ts";
+
+const t = localized(messages);
 
 /** Live updates of one conversation: new messages, action changes, turn start and end. */
 export const copilotChannel = (conversationId: string) => `copilot:${conversationId}`;
 
 export async function createConversation(db: Db, workspaceId: string, firstMessage: string) {
-  const title = firstMessage.replace(/\s+/g, " ").trim().slice(0, 80) || "New conversation";
+  const title = firstMessage.replace(/\s+/g, " ").trim().slice(0, 80) || t("newConversation");
   const [row] = await db.insert(copilotConversations).values({ workspaceId, title }).returning();
   return row!;
 }

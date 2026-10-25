@@ -9,6 +9,10 @@ import {
   type BrainSection,
   type Db,
 } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/brain.ts";
+
+const t = localized(messages);
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const list = (max: number, itemMax = 120) => z.array(text(itemMax)).max(max);
@@ -160,7 +164,7 @@ export async function archiveWorkspaceBrain(db: Db, workspaceId: string) {
 
 export class BrainConflictError extends Error {
   constructor(readonly current: BrainItemView) {
-    super("This item changed since you opened it; reload and retry");
+    super(t("conflict"));
   }
 }
 
@@ -191,7 +195,7 @@ export async function updateBrainItem(
 
 export async function createBrainItem(db: Db, workspaceId: string, section: BrainSection, data: unknown) {
   if (SINGLETON_SECTIONS.includes(section) && (await getSingleton(db, workspaceId, section))) {
-    throw new Error(`${section} already exists; edit it instead`);
+    throw new Error(t("singletonExists"));
   }
   const [item] = await saveBrainItems(db, workspaceId, section, [brainSchemas[section].parse(data)] as never, "user");
   return item!;
@@ -200,7 +204,7 @@ export async function createBrainItem(db: Db, workspaceId: string, section: Brai
 export async function restoreBrainItem(db: Db, id: string) {
   const item = await getItem(db, id);
   if (SINGLETON_SECTIONS.includes(item.section) && (await getSingleton(db, item.workspaceId, item.section))) {
-    throw new Error(`An active ${item.section} already exists`);
+    throw new Error(t("activeExists"));
   }
   const [restored] = await db
     .update(brainItems)

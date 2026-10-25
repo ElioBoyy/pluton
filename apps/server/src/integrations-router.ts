@@ -1,12 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
-  CRM_FIELD_LABELS,
   crmConfig,
+  crmFieldLabel,
   DEFAULT_MAPPING,
   getIntegration,
   getCurrentWorkspace,
   INTEGRATION_INFO,
+  integrationInfo,
+  integrationText as t,
   isCrm,
   leadCrmExports,
   listCrmExports,
@@ -35,7 +37,7 @@ export const integrationsRouter = router({
     const row = await getIntegration(ctx.db, w.id, input.provider);
     return {
       provider: input.provider,
-      ...INTEGRATION_INFO[input.provider],
+      ...integrationInfo(input.provider),
       row: row ?? null,
       slack: input.provider === "slack" ? slackConfig(row) : null,
       crm: isCrm(input.provider) ? crmConfig(row, input.provider) : null,
@@ -47,7 +49,7 @@ export const integrationsRouter = router({
     try {
       const account =
         input.provider === "slack"
-          ? await slackAuthTest().then((r) => `${r.team} (as @${r.bot})`)
+          ? await slackAuthTest().then((r) => t("slack.account", { team: r.team, bot: r.bot }))
           : await crmAdapter(input.provider).check();
       const row = await saveIntegration(ctx.db, w.id, input.provider, { status: "connected", account, error: null, enabled: true, connectedAt: new Date() });
       await recordActivity(ctx.db, w.id, input.provider === "slack" ? "slack" : "crm", "integration.connected", { provider: input.provider });
@@ -56,7 +58,7 @@ export const integrationsRouter = router({
       const status = error instanceof ProviderError ? error.status : undefined;
       const message =
         status === 401 || status === 403
-          ? `${INTEGRATION_INFO[input.provider].name} refused the token (${status}). Check it, and its scopes.`
+          ? t("error.tokenRefused", { name: INTEGRATION_INFO[input.provider].name, status: String(status) })
           : (error as Error).message.slice(0, 300);
       await saveIntegration(ctx.db, w.id, input.provider, { status: "error", error: message });
       return fail(new Error(message));
@@ -91,9 +93,9 @@ export const integrationsRouter = router({
       }),
     test: publicProcedure.mutation(async ({ ctx }) => {
       const config = slackConfig(await getIntegration(ctx.db, (await ws(ctx.db)).id, "slack"));
-      if (!config.channelId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Pick a channel first" });
-      await slackPost(config.channelId, "Pluton is connected", [
-        { type: "section", text: { type: "mrkdwn", text: ":wave: Pluton is connected. New leads will show up here with *Approve* and *Reject* buttons." } },
+      if (!config.channelId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: t("error.pickChannel") });
+      await slackPost(config.channelId, t("slack.testText"), [
+        { type: "section", text: { type: "mrkdwn", text: t("slack.testBody", { approve: t("slack.approve"), reject: t("slack.reject") }) } },
       ]).catch(fail);
       return { channel: config.channelName };
     }),
@@ -101,7 +103,7 @@ export const integrationsRouter = router({
 
   crm: router({
     fields: publicProcedure.input(crmInput).query(async ({ input }) => ({
-      pluton: CRM_FIELDS.map((f) => ({ key: f, label: CRM_FIELD_LABELS[f] })),
+      pluton: CRM_FIELDS.map((f) => ({ key: f, label: crmFieldLabel(f) })),
       crm: await crmAdapter(input.provider).personFields().catch(fail),
       defaults: DEFAULT_MAPPING[input.provider],
     })),
@@ -121,7 +123,7 @@ export const integrationsRouter = router({
     export: publicProcedure.input(crmInput.extend({ leadIds: z.array(z.string()).min(1).max(500) })).mutation(async ({ ctx, input }) => {
       const w = await ws(ctx.db);
       const row = await getIntegration(ctx.db, w.id, input.provider);
-      if (row?.status !== "connected") throw new TRPCError({ code: "PRECONDITION_FAILED", message: `Connect ${INTEGRATION_INFO[input.provider].name} first` });
+      if (row?.status !== "connected") throw new TRPCError({ code: "PRECONDITION_FAILED", message: t("error.connectFirst", { name: INTEGRATION_INFO[input.provider].name }) });
       return queueCrmExport(ctx.db, w.id, input.provider, input.leadIds, "manual");
     }),
     exports: publicProcedure.input(z.object({ provider: z.enum(CRM_PROVIDERS).optional() })).query(async ({ ctx, input }) => listCrmExports(ctx.db, (await ws(ctx.db)).id, input.provider)),

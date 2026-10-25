@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { format, LOCALES } from "@pluton/i18n";
+import { localized } from "@pluton/i18n/server";
 import {
   and,
   asc,
@@ -25,7 +27,10 @@ import {
 import { emitStreamEvent } from "./events.ts";
 import { enqueueJob } from "./jobs.ts";
 import { ensureMainPlay, startRun } from "./plays.ts";
+import messages from "./messages/onboarding.ts";
 import { getCurrentWorkspace, updateWorkspace } from "./workspaces.ts";
+
+const t = localized(messages);
 
 export const onboardingChannel = (sessionId: string) => `onboarding:${sessionId}`;
 
@@ -40,28 +45,24 @@ export const COMPANY_SIZE_BANDS = [
   "10,001+",
 ] as const;
 
-/** The "Worked through N steps" list. Each step belongs to the stage whose agent completes it. */
+/** The "Worked through N steps" list. Each step belongs to the stage whose agent completes it; its label is `step.<key>`. */
 export const RESEARCH_STEPS = [
-  { key: "company", stage: "company", label: "Researched your company" },
-  { key: "audience", stage: "audience", label: "Shaped your ideal customer profile & buyer personas" },
-  { key: "market_references", stage: "market", label: "Researched competitors & influencers" },
-  { key: "hiring_stack", stage: "market", label: "Checked hiring & tech stack" },
-  { key: "voice", stage: "market", label: "Learned your voice & language" },
-  { key: "keywords", stage: "market", label: "Tested keywords" },
-  { key: "signals", stage: "market", label: "Configured buying signals" },
-  { key: "first_leads", stage: null, label: "Finding your first leads" },
-] as const satisfies ReadonlyArray<{ key: string; stage: OnboardingStage | null; label: string }>;
+  { key: "company", stage: "company" },
+  { key: "audience", stage: "audience" },
+  { key: "market_references", stage: "market" },
+  { key: "hiring_stack", stage: "market" },
+  { key: "voice", stage: "market" },
+  { key: "keywords", stage: "market" },
+  { key: "signals", stage: "market" },
+  { key: "first_leads", stage: null },
+] as const satisfies ReadonlyArray<{ key: string; stage: OnboardingStage | null }>;
 export type ResearchStepKey = (typeof RESEARCH_STEPS)[number]["key"];
 
-const PLAN = [
-  { key: "confirm_company", label: "Confirm your company" },
-  { key: "confirm_audience", label: "Confirm your ideal customer profile & buyer personas" },
-  { key: "finish_setup", label: "Finish setup & check real people" },
-  { key: "review_activate", label: "Review and activate" },
-] as const;
+/** The plan's phases; each label is `plan.<key>`. */
+const PLAN = ["confirm_company", "confirm_audience", "finish_setup", "review_activate"] as const;
 
 export type PlanStep = {
-  key: (typeof PLAN)[number]["key"];
+  key: (typeof PLAN)[number];
   label: string;
   status: "pending" | "active" | "done";
   startedAt: number | null;
@@ -101,8 +102,7 @@ export async function setStep(
   key: ResearchStepKey,
   status: "running" | "done" | "skipped",
 ) {
-  const step = RESEARCH_STEPS.find((s) => s.key === key)!;
-  await emitOnboarding(db, sessionId, { type: "step", key, label: step.label, status });
+  await emitOnboarding(db, sessionId, { type: "step", key, label: t(`step.${key}`), status });
 }
 
 export async function emitBrain(db: Db, sessionId: string, items: BrainItemView[]) {
@@ -118,7 +118,7 @@ export const onboardingInputSchema = z
     description: z.string().trim().max(600).optional(),
     context: z.string().trim().max(2000).optional(),
   })
-  .refine((i) => i.website || i.description, { message: "Give a website or describe what you're building" });
+  .refine((i) => i.website || i.description, { error: () => t("input.required") });
 export type OnboardingInput = z.output<typeof onboardingInputSchema>;
 
 export async function startOnboarding(db: Db, input: OnboardingInput) {
@@ -138,9 +138,7 @@ export async function startOnboarding(db: Db, input: OnboardingInput) {
   await say(
     db,
     id,
-    input.website
-      ? `Reading ${input.website} now. I'll narrate what I find as I go.`
-      : "Reading what you told me about your company. I'll narrate what I find as I go.",
+    input.website ? t("say.readingWebsite", { website: input.website }) : t("say.readingDescription"),
   );
   await startStage(db, id, "company");
   return session!;
@@ -187,7 +185,7 @@ export async function retryFailedStages(db: Db, sessionId: string) {
     .select()
     .from(onboardingStages)
     .where(and(eq(onboardingStages.sessionId, sessionId), eq(onboardingStages.status, "failed")));
-  if (failed.length) await say(db, sessionId, "Retrying where I left off.");
+  if (failed.length) await say(db, sessionId, t("say.retrying"));
   for (const row of failed) await startStage(db, sessionId, row.stage);
   return failed.length;
 }
@@ -206,12 +204,12 @@ export async function getLatestSession(db: Db, workspaceId: string) {
 export async function activateOnboarding(db: Db, sessionId: string) {
   const session = await getSession(db, sessionId);
   if (!session) throw new Error("Onboarding session not found");
-  if (session.status !== "ready") throw new Error(`Cannot activate a session that is ${session.status}`);
+  if (session.status !== "ready") throw new Error(t("activate.notReady"));
   await db
     .update(onboardingSessions)
     .set({ status: "completed", completedAt: new Date() })
     .where(eq(onboardingSessions.id, sessionId));
-  await say(db, sessionId, "Your Brain is live. Next up: your first Play.");
+  await say(db, sessionId, t("say.live"));
   await refreshSession(db, sessionId);
 }
 
@@ -260,11 +258,11 @@ function derivePlan(
     ms(session.completedAt),
   ];
   let start: number | null = session.createdAt.getTime();
-  return PLAN.map((p, i) => {
+  return PLAN.map((key, i) => {
     const end = start === null ? null : ends[i]!;
     const step: PlanStep = {
-      key: p.key,
-      label: p.label,
+      key,
+      label: t(`plan.${key}`),
       status: end !== null ? "done" : start !== null ? "active" : "pending",
       startedAt: start,
       finishedAt: end,
@@ -291,7 +289,46 @@ export type CardView = {
 };
 
 export const toCardView = (c: OnboardingCard): CardView =>
-  ({ id: c.id, kind: c.kind, status: c.status, answer: c.answer ?? null, ...c.body }) as CardView;
+  localizeCard({ id: c.id, kind: c.kind, status: c.status, answer: c.answer ?? null, ...c.body } as CardView);
+
+type Relation = "uses" | "integrates_with" | "replaces";
+const RELATIONS: Relation[] = ["uses", "integrates_with", "replaces"];
+
+/** A stack option's detail names its relation in whichever language the card was raised in. */
+const relationOf = (detail: string | undefined) =>
+  RELATIONS.find((r) => LOCALES.some((l) => format(messages, l, `relation.${r}`) === detail));
+
+/**
+ * A card's fixed wording comes from its kind, not from what was stored, so cards read in the
+ * current language even when they were raised in another one. What the agent found stays as is.
+ */
+function localizeCard(card: CardView): CardView {
+  const kind = card.kind as CardKind;
+  const subtitled = kind === "personas" || kind === "hiring_roles" || kind === "stack_tools";
+  return {
+    ...card,
+    title: t(`card.${kind}.title`),
+    ...(subtitled && { subtitle: t(`card.${kind}.subtitle`) }),
+    options: card.options?.map((o) => {
+      if (kind === "company_sizes") return { ...o, label: t("card.company_sizes.option", { band: o.id }) };
+      const relation = kind === "stack_tools" ? relationOf(o.detail) : undefined;
+      return relation ? { ...o, detail: t(`relation.${relation}`) } : o;
+    }),
+  };
+}
+
+/** Onboarding stream events with their fixed labels in the current language (they are stored as first written). */
+export function localizeStreamEvent<E extends { channel: string; type: string; payload: unknown }>(event: E): E {
+  if (!event.channel.startsWith("onboarding:")) return event;
+  const p = event.payload as Record<string, unknown>;
+  if (event.type === "step") return { ...event, payload: { ...p, label: t(`step.${p.key as ResearchStepKey}`) } };
+  if (event.type === "plan") {
+    const steps = (p.steps as PlanStep[]).map((s) => ({ ...s, label: t(`plan.${s.key}`) }));
+    return { ...event, payload: { ...p, steps } };
+  }
+  if (event.type === "card") return { ...event, payload: { ...p, card: localizeCard(p.card as CardView) } };
+  return event;
+}
 
 export async function listCards(db: Db, sessionId: string) {
   const rows = await db
@@ -314,12 +351,6 @@ async function createCard(db: Db, sessionId: string, kind: CardKind, body: Omit<
   await emitOnboarding(db, sessionId, { type: "card", card: toCardView(row!) });
 }
 
-const RELATION_LABEL = {
-  uses: "they use it",
-  integrates_with: "it integrates with you",
-  replaces: "they replace it with you",
-} as const;
-
 /** Cards are built from what the agent saved, so the model never designs UI it could get wrong. */
 export async function raiseStageCards(db: Db, sessionId: string, stage: OnboardingStage) {
   const session = (await getSession(db, sessionId))!;
@@ -329,7 +360,7 @@ export async function raiseStageCards(db: Db, sessionId: string, stage: Onboardi
     const company = await getSingleton(db, ws, "company");
     if (!company) throw new Error("Company research produced no company profile");
     await createCard(db, sessionId, "company_statement", {
-      title: "Confirm your company",
+      title: t("card.company_statement.title"),
       heading: `${company.data.name} · ${company.data.oneLiner}`,
       statement: company.data.statement,
     });
@@ -340,16 +371,16 @@ export async function raiseStageCards(db: Db, sessionId: string, stage: Onboardi
     const personas = (await listBrain(db, ws)).filter((i) => i.section === "persona");
     const chosen = new Set(icp?.data.companySizes ?? []);
     await createCard(db, sessionId, "company_sizes", {
-      title: "What company size should Pluton target?",
+      title: t("card.company_sizes.title"),
       options: COMPANY_SIZE_BANDS.map((band) => ({
         id: band,
-        label: `${band} employees`,
+        label: t("card.company_sizes.option", { band }),
         selected: chosen.has(band),
       })),
     });
     await createCard(db, sessionId, "personas", {
-      title: "Which buyer personas should Pluton look for?",
-      subtitle: "Pluton finds real people with these titles inside your ideal companies.",
+      title: t("card.personas.title"),
+      subtitle: t("card.personas.subtitle"),
       options: personas.map((p) => {
         const d = p.data as BrainData<"persona">;
         return { id: p.id, label: d.title, detail: d.whyTheyBuy, selected: true };
@@ -362,18 +393,18 @@ export async function raiseStageCards(db: Db, sessionId: string, stage: Onboardi
     const hiring = await getSingleton(db, ws, "hiring_signal");
     const stack = await getSingleton(db, ws, "stack_signal");
     await createCard(db, sessionId, "hiring_roles", {
-      title: "Select the roles Pluton will monitor in job offers as a buying signal",
-      subtitle: "Pluton will watch job openings for these roles to find companies entering a buying window.",
+      title: t("card.hiring_roles.title"),
+      subtitle: t("card.hiring_roles.subtitle"),
       options: (hiring?.data.roles ?? []).map((r) => ({ id: r, label: r, selected: true })),
       allowCustom: true,
     });
     await createCard(db, sessionId, "stack_tools", {
-      title: "Select the tools Pluton will watch as a stack signal",
-      subtitle: "Companies whose job posts mention these tools are likely to need you.",
-      options: (stack?.data.technologies ?? []).map((t) => ({
-        id: t.name,
-        label: t.name,
-        detail: RELATION_LABEL[t.relation],
+      title: t("card.stack_tools.title"),
+      subtitle: t("card.stack_tools.subtitle"),
+      options: (stack?.data.technologies ?? []).map((tool) => ({
+        id: tool.name,
+        label: tool.name,
+        detail: t(`relation.${tool.relation}`),
         selected: true,
       })),
       allowCustom: true,
@@ -408,9 +439,9 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
       if ("action" in answer && answer.action === "edit") {
         const company = (await getSingleton(db, ws, "company"))!;
         await emitBrain(db, sid, await saveBrainItems(db, ws, "company", [{ ...company.data, statement: answer.statement }], "user"));
-        userText = "Edited the statement";
+        userText = t("answer.edited");
       } else {
-        userText = "Looks right";
+        userText = t("answer.confirmed");
       }
       break;
     }
@@ -418,7 +449,7 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
       const icp = (await getSingleton(db, ws, "icp"))!;
       const sizes = picked.map((o) => o.id);
       await emitBrain(db, sid, await saveBrainItems(db, ws, "icp", [{ ...icp.data, companySizes: sizes }], "user"));
-      userText = picked.map((o) => o.label).join(" · ") || "No size preference";
+      userText = picked.map((o) => o.label).join(" · ") || t("answer.noSize");
       break;
     }
     case "personas": {
@@ -431,7 +462,7 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
           db,
           ws,
           "persona",
-          custom.map((title) => ({ title, role: "buyer" as const, seniority: "—", whyTheyBuy: "Added by you" })),
+          custom.map((title) => ({ title, role: "buyer" as const, seniority: "—", whyTheyBuy: t("persona.addedByYou") })),
           "user",
         );
         await emitBrain(db, sid, added);
@@ -442,7 +473,7 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
     case "hiring_roles": {
       const roles = [...picked.map((o) => o.id), ...(selection?.custom ?? [])];
       await emitBrain(db, sid, await saveBrainItems(db, ws, "hiring_signal", [{ roles }], "user"));
-      userText = roles.join(" · ") || "No roles";
+      userText = roles.join(" · ") || t("answer.noRoles");
       break;
     }
     case "stack_tools": {
@@ -452,8 +483,9 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
       const technologies = [...keep, ...custom];
       await emitBrain(db, sid, await saveBrainItems(db, ws, "stack_signal", [{ technologies }], "user"));
       userText =
-        technologies.map((t) => (t.relation === "uses" ? t.name : `${t.name} (${RELATION_LABEL[t.relation]})`)).join(" · ") ||
-        "No tools";
+        technologies
+          .map((tool) => (tool.relation === "uses" ? tool.name : t("answer.toolWithRelation", { name: tool.name, relation: t(`relation.${tool.relation}`) })))
+          .join(" · ") || t("answer.noTools");
       break;
     }
   }
@@ -468,7 +500,7 @@ export async function answerCard(db: Db, cardId: string, answer: CardAnswer) {
 
   if (card.kind === "company_statement") {
     const company = (await getSingleton(db, ws, "company"))!;
-    await emitOnboarding(db, sid, { type: "message", role: "assistant", text: `Company confirmed: ${company.data.name}` });
+    await emitOnboarding(db, sid, { type: "message", role: "assistant", text: t("say.companyConfirmed", { name: company.data.name }) });
     // Audience and market research run in parallel once the company is locked in.
     await startStage(db, sid, "audience");
     await startStage(db, sid, "market");
@@ -486,10 +518,10 @@ async function startFirstLeads(db: Db, session: OnboardingSession) {
     const play = await ensureMainPlay(db, session.workspaceId, { onboardingSessionId: session.id });
     await startRun(db, play.id);
     await setStep(db, session.id, "first_leads", "running");
-    await say(db, session.id, "Looking for your first real leads with the Main Play. You can activate meanwhile.");
+    await say(db, session.id, t("say.firstLeadsLooking"));
   } catch (error) {
     await setStep(db, session.id, "first_leads", "skipped");
-    await say(db, session.id, `Couldn't start the first search: ${(error as Error).message}`);
+    await say(db, session.id, t("say.firstLeadsCouldNotStart", { error: (error as Error).message }));
   }
 }
 
@@ -500,13 +532,13 @@ export async function reportFirstLeads(
   outcome: { ok: boolean; qualified: number; needsReview: number; examples: string[] },
 ) {
   await setStep(db, sessionId, "first_leads", outcome.ok ? "done" : "skipped");
-  if (!outcome.ok) return say(db, sessionId, "The first search stopped early. Run the Main Play again from Plays.");
+  if (!outcome.ok) return say(db, sessionId, t("say.firstLeadsStopped"));
   const total = outcome.qualified + outcome.needsReview;
   await say(
     db,
     sessionId,
     total === 0
-      ? "No matching people in this first pass. Plays will widen the search."
-      : `Found ${outcome.qualified} qualified and ${outcome.needsReview} to review, e.g. ${outcome.examples.slice(0, 3).join("; ")}. They're in Plays → Main.`,
+      ? t("say.firstLeadsNone")
+      : t("say.firstLeadsFound", { qualified: outcome.qualified, review: outcome.needsReview, examples: outcome.examples.slice(0, 3).join("; ") }),
   );
 }

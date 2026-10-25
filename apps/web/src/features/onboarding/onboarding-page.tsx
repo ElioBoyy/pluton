@@ -5,9 +5,10 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { BrainData } from "@pluton/core";
 import { Button, Input } from "../../components/ui.tsx";
 import { WorkspaceMenu } from "../workspaces/workspace-menu.tsx";
+import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
-import { BrainGraph, buildGraph, hubForSection, hubMeta } from "./brain-graph.tsx";
+import { BrainGraph, buildGraph, hubForSection, hubLabel, hubMeta } from "./brain-graph.tsx";
 import { CardModal } from "./card-modal.tsx";
 import { ChatPanel } from "./chat-panel.tsx";
 import { pendingCards, useOnboarding } from "./use-onboarding.ts";
@@ -22,6 +23,7 @@ export function OnboardingPage({ fresh }: { fresh: boolean }) {
 }
 
 function OnboardingForm() {
+  const t = useT("onboarding");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -64,34 +66,34 @@ function OnboardingForm() {
         }}
       >
         <h1 className="text-[22px] font-semibold leading-tight tracking-tight">
-          Hey 👋
+          {t("form.greeting")}
           <br />
-          Let&apos;s learn about your business
+          {t("form.heading")}
         </h1>
-        <p className="mt-3 text-sm text-muted">Give Pluton your website. You&apos;ll review what it learns as it builds.</p>
+        <p className="mt-3 text-sm text-muted">{t("form.description")}</p>
 
-        <Field label="Your name" optional className="mt-8">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" autoComplete="name" />
+        <Field label={t("form.name")} optional className="mt-8">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("form.namePlaceholder")} autoComplete="name" />
         </Field>
 
         {describe ? (
-          <Field label="What are you building?" className="mt-4">
+          <Field label={t("form.building")} className="mt-4">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               autoFocus
-              placeholder="Two short sentences: what it does and for whom."
+              placeholder={t("form.buildingPlaceholder")}
               className="block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
             />
           </Field>
         ) : (
-          <Field label="Your website" className="mt-4">
+          <Field label={t("form.website")} className="mt-4">
             <Input value={site} onChange={(e) => setWebsite(e.target.value)} placeholder="example.com" autoFocus />
           </Field>
         )}
         <button type="button" onClick={() => setDescribe(!describe)} className="mt-3 text-xs text-accent hover:underline">
-          {describe ? "I have a website" : "No website yet? Describe what you're building."}
+          {describe ? t("form.haveWebsite") : t("form.noWebsite")}
         </button>
 
         <div className="mt-8">
@@ -102,14 +104,14 @@ function OnboardingForm() {
             className="flex w-full items-center gap-1.5 text-sm font-medium"
           >
             <CaretRight size={12} weight="bold" className={cn("text-muted transition-transform duration-150", showContext && "rotate-90")} />
-            Add context (optional)
+            {t("form.addContext")}
           </button>
           {showContext && (
             <textarea
               value={context}
               onChange={(e) => setContext(e.target.value)}
               rows={4}
-              placeholder="Customers you love, markets to ignore, anything the site doesn't say."
+              placeholder={t("form.contextPlaceholder")}
               className={cn("mt-3", "block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring")}
             />
           )}
@@ -117,7 +119,7 @@ function OnboardingForm() {
 
         <Button type="submit" disabled={!canSubmit || start.isPending} className="mt-8 h-8 w-full">
           {start.isPending && <CircleNotch size={14} className="animate-spin" />}
-          Start deepsearch
+          {t("form.start")}
         </Button>
         {start.error && <p className="mt-3 text-sm text-system-orange">{start.error.message}</p>}
       </form>
@@ -126,10 +128,11 @@ function OnboardingForm() {
 }
 
 function Field({ label, optional, className, children }: { label: string; optional?: boolean; className?: string; children: ReactNode }) {
+  const t = useT("onboarding");
   return (
     <label className={cn("flex flex-col gap-1.5", className)}>
       <span className="px-0.5 text-xs font-medium">
-        {label} {optional && <span className="font-normal text-muted">(optional)</span>}
+        {label} {optional && <span className="font-normal text-muted">{t("form.optional")}</span>}
       </span>
       {children}
     </label>
@@ -137,6 +140,7 @@ function Field({ label, optional, className, children }: { label: string; option
 }
 
 function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt: number }) {
+  const t = useT("onboarding");
   const state = useOnboarding(sessionId);
   const navigate = useNavigate();
   const [pickedHub, setPickedHub] = useState<string | null>(null);
@@ -151,7 +155,7 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
 
   const items = useMemo(() => [...state.brain.values()], [state.brain]);
   const company = items.find((i) => i.section === "company")?.data as BrainData<"company"> | undefined;
-  const rootLabel = company?.name ?? "brain";
+  const rootLabel = company?.name ?? t("graph.root");
   const hubLeaves = useMemo(() => buildGraph(items, rootLabel).hubLeaves, [items, rootLabel]);
 
   // The detail panel follows the research until the user picks a hub themselves.
@@ -163,9 +167,10 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
 
   return (
     <div className="flex h-full">
-      <aside className="flex w-[300px] shrink-0 flex-col bg-panel">
-        <div className="flex px-3 pt-2.5">
-          <WorkspaceMenu className="pl-1" />
+      {/* The same floating sidebar pane as the rest of the app. */}
+      <aside className="my-2 ml-2 flex w-[300px] shrink-0 flex-col overflow-hidden rounded-[18px] bg-sidebar shadow-[0_0_0_0.5px_var(--color-line),0_6px_24px_rgb(0_0_0/0.08)]">
+        <div className="flex px-2.5 pt-3 pb-3">
+          <WorkspaceMenu />
         </div>
         <div className="min-h-0 flex-1">
           <ChatPanel state={state} sessionId={sessionId} startedAt={startedAt} onActivated={() => setCelebrating(true)} />
@@ -177,10 +182,10 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
         {hub && leaves.length > 0 && (
           <div className="glass absolute top-5 right-5 w-64 rounded-3xl p-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="truncate text-sm font-semibold">{hubMeta(hub)?.label}</h3>
+              <h3 className="truncate text-sm font-semibold">{hubMeta(hub) && hubLabel(hubMeta(hub)!.id)}</h3>
               {pickedHub && (
                 <button onClick={() => setPickedHub(null)} className="text-xs text-accent hover:underline">
-                  Follow
+                  {t("follow")}
                 </button>
               )}
             </div>
@@ -200,8 +205,8 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
             <span className="flex size-14 items-center justify-center rounded-full bg-panel shadow-window">
               <Sparkle size={26} weight="fill" className="text-ink motion-safe:animate-pulse" />
             </span>
-            <p className="mt-5 text-lg font-semibold">Your Brain is live</p>
-            <p className="mt-1 text-sm text-muted">Your first leads are on their way.</p>
+            <p className="mt-5 text-lg font-semibold">{t("live.title")}</p>
+            <p className="mt-1 text-sm text-muted">{t("live.description")}</p>
           </div>
         )}
         {current && (

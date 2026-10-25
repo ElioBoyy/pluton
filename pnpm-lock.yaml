@@ -139,6 +139,9 @@ importers:
       '@pluton/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@pluton/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@pluton/providers':
         specifier: workspace:*
         version: link:../../packages/providers
@@ -173,6 +176,9 @@ importers:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@pluton/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@tanstack/react-query':
         specifier: ^5.104.5
         version: 5.104.5(@types/react@19.3.0)(react@19.3.1)
@@ -246,6 +252,9 @@ importers:
       '@pluton/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@pluton/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@pluton/providers':
         specifier: workspace:*
         version: link:../../packages/providers
@@ -277,6 +286,9 @@ importers:
       '@pluton/db':
         specifier: workspace:*
         version: link:../db
+      '@pluton/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@pluton/providers':
         specifier: workspace:*
         version: link:../providers
@@ -299,6 +311,9 @@ importers:
       '@pluton/db':
         specifier: workspace:*
         version: link:../db
+      '@pluton/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -315,6 +330,9 @@ importers:
       '@libsql/client':
         specifier: ^0.18.0
         version: 0.18.0
+      '@pluton/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@libsql/client@0.18.0)(@opentelemetry/api@1.10.0)
@@ -332,11 +350,23 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/i18n:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/providers:
     dependencies:
       '@pluton/db':
         specifier: workspace:*
         version: link:../db
+      '@pluton/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       nodemailer:
         specifier: ^7.0.13
         version: 7.0.13

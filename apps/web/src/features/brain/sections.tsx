@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { BrainItemView } from "@pluton/core";
 import { contextMenu } from "../../components/context-menu.tsx";
 import { Button, Group, Row, Section, TextButton } from "../../components/ui.tsx";
+import { useT, type MessageKey } from "../../i18n/index.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { RELATIONS, SECTION_FIELDS, SECTION_LABELS, emptyData, titleOf, type BrainSection } from "./fields.ts";
 import { ItemEditor } from "./item-editor.tsx";
@@ -36,11 +37,16 @@ export const CHIP = "inline-flex min-h-[22px] max-w-full items-center rounded-md
  * places (list cards, the Suggestions inspector).
  */
 export function ItemFields({ section, data, skipTitle, layout = "stack" }: { section: BrainSection; data: Data; skipTitle?: boolean; layout?: "rows" | "stack" }) {
+  const t = useT("brain");
   const fields = SECTION_FIELDS[section].filter((f, i) => !(skipTitle && i === 0));
   const shown = fields.filter((f) => {
     const v = data[f.key];
     return !(v === undefined || v === "" || (Array.isArray(v) && v.length === 0));
   });
+  const optionLabel = (options: Array<{ value: string; label: MessageKey<"brain"> }>, v: unknown) => {
+    const option = options.find((o) => o.value === v);
+    return option && t(option.label);
+  };
   const value = (f: (typeof fields)[number]) => {
     const v = data[f.key];
     return f.kind === "list" || f.kind === "bands" ? (
@@ -53,14 +59,14 @@ export function ItemFields({ section, data, skipTitle, layout = "stack" }: { sec
       </span>
     ) : f.kind === "tech" ? (
       <span className="flex flex-wrap gap-1.5">
-        {(v as Array<{ name: string; relation: string }>).map((t) => (
-          <span key={t.name} className={CHIP}>
-            {t.name} <span className="ml-1 text-muted">· {RELATIONS.find((r) => r.value === t.relation)?.label}</span>
+        {(v as Array<{ name: string; relation: string }>).map((tech) => (
+          <span key={tech.name} className={CHIP}>
+            {tech.name} <span className="ml-1 text-muted">· {optionLabel(RELATIONS, tech.relation)}</span>
           </span>
         ))}
       </span>
     ) : f.kind === "select" ? (
-      f.options.find((o) => o.value === v)?.label
+      optionLabel(f.options, v)
     ) : (
       <span className={f.kind === "textarea" ? "text-muted" : undefined}>{String(v)}</span>
     );
@@ -71,7 +77,7 @@ export function ItemFields({ section, data, skipTitle, layout = "stack" }: { sec
       <>
         {shown.map((f) => (
           <Row key={f.key} className="items-baseline! max-sm:flex-col max-sm:items-start! max-sm:gap-1.5">
-            <dt className="w-36 shrink-0 text-sm text-muted">{f.label}</dt>
+            <dt className="w-36 shrink-0 text-sm text-muted">{t(f.label)}</dt>
             <dd className="min-w-0 flex-1 text-sm leading-relaxed">{value(f)}</dd>
           </Row>
         ))}
@@ -81,7 +87,7 @@ export function ItemFields({ section, data, skipTitle, layout = "stack" }: { sec
     <dl className="flex flex-col gap-2.5">
       {shown.map((f) => (
         <div key={f.key}>
-          <dt className="text-xs text-muted">{f.label}</dt>
+          <dt className="text-xs text-muted">{t(f.label)}</dt>
           <dd className="mt-1 text-sm leading-relaxed">{value(f)}</dd>
         </div>
       ))}
@@ -91,6 +97,8 @@ export function ItemFields({ section, data, skipTitle, layout = "stack" }: { sec
 
 /** A section holding one object (company, ICP, voice, signals). */
 export function SingletonSection({ section, item, title }: { section: BrainSection; item?: BrainItemView; title?: string }) {
+  const t = useT("brain");
+  const tc = useT("common");
   const [editing, setEditing] = useState(false);
   const m = useBrainMutations();
   const pending = m.update.isPending || m.create.isPending;
@@ -98,11 +106,11 @@ export function SingletonSection({ section, item, title }: { section: BrainSecti
 
   return (
     <Section
-      title={title ?? SECTION_LABELS[section]}
+      title={title ?? t(SECTION_LABELS[section])}
       actions={
         !editing && (
           <Button variant="ghost" onClick={() => setEditing(true)}>
-            {item ? <PencilSimple size={13} /> : <Plus size={13} />} {item ? "Edit" : "Add"}
+            {item ? <PencilSimple size={13} /> : <Plus size={13} />} {item ? tc("edit") : tc("add")}
           </Button>
         )
       }
@@ -128,7 +136,7 @@ export function SingletonSection({ section, item, title }: { section: BrainSecti
             <ItemFields section={section} data={item.data} layout="rows" />
           </dl>
         ) : (
-          <p className="px-4 py-6 text-center text-sm text-muted">Nothing yet.</p>
+          <p className="px-4 py-6 text-center text-sm text-muted">{t("list.nothingYet")}</p>
         )}
       </Group>
     </Section>
@@ -137,6 +145,8 @@ export function SingletonSection({ section, item, title }: { section: BrainSecti
 
 /** A section holding many items (personas, competitors…), each editable and archivable. */
 export function ListSection({ section, items, description }: { section: BrainSection; items: BrainItemView[]; description?: string }) {
+  const t = useT("brain");
+  const tc = useT("common");
   const trpc = useTRPC();
   const archived = useQuery(trpc.brain.archived.queryOptions());
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
@@ -149,14 +159,14 @@ export function ListSection({ section, items, description }: { section: BrainSec
     <Section
       title={
         <>
-          {SECTION_LABELS[section]} <span className="ml-1 font-normal text-muted tabular-nums">{items.length}</span>
+          {t(SECTION_LABELS[section])} <span className="ml-1 font-normal text-muted tabular-nums">{items.length}</span>
         </>
       }
       description={description}
       actions={
         editingId !== "new" && (
           <Button variant="ghost" onClick={() => setEditingId("new")}>
-            <Plus size={13} /> Add
+            <Plus size={13} /> {tc("add")}
           </Button>
         )
       }
@@ -195,19 +205,19 @@ export function ListSection({ section, items, description }: { section: BrainSec
                 key={item.id}
                 className="group min-w-0 rounded-xl bg-panel px-4 py-3.5 shadow-card"
                 onContextMenu={contextMenu(() => [
-                  { label: "Edit", icon: PencilSimple, onSelect: () => setEditingId(item.id) },
-                  { label: "Copy", icon: Copy, onSelect: () => void navigator.clipboard.writeText(titleOf(section, item.data)) },
+                  { label: tc("edit"), icon: PencilSimple, onSelect: () => setEditingId(item.id) },
+                  { label: tc("copy"), icon: Copy, onSelect: () => void navigator.clipboard.writeText(titleOf(section, item.data)) },
                   "gap",
-                  { label: "Archive", icon: Archive, onSelect: () => m.archive.mutate({ id: item.id }) },
+                  { label: t("list.archive"), icon: Archive, onSelect: () => m.archive.mutate({ id: item.id }) },
                 ])}
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="min-w-0 pt-1 text-sm font-semibold break-words">{titleOf(section, item.data)}</p>
                   <div className="-mt-0.5 -mr-1.5 flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
-                    <IconButton label="Edit" onClick={() => setEditingId(item.id)}>
+                    <IconButton label={tc("edit")} onClick={() => setEditingId(item.id)}>
                       <PencilSimple size={14} />
                     </IconButton>
-                    <IconButton label="Archive" onClick={() => m.archive.mutate({ id: item.id })}>
+                    <IconButton label={t("list.archive")} onClick={() => m.archive.mutate({ id: item.id })}>
                       <Archive size={14} />
                     </IconButton>
                   </div>
@@ -222,21 +232,21 @@ export function ListSection({ section, items, description }: { section: BrainSec
       )}
       {items.length === 0 && editingId !== "new" && (
         <Group>
-          <p className="px-4 py-6 text-center text-sm text-muted">Nothing yet.</p>
+          <p className="px-4 py-6 text-center text-sm text-muted">{t("list.nothingYet")}</p>
         </Group>
       )}
 
       {archivedHere.length > 0 && (
         <div className="mt-3 px-1">
           <TextButton onClick={() => setShowArchived(!showArchived)} className="text-xs">
-            {showArchived ? "Hide" : "Show"} archived ({archivedHere.length})
+            {t(showArchived ? "list.hideArchived" : "list.showArchived", { count: archivedHere.length })}
           </TextButton>
           {showArchived && (
             <Group className="-mx-1 mt-2">
               {archivedHere.map((item) => (
                 <Row key={item.id} label={<span className="text-muted">{titleOf(section, item.data)}</span>}>
                   <Button variant="ghost" onClick={() => m.restore.mutate({ id: item.id })}>
-                    <ArrowCounterClockwise size={13} /> Restore
+                    <ArrowCounterClockwise size={13} /> {t("list.restore")}
                   </Button>
                 </Row>
               ))}

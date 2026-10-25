@@ -11,6 +11,7 @@ import {
   type ResearchStepKey,
 } from "@pluton/core";
 import type { Db, OnboardingStage } from "@pluton/db";
+import { languageInstruction } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
 import { localTool, type LocalTool } from "./run-agent.ts";
 
@@ -176,7 +177,9 @@ Map the market around this company and call each save tool once:
 export async function runOnboardingStage(ctx: StageContext & { stage: OnboardingStage }) {
   const spec = await stages[ctx.stage](ctx);
   return runAgent({
-    system: BASE_SYSTEM,
+    // The founder reads the narration in their language; the Brain keeps the market's language.
+    system: `${BASE_SYSTEM}
+- ${languageInstruction()} That covers only what you narrate: everything you save stays in the market's language, as above.`,
     prompt: spec.prompt,
     tools: spec.tools,
     required: spec.required,
