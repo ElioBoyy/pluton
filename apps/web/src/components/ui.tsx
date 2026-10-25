@@ -8,11 +8,11 @@ export function Button({ variant = "primary", className, ...props }: ButtonProps
     <button
       {...props}
       className={cn(
-        // macOS 26 push button: a capsule; primary is the accent-filled default button.
-        "inline-flex h-7 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[background-color,filter]",
-        "active:brightness-90 disabled:cursor-not-allowed disabled:opacity-50",
-        variant === "primary" && "bg-accent text-on-accent shadow-control hover:brightness-110",
-        variant === "ghost" && "bg-control text-ink shadow-control hover:bg-control-hover",
+        // macOS 27 push button: a flat rounded rectangle; primary is the accent-filled default button.
+        "inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium transition-[background-color,filter]",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        variant === "primary" && "bg-accent text-on-accent hover:brightness-110 active:brightness-90",
+        variant === "ghost" && "bg-control text-ink hover:bg-control-hover active:bg-control-pressed",
         className,
       )}
     />
@@ -24,7 +24,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
     <input
       {...props}
       className={cn(
-        "h-7 w-full rounded-lg border border-line bg-canvas px-2.5 text-sm text-ink shadow-[inset_0_0.5px_1px_rgb(0_0_0/0.06)] placeholder:text-faint",
+        "h-7 w-full rounded-md border border-line bg-canvas px-2.5 text-sm text-ink placeholder:text-faint",
         "outline-none focus:focus-ring",
         className,
       )}

@@ -12,7 +12,7 @@ const OPTIONS: Array<{ value: Appearance; label: string; icon: Icon }> = [
 export function AppearanceControl() {
   const appearance = useAppearance();
   return (
-    <div role="radiogroup" aria-label="Appearance" className="flex rounded-full bg-raised p-0.5">
+    <div role="radiogroup" aria-label="Appearance" className="flex rounded-full bg-control p-0.5">
       {OPTIONS.map(({ value, label, icon: IconCmp }) => (
         <button
           key={value}
@@ -26,7 +26,7 @@ export function AppearanceControl() {
           }}
           className={cn(
             "flex h-6 w-7 items-center justify-center rounded-full",
-            appearance === value ? "bg-control text-ink shadow-control" : "text-muted hover:text-ink",
+            appearance === value ? "bg-canvas text-ink shadow-control" : "text-muted hover:text-ink",
           )}
         >
           <IconCmp size={13} weight={appearance === value ? "fill" : "regular"} />

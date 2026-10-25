@@ -51,8 +51,8 @@ export function AppShell() {
 
   return (
     <div className="flex h-full">
-      {/* macOS 26 sidebar: a Liquid Glass panel floating inside the window. */}
-      <aside className="glass m-2 mr-0 flex w-60 shrink-0 flex-col rounded-[18px]">
+      {/* macOS 27 sidebar: opaque, full height and flush with the window edge. */}
+      <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-sidebar">
         <div className="flex items-center gap-2.5 px-4 pt-4 pb-3">
           <span className="flex size-6 items-center justify-center rounded-md bg-cat-pink text-xs font-semibold text-on-accent">
             {workspace.data?.icon ?? name.charAt(0).toUpperCase()}
@@ -65,7 +65,7 @@ export function AppShell() {
             <div key={to}>
               <Link
                 to={to}
-                className="flex h-7 items-center gap-2 rounded-lg px-2 text-sm text-ink hover:bg-raised"
+                className="flex h-7 items-center gap-2 rounded-md px-2 text-sm text-ink hover:bg-raised"
                 activeProps={{ className: "!bg-selected" }}
                 activeOptions={{ exact: to === "/plays" }}
               >
@@ -86,7 +86,7 @@ export function AppShell() {
                         <Link
                           to="/plays/$playId"
                           params={{ playId: p.id }}
-                          className="flex h-7 items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-raised hover:text-ink"
+                          className="flex h-7 items-center gap-2 rounded-md px-2 text-sm text-muted hover:bg-raised hover:text-ink"
                           activeProps={{ className: "!bg-selected !text-ink" }}
                         >
                           <span className="flex-1 truncate">{p.name}</span>
@@ -101,7 +101,7 @@ export function AppShell() {
         </nav>
 
         <div className="mt-auto flex flex-col gap-3 p-3">
-          <div className="rounded-xl bg-raised p-3">
+          <div className="rounded-lg bg-raised p-3">
             <p className="mb-2 text-xs font-semibold text-muted">Get started</p>
             <ul className="flex flex-col gap-1.5">
               {GET_STARTED.map((step) => (
@@ -115,7 +115,7 @@ export function AppShell() {
           <div className="flex items-center gap-2">
             <Link
               to="/workspace/settings"
-              className="flex h-7 flex-1 items-center gap-2 rounded-lg px-2 text-sm text-ink hover:bg-raised"
+              className="flex h-7 flex-1 items-center gap-2 rounded-md px-2 text-sm text-ink hover:bg-raised"
               activeProps={{ className: "!bg-selected" }}
             >
               <Gear size={16} className="text-accent" />
@@ -132,7 +132,7 @@ export function AppShell() {
         {!pathname.startsWith("/plays/new") && (
         <button
           onClick={() => setPaletteOpen(true)}
-          className="glass fixed bottom-5 left-[calc(50%+7.75rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted hover:text-ink"
+          className="glass fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted hover:text-ink"
         >
           <MagnifyingGlass size={18} />
           Ask Pluton anything
