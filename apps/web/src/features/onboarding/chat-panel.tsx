@@ -69,7 +69,7 @@ export function ChatPanel({
       {working && lastAssistant && (
         <p className="flex items-start gap-2 text-sm text-muted">
           <CircleNotch size={14} className="mt-0.5 shrink-0 animate-spin" />
-          {state.status === "needs_input" ? "Waiting for your answer…" : lastAssistant.text}
+          {state.status === "needs_input" ? "Waiting for your answer…" : <span className="ai-text">{lastAssistant.text}</span>}
         </p>
       )}
 
@@ -86,7 +86,7 @@ export function ChatPanel({
 function Bubble({ role, text }: { role: "assistant" | "user"; text: string }) {
   if (role === "user") {
     return (
-      <div className="self-end rounded-xl bg-ink px-3 py-2 text-sm text-canvas" style={{ maxWidth: "85%" }}>
+      <div className="self-end rounded-2xl bg-accent px-3 py-2 text-sm text-on-accent" style={{ maxWidth: "85%" }}>
         {text}
       </div>
     );

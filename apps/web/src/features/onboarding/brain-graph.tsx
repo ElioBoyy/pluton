@@ -2,20 +2,22 @@ import { CornersOut, Minus, Plus } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
 import type { BrainItemView } from "@pluton/core";
+import { useTheme } from "../../lib/theme.ts";
 
 type Kind = "root" | "hub" | "leaf";
 export type GraphNode = { id: string; label: string; kind: Kind; color: string; hub?: string; x?: number; y?: number };
 type GraphLink = { source: string; target: string };
 
+// Theme tokens, so the graph follows the light/dark appearance; the canvas resolves them with useCssColor.
 const C = {
-  pink: "#e0558d",
-  purple: "#9b7bf2",
-  orange: "#e2763f",
-  yellow: "#e0b53f",
-  green: "#5fae8b",
-  lime: "#9bbf4d",
-  blue: "#6b8cf5",
-  root: "#f4f5f7",
+  pink: "var(--color-cat-pink)",
+  purple: "var(--color-cat-purple)",
+  orange: "var(--color-cat-orange)",
+  yellow: "var(--color-cat-yellow)",
+  green: "var(--color-cat-mint)",
+  lime: "var(--color-cat-green)",
+  blue: "var(--color-cat-blue)",
+  root: "var(--color-ink)",
 };
 
 type HubDef = { id: string; label: string; color: string; parent?: string; leaves: (items: BrainItemView[]) => string[] };
@@ -103,6 +105,22 @@ export const hubMeta = (hubId: string) => HUBS.find((h) => h.id === hubId);
 
 const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
+/** Canvas can't read CSS variables: resolve `var(--x)` to its value, again whenever the appearance flips. */
+function useCssColor() {
+  const theme = useTheme();
+  // `theme` is a dependency only so the cache is dropped when the appearance flips.
+  return useMemo(() => {
+    const style = getComputedStyle(document.documentElement);
+    const cache = new Map<string, string>();
+    return (value: string) => {
+      const name = /^var\((--[\w-]+)\)$/.exec(value)?.[1];
+      if (!name) return value;
+      if (!cache.has(name)) cache.set(name, style.getPropertyValue(name).trim());
+      return cache.get(name)!;
+    };
+  }, [theme]);
+}
+
 export function BrainGraph({
   items,
   rootLabel,
@@ -118,6 +136,7 @@ export function BrainGraph({
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined);
   const nodeCache = useRef(new Map<string, GraphNode>());
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const color = useCssColor();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -171,7 +190,7 @@ export function BrainGraph({
             if (data.nodes.length > 6) graphRef.current?.zoomToFit(600, 80);
             else graphRef.current?.zoom(1.6, 400);
           }}
-          linkColor={() => "rgba(255,255,255,0.09)"}
+          linkColor={() => color("var(--color-line)")}
           linkWidth={1}
           enableNodeDrag
           onNodeClick={(node) => node.hub && onSelectHub(node.hub)}
@@ -186,26 +205,28 @@ export function BrainGraph({
             const dim = selectedHub !== null && node.hub !== selectedHub && node.kind !== "root";
             ctx.globalAlpha = dim ? 0.45 : 1;
             if (node.kind === "hub") {
-              ctx.fillStyle = `${node.color}40`;
+              ctx.globalAlpha = (dim ? 0.45 : 1) * 0.25;
+              ctx.fillStyle = color(node.color);
               ctx.beginPath();
               ctx.arc(node.x!, node.y!, r + 3, 0, 2 * Math.PI);
               ctx.fill();
+              ctx.globalAlpha = dim ? 0.45 : 1;
             }
-            ctx.fillStyle = node.color;
+            ctx.fillStyle = color(node.color);
             ctx.beginPath();
             ctx.arc(node.x!, node.y!, r, 0, 2 * Math.PI);
             ctx.fill();
 
             const fontSize = (node.kind === "leaf" ? 10 : 11.5) / Math.max(scale, 0.6);
-            ctx.font = `${node.kind === "leaf" ? 400 : 600} ${fontSize}px Inter Variable, sans-serif`;
+            ctx.font = `${node.kind === "leaf" ? 400 : 600} ${fontSize}px ${color("var(--font-sans)")}`;
             ctx.textBaseline = "middle";
-            ctx.fillStyle = node.kind === "leaf" ? "#9aa0a8" : "#e8eaed";
+            ctx.fillStyle = color(node.kind === "leaf" ? "var(--color-muted)" : "var(--color-ink)");
             ctx.fillText(truncate(node.label, node.kind === "leaf" ? 28 : 40), node.x! + r + 5, node.y!);
             ctx.globalAlpha = 1;
           }}
         />
       )}
-      <div className="absolute bottom-5 left-5 flex flex-col overflow-hidden rounded-lg border border-line bg-panel">
+      <div className="glass absolute bottom-5 left-5 flex flex-col overflow-hidden rounded-xl">
         {[
           { icon: Plus, label: "Zoom in", run: () => graphRef.current?.zoom(graphRef.current.zoom() * 1.3, 300) },
           { icon: Minus, label: "Zoom out", run: () => graphRef.current?.zoom(graphRef.current.zoom() / 1.3, 300) },

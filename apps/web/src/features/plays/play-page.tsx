@@ -171,11 +171,11 @@ function RunPanel({ run, live, onFinished }: { run: Run; live: boolean; onFinish
   });
 
   return (
-    <Card>
+    <Card className={live ? "ai-glow" : undefined}>
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           {live && <CircleNotch size={14} className="animate-spin" />}
-          {live ? "Searching now" : "Latest search"}
+          {live ? <span className="ai-text">Searching now</span> : "Latest search"}
         </h2>
         <span className="text-xs text-faint">
           {new Date(run.createdAt).toLocaleString()}

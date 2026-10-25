@@ -77,7 +77,7 @@ export function RejectPopover({
             aria-pressed={reasons.includes(r.key)}
             className={cn(
               "rounded-full border px-2.5 py-1 text-xs transition-colors",
-              reasons.includes(r.key) ? "border-ink bg-ink text-canvas" : "border-line text-muted hover:text-ink",
+              reasons.includes(r.key) ? "border-accent bg-accent text-on-accent" : "border-line text-muted hover:text-ink",
             )}
           >
             {r.label}
@@ -90,7 +90,7 @@ export function RejectPopover({
         placeholder="Anything else?"
         rows={2}
         maxLength={1000}
-        className="mt-3 w-full resize-none rounded-lg border border-line bg-raised px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-line-strong"
+        className="mt-3 w-full resize-none rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none placeholder:text-faint focus:focus-ring"
       />
       <div className="mt-3 flex justify-end gap-2">
         <Button variant="ghost" className="h-8" onClick={onClose}>

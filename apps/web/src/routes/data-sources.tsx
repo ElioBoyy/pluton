@@ -134,7 +134,7 @@ function TryPanel({ providerId }: { providerId: string }) {
           {run.isPending ? <CircleNotch size={14} className="animate-spin" /> : "Run"}
         </Button>
       </form>
-      {run.isPending && providerId === "web" && <p className="mt-2 text-xs text-faint">Claude is searching, this takes ~20–40 s…</p>}
+      {run.isPending && providerId === "web" && <p className="ai-text mt-2 text-xs">Claude is searching, this takes ~20–40 s…</p>}
       {run.error && <p className="mt-3 text-sm text-cat-orange">{run.error.message}</p>}
       {run.data && <div className="mt-3">{renderResult(run.data)}</div>}
     </div>

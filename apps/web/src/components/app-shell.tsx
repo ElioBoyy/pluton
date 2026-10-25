@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTRPC } from "../lib/trpc.ts";
+import { AppearanceControl } from "./appearance-control.tsx";
 import { CommandPalette } from "./command-palette.tsx";
 import { Toaster } from "./toast.tsx";
 
@@ -50,33 +51,34 @@ export function AppShell() {
 
   return (
     <div className="flex h-full">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-panel">
-        <div className="flex items-center gap-2.5 px-4 py-4">
-          <span className="flex size-7 items-center justify-center rounded-md bg-cat-pink text-xs font-semibold text-white">
+      {/* macOS 26 sidebar: a Liquid Glass panel floating inside the window. */}
+      <aside className="glass m-2 mr-0 flex w-60 shrink-0 flex-col rounded-[18px]">
+        <div className="flex items-center gap-2.5 px-4 pt-4 pb-3">
+          <span className="flex size-6 items-center justify-center rounded-md bg-cat-pink text-xs font-semibold text-on-accent">
             {workspace.data?.icon ?? name.charAt(0).toUpperCase()}
           </span>
-          <span className="truncate text-sm font-medium">{name}</span>
+          <span className="truncate text-sm font-semibold">{name}</span>
         </div>
 
-        <nav className="flex min-h-0 flex-col gap-0.5 overflow-y-auto px-2">
+        <nav className="flex min-h-0 flex-col gap-px overflow-y-auto px-2.5">
           {NAV.map(({ to, label, icon: IconCmp }) => (
             <div key={to}>
               <Link
                 to={to}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink"
-                activeProps={{ className: "bg-raised !text-ink" }}
+                className="flex h-7 items-center gap-2 rounded-lg px-2 text-sm text-ink hover:bg-raised"
+                activeProps={{ className: "!bg-selected" }}
                 activeOptions={{ exact: to === "/plays" }}
               >
-                <IconCmp size={17} />
+                <IconCmp size={16} className="text-accent" />
                 <span className="flex-1">{label}</span>
                 {to === "/leads" && toReview > 0 && (
-                  <span className="rounded-full bg-raised px-1.5 text-[11px] tabular-nums text-muted" title={`${toReview} to review`}>
+                  <span className="text-xs tabular-nums text-muted" title={`${toReview} to review`}>
                     {toReview}
                   </span>
                 )}
               </Link>
               {to === "/plays" && (
-                <ul className="mt-0.5 mb-1 ml-[1.15rem] flex flex-col border-l border-line pl-2">
+                <ul className="mt-px mb-1 ml-4 flex flex-col gap-px pl-2">
                   {(plays.data ?? [])
                     .filter((p) => p.status !== "archived")
                     .map((p) => (
@@ -84,11 +86,11 @@ export function AppShell() {
                         <Link
                           to="/plays/$playId"
                           params={{ playId: p.id }}
-                          className="flex items-center gap-2 rounded-md px-2 py-1 text-[13px] text-muted hover:bg-raised hover:text-ink"
-                          activeProps={{ className: "bg-raised !text-ink" }}
+                          className="flex h-7 items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-raised hover:text-ink"
+                          activeProps={{ className: "!bg-selected !text-ink" }}
                         >
                           <span className="flex-1 truncate">{p.name}</span>
-                          {p.leadCounts.toReview > 0 && <span className="text-[11px] tabular-nums text-faint">{p.leadCounts.toReview}</span>}
+                          {p.leadCounts.toReview > 0 && <span className="text-xs tabular-nums text-muted">{p.leadCounts.toReview}</span>}
                         </Link>
                       </li>
                     ))}
@@ -99,8 +101,8 @@ export function AppShell() {
         </nav>
 
         <div className="mt-auto flex flex-col gap-3 p-3">
-          <div className="rounded-xl border border-line bg-raised/60 p-3">
-            <p className="mb-2 text-xs font-medium text-muted">Get started</p>
+          <div className="rounded-xl bg-raised p-3">
+            <p className="mb-2 text-xs font-semibold text-muted">Get started</p>
             <ul className="flex flex-col gap-1.5">
               {GET_STARTED.map((step) => (
                 <li key={step} className="flex items-center gap-2 text-xs text-muted">
@@ -110,14 +112,17 @@ export function AppShell() {
               ))}
             </ul>
           </div>
-          <Link
-            to="/workspace/settings"
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink"
-            activeProps={{ className: "bg-raised !text-ink" }}
-          >
-            <Gear size={17} />
-            Settings
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/workspace/settings"
+              className="flex h-7 flex-1 items-center gap-2 rounded-lg px-2 text-sm text-ink hover:bg-raised"
+              activeProps={{ className: "!bg-selected" }}
+            >
+              <Gear size={16} className="text-accent" />
+              Settings
+            </Link>
+            <AppearanceControl />
+          </div>
         </div>
       </aside>
 
@@ -127,11 +132,11 @@ export function AppShell() {
         {!pathname.startsWith("/plays/new") && (
         <button
           onClick={() => setPaletteOpen(true)}
-          className="fixed bottom-5 left-[calc(50%+7.5rem)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-panel/90 px-4 py-2 text-sm text-muted shadow-lg backdrop-blur hover:text-ink"
+          className="glass fixed bottom-5 left-[calc(50%+7.75rem)] flex h-9 -translate-x-1/2 items-center gap-2 rounded-full px-4 text-sm text-muted hover:text-ink"
         >
           <MagnifyingGlass size={15} />
           Ask Pluton anything
-          <kbd className="ml-2 rounded border border-line px-1.5 text-[11px] text-faint">⌘K</kbd>
+          <kbd className="ml-2 font-sans text-xs text-faint">⌘K</kbd>
         </button>
         )}
       </main>

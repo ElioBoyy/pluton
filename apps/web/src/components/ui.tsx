@@ -8,10 +8,11 @@ export function Button({ variant = "primary", className, ...props }: ButtonProps
     <button
       {...props}
       className={cn(
-        "inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-medium transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        variant === "primary" && "bg-ink text-canvas hover:bg-white",
-        variant === "ghost" && "border border-line text-ink hover:bg-raised",
+        // macOS 26 push button: a capsule; primary is the accent-filled default button.
+        "inline-flex h-7 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[background-color,filter]",
+        "active:brightness-90 disabled:cursor-not-allowed disabled:opacity-50",
+        variant === "primary" && "bg-accent text-on-accent shadow-control hover:brightness-110",
+        variant === "ghost" && "bg-control text-ink shadow-control hover:bg-control-hover",
         className,
       )}
     />
@@ -23,8 +24,8 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
     <input
       {...props}
       className={cn(
-        "h-9 w-full rounded-lg border border-line bg-raised px-3 text-sm text-ink placeholder:text-faint",
-        "outline-none focus:border-line-strong",
+        "h-7 w-full rounded-lg border border-line bg-canvas px-2.5 text-sm text-ink shadow-[inset_0_0.5px_1px_rgb(0_0_0/0.06)] placeholder:text-faint",
+        "outline-none focus:focus-ring",
         className,
       )}
     />
@@ -32,14 +33,14 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
 }
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("rounded-xl border border-line bg-panel p-5", className)}>{children}</div>;
+  return <div className={cn("rounded-2xl border border-line bg-panel p-5", className)}>{children}</div>;
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
   return (
     <div className="mb-8 flex items-start justify-between gap-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-xl font-bold">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted">{description}</p>}
       </div>
       {actions}

@@ -49,7 +49,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
             onChange={(e) => setDraft(e.target.value)}
             rows={9}
             autoFocus
-            className="mt-3 w-full resize-none rounded-lg border border-line bg-raised p-3 text-sm leading-relaxed outline-none focus:border-line-strong"
+            className="mt-3 w-full resize-none rounded-lg border border-line bg-canvas p-3 text-sm leading-relaxed outline-none focus:focus-ring"
           />
         ) : (
           <p className="mt-3 text-sm leading-relaxed text-muted">{card.statement}</p>
@@ -187,7 +187,7 @@ function Tile({ checked, onClick, label, detail }: { checked: boolean; onClick: 
       <span
         className={cn(
           "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border",
-          checked ? "border-cat-pink bg-cat-pink text-white" : "border-line-strong",
+          checked ? "border-cat-pink bg-cat-pink text-on-accent" : "border-line-strong",
         )}
       >
         {checked && <Check size={11} weight="bold" />}
