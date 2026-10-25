@@ -7,6 +7,7 @@ data/*.db*
 .DS_Store
 data/secret.key
 data/backgrounds/
+data/logos/
 PLAN.md
 research/
 data/models/

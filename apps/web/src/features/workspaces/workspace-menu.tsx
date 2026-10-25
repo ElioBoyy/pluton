@@ -15,12 +15,39 @@ export type WorkspaceItem = inferRouterOutputs<AppRouter>["workspace"]["list"][n
 const WIDTH = 260;
 const COLORS = ["bg-cat-pink", "bg-cat-blue", "bg-cat-green", "bg-cat-orange", "bg-cat-purple", "bg-cat-mint", "bg-cat-yellow"];
 
-/** Each workspace keeps one colour, picked from its id, so they tell apart at a glance. */
-export function WorkspaceIcon({ workspace, className }: { workspace: { id: string; name: string; icon: string | null } | undefined; className?: string }) {
+/**
+ * Each workspace keeps one colour, picked from its id, so they tell apart at a glance. With a
+ * website, its icon (fetched by the server from the site itself) covers the letter once it loads.
+ */
+export function WorkspaceIcon({
+  workspace,
+  className,
+}: {
+  workspace: { id: string; name: string; icon: string | null; website?: string | null } | undefined;
+  className?: string;
+}) {
   const hash = [...(workspace?.id ?? "")].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0);
+  const src = workspace?.website ? `/api/workspaces/${workspace.id}/logo?site=${encodeURIComponent(workspace.website)}` : null;
+  const [loaded, setLoaded] = useState<string | null>(null);
   return (
-    <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold text-on-accent", COLORS[hash % COLORS.length], className)}>
+    <span
+      className={cn(
+        "relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs font-semibold text-on-accent",
+        loaded === src && src ? "bg-white" : COLORS[hash % COLORS.length],
+        className,
+      )}
+    >
       {workspace?.icon ?? (workspace?.name ?? "…").charAt(0).toUpperCase()}
+      {src && (
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          onLoad={() => setLoaded(src)}
+          onError={() => setLoaded(null)}
+          className={cn("absolute inset-0 size-full object-contain transition-opacity duration-200", loaded === src ? "opacity-100" : "opacity-0")}
+        />
+      )}
     </span>
   );
 }

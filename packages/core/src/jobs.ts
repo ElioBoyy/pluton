@@ -74,9 +74,18 @@ export async function failJob(db: Db, job: Job, error: unknown) {
     .where(eq(jobs.id, job.id));
 }
 
+/** The worker running a job calls this every minute, so a long job is never mistaken for an abandoned one. */
+export async function heartbeatJob(db: Db, jobId: string, workerId: string) {
+  await db
+    .update(jobs)
+    .set({ lockedAt: new Date() })
+    .where(and(eq(jobs.id, jobId), eq(jobs.status, "running"), eq(jobs.lockedBy, workerId)));
+}
+
 /**
  * Jobs left "running" by a worker that died go back to the queue: immediately when the worker
- * was on this machine and its process is gone (a crash or a dev reload), after `staleAfterMs` otherwise.
+ * was on this machine and its process is gone (a crash or a dev reload), otherwise once it has
+ * missed its heartbeat for `staleAfterMs`. A process never requeues its own jobs: they are live.
  */
 export async function recoverStaleJobs(db: Db, staleAfterMs = 10 * 60_000) {
   const cutoff = new Date(Date.now() - staleAfterMs);
@@ -84,7 +93,8 @@ export async function recoverStaleJobs(db: Db, staleAfterMs = 10 * 60_000) {
   const orphaned = running.filter((j) => {
     const [host, pidAndSlot] = (j.lockedBy ?? "").split(":");
     const pid = Number(pidAndSlot?.split("#")[0]);
-    if (host === hostname() && pid && pid !== process.pid && !processAlive(pid)) return true;
+    if (host === hostname() && pid === process.pid) return false;
+    if (host === hostname() && pid && !processAlive(pid)) return true;
     return j.lockedAt !== null && j.lockedAt < cutoff;
   });
   if (orphaned.length === 0) return 0;
