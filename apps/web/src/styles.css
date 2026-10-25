@@ -1,26 +1,268 @@
 @import "@fontsource-variable/inter";
 @import "tailwindcss";
 
-/* Dark-first palette modeled on the reference app: near-black canvas, raised panels, white primary buttons. */
-@theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+/*
+ * macOS 26 (Tahoe) theme, from Apple's macOS 26 UI Kit and the Human Interface Guidelines.
+ * Light/dark follow the system appearance, like a native Mac app, unless the user picks one in the sidebar. The token names predate the kit
+ * (canvas, panel, ink, …) so every screen picks it up; the values below are the macOS semantic colors.
+ */
+/* `static` keeps every variable in the output: the dark block and the graph read them at runtime. */
+@theme static {
+  /* SF Pro on Apple platforms; Inter elsewhere. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Inter Variable", system-ui, sans-serif;
 
-  --color-canvas: #0f1114;
-  --color-panel: #15181c;
-  --color-raised: #1b1f24;
-  --color-line: #262a31;
-  --color-line-strong: #343941;
-  --color-ink: #e8eaed;
-  --color-muted: #8b919a;
-  --color-faint: #5d636c;
+  /* macOS text styles (size / line height): Subheadline, Body, Title 3, Title 2, Title 1, Large Title. */
+  --text-xs: 11px;
+  --text-xs--line-height: 14px;
+  --text-sm: 13px;
+  --text-sm--line-height: 16px;
+  --text-base: 15px;
+  --text-base--line-height: 20px;
+  --text-lg: 17px;
+  --text-lg--line-height: 22px;
+  --text-xl: 22px;
+  --text-xl--line-height: 26px;
+  --text-2xl: 26px;
+  --text-2xl--line-height: 32px;
+  /* Caption 1 / Footnote and Callout, for the few places that need them. */
+  --text-caption: 10px;
+  --text-caption--line-height: 13px;
+  --text-callout: 12px;
+  --text-callout--line-height: 15px;
 
-  /* Brain graph categories (purple | pink | blue | green | orange | ink). */
-  --color-cat-purple: #9b7bf2;
-  --color-cat-pink: #e0558d;
-  --color-cat-blue: #6b8cf5;
-  --color-cat-green: #8fbf4d;
-  --color-cat-orange: #e2763f;
-  --color-cat-yellow: #e0b53f;
+  /* Light appearance. */
+  --color-canvas: #ffffff; /* content background */
+  --color-panel: #f5f5f5; /* boxes, grouped content */
+  --color-raised: rgb(0 0 0 / 0.05); /* fills: hover, wells */
+  --color-selected: rgb(0 0 0 / 0.1); /* sidebar and list selection */
+  --color-line: rgb(0 0 0 / 0.1); /* separator */
+  --color-line-strong: rgb(0 0 0 / 0.18);
+  --color-ink: rgb(0 0 0 / 0.85); /* label */
+  --color-muted: rgb(0 0 0 / 0.5); /* secondary label */
+  --color-faint: rgb(0 0 0 / 0.26); /* tertiary label, placeholders */
+
+  /* Push buttons and other bezelled controls. */
+  --color-control: #ffffff;
+  --color-control-hover: #f2f2f2;
+  --color-accent: #0088ff; /* system blue, the default accent */
+  --color-on-accent: #ffffff;
+
+  /* System colors (macOS 26 "unified" palette). */
+  --color-system-red: #ff383c;
+  --color-system-orange: #ff8d28;
+  --color-system-yellow: #ffcc00;
+  --color-system-green: #34c759;
+  --color-system-mint: #00c8b3;
+  --color-system-teal: #00c3d0;
+  --color-system-cyan: #00c0e8;
+  --color-system-blue: #0088ff;
+  --color-system-indigo: #6155f5;
+  --color-system-purple: #cb30e0;
+  --color-system-pink: #ff2d55;
+  --color-system-brown: #ac7f5e;
+  --color-system-gray: #8e8e93;
+
+  /* Brain graph categories, mapped onto system colors. */
+  --color-cat-purple: var(--color-system-purple);
+  --color-cat-pink: var(--color-system-pink);
+  --color-cat-blue: var(--color-system-blue);
+  --color-cat-green: var(--color-system-green);
+  --color-cat-mint: var(--color-system-mint);
+  --color-cat-orange: var(--color-system-orange);
+  --color-cat-yellow: var(--color-system-yellow);
+
+  --shadow-control: 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.08);
+  --shadow-window: 0 0 0 0.5px rgb(0 0 0 / 0.1), 0 8px 40px rgb(0 0 0 / 0.16);
+
+  /* Liquid Glass, approximated: a translucent, blurred surface with a hairline edge. */
+  --glass-bg: rgb(246 246 246 / 0.78);
+  --glass-edge: rgb(0 0 0 / 0.08);
+  --glass-shadow: 0 4px 24px rgb(0 0 0 / 0.08);
+}
+
+/* Dark appearance. data-theme is set before first paint (index.html) and by lib/theme.ts. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #1e1e1e;
+  --color-panel: #282828;
+  --color-raised: rgb(255 255 255 / 0.08);
+  --color-selected: rgb(255 255 255 / 0.14);
+  --color-line: rgb(255 255 255 / 0.1);
+  --color-line-strong: rgb(255 255 255 / 0.18);
+  --color-ink: rgb(255 255 255 / 0.85);
+  --color-muted: rgb(255 255 255 / 0.55);
+  --color-faint: rgb(255 255 255 / 0.25);
+
+  --color-control: rgb(255 255 255 / 0.12);
+  --color-control-hover: rgb(255 255 255 / 0.18);
+  --color-accent: #0091ff;
+
+  --color-system-red: #ff4245;
+  --color-system-orange: #ff9230;
+  --color-system-yellow: #ffd600;
+  --color-system-green: #30d158;
+  --color-system-mint: #00dac3;
+  --color-system-teal: #00d2e0;
+  --color-system-cyan: #3cd3fe;
+  --color-system-blue: #0091ff;
+  --color-system-indigo: #6d7cff;
+  --color-system-purple: #db34f2;
+  --color-system-pink: #ff375f;
+  --color-system-brown: #b78a66;
+  --color-system-gray: #8e8e93;
+
+  --shadow-control: inset 0 0.5px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-window: 0 0 0 0.5px rgb(255 255 255 / 0.12), 0 8px 40px rgb(0 0 0 / 0.5);
+
+  --glass-bg: rgb(44 44 46 / 0.72);
+  --glass-edge: rgb(255 255 255 / 0.1);
+  --glass-shadow: 0 4px 24px rgb(0 0 0 / 0.3);
+}
+
+@utility glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge),
+    var(--glass-shadow);
+}
+
+/* The macOS keyboard focus ring: a soft accent halo around the control. */
+@utility focus-ring {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
+  outline-offset: 0;
+}
+
+/*
+ * AI at work, like Siri / Apple Intelligence: a ring in the Apple Intelligence colors turns around
+ * the element while a soft halo breathes outside it. Add `ai-glow` only while the AI is working; it
+ * makes the element `relative`, so wrap anything that is already absolutely positioned.
+ */
+@property --ai-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+:root {
+  --ai-gradient: conic-gradient(
+    from var(--ai-angle),
+    #bc82f3,
+    #f5b9ea,
+    #8d9fff,
+    #ff6778,
+    #ffba71,
+    #c686ff,
+    #bc82f3
+  );
+  --ai-halo-opacity: 0.5;
+}
+
+:root[data-theme="dark"] {
+  --ai-halo-opacity: 0.7;
+}
+
+@utility ai-glow {
+  position: relative;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    border-radius: inherit;
+    background: var(--ai-gradient);
+    pointer-events: none;
+    /* Cut out the element itself: the ring and halo only ever sit on and around its edge. */
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    animation: ai-spin 4s linear infinite;
+  }
+
+  /* The ring, on the border. */
+  &::before {
+    inset: -1px;
+    padding: 1.5px;
+  }
+
+  /* The halo, outside. */
+  &::after {
+    inset: -12px;
+    padding: 11px;
+    filter: blur(10px);
+    animation:
+      ai-spin 4s linear infinite,
+      ai-breathe 2.4s ease-in-out infinite alternate;
+  }
+
+  /* A busy AI control stays readable instead of dimming like a plain disabled one (doubled to beat `disabled:opacity-50`). */
+  &&:disabled {
+    opacity: 1;
+  }
+
+  @starting-style {
+    &::before,
+    &::after {
+      opacity: 0;
+    }
+  }
+  &::before,
+  &::after {
+    transition: opacity 300ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before,
+    &::after {
+      animation: none;
+    }
+    &::after {
+      opacity: var(--ai-halo-opacity);
+    }
+  }
+}
+
+/* "Thinking…" labels: the Apple Intelligence colors sweep through the text. */
+@utility ai-text {
+  background: linear-gradient(90deg, var(--color-muted) 20%, #bc82f3, #ff6778, #8d9fff, var(--color-muted) 80%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ai-sweep 2.4s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-position: 50% 0;
+  }
+}
+
+@keyframes ai-spin {
+  to {
+    --ai-angle: 360deg;
+  }
+}
+
+@keyframes ai-breathe {
+  from {
+    opacity: calc(var(--ai-halo-opacity) * 0.55);
+  }
+  to {
+    opacity: var(--ai-halo-opacity);
+  }
+}
+
+@keyframes ai-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+:root {
+  color-scheme: light;
 }
 
 html,
@@ -33,7 +275,67 @@ body {
   background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
   -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  /* In the base layer so a utility like `outline-none` can still opt a control out. */
+  :focus-visible {
+    @apply focus-ring;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+}
+
+/*
+ * Appearance switch: the new theme spreads from the clicked control as a wave. The new snapshot is
+ * masked by a circle that grows to --wave-end; its edge is feathered with one ripple behind it,
+ * where the old theme still shows through.
+ */
+@property --wave-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+:root[data-theme-switch] * {
+  /* Colors change at once inside the snapshot; the wave is the only motion. */
+  transition: none !important;
+}
+
+:root[data-theme-switch="wave"]::view-transition-old(root) {
+  animation: none;
+}
+
+:root[data-theme-switch="wave"]::view-transition-new(root) {
+  mask-image: radial-gradient(
+    circle at var(--wave-x) var(--wave-y),
+    #000 calc(var(--wave-r) - 96px),
+    rgb(0 0 0 / 0.3) calc(var(--wave-r) - 60px),
+    #000 calc(var(--wave-r) - 36px),
+    #000 calc(var(--wave-r) - 22px),
+    transparent var(--wave-r)
+  );
+  animation: theme-wave 700ms cubic-bezier(0.77, 0, 0.175, 1) both;
+}
+
+@keyframes theme-wave {
+  from {
+    --wave-r: 0px;
+  }
+  to {
+    --wave-r: var(--wave-end);
+  }
+}
+
+/* Reduced motion: a plain crossfade, no movement. */
+:root[data-theme-switch="fade"]::view-transition-old(root),
+:root[data-theme-switch="fade"]::view-transition-new(root) {
+  animation-duration: 200ms;
 }
 
 @keyframes fadeIn {

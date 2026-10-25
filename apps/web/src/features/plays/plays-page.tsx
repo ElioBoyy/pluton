@@ -64,7 +64,10 @@ export function PlaysPage() {
               <Link
                 to="/plays/$playId"
                 params={{ playId: p.id }}
-                className="block rounded-xl border border-line bg-panel p-4 transition-colors hover:border-line-strong"
+                className={cn(
+                  "block rounded-xl border border-line bg-panel p-4 transition-colors hover:border-line-strong",
+                  p.lastRun && (p.lastRun.status === "running" || p.lastRun.status === "queued") && "ai-glow",
+                )}
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-medium">

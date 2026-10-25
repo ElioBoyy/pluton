@@ -43,9 +43,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-[18vh]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/20 pt-[18vh]" onMouseDown={onClose}>
       <div
-        className="w-full max-w-lg overflow-hidden rounded-xl border border-line bg-panel shadow-2xl"
+        className="glass w-full max-w-lg overflow-hidden rounded-[18px]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-line px-4">
@@ -64,7 +64,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               if (e.key === "Enter") run(active);
             }}
             placeholder="Ask Pluton anything…"
-            className="h-12 flex-1 bg-transparent text-sm outline-none placeholder:text-faint"
+            className="h-12 flex-1 bg-transparent text-base outline-none placeholder:text-faint"
           />
         </div>
         <ul className="max-h-72 overflow-y-auto p-1.5">
@@ -74,8 +74,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 onMouseEnter={() => setActive(i)}
                 onClick={() => run(i)}
                 className={cn(
-                  "w-full rounded-lg px-3 py-2 text-left text-sm",
-                  i === active ? "bg-raised text-ink" : "text-muted",
+                  "w-full rounded-lg px-3 py-1.5 text-left text-sm",
+                  i === active ? "bg-accent text-on-accent" : "text-ink",
                 )}
               >
                 {c.label}

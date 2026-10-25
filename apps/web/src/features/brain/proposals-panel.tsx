@@ -114,7 +114,7 @@ function ReviewControl() {
             value={focus}
             onChange={(e) => setFocus(e.target.value)}
             placeholder="Focus (optional): e.g. find more competitors"
-            className="h-8 rounded-lg border border-line bg-raised px-2.5 text-xs outline-none placeholder:text-faint focus:border-line-strong"
+            className="h-8 rounded-lg border border-line bg-canvas px-2.5 text-xs outline-none placeholder:text-faint focus:focus-ring"
           />
           <Button variant="ghost" disabled={review.isPending} onClick={() => review.mutate({ focus: focus.trim() || undefined })}>
             <Sparkle size={14} /> Review my Brain
@@ -122,9 +122,9 @@ function ReviewControl() {
         </>
       )}
       {running && (
-        <div className="rounded-lg border border-line bg-raised/50 p-3 text-xs text-muted">
+        <div className="ai-glow rounded-lg border border-line bg-raised/50 p-3 text-xs text-muted">
           <p className="flex items-center gap-2 font-medium text-ink">
-            <CircleNotch size={13} className="animate-spin" /> Reviewing your Brain…
+            <CircleNotch size={13} className="animate-spin" /> <span className="ai-text">Reviewing your Brain…</span>
           </p>
           {log.map((line, i) => (
             <p key={i} className="mt-1.5 leading-relaxed">
@@ -200,7 +200,7 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
             onChange={(e) => setAnswer(e.target.value)}
             rows={2}
             placeholder="Your answer"
-            className="w-full resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-sm outline-none focus:border-line-strong"
+            className="w-full resize-none rounded-lg border border-line bg-panel px-2.5 py-2 text-sm outline-none focus:focus-ring"
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" className="h-8" disabled={busy} onClick={() => reject.mutate({ id: p.id })}>

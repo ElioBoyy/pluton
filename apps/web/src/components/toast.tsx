@@ -35,7 +35,7 @@ export function Toaster() {
       {list.map((t) => (
         <div
           key={t.id}
-          className={`pointer-events-auto flex items-center gap-3 rounded-xl border bg-panel px-4 py-2.5 text-sm shadow-lg ${t.tone === "error" ? "border-cat-orange/40 text-cat-orange" : "border-line"}`}
+          className={`glass pointer-events-auto flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm ${t.tone === "error" ? "text-system-red" : ""}`}
           style={{ animation: "fadeIn 150ms ease-out" }}
         >
           <span>{t.text}</span>
@@ -45,7 +45,7 @@ export function Toaster() {
                 t.action!.run();
                 dismissToast(t.id);
               }}
-              className="font-medium text-ink underline underline-offset-2 hover:text-white"
+              className="font-medium text-accent hover:brightness-110"
             >
               {t.action.label}
             </button>

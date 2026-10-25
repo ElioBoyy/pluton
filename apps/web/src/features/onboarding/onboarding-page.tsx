@@ -77,7 +77,7 @@ function OnboardingForm() {
               rows={3}
               autoFocus
               placeholder="Two short sentences: what it does and for whom."
-              className="w-full resize-none rounded-lg border border-line bg-raised px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-line-strong"
+              className="w-full resize-none rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none placeholder:text-faint focus:focus-ring"
             />
           </Field>
         ) : (
@@ -104,7 +104,7 @@ function OnboardingForm() {
               onChange={(e) => setContext(e.target.value)}
               rows={4}
               placeholder="Customers you love, markets to ignore, anything the site doesn't say."
-              className="mt-3 w-full resize-none rounded-lg border border-line bg-raised px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-line-strong"
+              className="mt-3 w-full resize-none rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none placeholder:text-faint focus:focus-ring"
             />
           )}
         </div>
@@ -112,7 +112,7 @@ function OnboardingForm() {
         <button
           type="submit"
           disabled={!canSubmit || start.isPending}
-          className="mt-7 flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-ink text-sm font-medium text-canvas transition-colors hover:bg-white disabled:opacity-50"
+          className="mt-7 flex h-8 w-full items-center justify-center gap-2 rounded-full bg-accent text-sm font-medium text-on-accent shadow-control transition-[filter] hover:brightness-110 disabled:opacity-50"
         >
           {start.isPending && <CircleNotch size={14} className="animate-spin" />}
           Start deepsearch

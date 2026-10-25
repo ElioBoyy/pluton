@@ -305,7 +305,7 @@ function EmailField({ data }: { data: Detail }) {
     );
   return (
     <span className="flex flex-col items-start gap-1">
-      <Button variant="ghost" className="h-7 px-2.5 text-xs" disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
+      <Button variant="ghost" className={cn("h-7 px-2.5 text-xs", find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
         {find.isPending ? <CircleNotch size={12} className="animate-spin" /> : <MagnifyingGlass size={12} />}
         {p.emailCheckedAt ? "Search again" : "Find email"}
       </Button>
@@ -334,7 +334,7 @@ function LinkedinField({ data }: { data: Detail }) {
       </a>
     );
   return (
-    <Button variant="ghost" className="h-7 px-2.5 text-xs" disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
+    <Button variant="ghost" className={cn("h-7 px-2.5 text-xs", find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
       {find.isPending ? <CircleNotch size={12} className="animate-spin" /> : <LinkedinLogo size={12} />}
       Find LinkedIn
     </Button>
@@ -364,7 +364,7 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
         onChange={(e) => setText(e.target.value)}
         placeholder="Add a note…"
         maxLength={2000}
-        className="h-8 flex-1 rounded-lg border border-line bg-raised px-3 text-sm outline-none placeholder:text-faint focus:border-line-strong"
+        className="h-8 flex-1 rounded-lg border border-line bg-canvas px-3 text-sm outline-none placeholder:text-faint focus:focus-ring"
       />
       <Button variant="ghost" className="h-8" disabled={!text.trim() || add.isPending}>
         Add

@@ -101,7 +101,7 @@ export function GeneralSettingsPage() {
             <select
               value={form.timezone}
               onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-              className="h-9 w-full rounded-lg border border-line bg-raised px-3 text-sm outline-none focus:border-line-strong"
+              className="h-9 w-full rounded-lg border border-line bg-canvas px-3 text-sm outline-none focus:focus-ring"
             >
               {TIMEZONES.map((tz) => (
                 <option key={tz}>{tz}</option>

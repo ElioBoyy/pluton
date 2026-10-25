@@ -54,7 +54,7 @@ export function ItemEditor({
 }
 
 const textareaClass =
-  "w-full resize-y rounded-lg border border-line bg-raised px-3 py-2 text-sm leading-relaxed outline-none placeholder:text-faint focus:border-line-strong";
+  "w-full resize-y rounded-lg border border-line bg-canvas px-3 py-2 text-sm leading-relaxed outline-none placeholder:text-faint focus:focus-ring";
 
 function FieldInput({ field, value, onChange }: { field: Field; value: unknown; onChange: (v: unknown) => void }) {
   switch (field.kind) {
@@ -67,7 +67,7 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
         <select
           value={value as string}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 rounded-lg border border-line bg-raised px-3 text-sm outline-none focus:border-line-strong"
+          className="h-9 rounded-lg border border-line bg-canvas px-3 text-sm outline-none focus:focus-ring"
         >
           {field.options.map((o) => (
             <option key={o.value} value={o.value}>

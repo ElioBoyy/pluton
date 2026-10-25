@@ -158,7 +158,7 @@ export function LeadsView({
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search name, title, company, location"
-            className="h-9 w-full min-w-48 rounded-lg border border-line bg-raised pr-3 pl-8 text-sm outline-none placeholder:text-faint focus:border-line-strong"
+            className="h-9 w-full min-w-48 rounded-lg border border-line bg-canvas pr-3 pl-8 text-sm outline-none placeholder:text-faint focus:focus-ring"
           />
         </label>
         <select value={pipeline} onChange={(e) => setPipeline(e.target.value)} aria-label="Signal" className="h-9 rounded-lg border border-line bg-raised px-2 text-sm outline-none">
@@ -541,7 +541,8 @@ function BulkFindEmails({ resolveIds, count }: { resolveIds: () => Promise<strin
   if (running)
     return (
       <span className="flex items-center gap-1.5 px-2 text-xs text-muted">
-        <CircleNotch size={13} className="animate-spin" /> Finding emails {progress ? `${progress.done}/${progress.total}` : "…"}
+        <CircleNotch size={13} className="animate-spin" />
+        <span className="ai-text">Finding emails {progress ? `${progress.done}/${progress.total}` : "…"}</span>
       </span>
     );
   return (

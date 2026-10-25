@@ -68,7 +68,7 @@ export function NewPlayPage() {
             {!started && <Intro onPick={send} />}
             {transcript.map((t, i) =>
               t.role === "user" ? (
-                <div key={i} className="max-w-[85%] self-end rounded-xl bg-ink px-3.5 py-2 text-sm text-canvas">
+                <div key={i} className="max-w-[85%] self-end rounded-2xl bg-accent px-3.5 py-2 text-sm text-on-accent">
                   {t.text}
                 </div>
               ) : (
@@ -80,7 +80,7 @@ export function NewPlayPage() {
             {question && !thinking && <QuestionOptions question={question} onAnswer={send} />}
             {thinking && (
               <p className="flex items-center gap-2 text-sm text-muted">
-                <CircleNotch size={14} className="animate-spin" /> Thinking about who to find…
+                <CircleNotch size={14} className="animate-spin" /> <span className="ai-text">Thinking about who to find…</span>
               </p>
             )}
             {error && <p className="text-sm text-cat-orange">{error}</p>}
@@ -178,7 +178,12 @@ function Composer({ placeholder, disabled, onSend }: { placeholder: string; disa
   };
   return (
     <div className="border-t border-line p-4">
-      <div className="mx-auto flex max-w-2xl items-end gap-2 rounded-xl border border-line bg-panel p-2 focus-within:border-line-strong">
+      <div
+        className={cn(
+          "mx-auto flex max-w-2xl items-end gap-2 rounded-xl border border-line bg-panel p-2 focus-within:border-line-strong",
+          disabled && "ai-glow",
+        )}
+      >
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -196,7 +201,7 @@ function Composer({ placeholder, disabled, onSend }: { placeholder: string; disa
           aria-label="Send"
           onClick={submit}
           disabled={disabled || !text.trim()}
-          className="flex size-8 items-center justify-center rounded-lg bg-ink text-canvas disabled:opacity-40"
+          className="flex size-8 items-center justify-center rounded-full bg-accent text-on-accent disabled:opacity-40"
         >
           <ArrowUp size={15} weight="bold" />
         </button>
