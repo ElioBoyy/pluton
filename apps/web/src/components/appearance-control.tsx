@@ -8,11 +8,21 @@ const OPTIONS: Array<{ value: Appearance; label: string; icon: Icon }> = [
   { value: "dark", label: "Dark", icon: Moon },
 ];
 
+/** Segment width (w-7), which the thumb slides by. */
+const SEGMENT_PX = 28;
+
 /** macOS segmented control for the appearance; the new theme spreads from the clicked segment. */
 export function AppearanceControl() {
   const appearance = useAppearance();
+  const index = OPTIONS.findIndex((o) => o.value === appearance);
   return (
-    <div role="radiogroup" aria-label="Appearance" className="flex rounded-full bg-control p-0.5">
+    <div role="radiogroup" aria-label="Appearance" className="relative flex rounded-full bg-control p-0.5">
+      {/* One thumb that slides to the chosen segment. */}
+      <span
+        aria-hidden
+        className="absolute top-0.5 left-0.5 h-6 w-7 rounded-full bg-canvas shadow-control transition-transform duration-200 ease-out motion-reduce:transition-none"
+        style={{ transform: `translateX(${index * SEGMENT_PX}px)` }}
+      />
       {OPTIONS.map(({ value, label, icon: IconCmp }) => (
         <button
           key={value}
@@ -25,8 +35,8 @@ export function AppearanceControl() {
             setAppearance(value, { x: box.left + box.width / 2, y: box.top + box.height / 2 });
           }}
           className={cn(
-            "flex h-6 w-7 items-center justify-center rounded-full",
-            appearance === value ? "bg-canvas text-ink shadow-control" : "text-muted hover:text-ink",
+            "relative flex h-6 w-7 items-center justify-center rounded-full transition-colors duration-150",
+            appearance === value ? "text-ink" : "text-muted hover:text-ink",
           )}
         >
           <IconCmp size={13} weight={appearance === value ? "fill" : "regular"} />

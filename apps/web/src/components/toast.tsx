@@ -1,16 +1,26 @@
 import { X } from "@phosphor-icons/react";
 import { useSyncExternalStore } from "react";
+import { cn } from "../lib/cn.ts";
 
-type Toast = { id: number; text: string; action?: { label: string; run: () => void }; tone?: "error" };
+type Toast = { id: number; text: string; action?: { label: string; run: () => void }; tone?: "error"; leaving?: boolean };
+
+/** Matches the exit transition below. */
+const EXIT_MS = 150;
 
 let toasts: Toast[] = [];
 let nextId = 1;
 const listeners = new Set<() => void>();
 const publish = () => listeners.forEach((l) => l());
 
+/** Slides the toast back down, then removes it. */
 export function dismissToast(id: number) {
-  toasts = toasts.filter((t) => t.id !== id);
+  if (!toasts.some((t) => t.id === id && !t.leaving)) return;
+  toasts = toasts.map((t) => (t.id === id ? { ...t, leaving: true } : t));
   publish();
+  setTimeout(() => {
+    toasts = toasts.filter((t) => t.id !== id);
+    publish();
+  }, EXIT_MS);
 }
 
 /** Bottom-right toast; with an action (Undo) it stays 10 s, otherwise 4 s. */
@@ -35,8 +45,13 @@ export function Toaster() {
       {list.map((t) => (
         <div
           key={t.id}
-          className={`glass pointer-events-auto flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm ${t.tone === "error" ? "text-system-red" : ""}`}
-          style={{ animation: "fadeIn 150ms ease-out" }}
+          // In from below, out the same way.
+          className={cn(
+            "glass pointer-events-auto flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm",
+            "transition-[opacity,translate] duration-200 ease-out starting:opacity-0 motion-safe:starting:translate-y-2",
+            t.leaving && "opacity-0 duration-150 motion-safe:translate-y-2",
+            t.tone === "error" && "text-system-red",
+          )}
         >
           <span>{t.text}</span>
           {t.action && (
