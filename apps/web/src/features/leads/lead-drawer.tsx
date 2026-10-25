@@ -19,7 +19,7 @@ import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AppRouter } from "@pluton/server/router";
-import { Button } from "../../components/ui.tsx";
+import { Button, ButtonGroup, GroupButton } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
@@ -92,10 +92,14 @@ export function LeadDrawer({
       <div className="flex items-center justify-between border-b border-line px-5 py-3">
         <div className="flex items-center gap-1">
           {onStep && (
-            <>
-              <IconButton icon={CaretUp} label="Previous lead (↑)" onClick={() => onStep(-1)} />
-              <IconButton icon={CaretDown} label="Next lead (↓)" onClick={() => onStep(1)} />
-            </>
+            <ButtonGroup divided>
+              <GroupButton aria-label="Previous lead (↑)" title="Previous lead (↑)" onClick={() => onStep(-1)}>
+                <CaretUp size={15} />
+              </GroupButton>
+              <GroupButton aria-label="Next lead (↓)" title="Next lead (↓)" onClick={() => onStep(1)}>
+                <CaretDown size={15} />
+              </GroupButton>
+            </ButtonGroup>
           )}
           <span className="ml-2 text-xs text-faint">↑↓ move · A approve · R reject</span>
         </div>
@@ -456,7 +460,7 @@ function Meter({ value, className }: { value: number; className: string }) {
 
 function IconButton({ icon: IconCmp, label, onClick }: { icon: Icon; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} className="rounded-md p-1.5 text-muted hover:bg-raised hover:text-ink">
+    <button onClick={onClick} aria-label={label} title={label} className="capsule flex size-8 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90">
       <IconCmp size={15} />
     </button>
   );

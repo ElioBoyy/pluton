@@ -16,7 +16,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
-import { Button } from "../../components/ui.tsx";
+import { Button, ButtonGroup, GroupButton } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
@@ -178,15 +178,15 @@ export function LeadsView({
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <label className="relative flex-1">
-          <MagnifyingGlass size={15} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
+          <MagnifyingGlass size={15} className="pointer-events-none absolute top-1/2 left-3.5 z-10 -translate-y-1/2 text-muted" />
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search name, title, company, location"
-            className="h-8 w-full min-w-48 rounded-lg bg-control pr-3 pl-9 text-sm outline-none transition-colors duration-150 placeholder:text-muted hover:bg-control-hover focus:bg-control focus:focus-ring"
+            className="capsule h-8 w-full min-w-48 pr-4 pl-9 text-sm outline-none transition-[background-color,box-shadow] duration-150 placeholder:text-muted hover:bg-(--capsule-bg-hover) focus:shadow-[var(--capsule-shadow),0_0_0_3px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]"
           />
         </label>
-        <select value={pipeline} onChange={(e) => setPipeline(e.target.value)} aria-label="Signal" className="h-8 rounded-lg bg-control pl-3 text-sm outline-none transition-colors duration-150 hover:bg-control-hover">
+        <select value={pipeline} onChange={(e) => setPipeline(e.target.value)} aria-label="Signal" className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)">
           <option value="">Every signal</option>
           {Object.entries(PIPELINE_LABELS)
             .filter(([k]) => k !== "waterfall")
@@ -196,13 +196,16 @@ export function LeadsView({
               </option>
             ))}
         </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort" className="h-8 rounded-lg bg-control pl-3 text-sm outline-none transition-colors duration-150 hover:bg-control-hover">
+        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort" className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)">
           <option value="newest">Newest first</option>
           <option value="fit">Best fit first</option>
           <option value="warmness">Warmest first</option>
         </select>
-        <ColumnsMenu columns={columns} onChange={setCols} />
-        <ExportButton filter={filter} count={total} />
+        {/* One capsule for the view actions, as in the Finder toolbar. */}
+        <ButtonGroup divided>
+          <ColumnsMenu columns={columns} onChange={setCols} />
+          <ExportButton filter={filter} count={total} />
+        </ButtonGroup>
       </div>
 
       {(selected.size > 0 || allMatching) && (
@@ -604,9 +607,8 @@ function ExportButton({ filter, count }: { filter: Filter; count: number }) {
   const trpc = useTRPC();
   const exportCsv = useMutation(trpc.leads.exportCsv.mutationOptions());
   return (
-    <Button
-      variant="ghost"
-      className="h-8"
+    <GroupButton
+      className="gap-1.5 px-3 text-sm"
       disabled={exportCsv.isPending || count === 0}
       title="Leads in this tab and filter, as CSV"
       onClick={async () => {
@@ -617,7 +619,7 @@ function ExportButton({ filter, count }: { filter: Filter; count: number }) {
     >
       {exportCsv.isPending ? <CircleNotch size={14} className="animate-spin" /> : <DownloadSimple size={14} />}
       Export
-    </Button>
+    </GroupButton>
   );
 }
 
@@ -633,9 +635,9 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
   const ordered = useMemo(() => (c: ColumnKey[]) => COLUMNS.map((x) => x.key).filter((k) => c.includes(k)), []);
   return (
     <div ref={ref} className="relative">
-      <Button variant="ghost" className="h-8" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <GroupButton className="gap-1.5 px-3 text-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <GearSix size={14} /> Columns
-      </Button>
+      </GroupButton>
       {open && (
         <div className="popover absolute top-full right-0 z-30 mt-1.5 w-48 origin-top-right rounded-xl p-2">
           {COLUMNS.map((c) => (

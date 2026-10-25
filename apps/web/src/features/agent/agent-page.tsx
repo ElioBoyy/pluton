@@ -1,4 +1,18 @@
-import { CaretLeft, CaretRight, Check, CircleNotch, Lightning, Plus, Sparkle, Trash, X } from "@phosphor-icons/react";
+import {
+  CaretLeft,
+  CaretRight,
+  Check,
+  CircleNotch,
+  Coins,
+  Lightning,
+  NotePencil,
+  ShieldCheck,
+  SunHorizon,
+  Target,
+  Trash,
+  X,
+  type Icon,
+} from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -31,10 +45,13 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
   const list = useQuery(trpc.copilot.list.queryOptions());
   return (
     <aside className={cn("flex w-64 shrink-0 flex-col border-r border-line", className)}>
-      <div className="flex items-center justify-between px-4 pt-5 pb-3">
-        <h1 className="text-sm font-semibold">Agent</h1>
-        <Link to="/agent" aria-label="New conversation" title="New conversation" className="rounded-md p-1 text-muted hover:bg-raised hover:text-ink">
-          <Plus size={16} />
+      <div className="flex flex-col gap-3 px-3 pt-5 pb-3">
+        <h1 className="px-1 text-lg font-semibold tracking-[-0.01em]">Agent</h1>
+        <Link
+          to="/agent"
+          className="flex h-8 items-center gap-2 rounded-lg bg-control px-2.5 text-sm font-medium transition-colors duration-150 hover:bg-control-hover"
+        >
+          <NotePencil size={15} className="text-accent" /> New conversation
         </Link>
       </div>
       <ul className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto px-2.5 pb-20">
@@ -44,7 +61,7 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
               to="/agent/$conversationId"
               params={{ conversationId: c.id }}
               className={cn(
-                "flex flex-col rounded-md px-2 py-1.5 text-sm hover:bg-raised",
+                "flex flex-col gap-0.5 rounded-lg px-2.5 py-2 text-sm transition-colors duration-150 hover:bg-raised",
                 c.id === activeId && "!bg-selected",
               )}
             >
@@ -75,57 +92,78 @@ function NewConversation() {
   const ask = (text: string) => send.mutate({ text });
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex max-w-2xl flex-col px-4 pt-10 pb-6 sm:px-6 sm:pt-16">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-cat-purple/15 text-cat-purple">
-            <Sparkle size={18} weight="fill" />
-          </span>
-          <h1 className="mt-4 text-xl font-semibold tracking-tight">What can I do for you?</h1>
-          <p className="mt-1 text-sm text-muted">
-            Ask about your leads, Plays, Brain or spend. The agent reads what it needs; anything that changes data, spends money or contacts
-            someone waits for your approval.
-          </p>
-          <div className="mt-6 grid gap-2 sm:grid-cols-2">
-            {AGENT_SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                disabled={send.isPending}
-                onClick={() => ask(s)}
-                className="rounded-xl bg-raised px-3 py-2.5 text-left text-sm text-muted transition-colors duration-150 hover:bg-control-hover hover:text-ink disabled:opacity-50"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          {send.error && <p className="mt-3 text-sm text-cat-orange">{send.error.message}</p>}
-          {/* The list is beside the chat from md up; below, recent conversations sit here. */}
-          {(list.data?.length ?? 0) > 0 && (
-            <div className="mt-8 md:hidden">
-              <p className="mb-2 text-sm font-semibold text-muted">Recent</p>
-              <ul className="flex flex-col gap-px">
-                {list.data!.slice(0, 8).map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      to="/agent/$conversationId"
-                      params={{ conversationId: c.id }}
-                      className="flex items-center gap-2 rounded-md py-2 text-sm hover:bg-raised"
-                    >
-                      <span className="flex-1 truncate">{c.title}</span>
-                      <span className="text-xs text-faint">{timeAgo(c.updatedAt)}</span>
-                      <CaretRight size={12} className="text-faint" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+    <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      {/* Centered like a fresh Apple Intelligence prompt: the orb, the question, the field, then ideas. */}
+      <div className="mx-auto my-auto flex w-full max-w-2xl flex-col items-center px-4 py-12 sm:px-6">
+        <span className="ai-orb rise size-14" aria-hidden />
+        <h1 className="rise mt-6 text-center text-[28px] leading-[34px] font-semibold tracking-[-0.02em] [animation-delay:60ms]">
+          What can I do for you?
+        </h1>
+        <p className="rise mt-2 max-w-lg text-center text-base text-balance text-muted [animation-delay:120ms]">
+          Ask about your leads, Plays, Brain or spend. The agent reads what it needs.
+        </p>
+        <div className="rise mt-7 w-full [animation-delay:180ms] [&>div]:px-0 [&>div]:pb-0 sm:[&>div]:px-0 sm:[&>div]:pb-0">
+          <Composer placeholder="Ask Pluton anything" disabled={send.isPending} onSend={ask} autoFocus />
         </div>
+        <div className="mt-4 grid w-full gap-2.5 sm:grid-cols-2">
+          {AGENT_SUGGESTIONS.map((s, i) => {
+            const { icon: Icon, tint } = SUGGESTION_ICONS[s.kind];
+            return (
+              <button
+                key={s.kind}
+                disabled={send.isPending}
+                onClick={() => ask(s.text)}
+                style={{ animationDelay: `${240 + i * 50}ms` }}
+                className={cn(
+                  "rise flex items-center gap-3 rounded-2xl bg-panel p-3 text-left text-sm shadow-card",
+                  "transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.98] disabled:opacity-50",
+                )}
+              >
+                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-[10px]", tint)}>
+                  <Icon size={16} weight="fill" />
+                </span>
+                {s.text}
+              </button>
+            );
+          })}
+        </div>
+        <p className="rise mt-5 flex items-center gap-1.5 text-center text-xs text-muted [animation-delay:460ms]">
+          <ShieldCheck size={13} />
+          Anything that changes data, spends money or contacts someone waits for your approval.
+        </p>
+        {send.error && <p className="mt-3 text-sm text-cat-orange">{send.error.message}</p>}
+        {/* The list is beside the chat from md up; below, recent conversations sit here. */}
+        {(list.data?.length ?? 0) > 0 && (
+          <div className="mt-10 w-full md:hidden">
+            <p className="mb-2 text-sm font-semibold text-muted">Recent</p>
+            <ul className="flex flex-col gap-px">
+              {list.data!.slice(0, 8).map((c) => (
+                <li key={c.id}>
+                  <Link
+                    to="/agent/$conversationId"
+                    params={{ conversationId: c.id }}
+                    className="flex items-center gap-2 rounded-md py-2 text-sm hover:bg-raised"
+                  >
+                    <span className="flex-1 truncate">{c.title}</span>
+                    <span className="text-xs text-faint">{timeAgo(c.updatedAt)}</span>
+                    <CaretRight size={12} className="text-faint" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
-      <Composer placeholder="Ask Pluton anything" disabled={send.isPending} onSend={ask} autoFocus />
     </div>
   );
 }
+
+const SUGGESTION_ICONS: Record<(typeof AGENT_SUGGESTIONS)[number]["kind"], { icon: Icon; tint: string }> = {
+  today: { icon: SunHorizon, tint: "bg-cat-orange/15 text-cat-orange" },
+  leads: { icon: Target, tint: "bg-cat-blue/15 text-cat-blue" },
+  play: { icon: Lightning, tint: "bg-cat-purple/15 text-cat-purple" },
+  spend: { icon: Coins, tint: "bg-cat-green/15 text-cat-green" },
+};
 
 function Chat({ conversationId }: { conversationId: string }) {
   const trpc = useTRPC();
@@ -146,14 +184,16 @@ function Chat({ conversationId }: { conversationId: string }) {
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // A turn sends a burst of events (one per tool read): one refetch per burst is enough.
+  const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(refreshTimer.current), []);
   useChannel(`copilot:${conversationId}`, (event) => {
-    refresh();
-    if (event.type === "turn_end") void queryClient.invalidateQueries({ queryKey: trpc.copilot.list.queryKey() });
-  });
-  // A failed turn says why on its job channel.
-  const jobId = state.data?.activeJob?.id ?? null;
-  useChannel(jobId ? `job:${jobId}` : null, (event) => {
+    clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(refresh, 150);
+    // A failed turn says why on this channel; a new turn clears it (the channel replays from the start).
     if (event.type === "error") setError((event.payload as { message: string }).message);
+    if (event.type === "turn") setError(null);
+    if (event.type === "turn_end") void queryClient.invalidateQueries({ queryKey: trpc.copilot.list.queryKey() });
   });
 
   const messages = state.data?.messages ?? [];
@@ -180,7 +220,7 @@ function Chat({ conversationId }: { conversationId: string }) {
         <Link to="/agent" aria-label="All conversations" className="rounded-md p-1 text-muted hover:bg-raised hover:text-ink md:hidden">
           <CaretLeft size={16} />
         </Link>
-        <h2 className="min-w-0 flex-1 truncate text-sm font-medium">{state.data?.conversation.title ?? "…"}</h2>
+        <h2 className="min-w-0 flex-1 truncate text-base font-semibold">{state.data?.conversation.title ?? "…"}</h2>
         <button
           aria-label="Delete conversation"
           title="Delete conversation"
@@ -191,12 +231,12 @@ function Chat({ conversationId }: { conversationId: string }) {
         </button>
       </header>
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 pt-6 pb-6 sm:px-6">
+        <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-8 pb-6 sm:px-6">
           {group(messages).map((item) =>
             item.kind === "tools" ? (
               <ToolGroup key={item.messages[0]!.id} messages={item.messages} />
             ) : (
-              <MessageView key={item.message.id} message={item.message} actions={state.data?.actions ?? []} />
+              <MessageView key={item.message.id} message={item.message} actions={state.data?.actions ?? []} busy={thinking} />
             ),
           )}
           {thinking && (
@@ -257,18 +297,18 @@ function ToolGroup({ messages }: { messages: Message[] }) {
   );
 }
 
-function MessageView({ message, actions }: { message: Message; actions: Action[] }) {
+function MessageView({ message, actions, busy }: { message: Message; actions: Action[]; busy: boolean }) {
   if (message.role === "user") {
     return (
-      <div className="max-w-[85%] self-end rounded-2xl bg-accent px-3.5 py-2 text-sm whitespace-pre-wrap text-on-accent">{message.text}</div>
+      <div className="max-w-[85%] self-end rounded-[20px] bg-accent px-4 py-2.5 text-base whitespace-pre-wrap text-on-accent">{message.text}</div>
     );
   }
   if (message.role === "action") {
     const action = actions.find((a) => a.id === message.actionId);
-    return action ? <ActionCard action={action} /> : null;
+    return action ? <ActionCard action={action} busy={busy} /> : null;
   }
   return (
-    <div className="text-sm leading-relaxed">
+    <div className="text-base leading-[24px]">
       <Markdown text={message.text} />
     </div>
   );
@@ -283,7 +323,8 @@ const STATUS: Record<Action["status"], { label: string; className: string }> = {
   failed: { label: "Failed", className: "text-cat-orange" },
 };
 
-function ActionCard({ action }: { action: Action }) {
+/** `busy` while the agent is still answering: deciding then would start a second turn, so it waits. */
+function ActionCard({ action, busy }: { action: Action; busy: boolean }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const decide = useMutation(
@@ -311,10 +352,10 @@ function ActionCard({ action }: { action: Action }) {
       </details>
       {action.status === "proposed" && (
         <div className="mt-3 flex gap-2">
-          <Button disabled={decide.isPending} onClick={() => decide.mutate({ actionId: action.id, decision: "approve" })}>
+          <Button disabled={decide.isPending || busy} title={busy ? "Wait until the agent is done" : undefined} onClick={() => decide.mutate({ actionId: action.id, decision: "approve" })}>
             <Check size={13} weight="bold" /> Approve
           </Button>
-          <Button variant="ghost" disabled={decide.isPending} onClick={() => decide.mutate({ actionId: action.id, decision: "reject" })}>
+          <Button variant="ghost" disabled={decide.isPending || busy} onClick={() => decide.mutate({ actionId: action.id, decision: "reject" })}>
             <X size={13} /> Decline
           </Button>
         </div>

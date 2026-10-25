@@ -155,8 +155,7 @@
  */
 @utility glass {
   background: var(--glass-bg);
-  /* --glass-refraction is an SVG filter url(); only Chromium reads it, so the prefixed Safari line leaves it out. */
-  backdrop-filter: var(--glass-refraction,) blur(var(--glass-blur, 16px)) saturate(var(--glass-saturate, 180%));
+  backdrop-filter: blur(var(--glass-blur, 16px)) saturate(var(--glass-saturate, 180%));
   -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) saturate(var(--glass-saturate, 180%));
   box-shadow:
     inset 0 1px 0 0 var(--glass-highlight),
@@ -185,8 +184,8 @@
 
 /*
  * Clear Liquid Glass, for controls floating over content (the Ask bar), like the iOS 26 Control
- * Center buttons: nearly no tint, a fine blur, a bright rim. Pair it with <LiquidGlassFilter> and
- * set --glass-refraction to its url() for the edge refraction where the browser supports it.
+ * Center buttons: nearly no tint, a fine blur, a bright rim. Pair it with <LiquidGlassLayer> for
+ * the edge refraction where the browser supports it.
  */
 @utility glass-thin {
   --glass-bg: rgb(255 255 255 / 0.06);
@@ -583,4 +582,67 @@ select {
   & .bg-sidebar {
     background: rgb(22 22 22 / 0.55);
   }
+}
+
+/*
+ * The agent's mark: an Apple Intelligence orb, the same colors as the working glow, turning slowly
+ * and lit from the top left so it reads as a glass bead, not a flat swatch.
+ */
+@utility ai-orb {
+  display: block;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.85), transparent 38%),
+    var(--ai-gradient);
+  box-shadow:
+    inset 0 -6px 14px rgb(0 0 0 / 0.18),
+    0 10px 30px -8px color-mix(in srgb, #bc82f3 60%, transparent);
+  animation: ai-spin 9s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* A first view settling in: each part rises a few pixels out of a soft blur, staggered by its delay. */
+@utility rise {
+  animation: rise 520ms var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: fadeIn 200ms ease both;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+    filter: blur(4px);
+  }
+}
+
+/*
+ * Toolbar controls, as in the macOS 27 Finder toolbar: capsules of clear glass with a fine rim that
+ * catches the light at the top. Buttons, pop-up buttons and the search field share it; several
+ * buttons can share one capsule (see ButtonGroup). The fill and rim are tokens so each appearance
+ * tunes them.
+ */
+:root {
+  --capsule-bg: rgb(255 255 255 / 0.72);
+  --capsule-bg-hover: rgb(255 255 255 / 0.95);
+  --capsule-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+:root[data-theme="dark"] {
+  --capsule-bg: rgb(255 255 255 / 0.07);
+  --capsule-bg-hover: rgb(255 255 255 / 0.12);
+  --capsule-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.2), 0 0 0 0.5px rgb(255 255 255 / 0.1), 0 1px 3px rgb(0 0 0 / 0.35);
+}
+
+@utility capsule {
+  border-radius: 9999px;
+  background-color: var(--capsule-bg);
+  box-shadow: var(--capsule-shadow);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
 }
