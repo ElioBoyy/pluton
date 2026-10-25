@@ -185,7 +185,9 @@ const events = router({
     .input(z.object({ channel: z.string().min(1), lastEventId: z.string().nullish() }))
     .subscription(async function* ({ ctx, input, signal }) {
       const afterId = input.lastEventId ? Number(input.lastEventId) : 0;
-      for await (const event of tailStreamEvents(ctx.db, input.channel, { afterId, signal })) {
+      // The agent's answer streams in as drafts: polled faster so the text flows rather than jumps.
+      const intervalMs = input.channel.startsWith("copilot:") ? 100 : undefined;
+      for await (const event of tailStreamEvents(ctx.db, input.channel, { afterId, signal, intervalMs })) {
         // Onboarding's fixed labels read in the current language, whatever language they were stored in.
         yield tracked(String(event.id), localizeStreamEvent(event));
       }

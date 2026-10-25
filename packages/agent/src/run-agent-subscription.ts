@@ -59,8 +59,15 @@ export async function runAgentWithSubscription(opts: RunAgentOptions, meter: Age
         env,
         abortController,
         resume,
+        // Token by token, for chat-style agents that show the answer as it is written.
+        includePartialMessages: Boolean(opts.onTextDelta),
       },
     })) {
+      if (message.type === "stream_event" && !message.parent_tool_use_id) {
+        const event = message.event;
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") opts.onTextDelta?.(event.delta.text);
+        continue;
+      }
       if (message.type === "assistant" && !message.parent_tool_use_id && opts.onText) {
         for (const block of message.message.content) if (block.type === "text" && block.text.trim()) await opts.onText(block.text);
       }

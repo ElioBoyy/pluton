@@ -2,6 +2,7 @@ import {
   ArrowSquareOut,
   CaretLeft,
   CaretRight,
+  ChartBar,
   Check,
   CircleNotch,
   Coins,
@@ -217,7 +218,21 @@ function Chat({ conversationId }: { conversationId: string }) {
   // A turn sends a burst of events (one per tool read): one refetch per burst is enough.
   const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(refreshTimer.current), []);
+  // The answer as it is written: drafts add up until the saved message arrives, then step aside
+  // once the refetched conversation shows it (so the text never blinks out in between).
+  const [draft, setDraft] = useState<{ text: string; done: boolean } | null>(null);
   useChannel(`copilot:${conversationId}`, (event) => {
+    if (event.type === "draft") {
+      const { text } = event.payload as { text: string };
+      setDraft((d) => (d && !d.done ? { text: d.text + text, done: false } : { text, done: false }));
+      return;
+    }
+    if (event.type === "message" || event.type === "turn_end") {
+      setDraft((d) => d && { ...d, done: true });
+      void queryClient
+        .invalidateQueries({ queryKey: trpc.copilot.get.queryKey({ id: conversationId }) })
+        .then(() => setDraft((d) => (d?.done ? null : d)));
+    }
     clearTimeout(refreshTimer.current);
     refreshTimer.current = setTimeout(refresh, 150);
     // A failed turn says why on this channel; a new turn clears it (the channel replays from the start).
@@ -232,6 +247,12 @@ function Chat({ conversationId }: { conversationId: string }) {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length, thinking]);
+
+  // While the answer is written, follow it down unless the founder scrolled up to read.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 160) el.scrollTop = el.scrollHeight;
+  }, [draft?.text.length]);
 
   if (state.isError) {
     return (
@@ -276,7 +297,8 @@ function Chat({ conversationId }: { conversationId: string }) {
               <MessageView key={item.message.id} message={item.message} actions={state.data?.actions ?? []} busy={thinking} />
             ),
           )}
-          {thinking && (
+          {draft && <DraftView text={draft.text} />}
+          {thinking && !draft && (
             <p className="flex items-center gap-2 text-sm text-muted">
               <CircleNotch size={14} className="animate-spin" /> <span className="ai-text">{t("working")}</span>
             </p>
@@ -361,6 +383,45 @@ function MessageView({ message, actions, busy }: { message: Message; actions: Ac
       <Markdown text={message.text} />
     </div>
   );
+}
+
+/**
+ * An answer still being written. Text shows as it comes; a table or chart only once it is whole
+ * (half a table or half a chart's JSON can't be drawn), with a placeholder meanwhile.
+ */
+function DraftView({ text }: { text: string }) {
+  const t = useT("agent");
+  const { ready, drawing } = splitDraft(text);
+  return (
+    <div className="text-base leading-[24px]">
+      {ready.trim() && <Markdown text={ready} />}
+      {drawing && (
+        <div className="mt-3 flex h-28 items-center justify-center gap-2 rounded-2xl bg-panel/60 text-sm shadow-card">
+          <ChartBar size={16} className="text-muted" />
+          <span className="ai-text">{t("drawingVisual")}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The part of a draft that can already be drawn, and whether a visual is still on its way after it. */
+function splitDraft(text: string): { ready: string; drawing: boolean } {
+  const lines = text.split("\n");
+  // An open code fence: a chart waits for its closing fence; other code shows as it comes.
+  const fences = lines.flatMap((line, i) => (/^\s*```/.test(line) ? [i] : []));
+  if (fences.length % 2 === 1) {
+    const open = fences.at(-1)!;
+    if (/^\s*```\s*chart\b/i.test(lines[open]!)) return { ready: lines.slice(0, open).join("\n"), drawing: true };
+    return { ready: `${text}\n\`\`\``, drawing: false };
+  }
+  // A table is whole only once a line that isn't a row follows it.
+  let start = lines.length;
+  while (start > 0 && /^\s*\|/.test(lines[start - 1]!)) start--;
+  if (start < lines.length) return { ready: lines.slice(0, start).join("\n"), drawing: true };
+  // The first backticks of a fence still being typed.
+  if (/^\s*`{1,2}$/.test(lines.at(-1)!)) return { ready: lines.slice(0, -1).join("\n"), drawing: false };
+  return { ready: text, drawing: false };
 }
 
 /** Each status's name is the agent namespace's `status.<status>`. */

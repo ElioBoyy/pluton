@@ -47,8 +47,10 @@ export type RunAgentOptions = {
   signal?: AbortSignal;
   /** Defaults to MODEL. */
   model?: string;
-  /** Each block of text the agent writes, as it writes it (for chat-style agents). */
+  /** Each block of text the agent writes, once that block is complete (for chat-style agents). */
   onText?: (text: string) => Promise<void>;
+  /** The text as it is being written, a few characters at a time; `onText` then gives the whole block. */
+  onTextDelta?: (delta: string) => void;
 };
 
 export type RunAgentResult = { turns: number; missing: string[] };
@@ -127,7 +129,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
   let continuations = 0;
 
   for (let turn = 0; turn < (opts.maxTurns ?? 30); turn++) {
-    const response = await getClient().beta.messages.create(
+    const stream = getClient().beta.messages.stream(
       {
         model: opts.model ?? MODEL,
         max_tokens: 16000,
@@ -141,6 +143,8 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
       },
       { signal: opts.signal },
     );
+    if (opts.onTextDelta) stream.on("text", (delta) => opts.onTextDelta?.(delta));
+    const response = await stream.finalMessage();
 
     meterUsage(meter, response.model ?? opts.model ?? MODEL, response.usage);
 
