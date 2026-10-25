@@ -35,10 +35,10 @@ export const TOOL_LABELS: Record<string, string> = {
 
 export const toolLabel = (name: string | null) => (name ? (TOOL_LABELS[name] ?? name.replaceAll("_", " ")) : "Tool");
 
-/** Starting points for an empty conversation. */
+/** Starters on an empty conversation; `kind` picks the icon and its color. */
 export const AGENT_SUGGESTIONS = [
-  "What should I look at today?",
-  "Which leads are the best fit right now?",
-  "Plan a new Play for my ICP",
-  "How much have I spent this month?",
-];
+  { kind: "today", text: "What should I look at today?" },
+  { kind: "leads", text: "Which leads are the best fit right now?" },
+  { kind: "play", text: "Plan a new Play for my ICP" },
+  { kind: "spend", text: "How much have I spent this month?" },
+] as const;
