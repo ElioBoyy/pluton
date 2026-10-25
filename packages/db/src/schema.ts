@@ -1092,7 +1092,7 @@ export type McpClient = typeof mcpClients.$inferSelect;
 
 // ── Search ───────────────────────────────────────────────────────────────────
 
-/** Size of the vectors the search model produces (multilingual-e5-small). */
+/** Size of the vectors the search model produces (paraphrase-multilingual-MiniLM-L12-v2). */
 export const EMBEDDING_DIMENSIONS = 384;
 
 /** libSQL's native vector column: float32 values, compared in SQL with vector_distance_cos. */
@@ -1124,7 +1124,7 @@ export const searchDocuments = sqliteTable(
     subtitle: text("subtitle"),
     /** Where the result opens, as an app path with its search params. */
     href: text("href").notNull(),
-    /** What was embedded. */
+    /** Everything known about the item. Name matches search all of it; the model reads its start. */
     text: text("text").notNull(),
     /** Title, subtitle and text lowercased without accents, for matching by name ("marie" finds "Marié"). */
     folded: text("folded").notNull(),
