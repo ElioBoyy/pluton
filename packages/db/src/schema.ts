@@ -409,6 +409,10 @@ export const people = sqliteTable(
     location: text("location"),
     email: text("email"),
     emailConfidence: integer("email_confidence"),
+    /** Where the email came from: hunter, public_text (found in a public page) or pattern (unverified guess). */
+    emailSource: text("email_source"),
+    /** Last email lookup, found or not: the UI says "No email found" instead of offering the same paid search again. */
+    emailCheckedAt: integer("email_checked_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -416,7 +420,12 @@ export const people = sqliteTable(
 );
 
 export const LEAD_STAGES = ["qualified", "needs_review", "disqualified"] as const;
+/**
+ * Where a lead is in the founder's review. Every lead starts in to_review; the "New" tab shows the
+ * to_review leads nobody opened yet (seen_at null). `new` is a legacy value, migrated to to_review.
+ */
 export const LEAD_STATUSES = ["new", "to_review", "approved", "in_campaign", "contacted", "rejected"] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const leads = sqliteTable(
   "lead",
@@ -438,17 +447,88 @@ export const leads = sqliteTable(
     fit: integer("fit").notNull(),
     reason: text("reason").notNull(),
     signal: text("signal").notNull(),
+    /** The pipeline that surfaced them (for the Main Play, the stage of the waterfall). */
+    pipeline: text("pipeline", { enum: PIPELINES }),
+    /** How much timing intent the signal carries, 0–100: engaging with posts is warm, a title match is cold. */
+    warmness: integer("warmness").notNull().default(0),
     evidence: text("evidence", { mode: "json" }).$type<Evidence[]>().notNull().default([]),
+    /** First time the founder opened it; unseen to_review leads make up the New tab. */
+    seenAt: integer("seen_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("lead_play_person_idx").on(t.playId, t.personId), index("lead_workspace_idx").on(t.workspaceId, t.status)],
 );
 
+/** Reasons offered when rejecting a lead. They feed the Brain review and the judge of later runs. */
+export const FEEDBACK_REASONS = [
+  "wrong_role",
+  "wrong_seniority",
+  "wrong_industry",
+  "wrong_company_size",
+  "wrong_location",
+  "outdated_profile",
+  "competitor_or_partner",
+  "other",
+] as const;
+export type FeedbackReason = (typeof FEEDBACK_REASONS)[number];
+
+/** The founder's verdict on a lead. Withdrawing it (undo) puts the lead back where it was. */
+export const leadFeedback = sqliteTable(
+  "lead_feedback",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    leadId: text("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    verdict: text("verdict", { enum: ["up", "down"] }).notNull(),
+    reasons: text("reasons", { mode: "json" }).$type<FeedbackReason[]>().notNull().default([]),
+    comment: text("comment"),
+    /** Status before this feedback, restored on undo. */
+    previousStatus: text("previous_status", { enum: LEAD_STATUSES }).notNull(),
+    withdrawnAt: integer("withdrawn_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("lead_feedback_lead_idx").on(t.leadId), index("lead_feedback_workspace_idx").on(t.workspaceId, t.createdAt)],
+);
+
+export const LEAD_EVENT_KINDS = [
+  "found",
+  "approved",
+  "rejected",
+  "feedback_withdrawn",
+  "note",
+  "email_found",
+  "email_not_found",
+  "linkedin_found",
+  "linkedin_not_found",
+  "exported",
+] as const;
+
+/** A lead's timeline: what happened to it and who did it. */
+export const leadEvents = sqliteTable(
+  "lead_event",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    leadId: text("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: LEAD_EVENT_KINDS }).notNull(),
+    payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: createdAt(),
+  },
+  (t) => [index("lead_event_lead_idx").on(t.leadId, t.id)],
+);
+
 export type Play = typeof plays.$inferSelect;
 export type LeadFindingRun = typeof leadFindingRuns.$inferSelect;
 export type Person = typeof people.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
+export type LeadFeedback = typeof leadFeedback.$inferSelect;
+export type LeadEvent = typeof leadEvents.$inferSelect;
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 

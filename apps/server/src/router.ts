@@ -6,16 +6,14 @@ import {
   PlayConflictError,
   ensureMainPlay,
   estimatePlay,
-  getLeadWithPerson,
   requestJobCancel,
-  setPersonEmail,
-  setPersonLinkedin,
   updateRun,
   createPlay,
   getPlay,
   getRun,
-  listLeads,
   listPlays,
+  leadsPerDay,
+  playActivity,
   listRuns,
   newPlaySchema,
   pipelineCapabilities,
@@ -50,13 +48,11 @@ import {
   tailStreamEvents,
   updateWorkspace,
 } from "@pluton/core";
-import { checkClaude, findLinkedinProfiles, webSearch } from "@pluton/agent";
+import { checkClaude, webSearch } from "@pluton/agent";
 import { BRAIN_SECTIONS, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, gte, jobs, providerCalls, saveSetting, sql } from "@pluton/db";
 import {
   MissingKeyError,
   checkProviderKey,
-  findEmail,
-  splitName,
   companyJobs,
   detectStack,
   profilePosts,
@@ -64,6 +60,7 @@ import {
   searchJobs,
   searchRegistry,
 } from "@pluton/providers";
+import { leadsRouter } from "./leads-router.ts";
 import { publicProcedure, router } from "./trpc.ts";
 
 const system = router({
@@ -328,6 +325,11 @@ const playsRouter = router({
     if (!play) throw new TRPCError({ code: "NOT_FOUND", message: "Play not found" });
     return { play, runs: await listRuns(ctx.db, play.id) };
   }),
+  activity: publicProcedure.input(z.object({ id: z.string() })).query(({ ctx, input }) => playActivity(ctx.db, input.id)),
+  leadsPerDay: publicProcedure.input(z.object({ id: z.string().optional() })).query(async ({ ctx, input }) => {
+    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    return leadsPerDay(ctx.db, input.id, ws.id);
+  }),
   /** One planner turn as a job: follow `job:<id>` for the `done` event carrying the question or proposal. */
   plan: publicProcedure
     .input(z.object({ transcript: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().min(1).max(8000) })).min(1).max(20) }))
@@ -382,41 +384,6 @@ const playsRouter = router({
     if (!run) throw new TRPCError({ code: "NOT_FOUND" });
     return run;
   }),
-});
-
-async function leadPerson(db: Parameters<typeof getLeadWithPerson>[0], leadId: string) {
-  const row = await getLeadWithPerson(db, leadId);
-  if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Lead not found" });
-  return row;
-}
-
-const leadsRouter = router({
-  /** Work email through Hunter; needs the organization's website. */
-  findEmail: publicProcedure.input(z.object({ leadId: z.string() })).mutation(async ({ ctx, input }) => {
-    const { person } = await leadPerson(ctx.db, input.leadId);
-    if (!person.companyWebsite) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No company website known for this person" });
-    try {
-      const result = await findEmail(ctx.db, { ...splitName(person.name), website: person.companyWebsite });
-      await setPersonEmail(ctx.db, person.id, result.email, result.confidence);
-      return result;
-    } catch (error) {
-      const code = error instanceof MissingKeyError ? "PRECONDITION_FAILED" : "BAD_REQUEST";
-      throw new TRPCError({ code, message: (error as Error).message });
-    }
-  }),
-  findLinkedin: publicProcedure.input(z.object({ leadId: z.string() })).mutation(async ({ ctx, input }) => {
-    const { person } = await leadPerson(ctx.db, input.leadId);
-    const found = await findLinkedinProfiles(ctx.db, [{ name: person.name, company: person.company ?? undefined, title: person.title ?? undefined }]);
-    const url = found.get(0) ?? null;
-    if (url) await setPersonLinkedin(ctx.db, person.id, url);
-    return { url };
-  }),
-  list: publicProcedure
-    .input(z.object({ playId: z.string().optional(), includeDisqualified: z.boolean().default(false) }).optional())
-    .query(async ({ ctx, input }) => {
-      const ws = await getOrCreateDefaultWorkspace(ctx.db);
-      return listLeads(ctx.db, { workspaceId: ws.id, playId: input?.playId, includeDisqualified: input?.includeDisqualified });
-    }),
 });
 
 const settingsRouter = router({

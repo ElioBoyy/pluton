@@ -5,7 +5,9 @@ import { BrainPage } from "./features/brain/brain-page.tsx";
 import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
 import { NewPlayPage } from "./features/plays/new-play-page.tsx";
 import { PlayPage } from "./features/plays/play-page.tsx";
-import { LeadsPage, PlaysPage } from "./features/plays/plays-page.tsx";
+import { LEAD_TABS, type LeadTabKey } from "./features/leads/labels.ts";
+import { LeadsPage } from "./features/leads/leads-page.tsx";
+import { PlaysPage } from "./features/plays/plays-page.tsx";
 import { ApiKeysPage } from "./routes/api-keys.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
@@ -80,12 +82,51 @@ const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
   }),
 );
 
+const leadTab = (v: unknown): LeadTabKey | undefined => (LEAD_TABS.some((t) => t.key === v) ? (v as LeadTabKey) : undefined);
+const leadId = (v: unknown) => (typeof v === "string" && v ? v : undefined);
+
+const PLAY_TABS = ["overview", "sourcing", "leads"] as const;
+export type PlayTab = (typeof PLAY_TABS)[number];
+
 const playRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/plays/$playId",
+  validateSearch: (s: Record<string, unknown>): { tab?: PlayTab; status?: LeadTabKey; lead?: string } => ({
+    tab: PLAY_TABS.includes(s.tab as PlayTab) ? (s.tab as PlayTab) : undefined,
+    status: leadTab(s.status),
+    lead: leadId(s.lead),
+  }),
   component: function Play() {
     const { playId } = playRoute.useParams();
-    return <PlayPage key={playId} playId={playId} />;
+    const search = playRoute.useSearch();
+    const navigate = playRoute.useNavigate();
+    return (
+      <PlayPage
+        key={playId}
+        playId={playId}
+        tab={search.tab ?? (search.lead ? "leads" : "overview")}
+        leadTab={search.status ?? "all"}
+        leadId={search.lead}
+        onChange={(next) => void navigate({ search: { ...search, ...next }, replace: true })}
+      />
+    );
+  },
+});
+
+const leadsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/leads",
+  validateSearch: (s: Record<string, unknown>): { tab?: LeadTabKey; lead?: string } => ({ tab: leadTab(s.tab), lead: leadId(s.lead) }),
+  component: function Leads() {
+    const search = leadsRoute.useSearch();
+    const navigate = leadsRoute.useNavigate();
+    return (
+      <LeadsPage
+        tab={search.tab ?? "to_review"}
+        leadId={search.lead}
+        onChange={(next) => void navigate({ search: { tab: next.tab ?? search.tab, lead: next.lead }, replace: true })}
+      />
+    );
   },
 });
 
@@ -99,7 +140,7 @@ const routeTree = rootRoute.addChildren([
     createRoute({ getParentRoute: () => appRoute, path: "/plays", component: PlaysPage }),
     createRoute({ getParentRoute: () => appRoute, path: "/plays/new", component: NewPlayPage }),
     playRoute,
-    createRoute({ getParentRoute: () => appRoute, path: "/leads", component: LeadsPage }),
+    leadsRoute,
     workspaceRoute.addChildren([workspaceIndexRoute, ...settingsRoutes]),
   ]),
 ]);

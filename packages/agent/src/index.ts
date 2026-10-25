@@ -8,3 +8,4 @@ export * from "./play-planner.ts";
 export * from "./lead-finder.ts";
 export * from "./check-claude.ts";
 export * from "./linkedin-lookup.ts";
+export * from "./lead-email.ts";

@@ -48,6 +48,14 @@ export function providerCatalog(): ProviderInfo[] {
       configured: true,
     },
     {
+      id: "website",
+      label: "Company website emails",
+      description: "Addresses on a company's own contact, legal and team pages. Finds a person's address, or guesses it from the pattern the site uses (marked as a guess).",
+      powers: ["Find email (free)"],
+      access: "free",
+      configured: true,
+    },
+    {
       id: "web",
       label: "Web search (Claude)",
       description: "Claude searches the web and reads pages: companies, people, public evidence, funding news. Uses your Claude subscription.",
@@ -66,7 +74,7 @@ export function providerCatalog(): ProviderInfo[] {
     {
       id: "hunter",
       label: "Hunter",
-      description: "Work email from name and company domain. Free plan: 25 searches a month.",
+      description: "Work email from name and company domain. Free plan: 25 searches a month. Without it, Find email only checks public pages and the company site.",
       powers: ["Find email"],
       access: "api_key",
       settingKey: "hunter_api_key",
@@ -93,3 +101,4 @@ export function providerCatalog(): ProviderInfo[] {
   ];
 }
 export * from "./hunter.ts";
+export * from "./email.ts";

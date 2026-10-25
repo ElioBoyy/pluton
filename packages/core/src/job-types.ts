@@ -18,6 +18,7 @@ export const jobPayloads = {
       .max(20),
   }),
   "lead_finding.run": z.object({ runId: z.string() }),
+  "leads.find_emails": z.object({ workspaceId: z.string(), leadIds: z.array(z.string()).min(1).max(200) }),
   "brain.review": z.object({
     workspaceId: z.string(),
     focus: z.string().trim().max(500).optional(),

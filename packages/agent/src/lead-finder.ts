@@ -7,8 +7,11 @@ import {
   emptyReport,
   getPlay,
   getRun,
+  describeFeedback,
+  feedbackDigest,
   insertLead,
   isLeadOfPlay,
+  rejectedPersonIds,
   pipelineCapabilities,
   recordActivity,
   runChannel,
@@ -113,6 +116,10 @@ type Ctx = {
   report: RunReport;
   /** "Name (title @ company)" of qualified leads, for summaries. */
   qualifiedExamples: string[];
+  /** The founder's recent verdicts on leads, as examples for the judge. */
+  feedback: string;
+  /** People the founder already rejected: not brought back. */
+  rejectedPeople: Set<string>;
   signal: AbortSignal;
   say: (text: string) => Promise<void>;
 };
@@ -268,6 +275,10 @@ function makeGate(ctx: Ctx, kept: Kept[]) {
         continue;
       }
       const person = await upsertPerson(db, play.workspaceId, c);
+      if (ctx.rejectedPeople.has(person.id)) {
+        addRejection(report, "rejected_before", label);
+        continue;
+      }
       if ((await isLeadOfPlay(db, play.id, person.id)) || kept.some((k) => k.personId === person.id)) {
         report.duplicates++;
         continue;
@@ -318,7 +329,7 @@ async function runPipeline(ctx: Ctx, pipeline: Pipeline, wanted: number, deadlin
   if (kept.length) {
     await enrichLinkedin(ctx, kept);
     await ctx.say(`Scoring ${kept.length} candidates against your ICP…`);
-    for (let i = 0; i < kept.length; i += 10) await judgeBatch(ctx, kept.slice(i, i + 10));
+    for (let i = 0; i < kept.length; i += 10) await judgeBatch(ctx, kept.slice(i, i + 10), pipeline);
   }
   return ctx.report.qualified - before;
 }
@@ -332,7 +343,17 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
   if (!play) throw new Error("Play not found");
 
   const report = emptyReport();
-  const ctx: Ctx = { db, runId, play, report, qualifiedExamples: [], signal: opts.signal, say: (text) => emit(db, runId, "message", { text }) };
+  const ctx: Ctx = {
+    db,
+    runId,
+    play,
+    report,
+    qualifiedExamples: [],
+    feedback: describeFeedback(await feedbackDigest(db, play.workspaceId, { limit: 30 }), 10),
+    rejectedPeople: await rejectedPersonIds(db, play.workspaceId),
+    signal: opts.signal,
+    say: (text) => emit(db, runId, "message", { text }),
+  };
   const tellOnboarding = async (ok: boolean) => {
     if (!play.onboardingSessionId) return;
     await reportFirstLeads(db, play.onboardingSessionId, { ok, qualified: report.qualified, needsReview: report.needsReview, examples: ctx.qualifiedExamples });
@@ -401,7 +422,7 @@ For each candidate:
 - rejection: for disqualified only, one of wrong_persona, wrong_seniority, wrong_company, wrong_geography, other.
 Score every candidate exactly once with record_verdicts.`;
 
-async function judgeBatch(ctx: Ctx, batch: Kept[]) {
+async function judgeBatch(ctx: Ctx, batch: Kept[], pipeline: Pipeline) {
   const { db, play, report, runId } = ctx;
   const verdicts = new Map<number, { fit: number; stage: "qualified" | "needs_review" | "disqualified"; reason: string; rejection?: string }>();
   await runAgent({
@@ -417,7 +438,7 @@ ${brainOf(play)
   .join("\n")}
 
 This Play targets: ${JSON.stringify(play.definition.audience)}
-
+${ctx.feedback ? `\nThe founder's verdicts on earlier leads. They override the ICP where they disagree: score similar people the same way.\n${ctx.feedback}\n` : ""}
 Candidates:
 ${batch.map((c, i) => `${i}. ${JSON.stringify({ name: c.name, title: c.title, company: c.company, location: c.location, signal: c.signal })}`).join("\n")}`,
     tools: [
@@ -460,6 +481,7 @@ ${batch.map((c, i) => `${i}. ${JSON.stringify({ name: c.name, title: c.title, co
       fit: v.fit,
       reason: v.reason,
       signal: c.signal,
+      pipeline,
       evidence: c.evidence,
     });
     if (!lead) {

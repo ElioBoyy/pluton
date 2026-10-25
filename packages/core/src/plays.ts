@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
+  activityEvents,
   and,
   count,
+  gte,
   desc,
   eq,
   inArray,
@@ -23,6 +25,7 @@ import { getSetting } from "@pluton/db";
 import { getSingleton, listBrain } from "./brain.ts";
 import { recordActivity } from "./events.ts";
 import { enqueueJob } from "./jobs.ts";
+import { addLeadEvent, describeFeedback, feedbackDigest, warmnessFor } from "./leads.ts";
 
 export const runChannel = (runId: string) => `run:${runId}`;
 
@@ -140,6 +143,11 @@ export async function listPlays(db: Db, workspaceId: string) {
     .from(leads)
     .where(eq(leads.workspaceId, workspaceId))
     .groupBy(leads.playId, leads.stage);
+  const review = await db
+    .select({ playId: leads.playId, status: leads.status, n: count() })
+    .from(leads)
+    .where(and(eq(leads.workspaceId, workspaceId), ne(leads.stage, "disqualified")))
+    .groupBy(leads.playId, leads.status);
   const latest = await db
     .select()
     .from(leadFindingRuns)
@@ -148,9 +156,16 @@ export async function listPlays(db: Db, workspaceId: string) {
   return rows.map((p) => {
     const mine = counts.filter((c) => c.playId === p.id);
     const n = (stage: string) => mine.find((c) => c.stage === stage)?.n ?? 0;
+    const byStatus = (status: string) => review.find((c) => c.playId === p.id && c.status === status)?.n ?? 0;
     return {
       ...p,
-      leadCounts: { qualified: n("qualified"), needsReview: n("needs_review"), disqualified: n("disqualified") },
+      leadCounts: {
+        qualified: n("qualified"),
+        needsReview: n("needs_review"),
+        disqualified: n("disqualified"),
+        toReview: byStatus("to_review"),
+        approved: byStatus("approved"),
+      },
       lastRun: latest.find((r) => r.playId === p.id) ?? null,
     };
   });
@@ -185,6 +200,7 @@ export async function startRun(db: Db, playId: string, trigger: "manual" | "sche
   });
   await db.update(leadFindingRuns).set({ jobId: job.id }).where(eq(leadFindingRuns.id, run!.id));
   await db.update(plays).set({ lastRunAt: new Date() }).where(eq(plays.id, playId));
+  await recordActivity(db, play.workspaceId, "leads", "lead_finding.started", { runId: run!.id, playId, trigger });
   return { ...run!, jobId: job.id };
 }
 
@@ -278,29 +294,44 @@ export async function insertLead(
     fit: number;
     reason: string;
     signal: string;
+    pipeline: Pipeline;
     evidence: Evidence[];
   },
 ) {
   const [row] = await db
     .insert(leads)
-    .values({ ...values, status: values.stage === "qualified" ? "new" : values.stage === "needs_review" ? "to_review" : "rejected" })
+    // Every lead waits for the founder's verdict; the judge's stage only says how sure it is.
+    .values({ ...values, warmness: warmnessFor(values.pipeline), status: values.stage === "disqualified" ? "rejected" : "to_review" })
     .onConflictDoNothing()
     .returning();
+  if (row && row.stage !== "disqualified") await addLeadEvent(db, row.id, "found", { stage: row.stage, fit: row.fit, runId: values.runId });
   return row;
 }
 
-export async function listLeads(db: Db, opts: { workspaceId: string; playId?: string; includeDisqualified?: boolean }) {
-  const where = [eq(leads.workspaceId, opts.workspaceId)];
-  if (opts.playId) where.push(eq(leads.playId, opts.playId));
-  if (!opts.includeDisqualified) where.push(ne(leads.stage, "disqualified"));
-  const rows = await db
-    .select({ lead: leads, person: people, playName: plays.name })
+/** A Play's activity feed, newest first: created, searches started and finished, leads reviewed. */
+export async function playActivity(db: Db, playId: string, limit = 30) {
+  return db
+    .select()
+    .from(activityEvents)
+    .where(and(eq(activityEvents.context, "leads"), sql`json_extract(${activityEvents.payload}, '$.playId') = ${playId}`))
+    .orderBy(desc(activityEvents.id))
+    .limit(limit);
+}
+
+/** Leads found per local day over the last `days` days, split by the judge's verdict. */
+export async function leadsPerDay(db: Db, playId: string | undefined, workspaceId: string, days = 30) {
+  const since = new Date(Date.now() - days * 86_400_000);
+  const where = [eq(leads.workspaceId, workspaceId), ne(leads.stage, "disqualified"), gte(leads.createdAt, since)];
+  if (playId) where.push(eq(leads.playId, playId));
+  return db
+    .select({
+      day: sql<string>`strftime('%Y-%m-%d', ${leads.createdAt} / 1000, 'unixepoch', 'localtime')`,
+      qualified: sql<number>`sum(case when ${leads.stage} = 'qualified' then 1 else 0 end)`,
+      review: sql<number>`sum(case when ${leads.stage} = 'needs_review' then 1 else 0 end)`,
+    })
     .from(leads)
-    .innerJoin(people, eq(people.id, leads.personId))
-    .innerJoin(plays, eq(plays.id, leads.playId))
     .where(and(...where))
-    .orderBy(desc(leads.createdAt));
-  return rows.map((r) => ({ ...r.lead, person: r.person, playName: r.playName }));
+    .groupBy(sql`1`);
 }
 
 // ── Scheduling ───────────────────────────────────────────────────────────────
@@ -432,8 +463,12 @@ export async function setPersonLinkedin(db: Db, personId: string, linkedinUrl: s
   await db.update(people).set({ linkedinUrl }).where(eq(people.id, personId));
 }
 
-export async function setPersonEmail(db: Db, personId: string, email: string | null, confidence: number | null) {
-  await db.update(people).set({ email, emailConfidence: confidence }).where(eq(people.id, personId));
+/** Records a lookup, found or not; a later miss never erases an address found before. */
+export async function setPersonEmail(db: Db, personId: string, email: string | null, confidence: number | null, source: string | null) {
+  await db
+    .update(people)
+    .set(email ? { email, emailConfidence: confidence, emailSource: source, emailCheckedAt: new Date() } : { emailCheckedAt: new Date() })
+    .where(eq(people.id, personId));
 }
 
 export async function getLeadWithPerson(db: Db, leadId: string) {
@@ -452,8 +487,8 @@ export function localDay(date: Date, timeZone: string) {
 }
 
 /**
- * What recent searches taught us, for the Brain review: why people were set aside and how the
- * judge scored them. Founder feedback on leads joins this in phase 5.
+ * What recent searches taught us, for the Brain review: why people were set aside, how the judge
+ * scored them, and the founder's own verdicts on leads (the strongest signal).
  */
 export async function leadOutcomes(db: Db, workspaceId: string) {
   const runs = await db
@@ -483,5 +518,13 @@ export async function leadOutcomes(db: Db, workspaceId: string) {
     .where(and(eq(leads.workspaceId, workspaceId), eq(leads.stage, "needs_review")))
     .orderBy(desc(leads.createdAt))
     .limit(8);
-  return { runs: runs.length, qualified, needsReview, rejections, reviewSample };
+  const feedback = await feedbackDigest(db, workspaceId, { limit: 60 });
+  return {
+    runs: runs.length,
+    qualified,
+    needsReview,
+    rejections,
+    reviewSample,
+    founderFeedback: { reasonCounts: feedback.reasonCounts, examples: describeFeedback(feedback, 15) },
+  };
 }

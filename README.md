@@ -44,9 +44,17 @@ Settings → Data sources lists every source, its status and a "Try it" box. Fre
 
 Pipelines: Role match, Companies hiring, Tech stack, Web evidence, Lookalikes (same sector and size as a customer, French registry), Recently funded (press), plus with an Apify token: engagement on tracked LinkedIn profiles and people posting about keywords. The **Main Play** (`waterfall`) chains them, warmest first, until its target is met; onboarding creates it and runs it to find the first leads.
 
-A run (`lead_finding.run`, live on `run:<id>`): collect (research agent or Apify) → code checks (incomplete, own company, competitors, exclusions, duplicates) → LinkedIn profile lookup → judge scoring 0–100 against the ICP. Each Play has a policy: minutes of research and signal freshness. Short of target, the agent is nudged twice to try new angles. "Stop search" cancels a run (the worker aborts the job within ~2 s); a worker restart marks it interrupted instead. Leads can be enriched with a work email (Hunter) or a LinkedIn URL.
+A run (`lead_finding.run`, live on `run:<id>`): collect (research agent or Apify) → code checks (incomplete, own company, competitors, exclusions, duplicates) → LinkedIn profile lookup → judge scoring 0–100 against the ICP. Each Play has a policy: minutes of research and signal freshness. Short of target, the agent is nudged twice to try new angles. "Stop search" cancels a run (the worker aborts the job within ~2 s); a worker restart marks it interrupted instead. The worker queues scheduled Plays (daily, weekdays, Mondays) once per local day after 07:00, and the daily Brain review after 06:00 (Settings → API keys → Automation). The review reads recent run outcomes and your verdicts on leads.
 
-The worker queues scheduled Plays (daily, weekdays, Mondays) once per local day after 07:00, and the daily Brain review after 06:00 (Settings → API keys → Automation). The review reads recent run outcomes.
+## Leads
+
+`/leads` (every Play) and a Play's Leads tab share one view: tabs All / New (to review, never opened) / To review / Approved / In campaign / Contacted / Rejected, search, signal filter, sort by newest, fit or warmness, column picker, multi-select with "Select all N", CSV export. Judge-disqualified candidates stay out of it (they're in the Play's Sourcing report). Tab and open lead are in the URL (`?tab=…&lead=…`).
+
+The drawer shows email, title, seniority (read from the title), LinkedIn, company, location, fit and warmness, why they fit, evidence, other Plays that found the same person, and a timeline with notes. Keys: ↑/↓ move, A approve, R reject, Esc close.
+
+Approve (👍) or reject (👎) with optional reasons (wrong role, seniority, industry, company size, location, outdated profile, competitor or partner) and a comment; every verdict can be undone (toast or drawer). Verdicts land in `lead_feedback` and feed back three ways: the judge of later runs scores similar people the same way, people you rejected are never brought back, and five new rejections queue a Brain review focused on them (its proposals wait for you on the Brain page).
+
+Find email checks free sources first (an address quoted in the research, then the company's own contact, legal and team pages), then Hunter when a key is set (1 search, remaining quota shown), and last a guess from the site's address pattern, labelled unverified. Bulk lookups run as a `leads.find_emails` job.
 
 ## Conventions
 

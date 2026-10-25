@@ -14,6 +14,7 @@ import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTRPC } from "../lib/trpc.ts";
 import { CommandPalette } from "./command-palette.tsx";
+import { Toaster } from "./toast.tsx";
 
 const NAV: Array<{ to: string; label: string; icon: Icon }> = [
   { to: "/home", label: "Home", icon: House },
@@ -28,6 +29,9 @@ const GET_STARTED = ["Create a play", "Edit the brain", "Connect MCP"];
 export function AppShell() {
   const trpc = useTRPC();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
+  const plays = useQuery(trpc.plays.list.queryOptions());
+  const leadCounts = useQuery(trpc.leads.counts.queryOptions({}));
+  const toReview = leadCounts.data?.counts.to_review ?? 0;
   const [paletteOpen, setPaletteOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -54,17 +58,43 @@ export function AppShell() {
           <span className="truncate text-sm font-medium">{name}</span>
         </div>
 
-        <nav className="flex flex-col gap-0.5 px-2">
+        <nav className="flex min-h-0 flex-col gap-0.5 overflow-y-auto px-2">
           {NAV.map(({ to, label, icon: IconCmp }) => (
-            <Link
-              key={to}
-              to={to}
-              className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink"
-              activeProps={{ className: "bg-raised !text-ink" }}
-            >
-              <IconCmp size={17} />
-              {label}
-            </Link>
+            <div key={to}>
+              <Link
+                to={to}
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-raised hover:text-ink"
+                activeProps={{ className: "bg-raised !text-ink" }}
+                activeOptions={{ exact: to === "/plays" }}
+              >
+                <IconCmp size={17} />
+                <span className="flex-1">{label}</span>
+                {to === "/leads" && toReview > 0 && (
+                  <span className="rounded-full bg-raised px-1.5 text-[11px] tabular-nums text-muted" title={`${toReview} to review`}>
+                    {toReview}
+                  </span>
+                )}
+              </Link>
+              {to === "/plays" && (
+                <ul className="mt-0.5 mb-1 ml-[1.15rem] flex flex-col border-l border-line pl-2">
+                  {(plays.data ?? [])
+                    .filter((p) => p.status !== "archived")
+                    .map((p) => (
+                      <li key={p.id}>
+                        <Link
+                          to="/plays/$playId"
+                          params={{ playId: p.id }}
+                          className="flex items-center gap-2 rounded-md px-2 py-1 text-[13px] text-muted hover:bg-raised hover:text-ink"
+                          activeProps={{ className: "bg-raised !text-ink" }}
+                        >
+                          <span className="flex-1 truncate">{p.name}</span>
+                          {p.leadCounts.toReview > 0 && <span className="text-[11px] tabular-nums text-faint">{p.leadCounts.toReview}</span>}
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
           ))}
         </nav>
 
@@ -107,6 +137,7 @@ export function AppShell() {
       </main>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <Toaster />
     </div>
   );
 }
