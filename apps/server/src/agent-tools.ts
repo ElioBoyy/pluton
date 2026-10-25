@@ -164,7 +164,7 @@ export function buildPlutonTools(db: Db, via: "mcp" | "agent"): PlutonTool[] {
     },
     false,
   );
-  tool("leads_find_email", "Looks up work emails for leads (free sources first, then Hunter if set up).", { leadIds: z.array(z.string()).min(1).max(50) }, async ({ leadIds }) => {
+  tool("leads_find_email", "Looks up work emails for leads (free sources first, then Hunter if set up). The result lists, per lead, every source tried and its outcome: research, website, hunter (no_key: no Hunter key is set, so Hunter wasn't asked; nothing: Hunter found none and charged nothing).", { leadIds: z.array(z.string()).min(1).max(50) }, async ({ leadIds }) => {
     const job = await caller.leads.findEmails({ leadIds });
     return (await waitForJob(db, job.id, 120_000)) ?? { pending: true, jobId: job.id };
   }, false);

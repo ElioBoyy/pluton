@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   activeTurn,
+  activeTurns,
   addCopilotMessage,
   createConversation,
   deleteConversation,
@@ -68,25 +69,24 @@ export const copilotRouter = router({
       const action = await getCopilotAction(ctx.db, input.actionId);
       if (!action) throw new TRPCError({ code: "NOT_FOUND" });
       return oneAtATime(action.conversationId, async () => {
-        // Approving starts a turn; one at a time per conversation, like sending.
-        if (input.decision === "approve" && (await activeTurn(ctx.db, action.conversationId))) {
-          throw new TRPCError({ code: "CONFLICT", message: t("approveLater") });
-        }
         const next = await setCopilotActionStatus(ctx.db, action.id, input.decision === "approve" ? "approved" : "rejected", { decidedAt: new Date() }, ["proposed"]);
         if (!next) throw new TRPCError({ code: "CONFLICT", message: t(`already.${action.status as CopilotActionStatus}`) });
-        if (input.decision === "approve") await startCopilotTurn(ctx.db, (await ws(ctx.db)).id, action.conversationId, action.id);
+        // Approved while the agent is still answering: queued behind that turn, it runs as soon as it ends.
+        const running = input.decision === "approve" ? await activeTurn(ctx.db, action.conversationId) : undefined;
+        if (input.decision === "approve") await startCopilotTurn(ctx.db, (await ws(ctx.db)).id, action.conversationId, action.id, running?.id);
         return next;
       });
     }),
   cancel: publicProcedure.input(z.object({ conversationId: z.string() })).mutation(async ({ ctx, input }) => {
-    const job = await activeTurn(ctx.db, input.conversationId);
-    if (!job) return;
-    // An approved action the turn hasn't started yet goes back to its card, queued or running alike.
-    // Only "approved" is reset: the worker can then no longer move it to "executing", so it never
-    // runs; one already executing or done is left to finish, since it can't be taken back.
-    const { actionId } = (job.payload ?? {}) as { actionId?: string };
-    if (actionId) await setCopilotActionStatus(ctx.db, actionId, "proposed", { decidedAt: null }, ["approved"]);
-    await requestJobCancel(ctx.db, job.id);
+    // Stop stops everything in flight: the answer being written and any approval queued behind it.
+    for (const job of await activeTurns(ctx.db, input.conversationId)) {
+      // An approved action the turn hasn't started yet goes back to its card, queued or running alike.
+      // Only "approved" is reset: the worker can then no longer move it to "executing", so it never
+      // runs; one already executing or done is left to finish, since it can't be taken back.
+      const { actionId } = (job.payload ?? {}) as { actionId?: string };
+      if (actionId) await setCopilotActionStatus(ctx.db, actionId, "proposed", { decidedAt: null }, ["approved"]);
+      await requestJobCancel(ctx.db, job.id);
+    }
   }),
   rename: publicProcedure
     .input(z.object({ id: z.string(), title: z.string().trim().min(1).max(80) }))

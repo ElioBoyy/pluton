@@ -18,7 +18,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Composer } from "../../components/composer.tsx";
 import { askConfirm, contextMenu, type MenuItem } from "../../components/context-menu.tsx";
@@ -244,7 +244,19 @@ function Chat({ conversationId }: { conversationId: string }) {
   const messages = state.data?.messages ?? [];
   const thinking = Boolean(state.data?.activeJob) || send.isPending;
 
+  // Opening a conversation lands on its latest message at once, before the first paint; after
+  // that, new messages glide into view.
+  const landed = useRef(false);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (landed.current || !el || messages.length === 0) return;
+    landed.current = true;
+    el.scrollTop = el.scrollHeight;
+    // Charts and tables can settle a frame later: stay at the bottom once they have.
+    requestAnimationFrame(() => (el.scrollTop = el.scrollHeight));
+  }, [messages.length]);
   useEffect(() => {
+    if (!landed.current) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length, thinking]);
 
@@ -290,14 +302,24 @@ function Chat({ conversationId }: { conversationId: string }) {
       </div>
       <div ref={scrollRef} className="h-full overflow-y-auto">
         <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pt-20 pb-32 sm:px-6">
-          {group(messages).map((item) =>
-            item.kind === "tools" ? (
-              <ToolGroup key={item.messages[0]!.id} messages={item.messages} />
-            ) : (
-              <MessageView key={item.message.id} message={item.message} actions={state.data?.actions ?? []} busy={thinking} />
-            ),
-          )}
-          {draft && <DraftView text={draft.text} />}
+          {(() => {
+            const items = group(messages, state.data?.actions ?? []);
+            // The answer still being written belongs above the turn's approval cards, like its saved text.
+            const cards = trailingCards(items);
+            const render = (item: Item) =>
+              item.kind === "tools" ? (
+                <ToolGroup key={item.messages[0]!.id} messages={item.messages} />
+              ) : (
+                <MessageView key={item.message.id} message={item.message} actions={state.data?.actions ?? []} busy={thinking} />
+              );
+            return (
+              <>
+                {items.slice(0, items.length - cards).map(render)}
+                {draft && <DraftView text={draft.text} />}
+                {items.slice(items.length - cards).map(render)}
+              </>
+            );
+          })()}
           {thinking && !draft && (
             <p className="flex items-center gap-2 text-sm text-muted">
               <CircleNotch size={14} className="animate-spin" /> <span className="ai-text">{t("working")}</span>
@@ -308,6 +330,7 @@ function Chat({ conversationId }: { conversationId: string }) {
       </div>
       <div className="absolute inset-x-0 bottom-0 z-10">
       <Composer
+        autoFocus
         placeholder={t("replyPlaceholder")}
         disabled={thinking}
         onStop={() => cancel.mutate({ conversationId })}
@@ -333,9 +356,45 @@ const confirmDelete = (title: string) =>
 type Item = { kind: "message"; message: Message } | { kind: "tools"; messages: Message[] };
 
 /** Consecutive reads fold into one line so the answer stays in view. */
-function group(messages: Message[]): Item[] {
-  const items: Item[] = [];
+/**
+ * Approval cards close their turn: the agent proposes the action, then explains it, so each card is
+ * moved below the text the agent wrote after it in that turn. It stops at the founder's next
+ * message, and at the report on the action once it ran (written after the action started).
+ */
+function placeCards(messages: Message[], actions: Action[]): Message[] {
+  const ranAt = new Map(
+    actions.filter((a) => a.status === "executing" || a.status === "completed" || a.status === "failed").map((a) => [a.id, new Date(a.updatedAt).getTime()]),
+  );
+  const out: Message[] = [];
+  let cards: Message[] = [];
   for (const m of messages) {
+    const at = new Date(m.createdAt).getTime();
+    // Cards whose action had already started running by this message stay above it.
+    const settled = cards.filter((c) => m.role === "user" || (ranAt.get(c.actionId ?? "") ?? Infinity) <= at);
+    if (settled.length) {
+      out.push(...settled);
+      cards = cards.filter((c) => !settled.includes(c));
+    }
+    if (m.role === "action") cards.push(m);
+    else out.push(m);
+  }
+  return [...out, ...cards];
+}
+
+/** How many items at the end are approval cards of the last turn. */
+function trailingCards(items: Item[]) {
+  let n = 0;
+  while (n < items.length) {
+    const item = items[items.length - 1 - n]!;
+    if (item.kind !== "message" || item.message.role !== "action") break;
+    n++;
+  }
+  return n;
+}
+
+function group(messages: Message[], actions: Action[]): Item[] {
+  const items: Item[] = [];
+  for (const m of placeCards(messages, actions)) {
     const last = items.at(-1);
     if (m.role === "tool" && last?.kind === "tools") last.messages.push(m);
     else if (m.role === "tool") items.push({ kind: "tools", messages: [m] });
@@ -434,7 +493,10 @@ const STATUS_CLASS: Record<Action["status"], string> = {
   failed: "text-cat-orange",
 };
 
-/** `busy` while the agent is still answering: deciding then would start a second turn, so it waits. */
+/**
+ * Deciding never waits for the agent: approved while it is still answering, the action is queued
+ * behind that answer (`busy`) and runs the moment it ends.
+ */
 function ActionCard({ action, busy }: { action: Action; busy: boolean }) {
   const t = useT("agent");
   const tc = useT("common");
@@ -452,7 +514,7 @@ function ActionCard({ action, busy }: { action: Action; busy: boolean }) {
         <span className="font-medium text-muted">{toolLabel(t, action.tool)}</span>
         <span className={cn("ml-auto", STATUS_CLASS[action.status])}>
           {action.status === "executing" && <CircleNotch size={11} className="mr-1 inline animate-spin" />}
-          {t(`status.${action.status}`)}
+          {action.status === "approved" && busy ? t("status.queued") : t(`status.${action.status}`)}
         </span>
       </div>
       <p className="mt-1.5 text-sm">{action.summary}</p>
@@ -464,10 +526,10 @@ function ActionCard({ action, busy }: { action: Action; busy: boolean }) {
       </details>
       {action.status === "proposed" && (
         <div className="mt-3 flex gap-2">
-          <Button disabled={decide.isPending || busy} title={busy ? t("waitForAgent") : undefined} onClick={() => decide.mutate({ actionId: action.id, decision: "approve" })}>
+          <Button disabled={decide.isPending} onClick={() => decide.mutate({ actionId: action.id, decision: "approve" })}>
             <Check size={13} weight="bold" /> {tc("approve")}
           </Button>
-          <Button variant="ghost" disabled={decide.isPending || busy} onClick={() => decide.mutate({ actionId: action.id, decision: "reject" })}>
+          <Button variant="ghost" disabled={decide.isPending} onClick={() => decide.mutate({ actionId: action.id, decision: "reject" })}>
             <X size={13} /> {t("decline")}
           </Button>
         </div>

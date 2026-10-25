@@ -40,6 +40,8 @@ export const jobPayloads = {
     conversationId: z.string(),
     /** An action the founder just approved: it runs first, then the agent reports on it. */
     actionId: z.string().optional(),
+    /** A turn still answering when this one was queued: this one waits for it to end first. */
+    after: z.string().optional(),
   }),
   /** One prompt, two wallpapers: Codex draws the light one, then the same scene at night for dark. */
   "appearance.generate_wallpaper": z.object({ prompt: z.string().trim().min(3).max(1000) }),
