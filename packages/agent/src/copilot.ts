@@ -101,12 +101,24 @@ function wrapTools(db: Db, conversationId: string, tools: CopilotTool[]): LocalT
 /** Runs an action the founder approved, exactly as proposed. */
 export async function executeCopilotAction(db: Db, actionId: string, tools: CopilotTool[]) {
   const action = await setCopilotActionStatus(db, actionId, "executing", {}, ["approved"]);
-  if (!action) return getCopilotAction(db, actionId);
+  if (!action) {
+    // Still "executing" means a restart cut it off mid-run: it may have partly run, so don't run it again.
+    const interrupted = await setCopilotActionStatus(db, actionId, "failed", { error: "Interrupted by a restart before it finished; check the result in Pluton before asking again." }, ["executing"]);
+    return interrupted ?? getCopilotAction(db, actionId);
+  }
   const tool = tools.find((t) => t.name === action.tool);
   try {
     if (!tool) throw new Error(`Unknown tool ${action.tool}`);
     const input = z.object(tool.shape).parse({ ...action.input, ...("confirm" in tool.shape ? { confirm: true } : {}) });
     const result = await tool.run(input);
+    // A confirmable tool still asking for confirmation was missing an argument (a CRM, the leads…): nothing ran.
+    if (result && typeof result === "object" && "needsConfirmation" in result) {
+      throw new Error(`Nothing ran: an argument was missing. ${JSON.stringify(result).slice(0, 300)}`);
+    }
+    // Waited out without a result: the job goes on in the background, so this is not "done" yet.
+    if (result && typeof result === "object" && "pending" in result && result.pending) {
+      throw new Error(`Still running in the background (job ${String((result as { jobId?: unknown }).jobId ?? "?")}); check its result in Pluton before relying on it.`);
+    }
     const ws = await getOrCreateDefaultWorkspace(db);
     await recordActivity(db, ws.id, "agent", "agent.action_completed", { tool: action.tool, summary: action.summary, conversationId: action.conversationId });
     return setCopilotActionStatus(db, actionId, "completed", { result: result ?? null });
