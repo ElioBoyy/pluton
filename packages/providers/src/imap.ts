@@ -2,6 +2,7 @@ import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { getSetting } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
+import { fromAddress, sendOutreachEmail } from "./mailer.ts";
 import { ProviderError } from "./runtime.ts";
 import messages from "./messages/providers.ts";
 
@@ -136,4 +137,23 @@ export function stripQuoted(text: string) {
     .filter((line) => !line.startsWith(">"))
     .join("\n")
     .trim();
+}
+
+/**
+ * Settings → "Send me a test email": one email to yourself through the same path as the sequence,
+ * then, when IMAP is set, a look for it in the inbox, so both sending and reading replies are proven.
+ */
+export async function sendTestEmail(opts: { waitMs?: number } = {}) {
+  const to = fromAddress();
+  const started = Date.now();
+  const { messageId } = await sendOutreachEmail({ to, subject: t("test.subject"), text: t("test.body") });
+  if (!inboxConfigured()) return { outcome: "sent" as const, message: t("test.sentOnly", { to }) };
+  const deadline = started + (opts.waitMs ?? 30_000);
+  const since = new Date(started - 24 * 3_600_000);
+  while (Date.now() < deadline) {
+    const found = await readInbox({ since, wanted: (h) => h.messageId === messageId });
+    if (found.length) return { outcome: "received" as const, message: t("test.received", { to, seconds: Math.max(1, Math.round((Date.now() - started) / 1000)) }) };
+    await new Promise((r) => setTimeout(r, 3_000));
+  }
+  return { outcome: "not_found" as const, message: t("test.notFound", { to, seconds: Math.round((opts.waitMs ?? 30_000) / 1000) }) };
 }

@@ -62,6 +62,7 @@ import { BRAIN_SECTIONS, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, 
 import {
   MissingKeyError,
   checkProviderKey,
+  sendTestEmail,
   companyJobs,
   detectStack,
   profilePosts,
@@ -452,6 +453,14 @@ const settingsRouter = router({
       }
       return describeSettings();
     }),
+  /** An email to yourself, then a look for it in the inbox: the sequence's whole email path. */
+  sendTestEmail: publicProcedure.mutation(async () => {
+    try {
+      return await sendTestEmail();
+    } catch (error) {
+      return { outcome: "failed" as const, message: (error as Error).message };
+    }
+  }),
   /** Proves a saved key works with a cheap call to its service. */
   test: publicProcedure.input(z.object({ key: z.string() })).mutation(async ({ input }) => {
     try {

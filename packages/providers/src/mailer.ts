@@ -10,7 +10,8 @@ const t = localized(messages);
 /** SMTP from Settings → API keys: the digest leaves from your own mailbox, nothing hosted. */
 export const mailerConfigured = () => Boolean(getSetting("smtp_host") && getSetting("smtp_user") && getSetting("smtp_password"));
 
-const fromAddress = () => getSetting("smtp_from") || getSetting("smtp_user")!;
+/** The mailbox outreach emails leave from. */
+export const fromAddress = () => getSetting("smtp_from") || getSetting("smtp_user")!;
 
 function transport() {
   if (!mailerConfigured()) throw new ProviderError("smtp", t("error.smtpMissing"));

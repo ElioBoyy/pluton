@@ -1,7 +1,7 @@
-import { CheckCircle, CircleNotch, WarningCircle } from "@phosphor-icons/react";
+import { CheckCircle, CircleNotch, EnvelopeSimple, Info, WarningCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader, Section, Segmented } from "../components/ui.tsx";
 import { KeyLink } from "./data-sources.tsx";
@@ -58,12 +58,19 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
   const tc = useT("common");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState("");
+  // Only secrets are hidden: a host, port or user shows its current value, edited in place.
+  const current = s.secret ? "" : (s.value ?? "");
+  const [draft, setDraft] = useState(current);
+  useEffect(() => setDraft(current), [current]);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const onSaved = (data: Setting[]) => queryClient.setQueryData(trpc.settings.list.queryKey(), data);
   const save = useMutation(trpc.settings.save.mutationOptions({ onSuccess: onSaved }));
   const test = useMutation(trpc.settings.test.mutationOptions({ onSuccess: setResult }));
-  const testable = ["agent_backend", "anthropic_api_key", "apify_token", "hunter_api_key", "smtp_password"].includes(s.key);
+  const [mailResult, setMailResult] = useState<{ outcome: "received" | "sent" | "not_found" | "failed"; message: string } | null>(null);
+  const sendTest = useMutation(trpc.settings.sendTestEmail.mutationOptions({ onSuccess: setMailResult }));
+  // The SMTP password row also sends an email to yourself and looks for it over IMAP.
+  const mailTestable = s.key === "smtp_password";
+  const testable = ["agent_backend", "anthropic_api_key", "apify_token", "hunter_api_key", "smtp_password", "imap_host"].includes(s.key);
 
   return (
     <div className="px-4 py-3.5">
@@ -101,21 +108,23 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
             className="flex shrink-0 items-center gap-2 max-sm:w-full"
             onSubmit={(e) => {
               e.preventDefault();
-              save.mutate({ key: s.key, value: draft }, { onSuccess: () => setDraft("") });
+              save.mutate({ key: s.key, value: draft }, { onSuccess: () => s.secret && setDraft("") });
             }}
           >
             {/* Input is w-full: the wrapper sets its width. */}
             <div className="w-52 max-sm:w-auto max-sm:flex-1">
               <Input
-                type="password"
+                type={s.secret ? "password" : "text"}
                 autoComplete="off"
+                spellCheck={false}
+                inputMode={s.key.endsWith("_port") || s.key.endsWith("_limit") ? "numeric" : undefined}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder={s.configured ? t("apiKeys.replaceKey") : t("apiKeys.pasteKey")}
+                placeholder={s.secret ? (s.configured ? t("apiKeys.replaceKey") : t("apiKeys.pasteKey")) : s.defaultValue}
                 aria-label={s.label}
               />
             </div>
-            <Button type="submit" variant="ghost" disabled={!draft.trim() || save.isPending}>
+            <Button type="submit" variant="ghost" disabled={!draft.trim() || draft.trim() === current || save.isPending}>
               {tc("save")}
             </Button>
             {s.source === "app" && (
@@ -132,12 +141,34 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
           <Button variant="ghost" disabled={test.isPending} onClick={() => test.mutate({ key: s.key })}>
             {test.isPending && <CircleNotch size={12} className="animate-spin" />} {t("apiKeys.test")}
           </Button>
+          {mailTestable && (
+            <Button variant="ghost" disabled={sendTest.isPending} onClick={() => sendTest.mutate()}>
+              {sendTest.isPending ? <CircleNotch size={12} className="animate-spin" /> : <EnvelopeSimple size={13} />} {t("apiKeys.sendTestEmail")}
+            </Button>
+          )}
           {result && (
             <span className={cn("flex min-w-0 items-center gap-1.5 text-xs", result.ok ? "text-system-green" : "text-system-orange")}>
               {result.ok ? <CheckCircle size={13} className="shrink-0" /> : <WarningCircle size={13} className="shrink-0" />} {result.message}
             </span>
           )}
         </div>
+      )}
+      {mailResult && (
+        <p
+          className={cn(
+            "mt-2 flex items-start gap-1.5 text-xs",
+            mailResult.outcome === "received" ? "text-system-green" : mailResult.outcome === "sent" ? "text-muted" : "text-system-orange",
+          )}
+        >
+          {mailResult.outcome === "received" ? (
+            <CheckCircle size={13} className="mt-px shrink-0" />
+          ) : mailResult.outcome === "sent" ? (
+            <Info size={13} className="mt-px shrink-0" />
+          ) : (
+            <WarningCircle size={13} className="mt-px shrink-0" />
+          )}
+          {mailResult.message}
+        </p>
       )}
       {save.error && <p className="mt-2 text-xs text-system-orange">{save.error.message}</p>}
     </div>
