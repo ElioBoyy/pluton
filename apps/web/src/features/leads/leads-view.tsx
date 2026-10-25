@@ -178,15 +178,15 @@ export function LeadsView({
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <label className="relative flex-1">
-          <MagnifyingGlass size={15} className="absolute top-1/2 left-3.5 -translate-y-1/2 text-muted" />
+          <MagnifyingGlass size={15} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search name, title, company, location"
-            className="h-9 w-full min-w-48 rounded-full bg-raised pr-4 pl-9 text-sm outline-none placeholder:text-muted focus:focus-ring"
+            className="h-8 w-full min-w-48 rounded-lg bg-control pr-3 pl-9 text-sm outline-none transition-colors duration-150 placeholder:text-muted hover:bg-control-hover focus:bg-control focus:focus-ring"
           />
         </label>
-        <select value={pipeline} onChange={(e) => setPipeline(e.target.value)} aria-label="Signal" className="h-9 rounded-lg border border-line bg-raised px-2 text-sm outline-none">
+        <select value={pipeline} onChange={(e) => setPipeline(e.target.value)} aria-label="Signal" className="h-8 rounded-lg bg-control pl-3 text-sm outline-none transition-colors duration-150 hover:bg-control-hover">
           <option value="">Every signal</option>
           {Object.entries(PIPELINE_LABELS)
             .filter(([k]) => k !== "waterfall")
@@ -196,7 +196,7 @@ export function LeadsView({
               </option>
             ))}
         </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort" className="h-9 rounded-lg border border-line bg-raised px-2 text-sm outline-none">
+        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort" className="h-8 rounded-lg bg-control pl-3 text-sm outline-none transition-colors duration-150 hover:bg-control-hover">
           <option value="newest">Newest first</option>
           <option value="fit">Best fit first</option>
           <option value="warmness">Warmest first</option>
@@ -606,6 +606,7 @@ function ExportButton({ filter, count }: { filter: Filter; count: number }) {
   return (
     <Button
       variant="ghost"
+      className="h-8"
       disabled={exportCsv.isPending || count === 0}
       title="Leads in this tab and filter, as CSV"
       onClick={async () => {
@@ -632,7 +633,7 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
   const ordered = useMemo(() => (c: ColumnKey[]) => COLUMNS.map((x) => x.key).filter((k) => c.includes(k)), []);
   return (
     <div ref={ref} className="relative">
-      <Button variant="ghost" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <Button variant="ghost" className="h-8" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <GearSix size={14} /> Columns
       </Button>
       {open && (
