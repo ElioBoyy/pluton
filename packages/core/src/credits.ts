@@ -41,6 +41,7 @@ export const PURPOSE_LABELS: Record<CostPurpose, string> = {
   email_finding: "Email finding",
   outreach: "Message writing",
   replies: "Reply handling",
+  agent: "Agent",
   setup: "Source checks",
   other: "Other",
 };

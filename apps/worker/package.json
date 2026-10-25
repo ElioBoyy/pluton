@@ -12,7 +12,8 @@
     "@pluton/agent": "workspace:*",
     "@pluton/core": "workspace:*",
     "@pluton/db": "workspace:*",
-    "@pluton/providers": "workspace:*"
+    "@pluton/providers": "workspace:*",
+    "@pluton/server": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

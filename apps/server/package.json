@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./router": "./src/router.ts"
+    "./router": "./src/router.ts",
+    "./agent-tools": "./src/agent-tools.ts"
   },
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/main.ts",

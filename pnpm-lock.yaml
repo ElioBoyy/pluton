@@ -249,6 +249,9 @@ importers:
       '@pluton/providers':
         specifier: workspace:*
         version: link:../../packages/providers
+      '@pluton/server':
+        specifier: workspace:*
+        version: link:../server
     devDependencies:
       '@types/node':
         specifier: ^26.6.5

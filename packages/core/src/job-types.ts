@@ -36,6 +36,11 @@ export const jobPayloads = {
     leadIds: z.array(z.string()).min(1).max(500),
     trigger: z.enum(["manual", "auto", "agent"]).default("manual"),
   }),
+  "copilot.turn": z.object({
+    conversationId: z.string(),
+    /** An action the founder just approved: it runs first, then the agent reports on it. */
+    actionId: z.string().optional(),
+  }),
   "brain.review": z.object({
     workspaceId: z.string(),
     focus: z.string().trim().max(500).optional(),

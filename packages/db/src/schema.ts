@@ -116,6 +116,7 @@ export const ACTIVITY_CONTEXTS = [
   "onboarding",
   "slack",
   "crm",
+  "agent",
   "system",
 ] as const;
 export type ActivityContext = (typeof ACTIVITY_CONTEXTS)[number];
@@ -806,6 +807,7 @@ export const COST_PURPOSES = [
   "email_finding",
   "outreach",
   "replies",
+  "agent",
   "setup",
   "other",
 ] as const;
@@ -1010,6 +1012,77 @@ export const mcpClients = sqliteTable(
   },
   (t) => [uniqueIndex("mcp_client_name_idx").on(t.workspaceId, t.name)],
 );
+
+// ── Agent ────────────────────────────────────────────────────────────────────
+
+/** A conversation with the Pluton agent (/agent and ⌘K). */
+export const copilotConversations = sqliteTable(
+  "copilot_conversation",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("copilot_conversation_workspace_idx").on(t.workspaceId, t.updatedAt)],
+);
+
+export const COPILOT_MESSAGE_ROLES = ["user", "assistant", "tool", "action"] as const;
+
+/**
+ * One entry of a conversation, in order: what the founder wrote, what the agent said, a tool it
+ * read with (`tool`), or an action it proposed (`action`, pointing at copilot_action).
+ */
+export const copilotMessages = sqliteTable(
+  "copilot_message",
+  {
+    id: id(),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => copilotConversations.id, { onDelete: "cascade" }),
+    role: text("role", { enum: COPILOT_MESSAGE_ROLES }).notNull(),
+    text: text("text").notNull().default(""),
+    /** For `tool`: the tool name and a short summary of its input. */
+    tool: text("tool"),
+    actionId: text("action_id"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("copilot_message_conversation_idx").on(t.conversationId, t.createdAt)],
+);
+
+export const COPILOT_ACTION_STATUSES = ["proposed", "approved", "executing", "completed", "rejected", "failed"] as const;
+export type CopilotActionStatus = (typeof COPILOT_ACTION_STATUSES)[number];
+
+/** A change the agent wants to make; nothing happens until the founder approves it. */
+export const copilotActions = sqliteTable(
+  "copilot_action",
+  {
+    id: id(),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => copilotConversations.id, { onDelete: "cascade" }),
+    tool: text("tool").notNull(),
+    input: text("input", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
+    /** One line for the card, written by the agent. */
+    summary: text("summary").notNull(),
+    /** What the tool returned without confirm (cost estimate, who would join…), when it has one. */
+    preview: text("preview", { mode: "json" }).$type<unknown>(),
+    status: text("status", { enum: COPILOT_ACTION_STATUSES }).notNull().default("proposed"),
+    result: text("result", { mode: "json" }).$type<unknown>(),
+    error: text("error"),
+    decidedAt: integer("decided_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("copilot_action_conversation_idx").on(t.conversationId)],
+);
+
+export type CopilotConversation = typeof copilotConversations.$inferSelect;
+export type CopilotMessage = typeof copilotMessages.$inferSelect;
+export type CopilotAction = typeof copilotActions.$inferSelect;
 
 export type Integration = typeof integrations.$inferSelect;
 export type CrmExport = typeof crmExports.$inferSelect;
