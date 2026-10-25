@@ -32,8 +32,9 @@ export function Composer({
       <div
         className={cn(
           // A floating field: a tone step above the page and a soft shadow, the ring only while focused.
-          "mx-auto flex max-w-2xl items-end gap-2 rounded-[22px] bg-panel py-1.5 pr-1.5 pl-4 shadow-card",
-          "transition-shadow duration-200 ease-out focus-within:shadow-[var(--shadow-card),0_0_0_3px_color-mix(in_srgb,var(--color-accent)_22%,transparent)]",
+          // Liquid Glass like the Ask bar and ⌘K: what scrolls under it blurs away; the ring only while focused.
+          "glass mx-auto flex max-w-2xl items-end gap-2 rounded-[22px] py-1.5 pr-1.5 pl-4",
+          "outline-0 outline-accent/25 transition-[outline-width] duration-200 ease-out focus-within:outline-3",
           disabled && "ai-glow",
         )}
       >

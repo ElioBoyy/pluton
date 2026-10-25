@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -190,20 +190,7 @@ export function AppShell() {
         <main className={cn("relative flex-1 overflow-y-auto overscroll-contain", askBar && "md:pb-20")}>
           <Outlet />
           {/* Pages with their own composer would be covered by the floating bar; phones use the header button. */}
-          {askBar && (
-            <button
-              onClick={() => setPaletteOpen(true)}
-              // With refraction the glass layer inside does the backdrop work; the bar itself must not, or the layer would see only the bar.
-              style={refractionSupported ? { backdropFilter: "none", WebkitBackdropFilter: "none" } : undefined}
-              data-refract={refractionSupported || undefined}
-              className="glass glass-thin fixed bottom-5 left-[calc(50%+124px-10rem)] flex h-11 w-80 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-colors duration-200 ease-out hover:text-ink max-md:hidden"
-            >
-              <MagnifyingGlass size={18} />
-              {t("askAnything")}
-              <kbd className="ml-auto font-sans text-xs text-faint">⌘K</kbd>
-              {refractionSupported && <LiquidGlassLayer id="ask-glass" width={320} height={44} radius={22} />}
-            </button>
-          )}
+          {askBar && <AskBar label={t("askAnything")} onOpen={() => setPaletteOpen(true)} />}
         </main>
       </div>
 
@@ -271,4 +258,47 @@ function usePlaysOpen() {
     }
   };
   return [open, set] as const;
+}
+
+/**
+ * The floating "Ask Pluton" bar. It grows with its label so every language fits on one line, and
+ * is centred over the content by its measured width: a transform would break the refraction.
+ */
+function AskBar({ label, onOpen }: { label: string; onOpen: () => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [width, setWidth] = useState(320);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Hidden on phones (width 0): keep the last real width.
+    const measure = () => el.offsetWidth > 0 && setWidth(Math.round(el.offsetWidth));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    // Crossing the md breakpoint shows it from display:none; the window event catches that too.
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [label]);
+  return (
+    <button
+      ref={ref}
+      onClick={onOpen}
+      // With refraction the glass layer inside does the backdrop work; the bar itself must not, or the layer would see only the bar.
+      style={{
+        left: `calc(50% + 124px - ${width / 2}px)`,
+        ...(refractionSupported ? { backdropFilter: "none", WebkitBackdropFilter: "none" } : {}),
+      }}
+      data-refract={refractionSupported || undefined}
+      className="glass glass-thin fixed bottom-5 flex h-11 min-w-80 items-center gap-2.5 rounded-full px-4 text-base whitespace-nowrap text-muted transition-colors duration-200 ease-out hover:text-ink max-md:hidden"
+    >
+      <MagnifyingGlass size={18} className="shrink-0" />
+      {label}
+      <kbd className="ml-auto pl-4 font-sans text-xs text-faint">⌘K</kbd>
+      {/* Keyed on the width: the refraction map is drawn for one exact size. */}
+      {refractionSupported && <LiquidGlassLayer key={width} id="ask-glass" width={width} height={44} radius={22} />}
+    </button>
+  );
 }

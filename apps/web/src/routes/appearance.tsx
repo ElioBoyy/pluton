@@ -1,7 +1,7 @@
-import { ImageSquare, Moon, Sparkle, Sun, Trash, UploadSimple } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, ImageSquare, Moon, Sparkle, Sun, Trash, UploadSimple } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Button, Group, PageHeader, Section } from "../components/ui.tsx";
+import { Button, Group, PageHeader, Row, Section } from "../components/ui.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -27,6 +27,7 @@ export function AppearancePage() {
             <WallpaperSlot theme="dark" url={wallpapers.data?.dark?.url ?? null} />
           </Group>
         </Section>
+        {wallpapers.data && (wallpapers.data.light || wallpapers.data.dark) && <TuningSection tuning={wallpapers.data.tuning} />}
         {wallpapers.data && <GenerateSection codex={wallpapers.data.codex} />}
       </div>
     </>
@@ -192,6 +193,65 @@ function GenerateSection({ codex }: { codex: boolean }) {
           })}
         </Group>
       )}
+    </Section>
+  );
+}
+
+type Tuning = { blur: number; saturation: number; veil: number };
+/** The look the app ships with; "Restore defaults" brings these back. */
+const FACTORY: Tuning = { blur: 80, saturation: 80, veil: 50 };
+
+/** Blur, colour and veil of the wallpaper. Changes show live and are saved when you let go. */
+function TuningSection({ tuning }: { tuning: Tuning }) {
+  const t = useT("settings");
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const key = trpc.appearance.wallpapers.queryKey();
+  const save = useMutation(trpc.appearance.tune.mutationOptions({ onSettled: () => queryClient.invalidateQueries({ queryKey: key }) }));
+  // Write into the cache first, so the wallpaper behind this page follows the slider as it moves.
+  const preview = (next: Tuning) => queryClient.setQueryData(key, (old) => (old ? { ...old, tuning: next } : old));
+  const isFactory = tuning.blur === FACTORY.blur && tuning.saturation === FACTORY.saturation && tuning.veil === FACTORY.veil;
+  const slider = (field: keyof Tuning, max: number, unit: string, label: string, hint?: string) => (
+    <Row label={label} description={hint}>
+      <input
+        type="range"
+        min={0}
+        max={max}
+        value={tuning[field]}
+        aria-label={label}
+        onChange={(e) => preview({ ...tuning, [field]: Number(e.target.value) })}
+        onPointerUp={(e) => save.mutate({ ...tuning, [field]: Number(e.currentTarget.value) })}
+        onKeyUp={(e) => save.mutate({ ...tuning, [field]: Number(e.currentTarget.value) })}
+        className="w-48 accent-accent"
+      />
+      <span className="w-12 text-right text-sm text-muted tabular-nums">
+        {tuning[field]}
+        {unit}
+      </span>
+    </Row>
+  );
+  return (
+    <Section
+      title={t("appearance.tuning")}
+      description={t("appearance.tuningHint")}
+      actions={
+        <Button
+          variant="ghost"
+          disabled={isFactory || save.isPending}
+          onClick={() => {
+            preview(FACTORY);
+            save.mutate(null);
+          }}
+        >
+          <ArrowCounterClockwise size={13} /> {t("appearance.reset")}
+        </Button>
+      }
+    >
+      <Group>
+        {slider("blur", 120, " px", t("appearance.blur"))}
+        {slider("saturation", 200, " %", t("appearance.saturation"))}
+        {slider("veil", 90, " %", t("appearance.veil"), t("appearance.veilHint"))}
+      </Group>
     </Section>
   );
 }

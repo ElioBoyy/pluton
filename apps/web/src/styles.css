@@ -72,6 +72,14 @@
   --color-system-brown: #ac7f5e;
   --color-system-gray: #8e8e93;
 
+  /* Chart series, in this fixed order (validated for colour-blind separation on both surfaces). */
+  --color-chart-1: #0088ff;
+  --color-chart-2: #ff8d28;
+  --color-chart-3: #00c8b3;
+  --color-chart-4: #cb30e0;
+  --color-chart-5: #ff2d55;
+  --color-chart-6: #6155f5;
+
   /* Brain graph categories, mapped onto system colors. */
   --color-cat-purple: var(--color-system-purple);
   --color-cat-pink: var(--color-system-pink);
@@ -124,6 +132,13 @@
   --color-control-hover: rgb(255 255 255 / 0.16);
   --color-control-pressed: rgb(255 255 255 / 0.22);
   --color-accent: #0091ff;
+
+  --color-chart-1: #0091ff;
+  --color-chart-2: #cc6f1f;
+  --color-chart-3: #009b8c;
+  --color-chart-4: #db34f2;
+  --color-chart-5: #ff375f;
+  --color-chart-6: #7a7fff;
 
   --color-system-red: #ff4245;
   --color-system-orange: #ff9230;
@@ -247,16 +262,9 @@
 }
 
 :root {
-  --ai-gradient: conic-gradient(
-    from var(--ai-angle),
-    #bc82f3,
-    #f5b9ea,
-    #8d9fff,
-    #ff6778,
-    #ffba71,
-    #c686ff,
-    #bc82f3
-  );
+  /* Only the colors live here: a gradient built at the root would freeze --ai-angle at its root value,
+     so each animated element builds its own conic-gradient from these stops. */
+  --ai-stops: #bc82f3, #f5b9ea, #8d9fff, #ff6778, #ffba71, #c686ff, #bc82f3;
   --ai-glow-alpha: 22%;
 }
 
@@ -275,7 +283,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: var(--ai-gradient);
+    background: conic-gradient(from var(--ai-angle), var(--ai-stops));
     mask:
       linear-gradient(#000 0 0) content-box exclude,
       linear-gradient(#000 0 0);
@@ -317,7 +325,8 @@
 
 /* "Thinking…" labels: the Apple Intelligence colors sweep through the text. */
 @utility ai-text {
-  background: linear-gradient(90deg, var(--color-muted) 20%, #bc82f3, #ff6778, #8d9fff, var(--color-muted) 80%) 0 0 / 250% 100%;
+  /* One tile twice the text's width, muted at both ends and repeating, so the loop has no seam. */
+  background: linear-gradient(90deg, var(--color-muted) 15%, #bc82f3, #ff6778, #8d9fff, var(--color-muted) 85%) 0 0 / 200% 100% repeat-x;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -335,9 +344,11 @@
   }
 }
 
+/* With a tile of 200%, moving from 200% to 0% shifts it by exactly one tile: the last frame
+   matches the first. */
 @keyframes ai-sweep {
   from {
-    background-position: 100% 0;
+    background-position: 200% 0;
   }
   to {
     background-position: 0% 0;
@@ -562,7 +573,8 @@ select {
 .wallpaper-dark {
   position: absolute;
   inset: 0;
-  filter: blur(80px) saturate(80%);
+  /* Tuned in Settings → Appearance; the fallbacks are the factory values. */
+  filter: blur(var(--wallpaper-blur, 80px)) saturate(var(--wallpaper-saturate, 80%));
   scale: 1.25;
 }
 
@@ -570,11 +582,11 @@ select {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgb(255 255 255 / 0.5);
+  background: rgb(255 255 255 / var(--wallpaper-veil, 0.5));
 }
 
 :root[data-theme="dark"] .wallpaper::after {
-  background: rgb(0 0 0 / 0.55);
+  background: rgb(0 0 0 / calc(var(--wallpaper-veil, 0.5) + 0.05));
 }
 
 :root[data-theme="dark"] .wallpaper-light,
@@ -620,17 +632,46 @@ select {
  */
 @utility ai-orb {
   display: block;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border-radius: 9999px;
-  background:
-    radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.85), transparent 38%),
-    var(--ai-gradient);
-  box-shadow:
-    inset 0 -6px 14px rgb(0 0 0 / 0.18),
-    0 10px 30px -8px color-mix(in srgb, #bc82f3 60%, transparent);
-  animation: ai-spin 9s linear infinite;
+  background: #a77cf2;
+  box-shadow: 0 10px 30px -8px color-mix(in srgb, #bc82f3 60%, transparent);
+
+  /* Two layers of soft colour blobs turning at different speeds and directions, so the colours
+     flow into each other like Siri's orb instead of fanning out as rays from the centre. */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -30%;
+    border-radius: inherit;
+    filter: blur(8px);
+    z-index: -1;
+  }
+
+  &::before {
+    background:
+      radial-gradient(circle at 30% 30%, #6f86ff 0 24%, transparent 50%),
+      radial-gradient(circle at 72% 38%, #ff5a72 0 20%, transparent 48%),
+      radial-gradient(circle at 46% 76%, #ffad5c 0 20%, transparent 48%);
+    animation: orb-turn 7s linear infinite;
+  }
+
+  &::after {
+    background:
+      radial-gradient(circle at 66% 70%, #f39ee0 0 20%, transparent 48%),
+      radial-gradient(circle at 28% 62%, #b46cf5 0 22%, transparent 50%);
+    opacity: 0.85;
+    animation: orb-turn 11s linear infinite reverse;
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
+    &::before,
+    &::after {
+      animation: none;
+    }
   }
 }
 
@@ -719,5 +760,42 @@ select {
     text-align: right;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+}
+
+@keyframes orb-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/*
+ * A progressive blur, as above a scrolling list in macOS 27: three backdrop blurs of rising
+ * strength, each masked to fade out further down, so content softens gradually as it rises under
+ * the edge instead of being cut by a line. The layers are siblings (three empty children): a
+ * backdrop-filter on the parent would hide the page from them.
+ */
+@utility progressive-blur {
+  & > * {
+    position: absolute;
+    inset: 0;
+  }
+
+  & > :nth-child(1) {
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  }
+
+  & > :nth-child(2) {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 70%);
+  }
+
+  & > :nth-child(3) {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 40%);
   }
 }
