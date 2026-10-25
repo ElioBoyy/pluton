@@ -1,8 +1,8 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { getOrCreateDefaultWorkspace, recordActivity } from "@pluton/core";
-import { getSetting, mcpClients, sql, type Db } from "@pluton/db";
+import { recordActivity } from "@pluton/core";
+import { mcpClients, sql, withCostScope, settingByWorkspace, type Db } from "@pluton/db";
 import { buildPlutonTools } from "./agent-tools.ts";
 
 /**
@@ -47,7 +47,7 @@ function buildServer(db: Db, onCall: (tool: string) => void) {
   return server;
 }
 
-type Session = { transport: WebStandardStreamableHTTPServerTransport; lastSeen: number };
+type Session = { transport: WebStandardStreamableHTTPServerTransport; workspaceId: string; lastSeen: number };
 const sessions = new Map<string, Session>();
 
 // Sessions idle for an hour are dropped; a client reconnects with a new initialize.
@@ -55,12 +55,12 @@ setInterval(() => {
   for (const [id, s] of sessions) if (Date.now() - s.lastSeen > 3_600_000) void s.transport.close().then(() => sessions.delete(id));
 }, 300_000).unref();
 
-const authorized = (req: Request) => {
-  const expected = getSetting("mcp_token");
+/** Each workspace has its own token: the one a client was given decides which workspace it works in. */
+const workspaceFor = (req: Request) => {
   const header = req.headers.get("authorization") ?? "";
   const given = header.startsWith("Bearer ") ? header.slice(7) : new URL(req.url).searchParams.get("token") ?? "";
-  if (!expected || given.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+  const match = settingByWorkspace("mcp_token").find(({ value }) => given.length === value.length && timingSafeEqual(Buffer.from(given), Buffer.from(value)));
+  return match?.workspaceId ?? null;
 };
 
 /** Only local pages may call it from a browser (DNS-rebinding protection); CLI clients send no Origin. */
@@ -74,50 +74,55 @@ const localOrigin = (req: Request) => {
   }
 };
 
-async function trackClient(db: Db, name: string, version: string | undefined, tool?: string) {
-  const ws = await getOrCreateDefaultWorkspace(db);
+async function trackClient(db: Db, workspaceId: string, name: string, version: string | undefined, tool?: string) {
   const now = new Date();
   const [row] = await db
     .insert(mcpClients)
-    .values({ workspaceId: ws.id, name, version, calls: tool ? 1 : 0, lastTool: tool, firstSeenAt: now, lastSeenAt: now })
+    .values({ workspaceId, name, version, calls: tool ? 1 : 0, lastTool: tool, firstSeenAt: now, lastSeenAt: now })
     .onConflictDoUpdate({
       target: [mcpClients.workspaceId, mcpClients.name],
       set: { version, lastSeenAt: now, ...(tool ? { calls: sql`${mcpClients.calls} + 1`, lastTool: tool } : {}) },
     })
     .returning();
-  if (!tool && row!.firstSeenAt.getTime() === now.getTime()) await recordActivity(db, ws.id, "mcp", "mcp.client_connected", { name });
+  if (!tool && row!.firstSeenAt.getTime() === now.getTime()) await recordActivity(db, workspaceId, "mcp", "mcp.client_connected", { name });
 }
 
 export async function handleMcp(db: Db, req: Request): Promise<Response> {
   if (!localOrigin(req)) return new Response("Forbidden origin", { status: 403 });
-  if (!authorized(req)) {
+  const workspaceId = workspaceFor(req);
+  if (!workspaceId) {
     return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "Missing or wrong token: copy it from Pluton → Settings → Connect your AI" }, id: null }, { status: 401 });
   }
   const sid = req.headers.get("mcp-session-id");
   if (sid) {
     const session = sessions.get(sid);
     if (!session) return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "Session expired; reconnect" }, id: null }, { status: 404 });
+    // A token rotated or moved to another workspace ends its sessions.
+    if (session.workspaceId !== workspaceId) return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "Session expired; reconnect" }, id: null }, { status: 404 });
     session.lastSeen = Date.now();
-    return session.transport.handleRequest(req);
+    return inWorkspace(db, workspaceId, () => session.transport.handleRequest(req));
   }
   let clientName = "MCP client";
   let clientVersion: string | undefined;
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (id: string) => {
-      sessions.set(id, { transport, lastSeen: Date.now() });
+      sessions.set(id, { transport, workspaceId, lastSeen: Date.now() });
     },
     onsessionclosed: (id: string) => {
       sessions.delete(id);
     },
   });
-  const server = buildServer(db, (tool) => void trackClient(db, clientName, clientVersion, tool).catch(() => {}));
+  const server = buildServer(db, (tool) => void trackClient(db, workspaceId, clientName, clientVersion, tool).catch(() => {}));
   server.server.oninitialized = () => {
     const info = server.server.getClientVersion();
     clientName = info?.name ?? clientName;
     clientVersion = info?.version;
-    void trackClient(db, clientName, clientVersion).catch(() => {});
+    void trackClient(db, workspaceId, clientName, clientVersion).catch(() => {});
   };
   await server.connect(transport);
-  return transport.handleRequest(req);
+  return inWorkspace(db, workspaceId, () => transport.handleRequest(req));
 }
+
+/** Tools read and write the token's workspace, and what they spend is charged to it. */
+const inWorkspace = <T>(db: Db, workspaceId: string, fn: () => T) => withCostScope({ db, workspaceId, purpose: "agent" }, fn);

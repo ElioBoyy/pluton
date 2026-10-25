@@ -25,7 +25,7 @@ import {
 import { emitStreamEvent } from "./events.ts";
 import { enqueueJob } from "./jobs.ts";
 import { ensureMainPlay, startRun } from "./plays.ts";
-import { getOrCreateDefaultWorkspace, updateWorkspace } from "./workspaces.ts";
+import { getCurrentWorkspace, updateWorkspace } from "./workspaces.ts";
 
 export const onboardingChannel = (sessionId: string) => `onboarding:${sessionId}`;
 
@@ -122,7 +122,7 @@ export const onboardingInputSchema = z
 export type OnboardingInput = z.output<typeof onboardingInputSchema>;
 
 export async function startOnboarding(db: Db, input: OnboardingInput) {
-  const workspace = await getOrCreateDefaultWorkspace(db);
+  const workspace = await getCurrentWorkspace(db);
   await archiveWorkspaceBrain(db, workspace.id);
   if (input.website && input.website !== workspace.website) {
     await updateWorkspace(db, workspace.id, workspace.revision, { website: input.website });
@@ -147,8 +147,10 @@ export async function startOnboarding(db: Db, input: OnboardingInput) {
 }
 
 export async function startStage(db: Db, sessionId: string, stage: OnboardingStage) {
+  const session = await getSession(db, sessionId);
   const job = await enqueueJob(db, {
     type: "onboarding.stage",
+    workspaceId: session?.workspaceId,
     payload: { sessionId, stage },
     idempotencyKey: `onboarding:${sessionId}:${stage}:${Date.now()}`,
     maxAttempts: 1,

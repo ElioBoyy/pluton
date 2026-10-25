@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { customType, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { customType, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 const id = () =>
   text("id")
@@ -54,6 +54,8 @@ export const workspaces = sqliteTable("workspace", {
   budget: text("budget", { mode: "json" }).$type<BudgetSettings>(),
   /** Which events notify, and the morning digest. Null means the defaults in core/notifications. */
   notifications: text("notifications", { mode: "json" }).$type<NotificationSettings>(),
+  /** Last time it was switched to: the most recent one is the workspace the app shows. */
+  openedAt: integer("opened_at", { mode: "timestamp_ms" }),
   // Optimistic-concurrency token, bumped on every update.
   revision: integer("revision").notNull().default(1),
   createdAt: createdAt(),
@@ -1111,7 +1113,7 @@ export type SearchKind = (typeof SEARCH_KINDS)[number];
 export const searchDocuments = sqliteTable(
   "search_document",
   {
-    /** "<kind>:<refId>" */
+    /** "<workspaceId>:<kind>:<refId>": every workspace has its own index. */
     id: text("id").primaryKey(),
     workspaceId: text("workspace_id")
       .notNull()
@@ -1138,10 +1140,17 @@ export type SearchDocument = typeof searchDocuments.$inferSelect;
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 
-/** App settings and API keys, edited in Settings. Secret values are AES-256-GCM encrypted. */
-export const settings = sqliteTable("setting", {
-  key: text("key").primaryKey(),
-  value: text("value").notNull(),
-  encrypted: integer("encrypted", { mode: "boolean" }).notNull().default(false),
-  updatedAt: updatedAt(),
-});
+/** Settings and API keys, per workspace; a new workspace starts with a copy of another's. Secret values are AES-256-GCM encrypted. */
+export const workspaceSettings = sqliteTable(
+  "workspace_setting",
+  {
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+    encrypted: integer("encrypted", { mode: "boolean" }).notNull().default(false),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.workspaceId, t.key] })],
+);

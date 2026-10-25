@@ -1,7 +1,8 @@
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
-import { getOrCreateDefaultWorkspace } from "@pluton/core";
+import { getCurrentWorkspace } from "@pluton/core";
 import { withCostScope, type CostPurpose, type Db } from "@pluton/db";
+import { assertInWorkspace } from "./workspace-guard.ts";
 
 export type Context = { db: Db };
 
@@ -19,12 +20,13 @@ function purposeFor(path: string): CostPurpose {
   return "other";
 }
 
-let workspaceId: string | undefined;
-
-const costScope = t.middleware(async ({ ctx, path, type, next }) => {
-  // Reads never spend: skip the scope (and the lookup) for queries.
-  if (type === "query") return next();
-  workspaceId ??= (await getOrCreateDefaultWorkspace(ctx.db)).id;
+/**
+ * Every call runs in the workspace the app shows: reads and writes see its data and settings, ids
+ * from another workspace are refused, and what a call spends is charged to it.
+ */
+const costScope = t.middleware(async ({ ctx, path, getRawInput, next }) => {
+  const workspaceId = (await getCurrentWorkspace(ctx.db)).id;
+  await assertInWorkspace(ctx.db, workspaceId, path, await getRawInput());
   return withCostScope({ db: ctx.db, workspaceId, purpose: purposeFor(path) }, () => next());
 });
 

@@ -5,7 +5,7 @@ import { logger } from "hono/logger";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createDb, prepareDb, repoRoot, watchSettings } from "@pluton/db";
-import { findWallpaper, getOrCreateDefaultWorkspace, watchBudgetThresholds, watchSearchIndex } from "@pluton/core";
+import { findWallpaper, getCurrentWorkspace, watchBudgetThresholds, watchSearchIndex } from "@pluton/core";
 import { appRouter } from "./router.ts";
 import { handleMcp } from "./mcp.ts";
 import { ensureMcpToken, MCP_URL } from "./mcp-router.ts";
@@ -14,7 +14,7 @@ const db = createDb();
 await prepareDb(db);
 await watchSettings(db);
 watchBudgetThresholds();
-await getOrCreateDefaultWorkspace(db);
+await getCurrentWorkspace(db);
 // ⌘K's index lives in this process: it embeds what changed and answers searches.
 watchSearchIndex(db);
 await ensureMcpToken(db);

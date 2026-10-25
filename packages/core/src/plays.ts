@@ -355,13 +355,13 @@ function localParts(date: Date, timeZone: string) {
  * Plays whose scheduled run is due now: active, scheduled, not yet run today (local time), after 07:00.
  * Weekly plays run on Mondays. The caller enqueues with a per-day idempotency key.
  */
-export async function duePlays(db: Db, timeZone: string, now = new Date()) {
+export async function duePlays(db: Db, workspaceId: string, timeZone: string, now = new Date()) {
   const local = localParts(now, timeZone);
   if (local.hour < 7) return [];
   const candidates = await db
     .select()
     .from(plays)
-    .where(and(eq(plays.status, "active"), ne(plays.schedule, "off")));
+    .where(and(eq(plays.workspaceId, workspaceId), eq(plays.status, "active"), ne(plays.schedule, "off")));
   return candidates
     .filter((p) => {
       if (p.schedule === "weekdays" && ["Sat", "Sun"].includes(local.weekday)) return false;

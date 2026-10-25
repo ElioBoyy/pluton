@@ -38,8 +38,12 @@ import {
   enqueueJob,
   getJob,
   getLatestSession,
-  getOrCreateDefaultWorkspace,
+  createWorkspace,
+  deleteWorkspace,
+  getCurrentWorkspace,
   getSession,
+  listWorkspaces,
+  switchWorkspace,
   getStartedChecklist,
   jobPayloads,
   listBrain,
@@ -51,7 +55,7 @@ import {
   updateWorkspace,
 } from "@pluton/core";
 import { checkClaude, webSearch } from "@pluton/agent";
-import { BRAIN_SECTIONS, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, gte, jobs, providerCalls, saveSetting, sql } from "@pluton/db";
+import { BRAIN_SECTIONS, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, eq, gte, jobs, providerCalls, saveSetting, sql } from "@pluton/db";
 import {
   MissingKeyError,
   checkProviderKey,
@@ -74,9 +78,12 @@ import { publicProcedure, router } from "./trpc.ts";
 
 const system = router({
   health: publicProcedure.query(async ({ ctx }) => {
+    const ws = await getCurrentWorkspace(ctx.db);
+    // This workspace's jobs only; bookkeeping ticks belong to none.
     const rows = await ctx.db
       .select({ status: jobs.status, n: count() })
       .from(jobs)
+      .where(eq(jobs.workspaceId, ws.id))
       .groupBy(jobs.status);
     return {
       ok: true,
@@ -87,8 +94,34 @@ const system = router({
 });
 
 const workspace = router({
-  current: publicProcedure.query(({ ctx }) => getOrCreateDefaultWorkspace(ctx.db)),
-  checklist: publicProcedure.query(async ({ ctx }) => getStartedChecklist(ctx.db, (await getOrCreateDefaultWorkspace(ctx.db)).id)),
+  current: publicProcedure.query(({ ctx }) => getCurrentWorkspace(ctx.db)),
+  list: publicProcedure.query(({ ctx }) => listWorkspaces(ctx.db)),
+  /** A new workspace, switched to at once; its onboarding starts from scratch. */
+  create: publicProcedure
+    .input(z.object({ name: z.string().trim().min(1).max(80), copyFrom: z.string().nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await createWorkspace(ctx.db, input);
+      } catch (error) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
+      }
+    }),
+  switch: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+    try {
+      await switchWorkspace(ctx.db, input.id);
+      return (await listWorkspaces(ctx.db)).find((w) => w.id === input.id)!;
+    } catch (error) {
+      throw new TRPCError({ code: "NOT_FOUND", message: (error as Error).message });
+    }
+  }),
+  delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+    try {
+      return await deleteWorkspace(ctx.db, input.id);
+    } catch (error) {
+      throw new TRPCError({ code: "PRECONDITION_FAILED", message: (error as Error).message });
+    }
+  }),
+  checklist: publicProcedure.query(async ({ ctx }) => getStartedChecklist(ctx.db, (await getCurrentWorkspace(ctx.db)).id)),
   update: publicProcedure
     .input(
       z.object({
@@ -128,7 +161,7 @@ const jobsRouter = router({
       if (!parsed.success) {
         throw new TRPCError({ code: "BAD_REQUEST", message: z.prettifyError(parsed.error) });
       }
-      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      const ws = await getCurrentWorkspace(ctx.db);
       return enqueueJob(ctx.db, {
         type: input.type,
         payload: parsed.data,
@@ -166,7 +199,7 @@ async function requireSession(db: Parameters<typeof getSession>[0], sessionId: s
 const onboarding = router({
   /** Latest session of the workspace. Live state comes from `events.watch` on `onboarding:<id>`. */
   current: publicProcedure.query(async ({ ctx }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return (await getLatestSession(ctx.db, ws.id)) ?? null;
   }),
   start: publicProcedure.input(onboardingInputSchema).mutation(({ ctx, input }) => startOnboarding(ctx.db, input)),
@@ -207,17 +240,17 @@ async function brainCall<T>(fn: () => Promise<T>) {
 
 const brain = router({
   list: publicProcedure.query(async ({ ctx }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return listBrain(ctx.db, ws.id);
   }),
   archived: publicProcedure.query(async ({ ctx }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return listArchivedBrain(ctx.db, ws.id);
   }),
   create: publicProcedure
     .input(z.object({ section: z.enum(BRAIN_SECTIONS), data: z.record(z.string(), z.unknown()) }))
     .mutation(async ({ ctx, input }) => {
-      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      const ws = await getCurrentWorkspace(ctx.db);
       return brainCall(() => createBrainItem(ctx.db, ws.id, input.section, input.data));
     }),
   update: publicProcedure
@@ -233,7 +266,7 @@ const brain = router({
   proposals: publicProcedure
     .input(z.object({ statuses: z.array(z.enum(PROPOSAL_STATUSES)).optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      const ws = await getCurrentWorkspace(ctx.db);
       return listProposals(ctx.db, ws.id, input?.statuses);
     }),
   acceptProposal: publicProcedure
@@ -249,7 +282,7 @@ const brain = router({
   review: publicProcedure
     .input(z.object({ focus: z.string().trim().max(500).optional() }).optional())
     .mutation(async ({ ctx, input }) => {
-      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      const ws = await getCurrentWorkspace(ctx.db);
       return enqueueJob(ctx.db, {
         type: "brain.review",
         workspaceId: ws.id,
@@ -258,7 +291,7 @@ const brain = router({
       });
     }),
   activeReview: publicProcedure.query(async ({ ctx }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return (await findActiveJob(ctx.db, ws.id, "brain.review")) ?? null;
   }),
 });
@@ -328,7 +361,7 @@ async function playCall<T>(fn: () => Promise<T>) {
 const playsRouter = router({
   capabilities: publicProcedure.query(() => pipelineCapabilities()),
   list: publicProcedure.query(async ({ ctx }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return listPlays(ctx.db, ws.id);
   }),
   get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
@@ -337,24 +370,24 @@ const playsRouter = router({
     return { play, runs: await listRuns(ctx.db, play.id) };
   }),
   activity: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return (await listActivity(ctx.db, ws.id, { playId: input.id, limit: 30 })).items;
   }),
   leadsPerDay: publicProcedure.input(z.object({ id: z.string().optional() })).query(async ({ ctx, input }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return leadsPerDay(ctx.db, input.id, ws.id);
   }),
   /** One planner turn as a job: follow `job:<id>` for the `done` event carrying the question or proposal. */
   plan: publicProcedure
     .input(z.object({ transcript: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().min(1).max(8000) })).min(1).max(20) }))
     .mutation(async ({ ctx, input }) => {
-      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      const ws = await getCurrentWorkspace(ctx.db);
       return enqueueJob(ctx.db, { type: "plays.plan", workspaceId: ws.id, payload: { workspaceId: ws.id, transcript: input.transcript }, maxAttempts: 1 });
     }),
   create: publicProcedure
     .input(z.object({ play: newPlaySchema, runNow: z.boolean().default(false) }))
     .mutation(async ({ ctx, input }) => {
-      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      const ws = await getCurrentWorkspace(ctx.db);
       return playCall(async () => {
         const play = await createPlay(ctx.db, ws.id, input.play);
         const run = input.runNow ? await startRun(ctx.db, play.id) : null;
@@ -379,7 +412,7 @@ const playsRouter = router({
   estimate: publicProcedure
     .input(z.object({ pipeline: z.enum(PIPELINES), target: z.number().int().min(1).max(50) }))
     .query(async ({ ctx, input }) => {
-      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      const ws = await getCurrentWorkspace(ctx.db);
       return estimatePlay(ctx.db, ws.id, input.pipeline, input.target);
     }),
   cancelRun: publicProcedure.input(z.object({ runId: z.string() })).mutation(async ({ ctx, input }) => {
@@ -390,7 +423,7 @@ const playsRouter = router({
     if (run.status === "queued") await updateRun(ctx.db, run.id, { status: "cancelled", stopReason: "cancelled", finishedAt: new Date() });
   }),
   ensureMain: publicProcedure.mutation(async ({ ctx }) => {
-    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    const ws = await getCurrentWorkspace(ctx.db);
     return ensureMainPlay(ctx.db, ws.id);
   }),
   getRun: publicProcedure.input(z.object({ runId: z.string() })).query(async ({ ctx, input }) => {

@@ -1,7 +1,7 @@
 import {
   buildDigest,
   digestWindowStart,
-  getOrCreateDefaultWorkspace,
+  getCurrentWorkspace,
   jobPayloads,
   notificationSettings,
   notify,
@@ -17,7 +17,7 @@ const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 /** The morning digest: a notification in the app, and an email when SMTP and a recipient are set. */
 export const sendDigest: JobHandler = async ({ db, job, emit }) => {
   const { workspaceId, manual } = jobPayloads["notifications.digest"].parse(job.payload);
-  const ws = (await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId) })) ?? (await getOrCreateDefaultWorkspace(db));
+  const ws = (await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId) })) ?? (await getCurrentWorkspace(db));
   const last = await db.query.notifications.findFirst({
     where: and(eq(notifications.workspaceId, ws.id), eq(notifications.kind, "digest")),
     orderBy: desc(notifications.createdAt),
