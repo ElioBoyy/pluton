@@ -8,6 +8,7 @@ import * as schema from "./schema.ts";
 export * from "./schema.ts";
 export { schema, repoRoot };
 export * from "./settings.ts";
+export * from "./costs.ts";
 
 const migrationsFolder = path.resolve(repoRoot, "packages/db/drizzle");
 

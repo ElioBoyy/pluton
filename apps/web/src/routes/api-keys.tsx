@@ -13,6 +13,7 @@ const GROUPS = [
   { id: "claude", title: "Claude", description: "The model behind onboarding, reviews, planning and lead finding." },
   { id: "data", title: "Data sources", description: "Optional paid sources. Free sources work without any key." },
   { id: "outreach", title: "LinkedIn sending", description: "Unipile sends from your LinkedIn accounts. Without it, sequences run in manual mode." },
+  { id: "email", title: "Email", description: "Sends the morning digest from your own mailbox. Optional: the digest is always in the app." },
   { id: "automation", title: "Automation", description: "What Pluton does on its own." },
 ] as const;
 
@@ -60,7 +61,7 @@ function SettingRow({ setting: s }: { setting: Setting }) {
   const onSaved = (data: Setting[]) => queryClient.setQueryData(trpc.settings.list.queryKey(), data);
   const save = useMutation(trpc.settings.save.mutationOptions({ onSuccess: onSaved }));
   const test = useMutation(trpc.settings.test.mutationOptions({ onSuccess: setResult }));
-  const testable = ["agent_backend", "anthropic_api_key", "apify_token", "hunter_api_key"].includes(s.key);
+  const testable = ["agent_backend", "anthropic_api_key", "apify_token", "hunter_api_key", "smtp_password"].includes(s.key);
 
   return (
     <Card className="p-4">

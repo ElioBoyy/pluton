@@ -21,6 +21,7 @@ import {
   type Play,
   type RunReport,
 } from "@pluton/db";
+import { createHold, planReservation } from "./credits.ts";
 import { getSetting } from "@pluton/db";
 import { getSingleton, listBrain } from "./brain.ts";
 import { recordActivity } from "./events.ts";
@@ -49,6 +50,7 @@ export const playDefinitionSchema = z.object({
     .object({
       maxMinutes: z.number().int().min(3).max(60).default(15).describe("Research time budget per run"),
       freshnessDays: z.number().int().min(1).max(365).default(60).describe("Only signals newer than this"),
+      maxCostUsd: z.number().positive().max(1000).optional().describe("Most one run may spend; defaults to the workspace cap"),
     })
     .default({ maxMinutes: 15, freshnessDays: 60 }),
 });
@@ -186,6 +188,12 @@ export async function startRun(db: Db, playId: string, trigger: "manual" | "sche
   if (play.status === "archived") throw new Error("This Play is archived");
   const existing = await activeRun(db, playId);
   if (existing) return existing;
+  // Throws BudgetError when nothing is left; otherwise the run starts with this much set aside.
+  const reserve = await planReservation(db, play, trigger).catch(async (error) => {
+    // A refused scheduled run counts as today's: the scheduler tries again tomorrow, not every minute.
+    if (trigger === "schedule") await db.update(plays).set({ lastRunAt: new Date() }).where(eq(plays.id, playId));
+    throw error;
+  });
 
   const [run] = await db
     .insert(leadFindingRuns)
@@ -199,6 +207,7 @@ export async function startRun(db: Db, playId: string, trigger: "manual" | "sche
     maxAttempts: 1,
   });
   await db.update(leadFindingRuns).set({ jobId: job.id }).where(eq(leadFindingRuns.id, run!.id));
+  await createHold(db, run!, reserve);
   await db.update(plays).set({ lastRunAt: new Date() }).where(eq(plays.id, playId));
   await recordActivity(db, play.workspaceId, "leads", "lead_finding.started", { runId: run!.id, playId, trigger });
   return { ...run!, jobId: job.id };
@@ -306,16 +315,6 @@ export async function insertLead(
     .returning();
   if (row && row.stage !== "disqualified") await addLeadEvent(db, row.id, "found", { stage: row.stage, fit: row.fit, runId: values.runId });
   return row;
-}
-
-/** A Play's activity feed, newest first: created, searches started and finished, leads reviewed. */
-export async function playActivity(db: Db, playId: string, limit = 30) {
-  return db
-    .select()
-    .from(activityEvents)
-    .where(and(eq(activityEvents.context, "leads"), sql`json_extract(${activityEvents.payload}, '$.playId') = ${playId}`))
-    .orderBy(desc(activityEvents.id))
-    .limit(limit);
 }
 
 /** Leads found per local day over the last `days` days, split by the judge's verdict. */

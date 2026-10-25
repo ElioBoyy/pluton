@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { useTRPC } from "../lib/trpc.ts";
 import { AppearanceControl } from "./appearance-control.tsx";
 import { CommandPalette } from "./command-palette.tsx";
+import { NotificationBell } from "./notification-bell.tsx";
 import { Toaster } from "./toast.tsx";
 
 const NAV: Array<{ to: string; label: string; icon: Icon }> = [
@@ -57,7 +58,8 @@ export function AppShell() {
           <span className="flex size-6 items-center justify-center rounded-md bg-cat-pink text-xs font-semibold text-on-accent">
             {workspace.data?.icon ?? name.charAt(0).toUpperCase()}
           </span>
-          <span className="truncate text-sm font-semibold">{name}</span>
+          <span className="flex-1 truncate text-sm font-semibold">{name}</span>
+          <NotificationBell />
         </div>
 
         <nav className="flex min-h-0 flex-col gap-px overflow-y-auto px-2.5">
@@ -132,7 +134,7 @@ export function AppShell() {
         {!pathname.startsWith("/plays/new") && (
         <button
           onClick={() => setPaletteOpen(true)}
-          className="glass fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted hover:text-ink"
+          className="glass fixed bottom-5 left-[calc(50%+7.5rem)] flex h-11 w-80 -translate-x-1/2 items-center gap-2.5 rounded-full px-4 text-base text-muted transition-[color,scale] duration-200 ease-out hover:text-ink motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]"
         >
           <MagnifyingGlass size={18} />
           Ask Pluton anything

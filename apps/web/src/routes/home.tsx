@@ -2,7 +2,11 @@ import { CheckCircle, CircleNotch, Play, WarningCircle } from "@phosphor-icons/r
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSubscription } from "@trpc/tanstack-react-query";
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Button, Card, PageHeader } from "../components/ui.tsx";
+import { ActivityFeed } from "../features/activity/activity-feed.tsx";
+import { DigestView } from "../features/activity/digest-view.tsx";
+import { usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
 type PingEvent = { id: number; type: string; payload: unknown };
@@ -14,11 +18,17 @@ export function HomePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-10">
-      <PageHeader
-        title={`Welcome to ${workspace.data?.name ?? "Pluton"}`}
-        description="Your GTM brain, plays and leads will live here. For now: the foundations check."
-      />
+      <PageHeader title={workspace.data?.name ?? "Home"} description="What waits for you, what happened, and what it cost." />
 
+      <div className="mb-8 grid gap-4 lg:grid-cols-[1fr_20rem]">
+        <div className="flex flex-col gap-4">
+          <Today />
+          <RecentActivity />
+        </div>
+        <SpendCard />
+      </div>
+
+      <h2 className="mb-3 text-xs font-semibold tracking-wide text-faint uppercase">System</h2>
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <h2 className="mb-4 text-sm font-medium">System</h2>
@@ -47,6 +57,72 @@ export function HomePage() {
         <PingCard />
       </div>
     </div>
+  );
+}
+
+function Today() {
+  const trpc = useTRPC();
+  const digest = useQuery({ ...trpc.notifications.previewDigest.queryOptions(), refetchInterval: 30_000 });
+  if (!digest.data) return null;
+  // Spend has its own card here.
+  const sections = digest.data.sections.filter((s) => s.title !== "Spend");
+  if (!sections.length) {
+    return (
+      <Card>
+        <p className="text-sm text-muted">Nothing waits for you. New leads, replies and Brain suggestions will show up here.</p>
+      </Card>
+    );
+  }
+  return <DigestView digest={{ ...digest.data, sections }} />;
+}
+
+function RecentActivity() {
+  const trpc = useTRPC();
+  const feed = useQuery({ ...trpc.activity.list.queryOptions({}), refetchInterval: 20_000 });
+  const items = feed.data?.items.slice(0, 8) ?? [];
+  return (
+    <Card>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">Recent activity</h2>
+        <Link to="/workspace/activity" className="text-xs text-muted hover:text-ink">
+          All activity →
+        </Link>
+      </div>
+      {items.length ? <ActivityFeed items={items} compact /> : <p className="text-sm text-faint">Nothing yet.</p>}
+    </Card>
+  );
+}
+
+function SpendCard() {
+  const trpc = useTRPC();
+  const s = useQuery({ ...trpc.credits.status.queryOptions(), refetchInterval: 30_000 }).data;
+  if (!s) return null;
+  const share = s.limitMicroUsd ? Math.min(s.spentMicroUsd / s.limitMicroUsd, 1) : null;
+  return (
+    <Card className="self-start">
+      <h2 className="text-sm font-semibold">Spend this period</h2>
+      <p className="mt-2 text-2xl font-semibold tabular-nums">
+        {usd(s.spentMicroUsd)}
+        {s.limitMicroUsd !== null && <span className="text-sm font-normal text-muted"> of {usd(s.limitMicroUsd)}</span>}
+      </p>
+      {share !== null && (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-raised">
+          <div className={share >= 1 ? "h-full bg-system-red" : share >= 0.8 ? "h-full bg-system-orange" : "h-full bg-accent"} style={{ width: `${share * 100}%` }} />
+        </div>
+      )}
+      <p className="mt-2 text-xs text-muted">
+        {s.availableMicroUsd === null ? "No monthly limit set." : `${usd(s.availableMicroUsd)} left until ${new Date(s.period.end.getTime() - 1).toLocaleDateString(undefined, { day: "numeric", month: "short" })}.`}
+      </p>
+      {s.unbilledMicroUsd > 0 && <p className="mt-1 text-xs text-faint">Claude via subscription: {usd(s.unbilledMicroUsd)} at API prices, not charged.</p>}
+      <div className="mt-3 flex gap-3 text-xs">
+        <Link to="/workspace/usage" className="text-accent hover:underline">
+          Usage
+        </Link>
+        <Link to="/workspace/billing" className="text-accent hover:underline">
+          Budget
+        </Link>
+      </div>
+    </Card>
   );
 }
 

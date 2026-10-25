@@ -13,7 +13,8 @@ import {
   getRun,
   listPlays,
   leadsPerDay,
-  playActivity,
+  BudgetError,
+  listActivity,
   listRuns,
   newPlaySchema,
   pipelineCapabilities,
@@ -61,6 +62,7 @@ import {
   searchRegistry,
 } from "@pluton/providers";
 import { campaignsRouter, linkedinRouter } from "./campaigns-router.ts";
+import { activityRouter, creditsRouter, notificationsRouter } from "./credits-router.ts";
 import { leadsRouter } from "./leads-router.ts";
 import { publicProcedure, router } from "./trpc.ts";
 
@@ -309,6 +311,7 @@ async function playCall<T>(fn: () => Promise<T>) {
     return await fn();
   } catch (error) {
     if (error instanceof PlayConflictError) throw new TRPCError({ code: "CONFLICT", message: error.message });
+    if (error instanceof BudgetError) throw new TRPCError({ code: "PRECONDITION_FAILED", message: error.message });
     if (error instanceof z.ZodError) throw new TRPCError({ code: "BAD_REQUEST", message: z.prettifyError(error) });
     if (error instanceof Error) throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
     throw error;
@@ -326,7 +329,10 @@ const playsRouter = router({
     if (!play) throw new TRPCError({ code: "NOT_FOUND", message: "Play not found" });
     return { play, runs: await listRuns(ctx.db, play.id) };
   }),
-  activity: publicProcedure.input(z.object({ id: z.string() })).query(({ ctx, input }) => playActivity(ctx.db, input.id)),
+  activity: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    return (await listActivity(ctx.db, ws.id, { playId: input.id, limit: 30 })).items;
+  }),
   leadsPerDay: publicProcedure.input(z.object({ id: z.string().optional() })).query(async ({ ctx, input }) => {
     const ws = await getOrCreateDefaultWorkspace(ctx.db);
     return leadsPerDay(ctx.db, input.id, ws.id);
@@ -425,5 +431,8 @@ export const appRouter = router({
   leads: leadsRouter,
   campaigns: campaignsRouter,
   linkedin: linkedinRouter,
+  credits: creditsRouter,
+  activity: activityRouter,
+  notifications: notificationsRouter,
 });
 export type AppRouter = typeof appRouter;

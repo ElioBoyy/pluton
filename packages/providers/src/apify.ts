@@ -1,5 +1,5 @@
 import type { Db } from "@pluton/db";
-import { httpJson, providerCall, requireKey } from "./runtime.ts";
+import { httpJson, providerCall, ProviderError, requireKey } from "./runtime.ts";
 import type { PersonRecord, PostRecord } from "./types.ts";
 
 /**
@@ -16,17 +16,35 @@ const ACTORS = {
   postSearch: () => "harvestapi~linkedin-post-search",
 };
 
-/** Runs an actor and returns its dataset (synchronous endpoint: capped at 300 s by Apify). */
-async function runActor<T>(actorId: string, input: unknown, maxItems: number) {
+type ApiRun = { id: string; status: string; defaultDatasetId: string; usageTotalUsd?: number | null; statusMessage?: string };
+
+const API = "https://api.apify.com/v2";
+const FINISHED = ["SUCCEEDED", "FAILED", "ABORTED", "TIMED-OUT"];
+
+/**
+ * Runs an actor and returns its dataset plus what the run cost (`usageTotalUsd`: platform usage
+ * and pay-per-event charges). Started async and polled so the real cost can be read back.
+ */
+async function runActor<T>(actorId: string, input: unknown, maxItems: number): Promise<{ items: T[]; costMicroUsd: number }> {
   const token = requireKey(PROVIDER, APIFY_KEY);
-  const url = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?maxItems=${maxItems}&timeout=280`;
-  return httpJson<T[]>(PROVIDER, url, {
+  const headers = { authorization: `Bearer ${token}`, "content-type": "application/json" };
+  let { data: run } = await httpJson<{ data: ApiRun }>(PROVIDER, `${API}/acts/${actorId}/runs?maxItems=${maxItems}&timeout=280&waitForFinish=60`, {
     method: "POST",
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    headers,
     body: JSON.stringify(input),
-    timeoutMs: 300_000,
+    timeoutMs: 90_000,
     retries: 0,
   });
+  const deadline = Date.now() + 300_000;
+  while (!FINISHED.includes(run.status)) {
+    if (Date.now() > deadline) throw new ProviderError(PROVIDER, `actor ${actorId} still running after 5 minutes`);
+    ({ data: run } = await httpJson<{ data: ApiRun }>(PROVIDER, `${API}/actor-runs/${run.id}?waitForFinish=60`, { headers, timeoutMs: 90_000 }));
+  }
+  if (run.status !== "SUCCEEDED") throw new ProviderError(PROVIDER, `actor ${actorId} ${run.status.toLowerCase()}: ${run.statusMessage ?? ""}`);
+  const items = await httpJson<T[]>(PROVIDER, `${API}/datasets/${run.defaultDatasetId}/items?clean=1&limit=${maxItems}`, { headers, timeoutMs: 60_000 });
+  // Charges settle a moment after the run ends; read them once more.
+  const { data: settled } = await httpJson<{ data: ApiRun }>(PROVIDER, `${API}/actor-runs/${run.id}`, { headers }).catch(() => ({ data: run }));
+  return { items, costMicroUsd: Math.round((settled.usageTotalUsd ?? run.usageTotalUsd ?? 0) * 1_000_000) };
 }
 
 type ApiPost = {
@@ -48,7 +66,7 @@ export async function profilePosts(db: Db, profileUrls: string[], opts: { maxPos
     "profile_posts",
     input,
     async () => {
-      const items = await runActor<ApiPost>(ACTORS.profilePosts(), input, profileUrls.length * input.maxPosts);
+      const { items, costMicroUsd } = await runActor<ApiPost>(ACTORS.profilePosts(), input, profileUrls.length * input.maxPosts);
       const posts: PostRecord[] = items
         .filter((p) => p.linkedinUrl)
         .map((p) => ({
@@ -60,7 +78,7 @@ export async function profilePosts(db: Db, profileUrls: string[], opts: { maxPos
           comments: p.engagement?.comments,
           source: PROVIDER,
         }));
-      return { value: { posts }, items: posts.length };
+      return { value: { posts }, items: posts.length, costMicroUsd };
     },
     { ttlMs: 6 * 3600_000 },
   );
@@ -79,7 +97,7 @@ export async function postEngagers(db: Db, postUrl: string, opts: { maxReactions
     "post_engagers",
     { postUrl, maxReactions, maxComments },
     async () => {
-      const [reactions, comments] = await Promise.all([
+      const [{ items: reactions, costMicroUsd: reactionsCost }, { items: comments, costMicroUsd: commentsCost }] = await Promise.all([
         runActor<ApiReaction>(ACTORS.postReactions(), { posts: [postUrl], maxItems: maxReactions }, maxReactions),
         runActor<ApiComment>(ACTORS.postComments(), { posts: [postUrl], maxItems: maxComments }, maxComments),
       ]);
@@ -106,7 +124,7 @@ export async function postEngagers(db: Db, postUrl: string, opts: { maxReactions
         });
       }
       const value = { people: [...people.values()] };
-      return { value, items: value.people.length };
+      return { value, items: value.people.length, costMicroUsd: reactionsCost + commentsCost };
     },
     { ttlMs: 24 * 3600_000 },
   );
@@ -123,7 +141,7 @@ export async function keywordPosts(db: Db, queries: string[], opts: { maxPosts?:
     "keyword_posts",
     input,
     async () => {
-      const items = await runActor<ApiPost>(ACTORS.postSearch(), input, input.maxPosts * queries.length);
+      const { items, costMicroUsd } = await runActor<ApiPost>(ACTORS.postSearch(), input, input.maxPosts * queries.length);
       const posts = items
         .filter((p) => p.linkedinUrl && p.author?.name)
         .map((p) => ({
@@ -135,7 +153,7 @@ export async function keywordPosts(db: Db, queries: string[], opts: { maxPosts?:
           comments: p.engagement?.comments,
           source: PROVIDER,
         }));
-      return { value: { posts }, items: posts.length };
+      return { value: { posts }, items: posts.length, costMicroUsd };
     },
     { ttlMs: 6 * 3600_000 },
   );

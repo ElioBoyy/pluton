@@ -17,12 +17,43 @@ const updatedAt = () =>
     .default(sql`(unixepoch('subsec') * 1000)`)
     .$onUpdate(() => new Date());
 
+export type BudgetSettings = {
+  /** Spend allowed per budget period in USD; 0 means no limit (spend is still tracked). */
+  monthlyUsd: number;
+  /** Day of the month a period starts (1–28), in the workspace timezone. */
+  periodStartDay: number;
+  /** Optional cap per local day in USD; 0 means none. */
+  dailyUsd: number;
+  /** `enforce` refuses and stops runs at the limit; `track` only records spend. */
+  mode: "enforce" | "track";
+  /** Most a single lead-finding run may spend unless its Play sets its own cap. */
+  runCapUsd: number;
+};
+
+export const NOTIFICATION_CATEGORIES = ["leads", "runs", "replies", "linkedin", "brain", "budget", "digest"] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
+export type NotificationSettings = {
+  /** In-app notifications per category. */
+  categories: Record<NotificationCategory, boolean>;
+  digest: "off" | "daily" | "weekly";
+  /** Local time the digest goes out, "HH:MM". */
+  digestTime: string;
+  /** Also email the digest (needs SMTP in Settings → API keys). */
+  email: boolean;
+  emailTo: string;
+};
+
 export const workspaces = sqliteTable("workspace", {
   id: id(),
   name: text("name").notNull(),
   website: text("website"),
   icon: text("icon"),
   timezone: text("timezone").notNull().default("Europe/Paris"),
+  /** Monthly spend limit and how runs are held to it. Null means the defaults in core/credits. */
+  budget: text("budget", { mode: "json" }).$type<BudgetSettings>(),
+  /** Which events notify, and the morning digest. Null means the defaults in core/notifications. */
+  notifications: text("notifications", { mode: "json" }).$type<NotificationSettings>(),
   // Optimistic-concurrency token, bumped on every update.
   revision: integer("revision").notNull().default(1),
   createdAt: createdAt(),
@@ -319,6 +350,8 @@ export type PlayDefinition = {
     maxMinutes: number;
     /** Only signals (job posts, funding, posts) newer than this. */
     freshnessDays: number;
+    /** Most one run may spend in USD; defaults to the workspace's per-run cap. */
+    maxCostUsd?: number;
   };
 };
 
@@ -348,7 +381,8 @@ export const plays = sqliteTable("play", {
 });
 
 export const RUN_STATUSES = ["queued", "running", "completed", "failed", "cancelled"] as const;
-export const STOP_REASONS = ["target_met", "budget", "sources_dry", "error", "cancelled"] as const;
+/** `deadline` = the run's time limit, `budget` = its spend cap or the monthly budget. */
+export const STOP_REASONS = ["target_met", "deadline", "budget", "sources_dry", "error", "cancelled"] as const;
 
 export type RunReport = {
   discovered: number;
@@ -755,6 +789,99 @@ export type Enrollment = typeof enrollments.$inferSelect;
 export type MessageDraft = typeof messageDrafts.$inferSelect;
 export type OutreachAction = typeof outreachActions.$inferSelect;
 export type Reply = typeof replies.$inferSelect;
+
+// ── Credits, notifications ───────────────────────────────────────────────────
+
+/** What the money was spent on. */
+export const COST_PURPOSES = [
+  "lead_finding",
+  "planning",
+  "onboarding",
+  "brain",
+  "email_finding",
+  "outreach",
+  "replies",
+  "setup",
+  "other",
+] as const;
+export type CostPurpose = (typeof COST_PURPOSES)[number];
+
+/**
+ * Append-only cost ledger: every paid provider call and every Claude call writes its real cost.
+ * `billed` is false for Claude through the subscription: shown, never counted against the budget.
+ */
+export const creditEntries = sqliteTable(
+  "credit_entry",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["usage", "adjustment"] }).notNull().default("usage"),
+    purpose: text("purpose", { enum: COST_PURPOSES }).notNull().default("other"),
+    /** "apify", "hunter", "claude"… */
+    source: text("source").notNull(),
+    /** Provider operation, or the model for Claude. */
+    operation: text("operation").notNull(),
+    costMicroUsd: integer("cost_micro_usd").notNull(),
+    billed: integer("billed", { mode: "boolean" }).notNull().default(true),
+    playId: text("play_id").references(() => plays.id, { onDelete: "set null" }),
+    runId: text("run_id").references(() => leadFindingRuns.id, { onDelete: "set null" }),
+    jobId: text("job_id"),
+    detail: text("detail", { mode: "json" }).$type<Record<string, unknown>>(),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("credit_entry_ws_idx").on(t.workspaceId, t.createdAt),
+    index("credit_entry_run_idx").on(t.runId),
+    index("credit_entry_play_idx").on(t.playId, t.createdAt),
+  ],
+);
+
+/** Money set aside when a run starts; settled at the end with the actual spend, the rest returned. */
+export const creditHolds = sqliteTable(
+  "credit_hold",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    runId: text("run_id").references(() => leadFindingRuns.id, { onDelete: "cascade" }),
+    playId: text("play_id").references(() => plays.id, { onDelete: "cascade" }),
+    reservedMicroUsd: integer("reserved_micro_usd").notNull(),
+    spentMicroUsd: integer("spent_micro_usd").notNull().default(0),
+    status: text("status", { enum: ["held", "settled"] }).notNull().default("held"),
+    createdAt: createdAt(),
+    settledAt: integer("settled_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("credit_hold_ws_idx").on(t.workspaceId, t.status), uniqueIndex("credit_hold_run_idx").on(t.runId)],
+);
+
+export const notifications = sqliteTable(
+  "notification",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    category: text("category", { enum: NOTIFICATION_CATEGORIES }).notNull(),
+    kind: text("kind").notNull(),
+    tone: text("tone", { enum: ["info", "success", "warning"] }).notNull().default("info"),
+    title: text("title").notNull(),
+    body: text("body"),
+    /** In-app path to open, e.g. "/plays/<id>?tab=leads". */
+    link: text("link"),
+    payload: text("payload", { mode: "json" }).$type<unknown>(),
+    /** Same key twice is one notification (e.g. one "budget at 80%" per period). */
+    dedupeKey: text("dedupe_key"),
+    readAt: integer("read_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("notification_ws_idx").on(t.workspaceId, t.createdAt), uniqueIndex("notification_dedupe_idx").on(t.dedupeKey)],
+);
+
+export type CreditEntry = typeof creditEntries.$inferSelect;
+export type CreditHold = typeof creditHolds.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 

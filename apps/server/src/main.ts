@@ -3,12 +3,13 @@ import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { createDb, prepareDb, watchSettings } from "@pluton/db";
-import { getOrCreateDefaultWorkspace } from "@pluton/core";
+import { getOrCreateDefaultWorkspace, watchBudgetThresholds } from "@pluton/core";
 import { appRouter } from "./router.ts";
 
 const db = createDb();
 await prepareDb(db);
 await watchSettings(db);
+watchBudgetThresholds();
 await getOrCreateDefaultWorkspace(db);
 
 const app = new Hono();

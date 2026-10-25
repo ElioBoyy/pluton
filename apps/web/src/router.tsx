@@ -8,7 +8,11 @@ import { PlayPage } from "./features/plays/play-page.tsx";
 import { LEAD_TABS, type LeadTabKey } from "./features/leads/labels.ts";
 import { LeadsPage } from "./features/leads/leads-page.tsx";
 import { PlaysPage } from "./features/plays/plays-page.tsx";
+import { ActivityPage } from "./routes/activity.tsx";
 import { ApiKeysPage } from "./routes/api-keys.tsx";
+import { BudgetPage } from "./routes/budget.tsx";
+import { NotificationsPage } from "./routes/notifications.tsx";
+import { UsagePage } from "./routes/usage.tsx";
 import { LinkedinPage } from "./routes/linkedin.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
@@ -64,24 +68,28 @@ const workspaceIndexRoute = createRoute({
     throw redirect({ to: "/workspace/settings" });
   },
 });
+const SETTINGS_PAGES: Partial<Record<(typeof SETTINGS_SECTIONS)[number]["slug"], () => React.ReactNode>> = {
+  settings: GeneralSettingsPage,
+  "data-sources": DataSourcesPage,
+  "api-keys": ApiKeysPage,
+  linkedin: LinkedinPage,
+  notifications: NotificationsPage,
+  usage: UsagePage,
+  billing: BudgetPage,
+  activity: ActivityPage,
+};
+
 const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
   createRoute({
     getParentRoute: () => workspaceRoute,
     path: s.slug,
     component:
-      s.slug === "settings"
-        ? GeneralSettingsPage
-        : s.slug === "data-sources"
-          ? DataSourcesPage
-          : s.slug === "api-keys"
-            ? ApiKeysPage
-            : s.slug === "linkedin"
-              ? LinkedinPage
-              : () => (
-            <div className="rounded-xl border border-dashed border-line px-6 py-16 text-center text-sm text-muted">
-              {s.label} arrives in phase {s.phase} of PLAN.md.
-            </div>
-          ),
+      SETTINGS_PAGES[s.slug] ??
+      (() => (
+        <div className="rounded-xl border border-dashed border-line px-6 py-16 text-center text-sm text-muted">
+          {s.label} arrives in phase {s.phase} of PLAN.md.
+        </div>
+      )),
   }),
 );
 

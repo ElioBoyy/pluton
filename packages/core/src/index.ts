@@ -8,3 +8,7 @@ export * from "./proposals.ts";
 export * from "./plays.ts";
 export * from "./leads.ts";
 export * from "./campaigns.ts";
+export * from "./activity.ts";
+export * from "./notifications.ts";
+export * from "./credits.ts";
+export * from "./digest.ts";
