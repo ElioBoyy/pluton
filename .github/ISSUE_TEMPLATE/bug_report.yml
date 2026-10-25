@@ -1,0 +1,36 @@
+name: Bug report
+description: Something in Pluton doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The commit you run (`git rev-parse --short HEAD`).
+  - type: dropdown
+    id: claude
+    attributes:
+      label: How Pluton reaches Claude
+      options: [Claude subscription, Anthropic API key, Simulated mode]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The relevant lines from the terminal running `pnpm dev`. Remove any key, token or personal data first.
+      render: text
