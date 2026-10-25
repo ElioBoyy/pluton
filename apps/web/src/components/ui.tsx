@@ -9,7 +9,7 @@ export function Button({ variant = "primary", className, ...props }: ButtonProps
       {...props}
       className={cn(
         // macOS 27 push button: a flat rounded rectangle; primary is the accent-filled default button.
-        "inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium whitespace-nowrap",
+        "inline-flex h-7 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium whitespace-nowrap",
         "transition-[background-color,filter,scale] duration-150 ease-out motion-safe:enabled:active:scale-[0.97]",
         "disabled:cursor-not-allowed disabled:opacity-50",
         variant === "primary" && "bg-accent text-on-accent hover:brightness-110 active:brightness-90",
