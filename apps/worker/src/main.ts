@@ -96,7 +96,11 @@ if (recovered) console.log(`[worker] requeued ${recovered} stale job(s)`);
 
 async function runLoop(slot: number) {
   while (!shutdown.signal.aborted) {
-    const job = await claimNextJob(db, `${workerId}#${slot}`);
+    // A database still locked after the busy wait must not take the worker down: try again shortly.
+    const job = await claimNextJob(db, `${workerId}#${slot}`).catch((error) => {
+      console.error(`[worker] slot ${slot} couldn't take a job, retrying`, error instanceof Error ? error.message : error);
+      return undefined;
+    });
     if (!job) {
       await new Promise((r) => setTimeout(r, IDLE_POLL_MS));
       continue;
@@ -141,20 +145,26 @@ async function runLoop(slot: number) {
       await completeJob(db, job.id, result);
       console.log(`[worker] ${job.type} ${job.id} done in ${Date.now() - started}ms`);
     } catch (error) {
-      if (jobAbort.signal.reason === "cancel" && !shutdown.signal.aborted) {
-        await markJobCancelled(db, job.id);
-        await emit("cancelled", {});
-        console.log(`[worker] ${job.type} ${job.id} cancelled`);
-      } else if (jobAbort.signal.reason === "timeout") {
-        // Never retried: a hung attempt may still be running in the background.
-        await failJob(db, { ...job, attempts: job.maxAttempts }, error);
-        await releaseRun(job.id, error);
-        await emit("error", { message: error instanceof Error ? error.message : String(error) });
-        console.error(`[worker] ${job.type} ${job.id} stopped: over ${MAX_JOB_MS / 60_000} min`);
-      } else {
-        await failJob(db, job, error);
-        await emit("error", { message: error instanceof Error ? error.message : String(error) });
-        console.error(`[worker] ${job.type} ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts})`, error);
+      // Recording the outcome can itself hit a locked database: the job then stays "running" until
+      // the next worker start requeues it, and this slot carries on instead of taking the worker down.
+      try {
+        if (jobAbort.signal.reason === "cancel" && !shutdown.signal.aborted) {
+          await markJobCancelled(db, job.id);
+          await emit("cancelled", {});
+          console.log(`[worker] ${job.type} ${job.id} cancelled`);
+        } else if (jobAbort.signal.reason === "timeout") {
+          // Never retried: a hung attempt may still be running in the background.
+          await failJob(db, { ...job, attempts: job.maxAttempts }, error);
+          await releaseRun(job.id, error);
+          await emit("error", { message: error instanceof Error ? error.message : String(error) });
+          console.error(`[worker] ${job.type} ${job.id} stopped: over ${MAX_JOB_MS / 60_000} min`);
+        } else {
+          await failJob(db, job, error);
+          await emit("error", { message: error instanceof Error ? error.message : String(error) });
+          console.error(`[worker] ${job.type} ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts})`, error);
+        }
+      } catch (recordError) {
+        console.error(`[worker] ${job.type} ${job.id}: couldn't record its outcome`, recordError);
       }
     } finally {
       clearInterval(cancelPoll);

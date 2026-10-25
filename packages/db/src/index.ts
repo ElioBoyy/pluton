@@ -19,8 +19,12 @@ export function resolveDatabaseUrl(url = process.env.DATABASE_URL ?? "file:./dat
   return `file:${path.isAbsolute(file) ? file : path.resolve(repoRoot, file)}`;
 }
 
+const BUSY_TIMEOUT_MS = 5000;
+
 export function createDb(url?: string) {
-  const client = createClient({ url: resolveDatabaseUrl(url) });
+  // The client keeps a pool of connections: a PRAGMA reaches only one of them, so the busy wait is
+  // set here, where it applies to every connection. Without it the others fail at once on a lock.
+  const client = createClient({ url: resolveDatabaseUrl(url), timeout: BUSY_TIMEOUT_MS });
   return drizzle(client, { schema });
 }
 
@@ -29,7 +33,7 @@ export type Db = ReturnType<typeof createDb>;
 /** Server and worker both open the file concurrently: WAL + busy timeout avoid "database is locked". */
 export async function prepareDb(db: Db) {
   await db.$client.execute("PRAGMA journal_mode = WAL");
-  await db.$client.execute("PRAGMA busy_timeout = 5000");
+  await db.$client.execute(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`);
   await db.$client.execute("PRAGMA foreign_keys = ON");
   // Server and worker start together: on a fresh database both try to migrate, and the loser
   // fails on "already exists". Retrying finds the migrations recorded and does nothing.

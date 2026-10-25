@@ -245,8 +245,9 @@ function Chat({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center gap-2 px-3 py-2.5 sm:px-5">
+    <div className="relative flex min-w-0 flex-1 flex-col">
+      {/* The thread scrolls behind the title, under a progressive blur, and under the glass composer at the bottom. */}
+      <header className="absolute inset-x-0 top-0 z-20 flex items-center gap-2 px-3 py-2.5 sm:px-5">
         <Link to="/agent" aria-label={t("allConversations")} className="rounded-md p-1 text-muted hover:bg-raised hover:text-ink md:hidden">
           <CaretLeft size={16} />
         </Link>
@@ -260,15 +261,14 @@ function Chat({ conversationId }: { conversationId: string }) {
           <Trash size={15} />
         </button>
       </header>
-      {/* The thread runs under a progressive blur at the top and under the glass composer at the bottom. */}
       <div className="relative min-h-0 flex-1">
-      <div aria-hidden className="progressive-blur pointer-events-none absolute inset-x-0 top-0 z-10 h-14">
+      <div aria-hidden className="progressive-blur pointer-events-none absolute inset-x-0 top-0 z-10 h-24">
         <span />
         <span />
         <span />
       </div>
       <div ref={scrollRef} className="h-full overflow-y-auto">
-        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pt-8 pb-32 sm:px-6">
+        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pt-20 pb-32 sm:px-6">
           {group(messages).map((item) =>
             item.kind === "tools" ? (
               <ToolGroup key={item.messages[0]!.id} messages={item.messages} />
