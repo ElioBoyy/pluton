@@ -4,8 +4,8 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createDb, prepareDb, repoRoot, watchSettings } from "@pluton/db";
-import { findWallpaper, getCurrentWorkspace, listWorkspaces, watchBudgetThresholds, watchSearchIndex, workspaceLogo } from "@pluton/core";
+import { createDb, eq, prepareDb, repoRoot, watchSettings, workspaces } from "@pluton/db";
+import { findWallpaper, getCurrentWorkspace, watchBudgetThresholds, watchSearchIndex, workspaceLogo } from "@pluton/core";
 import { appRouter } from "./router.ts";
 import { handleMcp } from "./mcp.ts";
 import { ensureMcpToken, MCP_URL } from "./mcp-router.ts";
@@ -33,12 +33,18 @@ app.get("/api/backgrounds/:theme", async (c) => {
   if (!found) return c.notFound();
   return c.body(await fs.readFile(found.file), 200, { "Content-Type": found.type, "Cache-Control": "public, max-age=31536000, immutable" });
 });
-// Each workspace's tile shows its website's icon, fetched once from that site and cached in data/logos/.
+// Each workspace's tile shows its website's icon, fetched from that site and cached in data/logos/.
 app.get("/api/workspaces/:id/logo", async (c) => {
-  const ws = (await listWorkspaces(db)).find((w) => w.id === c.req.param("id"));
+  const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.id, c.req.param("id")), columns: { id: true, website: true } });
   const logo = ws ? await workspaceLogo(ws.id, ws.website) : null;
   if (!logo) return c.body(null, 404, { "Cache-Control": "no-store" });
-  return c.body(logo.bytes, 200, { "Content-Type": logo.type, "Cache-Control": "public, max-age=86400" });
+  return c.body(new Uint8Array(logo.bytes), 200, {
+    "Content-Type": logo.type,
+    "Cache-Control": "public, max-age=86400",
+    // The bytes come from another website: an SVG opened on its own must not run scripts as the app.
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    "X-Content-Type-Options": "nosniff",
+  });
 });
 app.use("/rpc/*", trpcServer({ endpoint: "/rpc", router: appRouter, createContext: ({ req }) => ({ db, locale: req.headers.get("x-pluton-locale") }) }));
 

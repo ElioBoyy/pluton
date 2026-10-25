@@ -39,7 +39,7 @@ Questions about Pluton:
 - Point to the page in the app with a Markdown link when there is one (for example [Budget](/workspace/billing)).
 - The docs quote the English interface. When you answer in another language, name screens, buttons and messages as the app shows them in that language. Don't cite doc section names or "sources".
 
-Documentation index (page: sections):
+Documentation pages (search them with docs_search; docs_read on a page id lists its sections):
 ${docsIndex() || "(no documentation found)"}
 
 How you work:

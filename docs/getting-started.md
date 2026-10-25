@@ -218,7 +218,7 @@ Settings → General also holds the open workspace's **Workspace name**, **Websi
 
 **The workspace menu** is the workspace name at the top of the sidebar (with its tile and an up/down chevron). Click it to see:
 
-- **Workspaces**: every workspace, oldest first. The open one has a check mark. A workspace whose onboarding isn't done shows "Onboarding not finished". Each tile has its own colour and first letter; when the workspace has a website, its icon replaces the letter once Pluton has fetched it.
+- **Workspaces**: every workspace, oldest first. The open one has a check mark. A workspace whose onboarding isn't done shows "Onboarding not finished". Each tile has its own colour and first letter; when the workspace has a website, its icon replaces the letter once Pluton has fetched it. Pluton asks the website itself (no outside icon service), checks again every week, and keeps the old icon if the site can't be reached; a site with no usable icon keeps the letter and is asked again the next day.
 - **New workspace…**
 - **Workspace settings** (opens Settings → General).
 
