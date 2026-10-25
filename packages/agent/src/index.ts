@@ -4,3 +4,5 @@ export * from "./simulated-onboarding.ts";
 export * from "./backend.ts";
 export * from "./brain-review.ts";
 export * from "./web-search.ts";
+export * from "./play-planner.ts";
+export * from "./lead-finder.ts";

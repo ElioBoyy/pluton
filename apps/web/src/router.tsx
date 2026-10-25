@@ -3,6 +3,9 @@ import { AppShell } from "./components/app-shell.tsx";
 import { ComingSoon } from "./components/ui.tsx";
 import { BrainPage } from "./features/brain/brain-page.tsx";
 import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
+import { NewPlayPage } from "./features/plays/new-play-page.tsx";
+import { PlayPage } from "./features/plays/play-page.tsx";
+import { LeadsPage, PlaysPage } from "./features/plays/plays-page.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
@@ -74,6 +77,15 @@ const settingsRoutes = SETTINGS_SECTIONS.map((s) =>
   }),
 );
 
+const playRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/plays/$playId",
+  component: function Play() {
+    const { playId } = playRoute.useParams();
+    return <PlayPage key={playId} playId={playId} />;
+  },
+});
+
 const routeTree = rootRoute.addChildren([
   onboardingRoute,
   appRoute.addChildren([
@@ -81,10 +93,10 @@ const routeTree = rootRoute.addChildren([
     homeRoute,
     createRoute({ getParentRoute: () => appRoute, path: "/brain", component: BrainPage }),
     page("/agent", "Agent", "Chat with the Pluton agent to plan Plays and act on leads.", 4),
-    page("/plays", "Plays", "Each Play turns one GTM idea into a recurring lead search.", 4),
-    page("/plays/new", "New Play", "Describe who you want to reach.", 4),
-    page("/plays/$playId", "Play", "Overview, sourcing funnel, leads and sequence.", 4),
-    page("/leads", "Leads", "Review, approve and reject the people your Plays found.", 5),
+    createRoute({ getParentRoute: () => appRoute, path: "/plays", component: PlaysPage }),
+    createRoute({ getParentRoute: () => appRoute, path: "/plays/new", component: NewPlayPage }),
+    playRoute,
+    createRoute({ getParentRoute: () => appRoute, path: "/leads", component: LeadsPage }),
     workspaceRoute.addChildren([workspaceIndexRoute, ...settingsRoutes]),
   ]),
 ]);

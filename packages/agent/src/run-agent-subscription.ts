@@ -31,6 +31,8 @@ export async function runAgentWithSubscription(opts: RunAgentOptions): Promise<R
   // Without this, a key in the environment would silently take precedence over the subscription.
   const { ANTHROPIC_API_KEY: _ignored, ...env } = process.env;
 
+  const web = opts.noWeb ? [] : ["WebSearch", "WebFetch"];
+
   const run = async (prompt: string, resume?: string) => {
     let sessionId: string | undefined;
     let turns = 0;
@@ -41,9 +43,9 @@ export async function runAgentWithSubscription(opts: RunAgentOptions): Promise<R
         effort: "medium",
         systemPrompt: opts.system,
         // Only web research plus our save tools; nothing from the user's own Claude Code setup.
-        tools: ["WebSearch", "WebFetch"],
+        tools: web,
         mcpServers: { [SERVER]: server },
-        allowedTools: ["WebSearch", "WebFetch", ...opts.tools.map((t) => `mcp__${SERVER}__${t.name}`)],
+        allowedTools: [...web, ...opts.tools.map((t) => `mcp__${SERVER}__${t.name}`)],
         permissionMode: "dontAsk",
         settingSources: [],
         maxTurns: opts.maxTurns ?? 40,
@@ -68,6 +70,13 @@ export async function runAgentWithSubscription(opts: RunAgentOptions): Promise<R
     const again = await run(`You have not called ${missing.join(", ")} yet. Call it now with what you found.`, sessionId);
     turns += again.turns;
     missing = (opts.required ?? []).filter((n) => !called.has(n));
+  }
+  // Resume the same session while the caller says the job isn't done (e.g. a search short of its target).
+  for (let i = 0; i < (opts.maxContinuations ?? 2) && sessionId; i++) {
+    const nudge = opts.continueWhile?.();
+    if (!nudge) break;
+    const again = await run(nudge, sessionId);
+    turns += again.turns;
   }
   return { turns, missing };
 }

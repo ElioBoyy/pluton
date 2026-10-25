@@ -3,6 +3,18 @@ import { z } from "zod";
 import {
   BrainConflictError,
   JOB_TYPES,
+  PlayConflictError,
+  createPlay,
+  getPlay,
+  getRun,
+  listLeads,
+  listPlays,
+  listRuns,
+  newPlaySchema,
+  pipelineCapabilities,
+  playDefinitionSchema,
+  startRun,
+  updatePlay,
   RevisionConflictError,
   acceptProposal,
   activateOnboarding,
@@ -284,5 +296,85 @@ const providers = router({
   }),
 });
 
-export const appRouter = router({ system, workspace, jobs: jobsRouter, events, onboarding, brain, providers });
+async function playCall<T>(fn: () => Promise<T>) {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error instanceof PlayConflictError) throw new TRPCError({ code: "CONFLICT", message: error.message });
+    if (error instanceof z.ZodError) throw new TRPCError({ code: "BAD_REQUEST", message: z.prettifyError(error) });
+    if (error instanceof Error) throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+    throw error;
+  }
+}
+
+const playsRouter = router({
+  capabilities: publicProcedure.query(() => pipelineCapabilities()),
+  list: publicProcedure.query(async ({ ctx }) => {
+    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    return listPlays(ctx.db, ws.id);
+  }),
+  get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const play = await getPlay(ctx.db, input.id);
+    if (!play) throw new TRPCError({ code: "NOT_FOUND", message: "Play not found" });
+    return { play, runs: await listRuns(ctx.db, play.id) };
+  }),
+  /** One planner turn as a job: follow `job:<id>` for the `done` event carrying the question or proposal. */
+  plan: publicProcedure
+    .input(z.object({ transcript: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().min(1).max(2000) })).min(1).max(20) }))
+    .mutation(async ({ ctx, input }) => {
+      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      return enqueueJob(ctx.db, { type: "plays.plan", workspaceId: ws.id, payload: { workspaceId: ws.id, transcript: input.transcript }, maxAttempts: 1 });
+    }),
+  create: publicProcedure
+    .input(z.object({ play: newPlaySchema, runNow: z.boolean().default(false) }))
+    .mutation(async ({ ctx, input }) => {
+      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      return playCall(async () => {
+        const play = await createPlay(ctx.db, ws.id, input.play);
+        const run = input.runNow ? await startRun(ctx.db, play.id) : null;
+        return { play, run };
+      });
+    }),
+  update: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        revision: z.number().int(),
+        patch: z.object({
+          name: z.string().trim().min(2).max(80).optional(),
+          status: z.enum(["active", "paused", "archived"]).optional(),
+          schedule: z.enum(["off", "daily", "weekdays", "weekly"]).optional(),
+          definition: playDefinitionSchema.optional(),
+        }),
+      }),
+    )
+    .mutation(({ ctx, input }) => playCall(() => updatePlay(ctx.db, input.id, input.revision, input.patch))),
+  run: publicProcedure.input(z.object({ id: z.string() })).mutation(({ ctx, input }) => playCall(() => startRun(ctx.db, input.id))),
+  getRun: publicProcedure.input(z.object({ runId: z.string() })).query(async ({ ctx, input }) => {
+    const run = await getRun(ctx.db, input.runId);
+    if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+    return run;
+  }),
+});
+
+const leadsRouter = router({
+  list: publicProcedure
+    .input(z.object({ playId: z.string().optional(), includeDisqualified: z.boolean().default(false) }).optional())
+    .query(async ({ ctx, input }) => {
+      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      return listLeads(ctx.db, { workspaceId: ws.id, playId: input?.playId, includeDisqualified: input?.includeDisqualified });
+    }),
+});
+
+export const appRouter = router({
+  system,
+  workspace,
+  jobs: jobsRouter,
+  events,
+  onboarding,
+  brain,
+  providers,
+  plays: playsRouter,
+  leads: leadsRouter,
+});
 export type AppRouter = typeof appRouter;
