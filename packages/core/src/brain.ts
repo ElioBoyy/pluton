@@ -39,6 +39,7 @@ export const brainSchemas = {
   competitor: z.object({
     name: text(80),
     website: z.string().trim().max(200).optional(),
+    linkedinUrl: z.string().trim().max(200).optional().describe("LinkedIn company page, if seen"),
     note: text(200).describe("How it overlaps with the company"),
   }),
   influencer: z.object({
@@ -71,6 +72,11 @@ export const brainSchemas = {
         }),
       )
       .max(8),
+  }),
+  tracked_profile: z.object({
+    name: text(80),
+    url: z.string().trim().max(300).regex(/linkedin\.com\/(in|company)\//i, "A LinkedIn profile or company page URL"),
+    kind: z.enum(["competitor", "influencer", "own_brand"]),
   }),
 } satisfies Record<BrainSection, z.ZodType>;
 

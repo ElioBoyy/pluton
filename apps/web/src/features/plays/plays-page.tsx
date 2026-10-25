@@ -1,6 +1,6 @@
 import { Lightning, Plus } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button, PageHeader } from "../../components/ui.tsx";
 import { cn } from "../../lib/cn.ts";
@@ -36,6 +36,7 @@ export function PlaysPage() {
         <Stat label="Qualified leads" value={totals.q} />
         <Stat label="To review" value={totals.r} />
       </div>
+      {plays.isSuccess && !all.some((p) => p.isMain) && <CreateMainPlay />}
       <div className="mb-4 flex gap-1">
         {FILTERS.map((f) => (
           <button
@@ -67,7 +68,10 @@ export function PlaysPage() {
                 className="block rounded-xl border border-line bg-panel p-4 transition-colors hover:border-line-strong"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="font-medium">{p.name}</p>
+                  <p className="font-medium">
+                    {p.name}
+                    {p.isMain && <span className="ml-2 rounded-md bg-cat-pink/15 px-1.5 py-0.5 text-xs text-cat-pink">Main</span>}
+                  </p>
                   {p.lastRun && (p.lastRun.status === "running" || p.lastRun.status === "queued") && (
                     <span className="rounded-md bg-cat-blue/15 px-1.5 py-0.5 text-xs text-cat-blue">Searching</span>
                   )}
@@ -104,6 +108,32 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div className="rounded-xl border border-line bg-panel p-4">
       <p className="text-xs text-faint">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+/** Offered when the workspace has no Main Play yet (onboarding normally creates it). */
+function CreateMainPlay() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const create = useMutation(
+    trpc.plays.ensureMain.mutationOptions({
+      onSuccess: async (play) => {
+        await queryClient.invalidateQueries({ queryKey: trpc.plays.list.queryKey() });
+        await navigate({ to: "/plays/$playId", params: { playId: play.id } });
+      },
+    }),
+  );
+  return (
+    <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-cat-pink/30 bg-cat-pink/5 p-4">
+      <div>
+        <p className="text-sm font-medium">Main Play</p>
+        <p className="mt-0.5 text-sm text-muted">One Play that tries every signal from your Brain in turn until it reaches its target.</p>
+      </div>
+      <Button disabled={create.isPending} onClick={() => create.mutate()}>
+        Create Main Play
+      </Button>
     </div>
   );
 }

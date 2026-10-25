@@ -97,6 +97,11 @@ export function BrainPage() {
             )}
             {tab === "Market research" && (
               <>
+                <ListSection
+                  section="tracked_profile"
+                  items={by("tracked_profile")}
+                  description="People who react to or comment on these profiles' posts become warm leads (needs Apify)."
+                />
                 <ListSection section="keyword" items={by("keyword")} description="Topics your buyers post about." />
                 <SingletonSection section="hiring_signal" item={one("hiring_signal")} />
                 <SingletonSection section="stack_signal" item={one("stack_signal")} />

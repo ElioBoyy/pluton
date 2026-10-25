@@ -25,7 +25,17 @@ function useNow(active: boolean) {
   return now;
 }
 
-export function ChatPanel({ state, sessionId, startedAt }: { state: OnboardingState; sessionId: string; startedAt: number }) {
+export function ChatPanel({
+  state,
+  sessionId,
+  startedAt,
+  onActivated,
+}: {
+  state: OnboardingState;
+  sessionId: string;
+  startedAt: number;
+  onActivated: () => void;
+}) {
   const working = state.status === "researching" || state.status === "needs_input";
   const now = useNow(working);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -67,7 +77,7 @@ export function ChatPanel({ state, sessionId, startedAt }: { state: OnboardingSt
       <p className="text-xs tabular-nums text-faint">⏱ {formatDuration(endedAt - startedAt)}</p>
 
       {state.status === "failed" && <RetryBox sessionId={sessionId} />}
-      {state.status === "ready" && <ActivateBox sessionId={sessionId} state={state} />}
+      {state.status === "ready" && <ActivateBox sessionId={sessionId} state={state} onActivated={onActivated} />}
       {state.status === "completed" && <CompletedBox />}
     </div>
   );
@@ -139,7 +149,6 @@ function StepList({ steps }: { steps: StepState[] }) {
               {s.status === "skipped" && <MinusCircle size={13} className="text-faint" />}
               <span className={cn(s.status === "skipped" && "text-faint")}>
                 {s.label}
-                {s.key === "first_leads" && s.status === "skipped" && " · arrives with Plays (phase 4)"}
               </span>
             </li>
           ))}
@@ -162,9 +171,8 @@ function RetryBox({ sessionId }: { sessionId: string }) {
   );
 }
 
-function ActivateBox({ sessionId, state }: { sessionId: string; state: OnboardingState }) {
+function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; state: OnboardingState; onActivated: () => void }) {
   const trpc = useTRPC();
-  const navigate = useNavigate();
   const activate = useMutation(trpc.onboarding.activate.mutationOptions());
   const count = (section: string) => [...state.brain.values()].filter((i) => i.section === section).length;
   const stats = [
@@ -185,7 +193,7 @@ function ActivateBox({ sessionId, state }: { sessionId: string; state: Onboardin
       <Button
         className="mt-3 w-full"
         disabled={activate.isPending}
-        onClick={() => activate.mutate({ sessionId }, { onSuccess: () => void navigate({ to: "/home" }) })}
+        onClick={() => activate.mutate({ sessionId }, { onSuccess: onActivated })}
       >
         Activate
       </Button>

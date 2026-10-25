@@ -26,7 +26,6 @@ export const onboardingStage: JobHandler = async ({ db, job, signal }) => {
     const result = await run({ db, sessionId, workspaceId: session.workspaceId, stage, signal });
     if (result.missing.length) throw new Error(`Research ended without ${result.missing.join(", ")}`);
     await raiseStageCards(db, sessionId, stage);
-    if (stage === "market") await setStep(db, sessionId, "first_leads", "skipped");
     await markStage(db, sessionId, stage, "done");
     return { turns: result.turns };
   } catch (error) {
@@ -39,13 +38,13 @@ export const onboardingStage: JobHandler = async ({ db, job, signal }) => {
 
 function describeFailure(error: unknown) {
   if (error instanceof Anthropic.AuthenticationError) {
-    return "I can't reach Claude: the API key is missing or invalid. Set ANTHROPIC_API_KEY in .env, restart, then retry.";
+    return "I can't reach Claude: the API key is invalid. Fix it in Settings → API keys, then retry.";
   }
   if (error instanceof Anthropic.RateLimitError) return "Claude is rate-limiting me right now. Retry in a minute.";
   if (error instanceof Anthropic.APIError) return `Claude returned an error (${error.status}). You can retry this step.`;
   // Raised by the SDK before any request, e.g. when no credentials are configured.
   if (error instanceof Anthropic.AnthropicError) {
-    return "I can't reach Claude: no API key is configured. Set ANTHROPIC_API_KEY in .env (or PLUTON_AGENT_BACKEND=subscription), restart `pnpm dev`, then retry.";
+    return "I can't reach Claude: no API key is configured. Add it in Settings → API keys (or switch to your Claude subscription there), then retry.";
   }
   return `This step failed: ${error instanceof Error ? error.message : String(error)}`;
 }

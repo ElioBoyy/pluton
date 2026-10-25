@@ -4,6 +4,13 @@ import {
   BrainConflictError,
   JOB_TYPES,
   PlayConflictError,
+  ensureMainPlay,
+  estimatePlay,
+  getLeadWithPerson,
+  requestJobCancel,
+  setPersonEmail,
+  setPersonLinkedin,
+  updateRun,
   createPlay,
   getPlay,
   getRun,
@@ -43,10 +50,13 @@ import {
   tailStreamEvents,
   updateWorkspace,
 } from "@pluton/core";
-import { webSearch } from "@pluton/agent";
-import { BRAIN_SECTIONS, PROPOSAL_STATUSES, count, gte, jobs, providerCalls, sql } from "@pluton/db";
+import { checkClaude, findLinkedinProfiles, webSearch } from "@pluton/agent";
+import { BRAIN_SECTIONS, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, gte, jobs, providerCalls, saveSetting, sql } from "@pluton/db";
 import {
   MissingKeyError,
+  checkProviderKey,
+  findEmail,
+  splitName,
   companyJobs,
   detectStack,
   profilePosts,
@@ -320,7 +330,7 @@ const playsRouter = router({
   }),
   /** One planner turn as a job: follow `job:<id>` for the `done` event carrying the question or proposal. */
   plan: publicProcedure
-    .input(z.object({ transcript: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().min(1).max(2000) })).min(1).max(20) }))
+    .input(z.object({ transcript: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().min(1).max(8000) })).min(1).max(20) }))
     .mutation(async ({ ctx, input }) => {
       const ws = await getOrCreateDefaultWorkspace(ctx.db);
       return enqueueJob(ctx.db, { type: "plays.plan", workspaceId: ws.id, payload: { workspaceId: ws.id, transcript: input.transcript }, maxAttempts: 1 });
@@ -350,6 +360,23 @@ const playsRouter = router({
     )
     .mutation(({ ctx, input }) => playCall(() => updatePlay(ctx.db, input.id, input.revision, input.patch))),
   run: publicProcedure.input(z.object({ id: z.string() })).mutation(({ ctx, input }) => playCall(() => startRun(ctx.db, input.id))),
+  estimate: publicProcedure
+    .input(z.object({ pipeline: z.enum(PIPELINES), target: z.number().int().min(1).max(50) }))
+    .query(async ({ ctx, input }) => {
+      const ws = await getOrCreateDefaultWorkspace(ctx.db);
+      return estimatePlay(ctx.db, ws.id, input.pipeline, input.target);
+    }),
+  cancelRun: publicProcedure.input(z.object({ runId: z.string() })).mutation(async ({ ctx, input }) => {
+    const run = await getRun(ctx.db, input.runId);
+    if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+    if (run.jobId) await requestJobCancel(ctx.db, run.jobId);
+    // Not picked up by the worker yet: nothing will mark it, so close it here.
+    if (run.status === "queued") await updateRun(ctx.db, run.id, { status: "cancelled", stopReason: "cancelled", finishedAt: new Date() });
+  }),
+  ensureMain: publicProcedure.mutation(async ({ ctx }) => {
+    const ws = await getOrCreateDefaultWorkspace(ctx.db);
+    return ensureMainPlay(ctx.db, ws.id);
+  }),
   getRun: publicProcedure.input(z.object({ runId: z.string() })).query(async ({ ctx, input }) => {
     const run = await getRun(ctx.db, input.runId);
     if (!run) throw new TRPCError({ code: "NOT_FOUND" });
@@ -357,7 +384,33 @@ const playsRouter = router({
   }),
 });
 
+async function leadPerson(db: Parameters<typeof getLeadWithPerson>[0], leadId: string) {
+  const row = await getLeadWithPerson(db, leadId);
+  if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Lead not found" });
+  return row;
+}
+
 const leadsRouter = router({
+  /** Work email through Hunter; needs the organization's website. */
+  findEmail: publicProcedure.input(z.object({ leadId: z.string() })).mutation(async ({ ctx, input }) => {
+    const { person } = await leadPerson(ctx.db, input.leadId);
+    if (!person.companyWebsite) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No company website known for this person" });
+    try {
+      const result = await findEmail(ctx.db, { ...splitName(person.name), website: person.companyWebsite });
+      await setPersonEmail(ctx.db, person.id, result.email, result.confidence);
+      return result;
+    } catch (error) {
+      const code = error instanceof MissingKeyError ? "PRECONDITION_FAILED" : "BAD_REQUEST";
+      throw new TRPCError({ code, message: (error as Error).message });
+    }
+  }),
+  findLinkedin: publicProcedure.input(z.object({ leadId: z.string() })).mutation(async ({ ctx, input }) => {
+    const { person } = await leadPerson(ctx.db, input.leadId);
+    const found = await findLinkedinProfiles(ctx.db, [{ name: person.name, company: person.company ?? undefined, title: person.title ?? undefined }]);
+    const url = found.get(0) ?? null;
+    if (url) await setPersonLinkedin(ctx.db, person.id, url);
+    return { url };
+  }),
   list: publicProcedure
     .input(z.object({ playId: z.string().optional(), includeDisqualified: z.boolean().default(false) }).optional())
     .query(async ({ ctx, input }) => {
@@ -366,7 +419,33 @@ const leadsRouter = router({
     }),
 });
 
+const settingsRouter = router({
+  list: publicProcedure.query(() => describeSettings()),
+  save: publicProcedure
+    .input(z.object({ key: z.string(), value: z.string().max(500).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await saveSetting(ctx.db, input.key, input.value);
+      } catch (error) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
+      }
+      return describeSettings();
+    }),
+  /** Proves a saved key works with a cheap call to its service. */
+  test: publicProcedure.input(z.object({ key: z.string() })).mutation(async ({ input }) => {
+    try {
+      const message = ["agent_backend", "anthropic_api_key"].includes(input.key)
+        ? await checkClaude()
+        : await checkProviderKey(input.key);
+      return { ok: true, message };
+    } catch (error) {
+      return { ok: false, message: (error as Error).message };
+    }
+  }),
+});
+
 export const appRouter = router({
+  settings: settingsRouter,
   system,
   workspace,
   jobs: jobsRouter,

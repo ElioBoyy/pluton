@@ -34,7 +34,8 @@ export function NewPlayPage() {
         setTranscript((t) => [...t, { role: "assistant", text: result.question }]);
       } else {
         setProposal(result.play);
-        setTranscript((t) => [...t, { role: "assistant", text: "Here is the Play I'd run." }]);
+        // The planner is stateless: carrying the proposal in the transcript lets a correction start from it.
+        setTranscript((t) => [...t, { role: "assistant", text: `Here is the Play I'd run: ${JSON.stringify(result.play)}` }]);
       }
     }
     if (event.type === "error") {
@@ -72,7 +73,7 @@ export function NewPlayPage() {
                 </div>
               ) : (
                 <div key={i} className="max-w-[85%] rounded-xl border border-line bg-raised/40 px-3.5 py-2 text-sm">
-                  {t.text}
+                  {t.text.startsWith("Here is the Play I'd run") ? "Here is the Play I'd run." : t.text}
                 </div>
               ),
             )}
@@ -278,6 +279,28 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
           </Slot>
         )}
         {proposal.definition.criteria && <Slot label="Criteria">{proposal.definition.criteria}</Slot>}
+        {proposal.definition.referenceCompanies && proposal.definition.referenceCompanies.length > 0 && (
+          <Slot label="Lookalikes of">{proposal.definition.referenceCompanies.join(", ")}</Slot>
+        )}
+        <Slot label="Limits">
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <NumberField
+              label="min of research"
+              value={proposal.definition.policy?.maxMinutes ?? 15}
+              min={3}
+              max={60}
+              onChange={(maxMinutes) => onChange(withPolicy(proposal, { maxMinutes }))}
+            />
+            <NumberField
+              label="days freshness"
+              value={proposal.definition.policy?.freshnessDays ?? 60}
+              min={1}
+              max={365}
+              onChange={(freshnessDays) => onChange(withPolicy(proposal, { freshnessDays }))}
+            />
+          </span>
+        </Slot>
+        <Estimate pipeline={proposal.pipeline} target={proposal.definition.target ?? 10} />
       </div>
 
       <div className="mt-6 flex flex-col gap-2">
@@ -299,5 +322,43 @@ function Slot({ label, children }: { label: string; children: React.ReactNode })
       <p className="text-xs font-medium text-faint">{label}</p>
       <div className="mt-1 text-sm leading-relaxed">{children}</div>
     </Card>
+  );
+}
+
+function withPolicy(p: NewPlay, patch: Partial<{ maxMinutes: number; freshnessDays: number }>): NewPlay {
+  const policy = { maxMinutes: 15, freshnessDays: 60, ...p.definition.policy, ...patch };
+  return { ...p, definition: { ...p.definition, policy } };
+}
+
+function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+  return (
+    <label className="flex items-center gap-1.5 text-xs text-muted">
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || min)))}
+        className="h-7 w-14 rounded-md border border-line bg-raised px-1.5 text-sm text-ink outline-none"
+      />
+      {label}
+    </label>
+  );
+}
+
+/** Expected yield and duration, from this workspace's past runs of the same pipeline. */
+function Estimate({ pipeline, target }: { pipeline: NewPlay["pipeline"]; target: number }) {
+  const trpc = useTRPC();
+  const estimate = useQuery(trpc.plays.estimate.queryOptions({ pipeline, target }));
+  if (!estimate.data) return null;
+  const e = estimate.data;
+  return (
+    <Slot label="What to expect">
+      {e.qualified[0]}–{e.qualified[1]} qualified leads per run · {e.minutes[0]}–{e.minutes[1]} min
+      <span className="mt-1 block text-xs text-faint">
+        {e.basis === "history" ? `From your last ${e.runs} runs of this kind.` : "Rough guess until a few runs have completed."} Uses your
+        Claude access{e.paid.length ? `, plus ${e.paid.join(", ")}` : ", no paid data source"}.
+      </span>
+    </Slot>
   );
 }

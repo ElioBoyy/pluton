@@ -3,16 +3,21 @@ import {
   claimNextJob,
   completeJob,
   duePlays,
+  enqueueJob,
+  getSingleton,
+  localDay,
   getOrCreateDefaultWorkspace,
   startRun,
   emitStreamEvent,
   failJob,
+  isCancelRequested,
   jobChannel,
+  markJobCancelled,
   recoverStaleJobs,
   type JobHandler,
   type JobType,
 } from "@pluton/core";
-import { createDb, prepareDb } from "@pluton/db";
+import { createDb, getSetting, prepareDb, watchSettings } from "@pluton/db";
 import { brainReview } from "./handlers/brain-review.ts";
 import { onboardingStage } from "./handlers/onboarding-stage.ts";
 import { leadFindingRun, playsPlan } from "./handlers/plays.ts";
@@ -32,6 +37,7 @@ const workerId = `${os.hostname()}:${process.pid}`;
 
 const db = createDb();
 await prepareDb(db);
+await watchSettings(db);
 
 const shutdown = new AbortController();
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
@@ -57,15 +63,32 @@ async function runLoop(slot: number) {
       await emitStreamEvent(db, jobChannel(job.id), type, payload);
     };
     const started = Date.now();
+    // Each job has its own signal: aborted on shutdown or when the UI asks to cancel this job.
+    const jobAbort = new AbortController();
+    // The reason lets handlers tell a restart (run it again) from a cancel the founder asked for.
+    const onShutdown = () => jobAbort.abort("shutdown");
+    shutdown.signal.addEventListener("abort", onShutdown);
+    const cancelPoll = setInterval(() => {
+      void isCancelRequested(db, job.id).then((yes) => yes && jobAbort.abort("cancel")).catch(() => {});
+    }, 2000);
     try {
       if (!handler) throw new Error(`No handler for job type "${job.type}"`);
-      const result = await handler({ db, job, emit, signal: shutdown.signal });
+      const result = await handler({ db, job, emit, signal: jobAbort.signal });
       await completeJob(db, job.id, result);
       console.log(`[worker] ${job.type} ${job.id} done in ${Date.now() - started}ms`);
     } catch (error) {
-      await failJob(db, job, error);
-      await emit("error", { message: error instanceof Error ? error.message : String(error) });
-      console.error(`[worker] ${job.type} ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts})`, error);
+      if (jobAbort.signal.aborted && !shutdown.signal.aborted) {
+        await markJobCancelled(db, job.id);
+        await emit("cancelled", {});
+        console.log(`[worker] ${job.type} ${job.id} cancelled`);
+      } else {
+        await failJob(db, job, error);
+        await emit("error", { message: error instanceof Error ? error.message : String(error) });
+        console.error(`[worker] ${job.type} ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts})`, error);
+      }
+    } finally {
+      clearInterval(cancelPoll);
+      shutdown.signal.removeEventListener("abort", onShutdown);
     }
   }
 }
@@ -78,6 +101,17 @@ async function scheduleLoop() {
       for (const { play } of await duePlays(db, workspace.timezone)) {
         const run = await startRun(db, play.id, "schedule");
         console.log(`[worker] scheduled run ${run.id} for play "${play.name}"`);
+      }
+      // Daily Brain review after 06:00 local; the per-day key makes repeated ticks a no-op.
+      const { day, hour } = localDay(new Date(), workspace.timezone);
+      if (getSetting("daily_brain_review") === "on" && hour >= 6 && (await getSingleton(db, workspace.id, "company"))) {
+        await enqueueJob(db, {
+          type: "brain.review",
+          workspaceId: workspace.id,
+          payload: { workspaceId: workspace.id },
+          idempotencyKey: `brain-review:${workspace.id}:${day}`,
+          maxAttempts: 1,
+        });
       }
     } catch (error) {
       console.error("[worker] scheduler error", error);

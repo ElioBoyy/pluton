@@ -3,6 +3,7 @@ import {
   brainSchemas,
   createProposal,
   getSingleton,
+  leadOutcomes,
   listBrain,
   listProposals,
   SINGLETON_SECTIONS,
@@ -40,6 +41,7 @@ export async function runBrainReview(opts: {
   if (!company) throw new Error("The Brain has no company profile yet; run onboarding first");
 
   const items = await listBrain(db, workspaceId);
+  const outcomes = await leadOutcomes(db, workspaceId);
   const history = await listProposals(db, workspaceId, ["proposed", "rejected", "answered"]);
   const describe = (p: (typeof history)[number]) =>
     p.kind === "question"
@@ -73,6 +75,9 @@ ${history.filter((p) => p.status === "rejected").map(describe).join("\n") || "no
 
 Answered questions (treat as facts):
 ${history.filter((p) => p.status === "answered").map(describe).join("\n") || "none"}
+
+What recent searches found (use it: many "to review" leads or one rejection reason dominating usually means a persona, size or industry in the Brain is off):
+${outcomes.runs === 0 ? "No search has run yet." : JSON.stringify({ runs: outcomes.runs, qualified: outcomes.qualified, needsReview: outcomes.needsReview, setAside: outcomes.rejections, toReviewSample: outcomes.reviewSample })}
 
 ${opts.focus ? `The founder asked you to focus on: ${opts.focus}` : "Review the whole Brain, starting with what most affects who we target."}`,
     required: [],

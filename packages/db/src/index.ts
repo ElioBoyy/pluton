@@ -1,14 +1,14 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
+import { repoRoot } from "./paths.ts";
 import * as schema from "./schema.ts";
 
 export * from "./schema.ts";
-export { schema };
+export { schema, repoRoot };
+export * from "./settings.ts";
 
-export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const migrationsFolder = path.resolve(repoRoot, "packages/db/drizzle");
 
 /** Resolves `file:` URLs against the repo root so every app opens the same SQLite file. */
@@ -30,7 +30,17 @@ export async function prepareDb(db: Db) {
   await db.$client.execute("PRAGMA journal_mode = WAL");
   await db.$client.execute("PRAGMA busy_timeout = 5000");
   await db.$client.execute("PRAGMA foreign_keys = ON");
-  await migrate(db, { migrationsFolder });
+  // Server and worker start together: on a fresh database both try to migrate, and the loser
+  // fails on "already exists". Retrying finds the migrations recorded and does nothing.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await migrate(db, { migrationsFolder });
+      return;
+    } catch (error) {
+      if (attempt >= 5) throw error;
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
 }
 
 // One drizzle instance for the whole repo: apps import query helpers from here, never from drizzle-orm.

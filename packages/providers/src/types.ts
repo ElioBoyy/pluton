@@ -42,7 +42,7 @@ export type PostRecord = {
   url: string;
   text: string;
   postedAt?: string;
-  author: { name: string; linkedinUrl?: string };
+  author: { name: string; linkedinUrl?: string; headline?: string };
   likes?: number;
   comments?: number;
   source: string;

@@ -13,7 +13,7 @@ export const jobPayloads = {
   "plays.plan": z.object({
     workspaceId: z.string(),
     transcript: z
-      .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(2000) }))
+      .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(8000) }))
       .min(1)
       .max(20),
   }),

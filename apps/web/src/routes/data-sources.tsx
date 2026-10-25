@@ -1,5 +1,6 @@
 import { ArrowSquareOut, CheckCircle, CircleNotch, Key, Play } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useState, type ReactNode } from "react";
 import type { AppRouter } from "@pluton/server/router";
@@ -44,7 +45,7 @@ export function DataSourcesPage() {
     <>
       <PageHeader
         title="Data sources"
-        description="Where Plays find companies, people and signals. Free sources work now; keyed ones switch on when you add their key to .env and restart."
+        description="Where Plays find companies, people and signals. Free sources work now; keyed ones switch on when you add their key in API keys."
       />
       <div className="flex flex-col gap-3">
         {(catalog.data ?? []).map((p) => (
@@ -77,9 +78,9 @@ function ProviderCard({
                 <CheckCircle size={13} weight="fill" /> Ready
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-xs text-muted">
-                <Key size={13} /> Add <code className="rounded bg-raised px-1">{p.envVar}</code> to .env
-              </span>
+              <Link to="/workspace/api-keys" className="flex items-center gap-1 text-xs text-muted hover:text-ink">
+                <Key size={13} /> Add its key in API keys
+              </Link>
             )}
           </div>
           <p className="mt-1.5 text-sm text-muted">{p.description}</p>

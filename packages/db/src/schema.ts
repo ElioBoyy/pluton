@@ -47,6 +47,8 @@ export const jobs = sqliteTable(
       .default(sql`(unixepoch('subsec') * 1000)`),
     lockedAt: integer("locked_at", { mode: "timestamp_ms" }),
     lockedBy: text("locked_by"),
+    /** Set from the UI; the worker aborts the running handler when it sees it. */
+    cancelRequested: integer("cancel_requested", { mode: "boolean" }).notNull().default(false),
     // Same key twice returns the original job instead of enqueuing a duplicate.
     idempotencyKey: text("idempotency_key"),
     result: text("result", { mode: "json" }).$type<unknown>(),
@@ -119,6 +121,7 @@ export const BRAIN_SECTIONS = [
   "keyword",
   "hiring_signal",
   "stack_signal",
+  "tracked_profile",
 ] as const;
 export type BrainSection = (typeof BRAIN_SECTIONS)[number];
 
@@ -273,14 +276,20 @@ export const providerCalls = sqliteTable(
 
 // ── Plays & leads ────────────────────────────────────────────────────────────
 
-/** How a Play finds people. The post_* pipelines need Apify; the others run on free sources. */
+/**
+ * How a Play finds people. The post_* pipelines need Apify; the others run on free sources.
+ * `waterfall` (the Main Play) chains the others in order until the target is met.
+ */
 export const PIPELINES = [
   "persona_sweep",
   "company_hiring",
   "company_stack",
   "web_evidence",
+  "lookalikes",
+  "funding",
   "post_watchlist",
   "post_keyword",
+  "waterfall",
 ] as const;
 export type Pipeline = (typeof PIPELINES)[number];
 
@@ -301,8 +310,16 @@ export type PlayDefinition = {
   };
   /** Free-text criteria for web_evidence ("hotel groups that publish a sustainability report"). */
   criteria?: string;
+  /** Best customers to find lookalikes of (lookalikes pipeline). */
+  referenceCompanies?: string[];
   /** Qualified leads wanted per run. */
   target: number;
+  policy?: {
+    /** Research stops after this many minutes; what was found is still scored. */
+    maxMinutes: number;
+    /** Only signals (job posts, funding, posts) newer than this. */
+    freshnessDays: number;
+  };
 };
 
 export const plays = sqliteTable("play", {
@@ -311,6 +328,10 @@ export const plays = sqliteTable("play", {
     .notNull()
     .references(() => workspaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  /** The Main Play always exists, chains every pipeline and can't be archived. */
+  isMain: integer("is_main", { mode: "boolean" }).notNull().default(false),
+  /** Set when onboarding created this Play to find the first leads. */
+  onboardingSessionId: text("onboarding_session_id"),
   /** The founder's own words, kept verbatim. */
   ask: text("ask").notNull(),
   summary: text("summary", { mode: "json" }).$type<{ who: string; how: string; howMany: string }>().notNull(),
@@ -337,6 +358,10 @@ export type RunReport = {
   needsReview: number;
   disqualified: number;
   duplicates: number;
+  /** LinkedIn profiles found by the lookup step (absent on older runs). */
+  linkedinFound?: number;
+  /** For the Main Play: what each chained pipeline added. */
+  stages?: Array<{ pipeline: string; qualified: number; discovered: number; skipped?: string }>;
   /** Why candidates were set aside, with a few examples each. */
   rejections: Record<string, { count: number; examples: string[] }>;
 };
@@ -382,6 +407,8 @@ export const people = sqliteTable(
     companyWebsite: text("company_website"),
     linkedinUrl: text("linkedin_url"),
     location: text("location"),
+    email: text("email"),
+    emailConfidence: integer("email_confidence"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -422,3 +449,13 @@ export type Play = typeof plays.$inferSelect;
 export type LeadFindingRun = typeof leadFindingRuns.$inferSelect;
 export type Person = typeof people.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+
+/** App settings and API keys, edited in Settings. Secret values are AES-256-GCM encrypted. */
+export const settings = sqliteTable("setting", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  encrypted: integer("encrypted", { mode: "boolean" }).notNull().default(false),
+  updatedAt: updatedAt(),
+});

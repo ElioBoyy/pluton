@@ -6,3 +6,5 @@ export * from "./brain-review.ts";
 export * from "./web-search.ts";
 export * from "./play-planner.ts";
 export * from "./lead-finder.ts";
+export * from "./check-claude.ts";
+export * from "./linkedin-lookup.ts";

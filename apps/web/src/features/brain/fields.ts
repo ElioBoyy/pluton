@@ -52,6 +52,7 @@ export const SECTION_FIELDS: Record<BrainSection, Field[]> = {
   competitor: [
     { key: "name", label: "Name", kind: "text" },
     { key: "website", label: "Website", kind: "text", optional: true },
+    { key: "linkedinUrl", label: "LinkedIn page", kind: "text", optional: true },
     { key: "note", label: "How it overlaps", kind: "textarea" },
   ],
   influencer: [
@@ -74,6 +75,20 @@ export const SECTION_FIELDS: Record<BrainSection, Field[]> = {
   ],
   hiring_signal: [{ key: "roles", label: "Roles to watch in job offers", kind: "list" }],
   stack_signal: [{ key: "technologies", label: "Tools to watch", kind: "tech" }],
+  tracked_profile: [
+    { key: "name", label: "Name", kind: "text" },
+    { key: "url", label: "LinkedIn URL", kind: "text", placeholder: "https://www.linkedin.com/in/… or /company/…" },
+    {
+      key: "kind",
+      label: "Who it is",
+      kind: "select",
+      options: [
+        { value: "competitor", label: "Competitor" },
+        { value: "influencer", label: "Influencer / expert" },
+        { value: "own_brand", label: "Your own brand or team" },
+      ],
+    },
+  ],
 };
 
 export const SECTION_LABELS: Record<BrainSection, string> = {
@@ -87,6 +102,7 @@ export const SECTION_LABELS: Record<BrainSection, string> = {
   keyword: "Keywords",
   hiring_signal: "Hiring signal",
   stack_signal: "Stack signal",
+  tracked_profile: "Tracked LinkedIn profiles",
 };
 
 /** First text field: used as an item's title in lists and proposals. */
