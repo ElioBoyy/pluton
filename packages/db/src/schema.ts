@@ -115,6 +115,7 @@ export const ACTIVITY_CONTEXTS = [
   "mcp",
   "onboarding",
   "slack",
+  "crm",
   "system",
 ] as const;
 export type ActivityContext = (typeof ACTIVITY_CONTEXTS)[number];
@@ -380,6 +381,10 @@ export const plays = sqliteTable("play", {
   updatedAt: updatedAt(),
 });
 
+/** `agent` = started by an MCP client (Claude, Codex…). */
+export const RUN_TRIGGERS = ["manual", "schedule", "agent"] as const;
+export type RunTrigger = (typeof RUN_TRIGGERS)[number];
+
 export const RUN_STATUSES = ["queued", "running", "completed", "failed", "cancelled"] as const;
 /** `deadline` = the run's time limit, `budget` = its spend cap or the monthly budget. */
 export const STOP_REASONS = ["target_met", "deadline", "budget", "sources_dry", "error", "cancelled"] as const;
@@ -416,7 +421,7 @@ export const leadFindingRuns = sqliteTable(
     target: integer("target").notNull(),
     report: text("report", { mode: "json" }).$type<RunReport>(),
     error: text("error"),
-    trigger: text("trigger", { enum: ["manual", "schedule"] }).notNull().default("manual"),
+    trigger: text("trigger", { enum: RUN_TRIGGERS }).notNull().default("manual"),
     createdAt: createdAt(),
     startedAt: integer("started_at", { mode: "timestamp_ms" }),
     finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
@@ -882,6 +887,133 @@ export const notifications = sqliteTable(
 export type CreditEntry = typeof creditEntries.$inferSelect;
 export type CreditHold = typeof creditHolds.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+
+// ── Integrations ─────────────────────────────────────────────────────────────
+
+export const INTEGRATION_PROVIDERS = ["slack", "hubspot", "attio", "pipedrive"] as const;
+export type IntegrationProvider = (typeof INTEGRATION_PROVIDERS)[number];
+export const CRM_PROVIDERS = ["hubspot", "attio", "pipedrive"] as const;
+export type CrmProvider = (typeof CRM_PROVIDERS)[number];
+
+/** Pluton lead fields a CRM mapping can send. */
+export const CRM_FIELDS = [
+  "first_name",
+  "last_name",
+  "full_name",
+  "email",
+  "title",
+  "company",
+  "company_domain",
+  "linkedin_url",
+  "location",
+  "fit",
+  "reason",
+  "signal",
+  "play",
+] as const;
+export type CrmField = (typeof CRM_FIELDS)[number];
+
+export type SlackConfig = {
+  channelId?: string;
+  channelName?: string;
+  /** `short`: one message per search; `detailed`: one message per lead with why they fit. */
+  delivery: "short" | "detailed";
+  /** Only post leads at or above this fit (0–100). */
+  minFit: number;
+};
+
+export type CrmConfig = {
+  /** Pluton field → CRM property (HubSpot property, Attio attribute slug, Pipedrive field key). */
+  mapping: Partial<Record<CrmField, string>>;
+  /** Export each lead as soon as you approve it. */
+  autoExportApproved: boolean;
+  /** Also create the company and link the person to it. */
+  createCompany: boolean;
+};
+
+export const integrations = sqliteTable(
+  "integration",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: text("provider", { enum: INTEGRATION_PROVIDERS }).notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    status: text("status", { enum: ["connected", "error", "disconnected"] }).notNull().default("disconnected"),
+    /** Who the token belongs to, as the provider says (workspace or portal name). */
+    account: text("account"),
+    config: text("config", { mode: "json" }).$type<Partial<SlackConfig & CrmConfig>>().notNull().default({}),
+    error: text("error"),
+    connectedAt: integer("connected_at", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("integration_provider_idx").on(t.workspaceId, t.provider)],
+);
+
+/** One row per lead and CRM: exports are create-only, so a lead goes to each CRM at most once. */
+export const crmExports = sqliteTable(
+  "crm_export",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: text("provider", { enum: CRM_PROVIDERS }).notNull(),
+    leadId: text("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    /** `exists`: the CRM already had this person (matched by email), nothing was written. */
+    status: text("status", { enum: ["created", "exists", "failed"] }).notNull(),
+    trigger: text("trigger", { enum: ["manual", "auto", "agent"] }).notNull().default("manual"),
+    personExternalId: text("person_external_id"),
+    companyExternalId: text("company_external_id"),
+    url: text("url"),
+    error: text("error"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("crm_export_lead_idx").on(t.provider, t.leadId), index("crm_export_ws_idx").on(t.workspaceId, t.createdAt)],
+);
+
+/** Slack messages about leads, so Approve/Reject from Slack can update them. */
+export const slackPosts = sqliteTable(
+  "slack_post",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    channelId: text("channel_id").notNull(),
+    ts: text("ts").notNull(),
+    runId: text("run_id"),
+    leadIds: text("lead_ids", { mode: "json" }).$type<string[]>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("slack_post_ts_idx").on(t.channelId, t.ts)],
+);
+
+/** MCP clients seen on the local server (Claude Code, Claude Desktop, Codex…). */
+export const mcpClients = sqliteTable(
+  "mcp_client",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    version: text("version"),
+    calls: integer("calls").notNull().default(0),
+    lastTool: text("last_tool"),
+    firstSeenAt: integer("first_seen_at", { mode: "timestamp_ms" }).notNull(),
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [uniqueIndex("mcp_client_name_idx").on(t.workspaceId, t.name)],
+);
+
+export type Integration = typeof integrations.$inferSelect;
+export type CrmExport = typeof crmExports.$inferSelect;
+export type McpClient = typeof mcpClients.$inferSelect;
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 

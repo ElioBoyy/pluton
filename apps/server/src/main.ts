@@ -2,20 +2,29 @@ import { serve } from "@hono/node-server";
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
-import { createDb, prepareDb, watchSettings } from "@pluton/db";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { createDb, prepareDb, repoRoot, watchSettings } from "@pluton/db";
 import { getOrCreateDefaultWorkspace, watchBudgetThresholds } from "@pluton/core";
 import { appRouter } from "./router.ts";
+import { handleMcp } from "./mcp.ts";
+import { ensureMcpToken, MCP_URL } from "./mcp-router.ts";
 
 const db = createDb();
 await prepareDb(db);
 await watchSettings(db);
 watchBudgetThresholds();
 await getOrCreateDefaultWorkspace(db);
+await ensureMcpToken(db);
 
 const app = new Hono();
 app.use(logger());
 app.get("/health", (c) => c.json({ ok: true }));
+// MCP for Claude Code, Claude Desktop, Codex… (token in Settings → Connect your AI).
+app.all("/api/mcp", (c) => handleMcp(db, c.req.raw));
+// The Claude Code skill, so it installs with one curl (it holds no secret).
+app.get("/skills/pluton/SKILL.md", async (c) => c.text(await fs.readFile(path.resolve(repoRoot, "skills/pluton/SKILL.md"), "utf8")));
 app.use("/rpc/*", trpcServer({ endpoint: "/rpc", router: appRouter, createContext: () => ({ db }) }));
 
 const port = Number(process.env.SERVER_PORT ?? 8787);
-serve({ fetch: app.fetch, port }, () => console.log(`[server] listening on http://localhost:${port}`));
+serve({ fetch: app.fetch, port }, () => console.log(`[server] listening on http://localhost:${port} (MCP at ${MCP_URL})`));

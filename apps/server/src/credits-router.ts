@@ -98,7 +98,7 @@ export const activityRouter = router({
     .input(z.object({ cursor: z.number().int().default(0), contexts: z.array(z.enum(ACTIVITY_CONTEXTS)).optional(), limit: z.number().int().min(1).max(200).default(50) }))
     .query(async ({ ctx, input }) => {
       const page = await listActivity(ctx.db, (await ws(ctx.db)).id, { afterId: input.cursor, contexts: input.contexts, limit: input.limit });
-      return { items: page.items.reverse(), cursor: page.items[0]?.id ?? input.cursor };
+      return { items: page.items, cursor: page.items.at(-1)?.id ?? input.cursor, more: page.nextCursor !== null };
     }),
 });
 

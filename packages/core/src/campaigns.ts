@@ -424,6 +424,7 @@ export async function addToCampaign(db: Db, leadIds: string[]) {
   const ws = await getOrCreateDefaultWorkspace(db);
   const added: Array<{ leadId: string; enrollmentId: string; name: string; senderName: string | null }> = [];
   const skipped: Array<{ leadId: string; name: string; reason: string }> = [];
+  const playIds = new Set<string>();
   const now = Date.now();
   for (const p of preview) {
     if (p.conflict) {
@@ -432,6 +433,7 @@ export async function addToCampaign(db: Db, leadIds: string[]) {
     }
     const campaign = (await getCampaign(db, p.campaignId))!;
     const sender = await pickSender(db, campaign, p.person.id);
+    playIds.add(campaign.playId);
     const undoUntil = new Date(now + UNDO_MINUTES * 60_000);
     const start = nextWindowStart(new Date(undoUntil.getTime() + jitterMs(1, 15)), campaign.sendWindow, ws.timezone) ?? undoUntil;
     const lead = await db.query.leads.findFirst({ where: eq(leads.id, p.leadId) });
@@ -451,7 +453,7 @@ export async function addToCampaign(db: Db, leadIds: string[]) {
     await addLeadEvent(db, p.leadId, "campaign_added", { campaignId: campaign.id, sender: sender?.name ?? null });
     added.push({ leadId: p.leadId, enrollmentId: row!.id, name: p.person.name, senderName: sender?.name ?? null });
   }
-  if (added.length) await recordActivity(db, ws.id, "campaigns", "leads.added", { count: added.length, playIds: [...new Set(preview.map((p) => p.campaignId))] });
+  if (added.length) await recordActivity(db, ws.id, "campaigns", "leads.added", { count: added.length, playIds: [...playIds] });
   return { added, skipped, undoUntil: new Date(now + UNDO_MINUTES * 60_000) };
 }
 

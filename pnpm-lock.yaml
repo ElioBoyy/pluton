@@ -127,6 +127,9 @@ importers:
       '@hono/trpc-server':
         specifier: ^0.4.2
         version: 0.4.2(@trpc/server@11.19.0(typescript@7.0.2))(hono@4.13.13)
+      '@modelcontextprotocol/sdk':
+        specifier: 1.32.2
+        version: 1.32.2(zod@4.6.7)
       '@pluton/agent':
         specifier: workspace:*
         version: link:../../packages/agent

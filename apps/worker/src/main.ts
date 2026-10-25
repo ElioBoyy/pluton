@@ -26,6 +26,8 @@ import { onboardingStage } from "./handlers/onboarding-stage.ts";
 import { prepareDrafts, sequenceTick } from "./handlers/campaigns.ts";
 import { leadsFindEmails } from "./handlers/leads.ts";
 import { sendDigest } from "./handlers/notifications.ts";
+import { crmExport, handleSlackAction, slackPostRun } from "./handlers/integrations.ts";
+import { runSlackSocket } from "@pluton/providers";
 import { leadFindingRun, playsPlan } from "./handlers/plays.ts";
 import { systemPing } from "./handlers/system-ping.ts";
 
@@ -39,6 +41,8 @@ const handlers: Record<JobType, JobHandler> = {
   "campaigns.prepare_drafts": prepareDrafts,
   "campaigns.tick": sequenceTick,
   "notifications.digest": sendDigest,
+  "integrations.slack_post": slackPostRun,
+  "integrations.crm_export": crmExport,
 };
 
 /** What each job's provider and Claude calls are charged to in the ledger. */
@@ -52,6 +56,8 @@ const PURPOSE: Record<JobType, CostPurpose> = {
   "campaigns.prepare_drafts": "outreach",
   "campaigns.tick": "outreach",
   "notifications.digest": "other",
+  "integrations.slack_post": "other",
+  "integrations.crm_export": "other",
 };
 
 const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY ?? 4);
@@ -186,5 +192,13 @@ async function sequenceLoop() {
 }
 
 console.log(`[worker] ${workerId} running ${CONCURRENCY} slot(s)`);
-await Promise.all([...Array.from({ length: CONCURRENCY }, (_, i) => runLoop(i)), scheduleLoop(), sequenceLoop()]);
+/** Slack buttons arrive over Socket Mode; idle until both Slack tokens are saved. */
+const slackLoop = () =>
+  runSlackSocket(
+    (action) => withCostScope({ db, workspaceId: null, purpose: "other" }, () => handleSlackAction(db, action)),
+    shutdown.signal,
+    (msg) => console.log(`[worker] slack: ${msg}`),
+  );
+
+await Promise.all([...Array.from({ length: CONCURRENCY }, (_, i) => runLoop(i)), scheduleLoop(), sequenceLoop(), slackLoop()]);
 console.log("[worker] stopped");
