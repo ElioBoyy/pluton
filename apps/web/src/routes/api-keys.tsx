@@ -4,6 +4,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader, Section, Segmented } from "../components/ui.tsx";
+import { KeyLink } from "./data-sources.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -77,6 +78,7 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
             )}
           </p>
           <p className="mt-0.5 text-xs text-muted">{s.description}</p>
+          {s.source === "unset" && <KeyLink id={s.key} className="mt-0.5" />}
           {/* "Not set" is already the chip; the source line only says where a value comes from. */}
           {s.source !== "unset" && (
             <p className="mt-0.5 truncate text-xs text-muted">

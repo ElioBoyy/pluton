@@ -21,6 +21,7 @@ import {
   type Db,
   type Workspace,
 } from "@pluton/db";
+import { configuredAiClients } from "./ai-clients.ts";
 
 export class RevisionConflictError extends Error {
   constructor(readonly current: Workspace) {
@@ -131,7 +132,10 @@ export async function getStartedChecklist(db: Db, workspaceId: string) {
     exists(sql`select 1 from ${plays} where ${plays.workspaceId} = ${workspaceId} and ${plays.pipeline} != 'waterfall'`),
     exists(sql`select 1 from ${brainItems} where ${brainItems.workspaceId} = ${workspaceId} and (${brainItems.source} = 'user' or ${brainItems.revision} > 1)`),
     exists(sql`select 1 from ${copilotConversations} where ${copilotConversations.workspaceId} = ${workspaceId}`),
-    exists(sql`select 1 from ${mcpClients} where ${mcpClients.workspaceId} = ${workspaceId}`),
+    // Connected once an AI client has called in, or as soon as one is configured to.
+    exists(sql`select 1 from ${mcpClients} where ${mcpClients.workspaceId} = ${workspaceId}`).then(
+      async (called) => called || (await configuredAiClients()).length > 0,
+    ),
   ]);
   return [
     { key: "review", label: "Review a lead", to: "/leads?tab=to_review", done: reviewedLead },

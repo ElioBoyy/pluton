@@ -23,7 +23,18 @@ export function Wallpaper() {
 
   if (!light && !dark) return null;
   return (
-    <div aria-hidden className="wallpaper pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div
+      aria-hidden
+      className="wallpaper pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+      style={
+        data?.tuning &&
+        ({
+          "--wallpaper-blur": `${data.tuning.blur}px`,
+          "--wallpaper-saturate": `${data.tuning.saturation}%`,
+          "--wallpaper-veil": data.tuning.veil / 100,
+        } as React.CSSProperties)
+      }
+    >
       {light && <img src={light} alt="" className="wallpaper-light size-full object-cover" />}
       {dark && <img src={dark} alt="" className="wallpaper-dark size-full object-cover" />}
     </div>

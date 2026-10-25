@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader } from "../components/ui.tsx";
 import { useT, type Translate } from "../i18n/index.ts";
+import { keyLink } from "../lib/key-links.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
@@ -89,6 +90,7 @@ function ProviderRow({
             )}
           </div>
           <p className="mt-1 text-sm text-muted text-pretty">{p.description}</p>
+          {!p.configured && keyLink(p.id) && <KeyLink id={p.id} className="mt-1" />}
           {p.powers.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-1">
               {p.powers.map((s) => (
@@ -241,5 +243,21 @@ function ResultRow({ title, meta, detail, href }: { title: string; meta?: string
       {meta && <p className="mt-0.5 text-xs text-muted">{meta}</p>}
       {detail && <p className="mt-0.5 text-xs leading-relaxed break-words text-muted">{detail}</p>}
     </li>
+  );
+}
+
+/** Opens the provider's own page for creating a key, in a new tab. */
+export function KeyLink({ id, className }: { id: string; className?: string }) {
+  const link = keyLink(id);
+  if (!link) return null;
+  return (
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noreferrer"
+      className={cn("inline-flex items-center gap-1 text-xs text-accent hover:underline hover:underline-offset-2", className)}
+    >
+      <ArrowSquareOut size={12} /> {link.label}
+    </a>
   );
 }

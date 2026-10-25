@@ -118,7 +118,13 @@ function NewConversation() {
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
       {/* Centered like a fresh Apple Intelligence prompt: the orb, the question, the field, then ideas. */}
       <div className="mx-auto my-auto flex w-full max-w-2xl flex-col items-center px-4 py-12 sm:px-6">
-        <span className="ai-orb rise size-14" aria-hidden />
+        {/* Separate elements: one animation property can't hold both the entrance and the spin. */}
+        <span className="rise" aria-hidden>
+          <span className="ai-orb size-14">
+            {/* The glass bead's shading, above the moving colour. */}
+            <span className="absolute inset-0 rounded-full shadow-[inset_0_-6px_14px_rgb(0_0_0/0.16),inset_0_2px_6px_rgb(255_255_255/0.55)]" />
+          </span>
+        </span>
         <h1 className="rise mt-6 text-center text-[28px] leading-[34px] font-semibold tracking-[-0.02em] [animation-delay:60ms]">
           {t("new.heading")}
         </h1>
@@ -254,8 +260,15 @@ function Chat({ conversationId }: { conversationId: string }) {
           <Trash size={15} />
         </button>
       </header>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-8 pb-6 sm:px-6">
+      {/* The thread runs under a progressive blur at the top and under the glass composer at the bottom. */}
+      <div className="relative min-h-0 flex-1">
+      <div aria-hidden className="progressive-blur pointer-events-none absolute inset-x-0 top-0 z-10 h-14">
+        <span />
+        <span />
+        <span />
+      </div>
+      <div ref={scrollRef} className="h-full overflow-y-auto">
+        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pt-8 pb-32 sm:px-6">
           {group(messages).map((item) =>
             item.kind === "tools" ? (
               <ToolGroup key={item.messages[0]!.id} messages={item.messages} />
@@ -271,6 +284,7 @@ function Chat({ conversationId }: { conversationId: string }) {
           {error && !thinking && <p className="text-sm text-cat-orange">{t("stopped", { error })}</p>}
         </div>
       </div>
+      <div className="absolute inset-x-0 bottom-0 z-10">
       <Composer
         placeholder={t("replyPlaceholder")}
         disabled={thinking}
@@ -280,6 +294,8 @@ function Chat({ conversationId }: { conversationId: string }) {
           send.mutate({ conversationId, text }, { onError: (e) => setError(e.message) });
         }}
       />
+      </div>
+      </div>
     </div>
   );
 }

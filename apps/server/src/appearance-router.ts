@@ -9,6 +9,7 @@ import {
   removeWallpaper,
   requestJobCancel,
   saveWallpaper,
+  saveWallpaperTuning,
   wallpaperStatus,
 } from "@pluton/core";
 import { publicProcedure, router } from "./trpc.ts";
@@ -30,6 +31,18 @@ export const appearanceRouter = router({
       }
     }),
   remove: publicProcedure.input(z.object({ theme })).mutation(({ input }) => removeWallpaper(input.theme)),
+  /** `null` resets to the factory values. */
+  tune: publicProcedure
+    .input(
+      z
+        .object({
+          blur: z.number().int().min(0).max(120),
+          saturation: z.number().int().min(0).max(200),
+          veil: z.number().int().min(0).max(90),
+        })
+        .nullable(),
+    )
+    .mutation(({ input }) => saveWallpaperTuning(input)),
   /** Starts a Codex job that draws both wallpapers from one prompt; follow it on `job:<id>`. */
   generate: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(1000) })).mutation(async ({ ctx, input }) => {
     if (!codexAvailable()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: t("codexMissing") });

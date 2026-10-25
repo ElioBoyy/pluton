@@ -33,11 +33,33 @@ export async function findWallpaper(theme: WallpaperTheme) {
   return { file, type: WALLPAPER_TYPES[name.slice(theme.length + 1) as Ext], version: Math.round(stat.mtimeMs) };
 }
 
+/**
+ * How the wallpaper sits behind the app: its blur in px, its colour intensity in % (100 = as
+ * shot) and the veil over it in % (dark mode adds 5 points). The factory values are the ones the
+ * app shipped with.
+ */
+export type WallpaperTuning = { blur: number; saturation: number; veil: number };
+export const WALLPAPER_TUNING_DEFAULTS: WallpaperTuning = { blur: 80, saturation: 80, veil: 50 };
+const tuningFile = () => path.join(wallpaperDir(), "tuning.json");
+
+export async function wallpaperTuning(): Promise<WallpaperTuning> {
+  const saved = await fs.readFile(tuningFile(), "utf8").then(JSON.parse, () => ({}));
+  return { ...WALLPAPER_TUNING_DEFAULTS, ...saved };
+}
+
+/** Saves the tuning; `null` puts the factory values back. */
+export async function saveWallpaperTuning(tuning: WallpaperTuning | null) {
+  if (!tuning) return fs.rm(tuningFile(), { force: true });
+  await fs.mkdir(wallpaperDir(), { recursive: true });
+  await fs.writeFile(tuningFile(), JSON.stringify(tuning));
+}
+
 export async function wallpaperStatus() {
   const [light, dark] = await Promise.all(WALLPAPER_THEMES.map(findWallpaper));
   return {
     light: light && { url: `/api/backgrounds/light?v=${light.version}` },
     dark: dark && { url: `/api/backgrounds/dark?v=${dark.version}` },
+    tuning: await wallpaperTuning(),
     codex: codexAvailable(),
   };
 }
