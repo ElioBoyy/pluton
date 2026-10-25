@@ -57,6 +57,13 @@
       "when": 1792889775215,
       "tag": "0007_aspiring_ted_forrester",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792891742794,
+      "tag": "0008_heavy_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

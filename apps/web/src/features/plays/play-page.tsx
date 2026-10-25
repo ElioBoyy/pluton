@@ -12,6 +12,7 @@ import { useChannel } from "../../lib/use-job-events.ts";
 import { PIPELINE_LABELS, REJECTION_LABELS, SCHEDULE_LABELS, STOP_LABELS } from "./labels.ts";
 import { initials, STATUS, type LeadTabKey } from "../leads/labels.ts";
 import { LeadsView } from "../leads/leads-view.tsx";
+import { SequenceTab } from "../sequence/sequence-tab.tsx";
 
 type PlayData = inferRouterOutputs<AppRouter>["plays"]["get"];
 type Run = PlayData["runs"][number];
@@ -21,6 +22,7 @@ const TABS: Array<{ key: PlayTab; label: string }> = [
   { key: "overview", label: "Overview" },
   { key: "sourcing", label: "Sourcing" },
   { key: "leads", label: "Leads" },
+  { key: "sequence", label: "Sequence" },
 ];
 
 export function PlayPage({
@@ -139,6 +141,7 @@ export function PlayPage({
       {tab === "leads" && (
         <LeadsView playId={playId} tab={leadTab} onTab={(t) => onChange({ status: t, lead: undefined })} openLeadId={leadId} onOpenLead={(id) => onChange({ lead: id })} />
       )}
+      {tab === "sequence" && <SequenceTab playId={playId} onPickLeads={() => onChange({ tab: "leads", status: "approved", lead: undefined })} />}
     </div>
   );
 }

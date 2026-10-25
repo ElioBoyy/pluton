@@ -13,7 +13,7 @@ export type SettingDef = {
   secret: boolean;
   options?: Array<{ value: string; label: string }>;
   defaultValue?: string;
-  group: "claude" | "data" | "automation";
+  group: "claude" | "data" | "outreach" | "automation";
 };
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -33,6 +33,20 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: "apify_token", label: "Apify token", description: "LinkedIn posts, engagers and profile search.", secret: true, group: "data" },
   { key: "theirstack_api_key", label: "TheirStack API key", description: "Market-wide job posts and tech stacks.", secret: true, group: "data" },
   { key: "hunter_api_key", label: "Hunter API key", description: "Finds work emails (free plan: 25 searches/month).", secret: true, group: "data" },
+  {
+    key: "unipile_api_key",
+    label: "Unipile API key",
+    description: "Sends from your LinkedIn accounts (visit, invite, message, like) and reads replies. Without it, accounts run in manual mode.",
+    secret: true,
+    group: "outreach",
+  },
+  {
+    key: "unipile_dsn",
+    label: "Unipile DSN",
+    description: "Your Unipile API address, shown in their dashboard, e.g. api8.unipile.com:13851.",
+    secret: false,
+    group: "outreach",
+  },
   {
     key: "daily_brain_review",
     label: "Daily Brain review",

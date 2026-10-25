@@ -12,6 +12,7 @@ type Setting = inferRouterOutputs<AppRouter>["settings"]["list"][number];
 const GROUPS = [
   { id: "claude", title: "Claude", description: "The model behind onboarding, reviews, planning and lead finding." },
   { id: "data", title: "Data sources", description: "Optional paid sources. Free sources work without any key." },
+  { id: "outreach", title: "LinkedIn sending", description: "Unipile sends from your LinkedIn accounts. Without it, sequences run in manual mode." },
   { id: "automation", title: "Automation", description: "What Pluton does on its own." },
 ] as const;
 

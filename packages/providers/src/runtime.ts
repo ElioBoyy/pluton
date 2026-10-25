@@ -120,6 +120,12 @@ export function toDomain(input: string) {
 
 /** Checks a data-source key against its provider's account endpoint. */
 export async function checkProviderKey(settingKey: string): Promise<string> {
+  if (settingKey === "unipile_api_key" || settingKey === "unipile_dsn") {
+    // Loaded lazily: the Unipile adapter itself builds on this module.
+    const { unipileAccounts } = await import("./unipile.ts");
+    const accounts = await unipileAccounts();
+    return `Unipile works (${accounts.length} LinkedIn account${accounts.length === 1 ? "" : "s"} connected there)`;
+  }
   const key = requireKey(settingKey, settingKey);
   switch (settingKey) {
     case "apify_token": {

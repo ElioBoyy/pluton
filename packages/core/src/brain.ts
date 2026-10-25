@@ -52,7 +52,9 @@ export const brainSchemas = {
     detail: text(300),
   }),
   voice: z.object({
-    traits: list(6, 80).describe("How the company sounds, e.g. 'Plain and jargon-free'"),
+    /** One phrase for the persona outreach is written as ("warm, plain-spoken peer"); set from the sequence's tone. */
+    archetype: z.string().trim().max(80).optional(),
+    traits: list(8, 240).describe("How the company sounds, e.g. 'Plain and jargon-free'; one guideline per entry"),
     language: text(40).describe("Language outreach should be written in"),
     avoid: list(6, 120),
   }),

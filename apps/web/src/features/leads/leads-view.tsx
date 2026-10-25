@@ -7,6 +7,7 @@ import {
   GearSix,
   LinkedinLogo,
   MagnifyingGlass,
+  PaperPlaneTilt,
   ThumbsDown,
   ThumbsUp,
   X,
@@ -25,6 +26,29 @@ import { COLUMNS, LEAD_TABS, STATUS, initials, type ColumnKey, type LeadTabKey, 
 import { LeadDrawer } from "./lead-drawer.tsx";
 import { RejectPopover } from "./reject-popover.tsx";
 import { downloadText, useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
+import { AddToCampaignModal } from "../sequence/add-to-campaign.tsx";
+import { ENROLLMENT } from "../sequence/labels.ts";
+
+/** "Add N to campaign": opens the message review before they join their Play's sequence. */
+function BulkAddToCampaign({ resolveIds, count, onDone }: { resolveIds: () => Promise<string[]>; count: number; onDone: () => void }) {
+  const [ids, setIds] = useState<string[] | null>(null);
+  return (
+    <>
+      <Button className="h-8" disabled={count > 500} onClick={async () => setIds(await resolveIds())}>
+        <PaperPlaneTilt size={14} /> Add {count} to campaign
+      </Button>
+      {ids && (
+        <AddToCampaignModal
+          leadIds={ids}
+          onClose={() => {
+            setIds(null);
+            onDone();
+          }}
+        />
+      )}
+    </>
+  );
+}
 
 type LeadRow = inferRouterOutputs<AppRouter>["leads"]["list"]["items"][number];
 type Sort = "newest" | "fit" | "warmness";
@@ -271,7 +295,13 @@ function Row({
   const review = useReviewLeads();
   const [rejecting, setRejecting] = useState(false);
   const rejectRef = useRef<HTMLButtonElement>(null);
-  const status = l.isNew ? STATUS.new! : STATUS[l.status]!;
+  const [adding, setAdding] = useState(false);
+  // In a sequence, the pill says where they are ("In campaign · Preparing messages").
+  const status = l.isNew
+    ? STATUS.new!
+    : l.sequenceStatus && (l.status === "in_campaign" || l.status === "contacted")
+      ? { label: `${STATUS[l.status]!.label} · ${ENROLLMENT[l.sequenceStatus]?.label ?? ""}`, className: STATUS[l.status]!.className }
+      : STATUS[l.status]!;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
@@ -373,9 +403,15 @@ function Row({
           <RowAction ref={rejectRef} label="Not a fit" active={l.status === "rejected"} onClick={() => setRejecting(true)} disabled={review.isPending}>
             <ThumbsDown size={15} weight={l.status === "rejected" ? "fill" : "regular"} />
           </RowAction>
+          {!l.sequenceStatus && l.status !== "rejected" && (
+            <RowAction label="Add to campaign" onClick={() => setAdding(true)}>
+              <PaperPlaneTilt size={15} />
+            </RowAction>
+          )}
           <RowAction label="Add a note" onClick={() => onOpen(true)}>
             <ChatCircle size={15} />
           </RowAction>
+          {adding && <AddToCampaignModal leadIds={[l.id]} onClose={() => setAdding(false)} />}
           {rejecting && (
             <RejectPopover
               anchor={rejectRef}
@@ -484,6 +520,7 @@ function BulkBar({
           />
         )}
       </div>
+      <BulkAddToCampaign resolveIds={resolveIds} count={count} onDone={onClear} />
       <BulkFindEmails resolveIds={resolveIds} count={count} />
       <Button
         variant="ghost"

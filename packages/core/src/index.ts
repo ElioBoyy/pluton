@@ -7,3 +7,4 @@ export * from "./onboarding.ts";
 export * from "./proposals.ts";
 export * from "./plays.ts";
 export * from "./leads.ts";
+export * from "./campaigns.ts";

@@ -18,6 +18,12 @@ export const jobPayloads = {
       .max(20),
   }),
   "lead_finding.run": z.object({ runId: z.string() }),
+  "campaigns.tick": z.object({}),
+  "campaigns.prepare_drafts": z.object({
+    campaignId: z.string(),
+    leadIds: z.array(z.string()).min(1).max(500),
+    force: z.boolean().default(false),
+  }),
   "leads.find_emails": z.object({ workspaceId: z.string(), leadIds: z.array(z.string()).min(1).max(200) }),
   "brain.review": z.object({
     workspaceId: z.string(),

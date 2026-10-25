@@ -19,6 +19,8 @@ import {
   sql,
   type Db,
   type FeedbackReason,
+  enrollments,
+  type EnrollmentStatus,
   type Lead,
   type LeadEvent,
   type LeadStatus,
@@ -118,9 +120,11 @@ export type LeadRow = Lead & {
   signalLabel: string;
   seniority: string | null;
   isNew: boolean;
+  /** Where they are in the Play's LinkedIn sequence, if they joined it. */
+  sequenceStatus: EnrollmentStatus | null;
 };
 
-function toRow(r: { lead: Lead; person: Person; playName: string; playPipeline: Pipeline }): LeadRow {
+function toRow(r: { lead: Lead; person: Person; playName: string; playPipeline: Pipeline; sequenceStatus: EnrollmentStatus | null }): LeadRow {
   return {
     ...r.lead,
     person: r.person,
@@ -128,10 +132,17 @@ function toRow(r: { lead: Lead; person: Person; playName: string; playPipeline: 
     signalLabel: SIGNAL_LABELS[r.lead.pipeline ?? r.playPipeline],
     seniority: seniorityFromTitle(r.person.title),
     isNew: r.lead.status === "to_review" && !r.lead.seenAt,
+    sequenceStatus: r.sequenceStatus,
   };
 }
 
-const rowSelect = { lead: leads, person: people, playName: plays.name, playPipeline: plays.pipeline };
+const rowSelect = {
+  lead: leads,
+  person: people,
+  playName: plays.name,
+  playPipeline: plays.pipeline,
+  sequenceStatus: sql<EnrollmentStatus | null>`(select ${enrollments.status} from ${enrollments} where ${enrollments.leadId} = ${leads.id} order by ${enrollments.createdAt} desc limit 1)`,
+};
 
 export async function listLeads(
   db: Db,

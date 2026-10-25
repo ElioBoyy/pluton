@@ -60,6 +60,7 @@ import {
   searchJobs,
   searchRegistry,
 } from "@pluton/providers";
+import { campaignsRouter, linkedinRouter } from "./campaigns-router.ts";
 import { leadsRouter } from "./leads-router.ts";
 import { publicProcedure, router } from "./trpc.ts";
 
@@ -422,5 +423,7 @@ export const appRouter = router({
   providers,
   plays: playsRouter,
   leads: leadsRouter,
+  campaigns: campaignsRouter,
+  linkedin: linkedinRouter,
 });
 export type AppRouter = typeof appRouter;
