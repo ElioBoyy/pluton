@@ -1,0 +1,30 @@
+{
+  "brand": "Pluton",
+  "tagline": "Your go-to-market agent, running on your own machine",
+  "brief": "Pluton reads your website, learns who you sell to, finds the people worth talking to and reaches out on LinkedIn, while you stay in control. The mark had to be abstract, bold and strong as pure form, and hold up as a macOS app icon and a 16 px favicon.",
+  "adjectives": ["bold", "precise", "in motion", "independent"],
+  "criteria": "Abstract rather than literal, distinct from the blue clouds and upward arrows of sales tools, readable at 16 px, works in one colour.",
+  "industry": "saas",
+  "mockups": ["app-icon", "website", "favicon-tab", "social", "business-card", "sticker"],
+  "nav": ["Brain", "Plays", "Leads", "Agent"],
+  "brand_color": "#2B3BFF",
+  "greyscale": false,
+  "final": true,
+  "designer": "Mathis Sportiello",
+  "concepts": [
+    {
+      "name": "Inclinée",
+      "symbol": "pluton-symbol.svg",
+      "lockup": "pluton-horizontal.svg",
+      "stacked": "pluton-stacked.svg",
+      "idea": "A disc cut on a 17° line, its two halves sliding past each other.",
+      "rationale": [
+        "One cut and one shift: simple enough to draw from memory",
+        "The offset reads as movement, an agent at work, without drawing a rocket or an arrow",
+        "17° is the tilt of Pluto's orbit: a detail to tell, not to explain",
+        "Ultramarine #2B3BFF: deeper and more electric than the sky blues of the category"
+      ]
+    }
+  ],
+  "recommendation": "Inclinée, in ultramarine with an ink wordmark. Use the small cut below 48 px and the white cut on dark backgrounds."
+}

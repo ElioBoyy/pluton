@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { BrainData } from "@pluton/core";
+import { PlutonLogo } from "../../components/logo.tsx";
 import { Button, Input } from "../../components/ui.tsx";
 import { WorkspaceMenu } from "../workspaces/workspace-menu.tsx";
 import { useT } from "../../i18n/index.ts";
@@ -65,6 +66,7 @@ function OnboardingForm() {
           });
         }}
       >
+        <PlutonLogo className="mb-8 h-7 text-ink" />
         <h1 className="text-[22px] font-semibold leading-tight tracking-tight">
           {t("form.greeting")}
           <br />

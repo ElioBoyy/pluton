@@ -55,6 +55,7 @@
   --color-control-pressed: rgb(0 0 0 / 0.16);
   --color-accent: #0088ff; /* system blue, the default accent */
   --color-on-accent: #ffffff;
+  --color-brand: #2b3bff; /* Pluton's ultramarine, for the logo only; controls keep the accent */
 
   /* System colors (macOS 26 "unified" palette). */
   --color-system-red: #ff383c;
