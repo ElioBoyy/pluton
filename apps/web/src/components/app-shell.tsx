@@ -190,7 +190,7 @@ export function AppShell() {
         <main className={cn("relative flex-1 overflow-y-auto overscroll-contain", askBar && "md:pb-20")}>
           <Outlet />
           {/* Pages with their own composer would be covered by the floating bar; phones use the header button. */}
-          {askBar && <AskBar label={t("askAnything")} onOpen={() => setPaletteOpen(true)} />}
+          {askBar && <AskBar label={t("askAnything")} hidden={paletteOpen} onOpen={() => setPaletteOpen(true)} />}
         </main>
       </div>
 
@@ -264,7 +264,7 @@ function usePlaysOpen() {
  * The floating "Ask Pluton" bar. It grows with its label so every language fits on one line, and
  * is centred over the content by its measured width: a transform would break the refraction.
  */
-function AskBar({ label, onOpen }: { label: string; onOpen: () => void }) {
+function AskBar({ label, hidden, onOpen }: { label: string; hidden: boolean; onOpen: () => void }) {
   const ref = useRef<HTMLButtonElement>(null);
   const [width, setWidth] = useState(320);
   useLayoutEffect(() => {
@@ -292,7 +292,15 @@ function AskBar({ label, onOpen }: { label: string; onOpen: () => void }) {
         ...(refractionSupported ? { backdropFilter: "none", WebkitBackdropFilter: "none" } : {}),
       }}
       data-refract={refractionSupported || undefined}
-      className="glass glass-thin fixed bottom-5 flex h-11 min-w-80 items-center gap-2.5 rounded-full px-4 text-base whitespace-nowrap text-muted transition-colors duration-200 ease-out hover:text-ink max-md:hidden"
+      // While ⌘K is open it slides below the window's edge. It moves by `bottom` and never fades: a
+      // transform would misplace the refraction, and opacity under 1 cuts the glass layer off from
+      // the page behind, so the blur would only come back once the fade ended.
+      aria-hidden={hidden || undefined}
+      tabIndex={hidden ? -1 : undefined}
+      className={cn(
+        "glass glass-thin fixed flex h-11 min-w-80 items-center gap-2.5 rounded-full px-4 text-base whitespace-nowrap text-muted transition-[color,bottom] duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink max-md:hidden motion-reduce:transition-none",
+        hidden ? "pointer-events-none -bottom-20" : "bottom-5",
+      )}
     >
       <MagnifyingGlass size={18} className="shrink-0" />
       {label}

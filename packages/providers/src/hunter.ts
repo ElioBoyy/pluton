@@ -41,18 +41,27 @@ export async function findEmail(db: Db, person: { firstName: string; lastName: s
 export type HunterQuota = { used: number; available: number; resetDate: string | null; plan: string | null; free: boolean };
 
 const PLAN_TTL_MS = 6 * 3600_000;
-const planCache = new Map<string, { free: boolean; at: number }>();
+const FAILED_TTL_MS = 5 * 60_000;
+const planCache = new Map<string, { free: Promise<boolean>; until: number }>();
 
 /**
- * Whether the key is on Hunter's free plan, asked at most every 6 hours. When Hunter can't be
- * reached the search is counted as paid, so spend is never under-reported.
+ * Whether the key is on Hunter's free plan, asked at most every 6 hours; lookups running at once
+ * share one question. When Hunter can't be reached the search is counted as paid, so spend is never
+ * under-reported, and the plan is asked again a few minutes later rather than in 6 hours.
  */
-async function onFreePlan(key: string) {
+function onFreePlan(key: string) {
   const cached = planCache.get(key);
-  if (cached && Date.now() - cached.at < PLAN_TTL_MS) return cached.free;
-  const free = await hunterQuota().then((q) => q.free, () => false);
-  planCache.set(key, { free, at: Date.now() });
-  return free;
+  if (cached && Date.now() < cached.until) return cached.free;
+  const entry = { free: Promise.resolve(false), until: Date.now() + PLAN_TTL_MS };
+  entry.free = hunterQuota().then(
+    (q) => q.free,
+    () => {
+      entry.until = Date.now() + FAILED_TTL_MS;
+      return false;
+    },
+  );
+  planCache.set(key, entry);
+  return entry.free;
 }
 
 /** Searches left this month. Account calls are free on Hunter. */

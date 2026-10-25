@@ -170,7 +170,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       onMouseDown={onClose}
     >
       <div className="w-full max-w-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center">
           <div className={cn("glass flex h-14 flex-1 items-center gap-3 rounded-full px-5", POP)}>
             {ask.isPending ? (
               <CircleNotch size={22} className="shrink-0 animate-spin text-muted" />
@@ -195,21 +195,32 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             />
           </div>
           {QUICK.map(({ label, to, icon: IconCmp }, i) => (
-            <button
+            // Once you type, the shortcuts fold away (the last one first) and the field takes their room.
+            <div
               key={to}
-              onClick={() => go(to)}
-              aria-label={t(label)}
-              title={t(label)}
-              // The shortcuts follow the field in, 25ms apart.
-              style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
+              aria-hidden={typing || undefined}
+              style={{ transitionDelay: `${(typing ? QUICK.length - 1 - i : i) * 30}ms` }}
               className={cn(
-                "glass flex size-14 shrink-0 items-center justify-center rounded-full text-muted hover:text-ink max-sm:hidden",
-                POP,
-                "transition-[opacity,scale,color] motion-safe:hover:scale-105 motion-safe:active:scale-95",
+                "shrink-0 transition-[width,margin,opacity,scale] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-sm:hidden motion-reduce:transition-none",
+                typing ? "pointer-events-none ml-0 w-0 scale-75 opacity-0" : "ml-2.5 w-14",
               )}
             >
-              <IconCmp size={22} />
-            </button>
+              <button
+                onClick={() => go(to)}
+                tabIndex={typing ? -1 : undefined}
+                aria-label={t(label)}
+                title={t(label)}
+                // The shortcuts follow the field in, 25ms apart.
+                style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
+                className={cn(
+                  "glass flex size-14 items-center justify-center rounded-full text-muted hover:text-ink",
+                  POP,
+                  "transition-[opacity,scale,color] motion-safe:hover:scale-105 motion-safe:active:scale-95",
+                )}
+              >
+                <IconCmp size={22} />
+              </button>
+            </div>
           ))}
         </div>
 

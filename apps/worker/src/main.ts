@@ -21,7 +21,7 @@ import {
   type JobHandler,
   type JobType,
 } from "@pluton/core";
-import { and, createDb, eq, getSetting, inArray, jobs, lt, prepareDb, settingByWorkspace, watchSettings, withCostScope, workspaces, type CostPurpose, type Workspace } from "@pluton/db";
+import { and, createDb, eq, getSetting, inArray, jobs, leadFindingRuns, lt, prepareDb, settingByWorkspace, watchSettings, withCostScope, workspaces, type CostPurpose, type Workspace } from "@pluton/db";
 import { generateWallpaper } from "./handlers/appearance.ts";
 import { brainReview } from "./handlers/brain-review.ts";
 import { copilotTurn } from "./handlers/copilot.ts";
@@ -72,6 +72,10 @@ const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY ?? 4);
 const IDLE_POLL_MS = 500;
 // Well under the 10 minutes after which a running job without a heartbeat counts as abandoned.
 const HEARTBEAT_MS = 60_000;
+// No job runs longer (a search's research time is at most an hour): past it the job is asked to
+// stop, and failed a minute later if it hasn't, so a hung job can't hold its slot or its Play forever.
+const MAX_JOB_MS = 3 * 3600_000;
+const STOP_GRACE_MS = 60_000;
 const workerId = `${os.hostname()}:${process.pid}`;
 
 const db = createDb();
@@ -113,23 +117,40 @@ async function runLoop(slot: number) {
     }, 2000);
     // Proof of life: without it, a search longer than the stale delay would be queued a second time.
     const heartbeat = setInterval(() => void heartbeatJob(db, job.id, `${workerId}#${slot}`).catch(() => {}), HEARTBEAT_MS);
+    let giveUp: NodeJS.Timeout | undefined;
+    const overtime = new Promise<never>((_, reject) => {
+      giveUp = setTimeout(() => {
+        jobAbort.abort("timeout");
+        clearInterval(heartbeat);
+        giveUp = setTimeout(() => reject(new Error(`Stopped after running for more than ${MAX_JOB_MS / 3600_000} hours.`)), STOP_GRACE_MS);
+      }, MAX_JOB_MS);
+    });
     try {
       if (!handler) throw new Error(`No handler for job type "${job.type}"`);
       const workspace = job.workspaceId ? await db.query.workspaces.findFirst({ where: eq(workspaces.id, job.workspaceId) }) : await getCurrentWorkspace(db);
       const workspaceId = job.workspaceId ?? workspace!.id;
       // A job writes what the founder reads (activity, notifications, the agent's replies) in their language.
-      const result = await withLocale(workspace?.language ?? "en", () =>
-        withCostScope({ db, workspaceId, purpose: PURPOSE[job.type as JobType] ?? "other", jobId: job.id }, () =>
-          handler({ db, job, emit, signal: jobAbort.signal }),
+      const result = await Promise.race([
+        withLocale(workspace?.language ?? "en", () =>
+          withCostScope({ db, workspaceId, purpose: PURPOSE[job.type as JobType] ?? "other", jobId: job.id }, () =>
+            handler({ db, job, emit, signal: jobAbort.signal }),
+          ),
         ),
-      );
+        overtime,
+      ]);
       await completeJob(db, job.id, result);
       console.log(`[worker] ${job.type} ${job.id} done in ${Date.now() - started}ms`);
     } catch (error) {
-      if (jobAbort.signal.aborted && !shutdown.signal.aborted) {
+      if (jobAbort.signal.reason === "cancel" && !shutdown.signal.aborted) {
         await markJobCancelled(db, job.id);
         await emit("cancelled", {});
         console.log(`[worker] ${job.type} ${job.id} cancelled`);
+      } else if (jobAbort.signal.reason === "timeout") {
+        // Never retried: a hung attempt may still be running in the background.
+        await failJob(db, { ...job, attempts: job.maxAttempts }, error);
+        await releaseRun(job.id, error);
+        await emit("error", { message: error instanceof Error ? error.message : String(error) });
+        console.error(`[worker] ${job.type} ${job.id} stopped: over ${MAX_JOB_MS / 60_000} min`);
       } else {
         await failJob(db, job, error);
         await emit("error", { message: error instanceof Error ? error.message : String(error) });
@@ -138,9 +159,18 @@ async function runLoop(slot: number) {
     } finally {
       clearInterval(cancelPoll);
       clearInterval(heartbeat);
+      clearTimeout(giveUp);
       shutdown.signal.removeEventListener("abort", onShutdown);
     }
   }
+}
+
+/** A search whose job was given up on: its run is closed so the Play can search again, and its hold settles. */
+async function releaseRun(jobId: string, error: unknown) {
+  await db
+    .update(leadFindingRuns)
+    .set({ status: "failed", stopReason: "error", error: error instanceof Error ? error.message : String(error), finishedAt: new Date() })
+    .where(and(eq(leadFindingRuns.jobId, jobId), inArray(leadFindingRuns.status, ["queued", "running"])));
 }
 
 /** Queues scheduled Plays once per local day; startRun ignores a Play that already has a run in flight. */
