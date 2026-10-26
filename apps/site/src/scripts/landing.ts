@@ -1,5 +1,5 @@
 // Behaviour for the landing page. Everything here enhances markup that already reads and works without it.
-import { aiSettle, wireGlass } from "@pluton/glass/behaviors";
+import { aiSettle, aiStart, wireGlass } from "@pluton/glass/behaviors";
 
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, reduced ? Math.min(ms, 60) : ms));
@@ -25,7 +25,7 @@ if (agent) {
   const stick = () => scroll.scrollTo({ top: scroll.scrollHeight, behavior: reduced ? "auto" : "smooth" });
   const setBusy = (on: boolean) => {
     busy = on;
-    if (on) agent.dataset.ai = "working";
+    if (on) aiStart(agent);
     else aiSettle(agent);
     send.disabled = on;
     for (const c of $$<HTMLButtonElement>(".agent-prompts .gg-chip", agent)) c.disabled = on;

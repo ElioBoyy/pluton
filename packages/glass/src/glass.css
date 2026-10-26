@@ -729,6 +729,7 @@
 .gg-ai-edge[data-ai="working"]::after {
   opacity: 1;
   animation-play-state: running;
+  transition-duration: 700ms;
 }
 @keyframes gg-turn {
   to {

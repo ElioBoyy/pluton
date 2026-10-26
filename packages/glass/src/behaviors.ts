@@ -39,6 +39,29 @@ export function wireGlass(root: ParentNode = document) {
   }
 }
 
+/**
+ * Starts the AI's work on an element carrying `gg-ai-edge`: the edge light fades in and its turn
+ * gathers speed over the first second instead of starting at full pace.
+ */
+export function aiStart(el: HTMLElement) {
+  el.dataset.ai = "working";
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const turn = el
+    .getAnimations({ subtree: true })
+    .find((a) => (a.effect as KeyframeEffect | null)?.pseudoElement === "::after" && "animationName" in a && a.animationName === "gg-turn");
+  if (!turn) return;
+  const RAMP = 1100;
+  const begun = performance.now();
+  turn.playbackRate = 0.05;
+  const step = (now: number) => {
+    const t = Math.min(1, (now - begun) / RAMP);
+    if (el.dataset.ai !== "working") return;
+    turn.playbackRate = 0.05 + 0.95 * (1 - (1 - t) ** 3); // ease-out cubic
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 /** A point and heading at distance `d` round a rounded rectangle, clockwise from the top-left corner's end. */
 function roundRect(w: number, h: number, r: number) {
   r = Math.min(r, w / 2, h / 2);
@@ -159,11 +182,11 @@ export function aiSettle(el: HTMLElement) {
       i % 2 ? "rgb(150 160 255)" : "var(--gg-accent)"
     }`;
     el.append(spark);
-    // Inward is the heading turned a quarter clockwise.
-    const inward = ((p.angle + 90) * Math.PI) / 180;
-    const drift = 5 + Math.random() * 10;
-    const dx = Math.cos(inward) * drift + (Math.random() - 0.5) * 6;
-    const dy = Math.sin(inward) * drift + (Math.random() - 0.5) * 6;
+    // Thrown forward, the way the star is heading at that moment, fanning a few degrees either side.
+    const heading = ((p.angle + (Math.random() - 0.5) * 24) * Math.PI) / 180;
+    const drift = 12 + Math.random() * 22;
+    const dx = Math.cos(heading) * drift;
+    const dy = Math.sin(heading) * drift;
     spark
       .animate(
         [
