@@ -55,7 +55,7 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
   const step = panel?.kind === "step" ? campaign.steps.find((s) => s.id === panel.stepId) : undefined;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="@container flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold">{t("tab.title")}</h2>
@@ -88,7 +88,7 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-5">
         {(
           [
             [t("stats.enrolled"), stats.enrolled],
@@ -104,7 +104,7 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
 
       {!(setup.linkedin && setup.objective && setup.leads) && <Checklist data={data} onObjective={() => setPanel({ kind: "configure" })} onPickLeads={onPickLeads} />}
 
-      <div className="grid items-start gap-x-5 gap-y-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-5 gap-y-8 @4xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Canvas data={data} onOpen={(s) => setPanel({ kind: "step", stepId: s.id })} selected={step?.id} />
         <div className="flex flex-col gap-8">
           <NeedsYou campaignId={campaign.id} />
@@ -155,7 +155,7 @@ function Checklist({ data, onObjective, onPickLeads }: { data: Data; onObjective
   ];
   return (
     <Section title={t("checklist.title")} description={t("checklist.description")}>
-      <ul className="grid gap-3 md:grid-cols-3">
+      <ul className="grid gap-3 @2xl:grid-cols-3">
         {items.map((i) => (
           <li key={i.title} className="flex gap-3 bg-panel p-4">
             {i.done ? <CheckCircle size={18} weight="fill" className="shrink-0 text-system-green" /> : <Circle size={18} className="shrink-0 text-muted" />}

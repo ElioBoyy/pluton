@@ -13,7 +13,8 @@ export function CardModal({ card, index, total }: { card: CardView; index: numbe
   const answer = useMutation(trpc.onboarding.answerCard.mutationOptions());
 
   return (
-    <div className="absolute inset-0 z-20 overflow-y-auto bg-black/15 px-6 backdrop-blur-sm">
+    // Over the graph; on phones, where the graph is only a band, over the whole screen.
+    <div className="absolute inset-0 z-20 overflow-y-auto bg-black/15 px-6 backdrop-blur-sm max-md:fixed max-md:px-4">
       {/* min-h-full + my-auto centers short cards and lets tall ones scroll instead of overflowing. */}
       <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col items-end justify-center gap-4 py-8">
         {card.kind === "company_statement" ? (

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader, Row, Section, Segmented, Switch } from "../components/ui.tsx";
 import { DigestView } from "../features/activity/digest-view.tsx";
+import { FIELD } from "./settings.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -102,7 +103,7 @@ export function NotificationsPage() {
             </Row>
             {form.email && (
               <Row label={<label htmlFor="digest-to">{t("digest.sendTo")}</label>} className={cn(off && "opacity-50")}>
-                <div className="w-60 shrink-0 max-sm:w-40">
+                <div className={FIELD}>
                   <Input id="digest-to" type="email" placeholder={t("digest.emailPlaceholder")} value={form.emailTo} onChange={(e) => setForm({ ...form, emailTo: e.target.value })} required />
                 </div>
               </Row>

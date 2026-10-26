@@ -176,9 +176,10 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
   const current = pending[0];
 
   return (
-    <div className="flex h-full">
+    // On phones the graph is a band on top and the conversation fills the rest; the cards open full screen.
+    <div className="flex h-full max-md:flex-col">
       {/* The same sidebar as the rest of the app. */}
-      <aside className="flex w-[300px] shrink-0 flex-col overflow-hidden bg-sidebar">
+      <aside className="flex w-[300px] shrink-0 flex-col overflow-hidden bg-sidebar max-md:min-h-0 max-md:w-full max-md:flex-1">
         <div className="flex h-12 items-center px-4 pt-2">
           <PlutonLogo className="h-[18px]" />
         </div>
@@ -189,11 +190,11 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
           <ChatPanel state={state} sessionId={sessionId} startedAt={startedAt} onActivated={() => setCelebrating(true)} />
         </div>
       </aside>
-      <section className="relative flex-1 overflow-hidden">
+      <section className="relative flex-1 overflow-hidden max-md:order-first max-md:h-[32%] max-md:flex-none">
         <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />
 
         {hub && leaves.length > 0 && (
-          <div className="glass absolute top-5 right-5 w-64 p-4">
+          <div className="glass absolute top-5 right-5 w-64 p-4 max-md:hidden">
             <div className="flex items-center justify-between gap-3">
               <h3 className="truncate text-sm font-semibold">{hubMeta(hub) && hubLabel(hubMeta(hub)!.id)}</h3>
               {pickedHub && (
@@ -214,7 +215,7 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
         )}
 
         {celebrating && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-(--gg-material-thick) backdrop-blur-2xl motion-safe:animate-[fadeIn_600ms_ease-out]">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-(--gg-material-thick) px-6 text-center backdrop-blur-2xl motion-safe:animate-[fadeIn_600ms_ease-out] max-md:fixed">
             <AppIcon className="size-16 rounded-[calc(17px*var(--gg-k))]" />
             <p className="mt-6 text-[28px] leading-[30px] font-bold tracking-[-0.03em]">{t("live.title")}</p>
             <p className="mt-1 text-sm text-muted">{t("live.description")}</p>

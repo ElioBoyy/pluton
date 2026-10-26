@@ -62,11 +62,11 @@ const SECTION_ICONS: Record<Exclude<(typeof SETTINGS_SECTIONS)[number]["slug"], 
 export function SettingsShell() {
   const t = useT("settings");
   return (
-    <div className="mx-auto flex max-w-5xl gap-10 px-4 py-6 max-md:flex-col max-md:gap-6 sm:px-8 sm:py-10">
-      {/* A column beside the page from md up; a row of tabs that scrolls sideways on phones. */}
-      <nav className="flex w-48 shrink-0 flex-col gap-px md:sticky md:top-10 md:self-start max-md:-mx-4 max-md:w-auto max-md:flex-row max-md:overflow-x-auto max-md:px-4 max-md:[scrollbar-width:none]">
+    <div className="mx-auto flex max-w-5xl gap-10 px-4 py-6 max-lg:flex-col max-lg:gap-6 sm:px-8 sm:py-10">
+      {/* A column beside the page from lg up; narrower, a row of tabs that scrolls sideways. */}
+      <nav className="flex w-48 shrink-0 flex-col gap-px lg:sticky lg:top-10 lg:self-start max-lg:-mx-4 max-lg:w-auto max-lg:flex-row max-lg:overflow-x-auto max-lg:px-4 max-lg:[scrollbar-width:none] max-lg:sm:-mx-8 max-lg:sm:px-8">
         <ProfileCard />
-        <p className="mb-1 px-2 text-xs font-semibold text-muted max-md:hidden">{t("workspace")}</p>
+        <p className="mb-1 px-2 text-xs font-semibold text-muted max-lg:hidden">{t("workspace")}</p>
         {SETTINGS_SECTIONS.filter((s) => s.slug !== "profile").map((s) => {
           const { icon: IconCmp, color } = SECTION_ICONS[s.slug];
           return (
@@ -109,15 +109,15 @@ function ProfileCard() {
   return (
     <Link
       to="/workspace/profile"
-      className="flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-sm whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised md:mb-4 md:h-auto md:gap-2.5 md:py-2"
+      className="flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-sm whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised lg:mb-4 lg:h-auto lg:gap-2.5 lg:py-2"
       activeProps={{ className: "!bg-selected" }}
     >
-      <Avatar name={name} className="size-5 shrink-0 text-[9px] md:size-9 md:text-sm" />
-      <span className="max-md:hidden min-w-0">
+      <Avatar name={name} className="size-5 shrink-0 text-[9px] lg:size-9 lg:text-sm" />
+      <span className="max-lg:hidden min-w-0">
         <span className="block truncate font-medium">{name}</span>
         <span className="block truncate text-xs text-muted">{user ? (user.email ?? t("profile.account")) : t("profile.local")}</span>
       </span>
-      <span className="md:hidden">{t("section.profile")}</span>
+      <span className="lg:hidden">{t("section.profile")}</span>
     </Link>
   );
 }
@@ -209,8 +209,11 @@ export function GeneralSettingsPage() {
   );
 }
 
-/** The trailing field of a settings Row: one width for all, narrower on phones. Input is w-full, so it wraps it. */
-export const FIELD = "w-60 shrink-0 max-sm:w-40";
+/**
+ * The trailing field of a settings Row. A Row moves its control under the label below 30rem of
+ * card (a 12rem label, this 15rem field, the gap and padding): from there the field takes the line.
+ */
+export const FIELD = "w-60 max-w-full shrink-0 @max-[30rem]:w-full";
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
