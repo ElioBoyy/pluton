@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
@@ -29,9 +30,12 @@ export function resolveDatabaseUrl(url = process.env.DATABASE_URL ?? "file:./dat
 const BUSY_TIMEOUT_MS = 5000;
 
 function createSqliteDb(url?: string) {
+  const resolved = resolveDatabaseUrl(url);
+  // SQLite creates the file but not its folder: on a fresh clone data/ doesn't exist yet.
+  if (resolved.startsWith("file:")) fs.mkdirSync(path.dirname(resolved.slice("file:".length)), { recursive: true });
   // The client keeps a pool of connections: a PRAGMA reaches only one of them, so the busy wait is
   // set here, where it applies to every connection. Without it the others fail at once on a lock.
-  const client = createClient({ url: resolveDatabaseUrl(url), timeout: BUSY_TIMEOUT_MS });
+  const client = createClient({ url: resolved, timeout: BUSY_TIMEOUT_MS });
   return drizzle(client, { schema });
 }
 
