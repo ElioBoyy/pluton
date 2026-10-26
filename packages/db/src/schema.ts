@@ -1172,3 +1172,47 @@ export const workspaceSettings = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.workspaceId, t.key] })],
 );
+
+export const SUBSCRIPTION_PLANS = ["byo", "all"] as const;
+export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number];
+
+/** A person signed in to the hosted app with Google or Apple. Self-hosted installs have none. */
+export const users = sqliteTable(
+  "user",
+  {
+    id: id(),
+    email: text("email"),
+    name: text("name"),
+    /** The `sub` each provider gives this person; either may be missing until they sign in with it. */
+    googleSub: text("google_sub"),
+    appleSub: text("apple_sub"),
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id"),
+    plan: text("plan", { enum: SUBSCRIPTION_PLANS }),
+    /** Stripe's own status (active, trialing, past_due, canceled…); null until they pay. */
+    subscriptionStatus: text("subscription_status"),
+    currentPeriodEnd: integer("current_period_end", { mode: "timestamp_ms" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("user_google_sub_idx").on(t.googleSub),
+    uniqueIndex("user_apple_sub_idx").on(t.appleSub),
+    uniqueIndex("user_stripe_customer_idx").on(t.stripeCustomerId),
+    index("user_email_idx").on(t.email),
+  ],
+);
+
+/** A browser signed in as a user; the cookie holds the token, this table only its SHA-256. */
+export const authSessions = sqliteTable(
+  "auth_session",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("auth_session_user_idx").on(t.userId)],
+);

@@ -1,0 +1,239 @@
+import { AppleLogo, CheckCircle, CircleNotch } from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { LinkButton } from "@pluton/glass";
+import { useEffect, useState, type ReactNode } from "react";
+import { PlutonLogo } from "../../components/logo.tsx";
+import { Button } from "../../components/ui.tsx";
+import { Wallpaper } from "../../components/wallpaper.tsx";
+import { useLocale, useT } from "../../i18n/index.ts";
+import { cn } from "../../lib/cn.ts";
+import { authStateQuery, post } from "./auth-state.ts";
+
+/** The hosted offer, in euros a month (PRODUCT.md); Stripe holds the prices actually charged. */
+const PLANS = [
+  { id: "byo", price: 19.99 },
+  { id: "all", price: 49.99 },
+] as const;
+type PlanId = (typeof PLANS)[number]["id"];
+
+const ERRORS = ["cancelled", "expired", "provider"] as const;
+
+/** The marketing site, where the legal pages live (English at the root, other languages under /<lang>/). */
+const SITE_URL = "https://plut0n.com";
+
+function LegalLink({ doc, children }: { doc: "terms" | "sales" | "privacy"; children: ReactNode }) {
+  const locale = useLocale();
+  return (
+    <a href={`${SITE_URL}${locale === "en" ? "" : `/${locale}`}/legal/${doc}/`} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+      {children}
+    </a>
+  );
+}
+
+/** Pluto behind, one pane of glass in the middle: the app before there is an app. */
+function AccountFrame({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
+  return (
+    <div className="flex min-h-full flex-col items-center justify-center px-4 py-12">
+      <Wallpaper defaultOnly />
+      <main className="glass w-full max-w-[400px] p-8 max-sm:p-6">
+        <PlutonLogo className="mb-8 h-7 text-ink" />
+        {children}
+      </main>
+      {footer && <div className="mt-4 text-center text-xs text-muted">{footer}</div>}
+    </div>
+  );
+}
+
+/** Google's "G" in its four colours, as its sign-in guidelines ask. */
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" className="size-[18px]" aria-hidden>
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
+  );
+}
+
+/**
+ * Sign in and sign up are the same page: Google or Apple says who you are, and a new address
+ * becomes a new account. Payment comes next; nothing about the business is asked before it.
+ */
+export function SignupPage({ error }: { error?: string }) {
+  const t = useT("account");
+  const state = useQuery(authStateQuery).data;
+  const providers = state?.providers ?? { google: false, apple: false };
+  const known = ERRORS.find((e) => e === error);
+
+  return (
+    <AccountFrame footer={t("signup.next")}>
+      <h1 className="text-[28px] leading-[30px] font-bold tracking-[-0.03em] text-balance">{t("signup.title")}</h1>
+      <p className="mt-3 text-sm text-muted">{t("signup.description")}</p>
+
+      <div className="mt-8 flex flex-col gap-2.5">
+        {/* Full-page navigations: the providers' pages can't open inside a fetch. */}
+        {providers.google && (
+          <LinkButton href="/api/auth/google" variant="plain" size="lg" className="w-full gap-2.5 text-sm font-medium">
+            <GoogleMark />
+            {t("signup.google")}
+          </LinkButton>
+        )}
+        {providers.apple && (
+          <LinkButton
+            href="/api/auth/apple"
+            size="lg"
+            // Apple's guidelines: a black button with the white logo (white on black in dark).
+            className="w-full gap-2.5 bg-black text-sm font-medium text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85"
+          >
+            <AppleLogo size={18} weight="fill" />
+            {t("signup.apple")}
+          </LinkButton>
+        )}
+        {state && !providers.google && !providers.apple && <p className="text-sm text-system-orange">{t("signup.unavailable")}</p>}
+      </div>
+
+      {known && (
+        <p role="alert" className="mt-4 text-sm text-system-orange">
+          {t(`error.${known}`)}
+        </p>
+      )}
+      <p className="mt-6 text-xs text-muted text-pretty">
+        {t.rich("signup.legal", {
+          terms: <LegalLink doc="terms">{t("signup.terms")}</LegalLink>,
+          sales: <LegalLink doc="sales">{t("signup.sales")}</LegalLink>,
+          privacy: <LegalLink doc="privacy">{t("signup.privacy")}</LegalLink>,
+        })}
+      </p>
+    </AccountFrame>
+  );
+}
+
+function SignOut() {
+  const t = useT("account");
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const signOut = useMutation({
+    mutationFn: () => post("/api/auth/signout"),
+    onSuccess: async () => {
+      queryClient.clear();
+      await navigate({ to: "/signup", search: {} });
+    },
+  });
+  return (
+    <button type="button" onClick={() => signOut.mutate()} className="text-accent hover:underline">
+      {t("subscribe.signOut")}
+    </button>
+  );
+}
+
+/**
+ * The paywall: signed in, not subscribed yet. Picking a plan opens Stripe Checkout; Stripe sends
+ * the browser back here with its session id, which is confirmed before onboarding starts.
+ */
+export function SubscribePage({ sessionId }: { sessionId?: string }) {
+  const t = useT("account");
+  const user = useQuery(authStateQuery).data?.user;
+  const footer = user?.email && (
+    <span className="inline-flex gap-1.5">
+      {t("subscribe.signedInAs", { email: user.email })} · <SignOut />
+    </span>
+  );
+  return <AccountFrame footer={footer}>{sessionId ? <Confirming sessionId={sessionId} /> : <PlanPicker />}</AccountFrame>;
+}
+
+function PlanPicker() {
+  const t = useT("account");
+  const locale = useLocale();
+  const [plan, setPlan] = useState<PlanId>("byo");
+  const price = (amount: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(amount);
+
+  const checkout = useMutation({
+    mutationFn: () => post<{ url: string }>("/api/billing/checkout", { plan }),
+    onSuccess: ({ url }) => window.location.assign(url),
+  });
+
+  return (
+    <>
+      <h1 className="text-[28px] leading-[30px] font-bold tracking-[-0.03em] text-balance">{t("subscribe.title")}</h1>
+      <p className="mt-3 text-sm text-muted">{t("subscribe.description")}</p>
+
+      <div role="radiogroup" aria-label={t("subscribe.plans")} className="mt-8 flex flex-col gap-2.5">
+        {PLANS.map((p) => {
+          const selected = p.id === plan;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setPlan(p.id)}
+              className={cn(
+                "gg-card flex items-start gap-3 p-4 text-left transition-[box-shadow] duration-150",
+                selected && "shadow-[inset_0_0_0_1.5px_var(--color-accent)]",
+              )}
+            >
+              <span className="flex-1">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm font-semibold">{t(`plan.${p.id}.name`)}</span>
+                  <span className="text-sm tabular-nums">{t("plan.perMonth", { price: price(p.price) })}</span>
+                </span>
+                <span className="mt-1 block text-xs text-muted">{t(`plan.${p.id}.detail`)}</span>
+              </span>
+              <CheckCircle
+                size={18}
+                weight="fill"
+                className={cn("mt-px shrink-0 text-accent transition-opacity duration-150", !selected && "opacity-0")}
+                aria-hidden
+              />
+            </button>
+          );
+        })}
+      </div>
+
+      <Button type="button" onClick={() => checkout.mutate()} disabled={checkout.isPending || checkout.isSuccess} className="mt-8 h-9 w-full">
+        {(checkout.isPending || checkout.isSuccess) && <CircleNotch size={14} className="animate-spin" />}
+        {t("subscribe.pay")}
+      </Button>
+      {checkout.isError && (
+        <p role="alert" className="mt-3 text-sm text-system-orange">
+          {t("subscribe.failed")}
+        </p>
+      )}
+      <p className="mt-4 text-xs text-muted">{t("subscribe.stripe")}</p>
+    </>
+  );
+}
+
+function Confirming({ sessionId }: { sessionId: string }) {
+  const t = useT("account");
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const confirm = useMutation({
+    mutationFn: () => post<{ paid: boolean }>("/api/billing/confirm", { sessionId }),
+    onSuccess: async ({ paid }) => {
+      if (!paid) return;
+      await queryClient.invalidateQueries(authStateQuery);
+      // Paid: now, and only now, Pluton asks about the business.
+      await navigate({ to: "/onboarding", search: {}, replace: true });
+    },
+  });
+  const { mutate } = confirm;
+  useEffect(() => mutate(), [mutate]);
+
+  const waiting = confirm.isPending || confirm.isIdle || confirm.data?.paid;
+  return waiting ? (
+    <p className="flex items-center gap-2 text-sm text-muted">
+      <CircleNotch size={14} className="animate-spin" />
+      {t("confirm.checking")}
+    </p>
+  ) : (
+    <>
+      <p className="text-sm">{confirm.isError ? t("subscribe.failed") : t("confirm.pending")}</p>
+      <Button type="button" onClick={() => confirm.mutate()} className="mt-4 h-9 w-full">
+        {t("confirm.retry")}
+      </Button>
+    </>
+  );
+}

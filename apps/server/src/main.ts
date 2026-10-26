@@ -9,6 +9,8 @@ import { findWallpaper, getCurrentWorkspace, watchBudgetThresholds, watchSearchI
 import { appRouter } from "./router.ts";
 import { handleMcp } from "./mcp.ts";
 import { ensureMcpToken, MCP_URL } from "./mcp-router.ts";
+import { currentUser, HOSTED, isPaid, mountAuth } from "./auth.ts";
+import { mountBilling } from "./billing.ts";
 
 const db = createDb();
 await prepareDb(db);
@@ -45,6 +47,16 @@ app.get("/api/workspaces/:id/logo", async (c) => {
     "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
     "X-Content-Type-Options": "nosniff",
   });
+});
+mountAuth(app, db);
+mountBilling(app, db);
+// Hosted: the API answers only people signed in who have paid; self-hosted it answers this machine.
+app.use("/rpc/*", async (c, next) => {
+  if (!HOSTED) return next();
+  const user = await currentUser(db, c);
+  if (!user) return c.json({ error: "signed_out" }, 401);
+  if (!isPaid(user)) return c.json({ error: "payment_required" }, 402);
+  return next();
 });
 app.use("/rpc/*", trpcServer({ endpoint: "/rpc", router: appRouter, createContext: ({ req }) => ({ db, locale: req.headers.get("x-pluton-locale") }) }));
 

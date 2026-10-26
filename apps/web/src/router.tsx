@@ -22,9 +22,30 @@ import { HomePage } from "./routes/home.tsx";
 import { AppearancePage } from "./routes/appearance.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
 import { useT } from "./i18n/index.ts";
+import { SignupPage, SubscribePage } from "./features/account/account-pages.tsx";
+import { authStateQuery } from "./features/account/auth-state.ts";
+import { queryClient } from "./lib/trpc.ts";
+
+/** Pages a hosted visitor reaches before they have paid. */
+const ACCOUNT_PATHS = ["/signup", "/subscribe"];
 
 const rootRoute = createRootRoute({
   component: Outlet,
+  /**
+   * Hosted, nothing is asked before payment: signed out goes to sign-in, signed in but not
+   * subscribed goes to the plans, and only then the app (and its onboarding questions) opens.
+   * Self-hosted installs have no accounts and never see these pages.
+   */
+  beforeLoad: async ({ location }) => {
+    const { hosted, user } = await queryClient.ensureQueryData(authStateQuery);
+    const onAccountPage = ACCOUNT_PATHS.includes(location.pathname);
+    if (!hosted || user?.paid) {
+      if (onAccountPage) throw redirect({ to: "/home" });
+      return;
+    }
+    const to = user ? "/subscribe" : "/signup";
+    if (location.pathname !== to) throw redirect({ to, search: {} });
+  },
   notFoundComponent: function NotFound() {
     const t = useT("shell");
     return (
@@ -47,6 +68,32 @@ const onboardingRoute = createRoute({
   component: function Onboarding() {
     const search = onboardingRoute.useSearch();
     return <OnboardingPage fresh={search.new === true} />;
+  },
+});
+
+const signupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/signup",
+  validateSearch: (s: Record<string, unknown>): { error?: string } => (typeof s.error === "string" ? { error: s.error } : {}),
+  component: function Signup() {
+    return <SignupPage error={signupRoute.useSearch().error} />;
+  },
+});
+// The landing page and old links may say /login: same page.
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/login",
+  beforeLoad: () => {
+    throw redirect({ to: "/signup", search: {} });
+  },
+});
+const subscribeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/subscribe",
+  validateSearch: (s: Record<string, unknown>): { session_id?: string } =>
+    typeof s.session_id === "string" ? { session_id: s.session_id } : {},
+  component: function Subscribe() {
+    return <SubscribePage sessionId={subscribeRoute.useSearch().session_id} />;
   },
 });
 
@@ -175,6 +222,9 @@ const agentConversationRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  signupRoute,
+  loginRoute,
+  subscribeRoute,
   onboardingRoute,
   appRoute.addChildren([
     indexRoute,
