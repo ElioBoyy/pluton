@@ -94,14 +94,17 @@ if (HOSTED && (await fs.stat(path.join(webDist, "index.html")).catch(() => null)
 }
 
 const port = Number(process.env.SERVER_PORT ?? 8787);
+// By default @hono/node-server swaps the global Response for its own, and transformers.js (⌘K's
+// model) then fails its `instanceof Response` checks: the first download is never cached.
+const overrideGlobalObjects = false;
 if (process.env.SERVER_HOST) {
   // In a container (hosted), behind the proxy: it listens where the proxy reaches it.
-  serve({ fetch: app.fetch, port, hostname: process.env.SERVER_HOST }, () => console.log(`[server] listening on ${process.env.SERVER_HOST}:${port}`));
+  serve({ fetch: app.fetch, port, hostname: process.env.SERVER_HOST, overrideGlobalObjects }, () => console.log(`[server] listening on ${process.env.SERVER_HOST}:${port}`));
 } else {
   // This machine only: the API has no login of its own, so it must not answer the local network.
   // "localhost" can resolve to either address, so both loopbacks listen (IPv6 only when the machine has it).
-  serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, () => console.log(`[server] listening on http://localhost:${port} (MCP at ${MCP_URL})`));
-  serve({ fetch: app.fetch, port, hostname: "::1" }).on("error", (error: NodeJS.ErrnoException) => {
+  serve({ fetch: app.fetch, port, hostname: "127.0.0.1", overrideGlobalObjects }, () => console.log(`[server] listening on http://localhost:${port} (MCP at ${MCP_URL})`));
+  serve({ fetch: app.fetch, port, hostname: "::1", overrideGlobalObjects }).on("error", (error: NodeJS.ErrnoException) => {
     if (error.code !== "EADDRNOTAVAIL" && error.code !== "EAFNOSUPPORT") throw error;
   });
 }
