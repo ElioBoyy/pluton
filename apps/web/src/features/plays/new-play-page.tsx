@@ -133,7 +133,7 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
       <span className="flex size-11 items-center justify-center bg-system-pink/15 text-system-pink">
         <Lightning size={22} weight="fill" />
       </span>
-      <h1 className="mt-5 text-2xl font-bold tracking-[-0.03em] text-balance uppercase sm:text-[42px] sm:leading-[38px]">{t("new.title")}</h1>
+      <h1 className="mt-5 text-2xl font-bold tracking-[-0.03em] text-balance sm:text-[36px] sm:leading-[38px]">{t("new.title")}</h1>
       <p className="mt-1.5 text-base text-muted">{t("new.description")}</p>
       {ideas.length > 0 && (
         <Section title={t("new.ideas")} className="mt-8">

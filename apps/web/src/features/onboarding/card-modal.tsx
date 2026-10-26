@@ -13,7 +13,7 @@ export function CardModal({ card, index, total }: { card: CardView; index: numbe
   const answer = useMutation(trpc.onboarding.answerCard.mutationOptions());
 
   return (
-    <div className="absolute inset-0 z-20 overflow-y-auto bg-canvas/70 px-6 backdrop-blur-[2px]">
+    <div className="absolute inset-0 z-20 overflow-y-auto bg-black/15 px-6 backdrop-blur-sm">
       {/* min-h-full + my-auto centers short cards and lets tall ones scroll instead of overflowing. */}
       <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col items-end justify-center gap-4 py-8">
         {card.kind === "company_statement" ? (
@@ -43,7 +43,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
 
   return (
     <>
-      <div className="modal-in w-full bg-float p-6 shadow-window">
+      <div className="glass modal-in w-full p-6">
         <h2 className="text-lg font-semibold">{card.title}</h2>
         <p className="mt-5 text-sm font-semibold">{card.heading}</p>
         {editing ? (
@@ -127,7 +127,7 @@ function SelectCard({
 
   return (
     <>
-      <div className="modal-in w-full bg-float p-6 shadow-window">
+      <div className="glass modal-in w-full p-6">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-lg font-semibold leading-snug">{card.title}</h2>
           {total > 1 && (

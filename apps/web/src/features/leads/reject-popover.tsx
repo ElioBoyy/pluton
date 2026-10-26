@@ -80,7 +80,7 @@ export function RejectPopover({
             aria-pressed={reasons.includes(r)}
             // Square chips: a quiet tint until picked, then the accent.
             className={cn(
-              "inline-flex h-6 items-center px-2.5 text-xs transition-[background-color,color,scale] duration-150 ease-out motion-safe:active:scale-95",
+              "inline-flex rounded-full h-6 items-center px-2.5 text-xs transition-[background-color,color,scale] duration-150 ease-out motion-safe:active:scale-95",
               reasons.includes(r) ? "bg-accent font-medium text-on-accent" : "bg-control text-ink hover:bg-control-hover",
             )}
           >

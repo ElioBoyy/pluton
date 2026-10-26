@@ -64,7 +64,7 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex h-6 items-center gap-1.5 px-2.5 text-xs font-medium whitespace-nowrap",
+              "inline-flex rounded-full h-6 items-center gap-1.5 px-2.5 text-xs font-medium whitespace-nowrap",
               waiting
                 ? "bg-system-orange/15 text-[color-mix(in_srgb,var(--color-system-orange),black_20%)] dark:text-system-orange"
                 : campaign.status === "paused"
@@ -251,12 +251,12 @@ function Node({ step, count, selected, onClick, expiry }: { step: Step; count: n
         </span>
         {sub && <span className="block truncate text-xs text-muted">{sub}</span>}
       </span>
-      {count > 0 && <span className="inline-flex h-5 shrink-0 items-center bg-accent/15 px-2 text-xs font-medium text-accent tabular-nums">{count}</span>}
+      {count > 0 && <span className="inline-flex rounded-full h-5 shrink-0 items-center bg-accent/15 px-2 text-xs font-medium text-accent tabular-nums">{count}</span>}
     </button>
   );
 }
 
-const Pill = ({ children }: { children: ReactNode }) => <span className="inline-flex h-6 items-center bg-control px-3 text-xs font-medium text-muted">{children}</span>;
+const Pill = ({ children }: { children: ReactNode }) => <span className="inline-flex rounded-full h-6 items-center bg-control px-3 text-xs font-medium text-muted">{children}</span>;
 
 function Connector({ label }: { label?: string }) {
   return (
@@ -289,7 +289,7 @@ function NeedsYou({ campaignId }: { campaignId: string }) {
                 <Link to="/plays/$playId" params={{ playId: r.playId }} search={{ tab: "leads", lead: r.leadId }} className="truncate font-medium hover:underline">
                   {r.person.name}
                 </Link>
-                {r.reply.label && <span className={cn("inline-flex h-5 shrink-0 items-center px-2 text-xs", REPLY_LABEL[r.reply.label]?.className)}>{REPLY_LABEL[r.reply.label]?.label}</span>}
+                {r.reply.label && <span className={cn("inline-flex rounded-full h-5 shrink-0 items-center px-2 text-xs", REPLY_LABEL[r.reply.label]?.className)}>{REPLY_LABEL[r.reply.label]?.label}</span>}
               </div>
               <p className="mt-1.5 text-sm whitespace-pre-wrap text-muted">“{r.reply.text}”</p>
               {r.reply.summary && <p className="mt-1 text-xs text-muted">{r.reply.summary}</p>}
@@ -437,7 +437,7 @@ function EnrolledRow({ e }: { e: Enrollment }) {
     <li className="bg-panel px-4 py-3 text-sm">
       <div className="flex items-center justify-between gap-2">
         <span className="truncate font-medium">{e.person.name}</span>
-        <span className={cn("inline-flex h-5 shrink-0 items-center px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
+        <span className={cn("inline-flex rounded-full h-5 shrink-0 items-center px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
       </div>
       <p className="mt-0.5 text-xs text-muted">
         {e.channel === "email" ? t("byEmail", { email: e.person.email ?? "" }) : e.sender ? t("from", { name: e.sender.name }) : t("enrolled.noAccount")}

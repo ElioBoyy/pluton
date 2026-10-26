@@ -15,6 +15,7 @@ import {
   X,
   type Icon,
 } from "@phosphor-icons/react";
+import { Avatar } from "@pluton/glass";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -28,7 +29,7 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { formatDate, formatDateTime } from "../../lib/format.ts";
 import { translate, useT } from "../../i18n/index.ts";
-import { STATUS, emailSourceLabel, initials, reasonLabel, stageLabel, type RejectReason } from "./labels.ts";
+import { STATUS, emailSourceLabel, reasonLabel, stageLabel, type RejectReason } from "./labels.ts";
 import { RejectPopover } from "./reject-popover.tsx";
 import { LeadCampaignBlock } from "../sequence/lead-campaign-block.tsx";
 import { LeadCrmBlock } from "../integrations/crm-export.tsx";
@@ -93,7 +94,7 @@ export function LeadDrawer({
 
   return (
     <aside
-      className="drawer fixed top-0 right-0 bottom-0 z-40 flex w-[min(520px,100vw)] flex-col bg-canvas shadow-window"
+      className="drawer glass fixed top-2 right-2 bottom-2 z-40 flex w-[min(520px,calc(100vw-16px))] flex-col"
       aria-label={t("drawer.label")}
     >
       <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
@@ -135,9 +136,7 @@ export function LeadDrawer({
         <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-2 pb-8 [mask-image:linear-gradient(to_bottom,transparent,black_12px)] [&>*]:shrink-0">
           <div className="flex flex-col gap-4">
             <div className="flex items-start gap-3 px-1">
-              <span className="flex size-12 shrink-0 items-center justify-center bg-control text-base font-semibold text-muted">
-                {initials(data.person.name)}
-              </span>
+              <Avatar name={data.person.name} className="size-12 text-base" />
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold break-words">{data.person.name}</h2>
                 {(data.person.title || data.person.company) && (
@@ -536,7 +535,7 @@ function CrmSection({ leadId }: { leadId: string }) {
 }
 
 const Pill = ({ className, children }: { className?: string; children: ReactNode }) => (
-  <span className={cn("inline-flex h-5 shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap", className)}>{children}</span>
+  <span className={cn("inline-flex rounded-full h-5 shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap", className)}>{children}</span>
 );
 
 function Meter({ value, tone }: { value: number; tone: "green" | "orange" }) {

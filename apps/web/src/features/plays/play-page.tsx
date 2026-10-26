@@ -1,4 +1,5 @@
 import { CaretLeft, CaretRight, CircleNotch, DotsThree, Pause, Play as PlayIcon, Stop, WarningCircle } from "@phosphor-icons/react";
+import { Avatar } from "@pluton/glass";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -13,7 +14,7 @@ import { usePlayMenu } from "./play-menu.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
 import { CHIP, PILL, PILL_BASE, PIPELINE_LABELS, REJECTION_LABELS, SCHEDULE_LABELS, STOP_LABELS } from "./labels.ts";
-import { initials, STATUS, type LeadTabKey } from "../leads/labels.ts";
+import { STATUS, type LeadTabKey } from "../leads/labels.ts";
 import { LeadsView } from "../leads/leads-view.tsx";
 import { SequenceTab } from "../sequence/sequence-tab.tsx";
 import { ActivityFeed } from "../activity/activity-feed.tsx";
@@ -70,7 +71,7 @@ export function PlayPage({
       </Link>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div className="min-w-0">
-          <h1 className="flex items-start gap-2.5 text-2xl font-bold tracking-[-0.03em] uppercase sm:text-[42px] sm:leading-[38px]" onContextMenu={contextMenu(() => playMenu(play))}>
+          <h1 className="flex items-start gap-2.5 text-2xl font-bold tracking-[-0.03em] sm:text-[36px] sm:leading-[38px]" onContextMenu={contextMenu(() => playMenu(play))}>
             <span className="min-w-0 text-balance break-words">
               {play.name}
             </span>
@@ -406,7 +407,7 @@ function NewestLeads({ playId, onOpen, onReviewAll }: { playId: string; onOpen: 
             return (
               <li key={l.id}>
                 <button onClick={() => onOpen(l.id)} className="flex min-h-11 w-full items-center gap-3 px-4 py-2 text-left transition-colors duration-150 hover:bg-raised">
-                  <span className="flex size-7 shrink-0 items-center justify-center bg-control text-[11px] font-semibold text-muted">{initials(l.person.name)}</span>
+                  <Avatar name={l.person.name} className="size-7 text-[11px]" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{l.person.name}</span>
                     <span className="block truncate text-xs text-muted">

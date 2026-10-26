@@ -1,4 +1,5 @@
 import { ArrowsClockwise, Check, CheckCircle, CircleNotch, Sparkle, X } from "@phosphor-icons/react";
+import { Avatar } from "@pluton/glass";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useState } from "react";
@@ -10,7 +11,6 @@ import { translate, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { formatTime } from "../../lib/format.ts";
 import { useTRPC } from "../../lib/trpc.ts";
-import { initials } from "../leads/labels.ts";
 import { REVIEW } from "./labels.ts";
 
 type Recipient = inferRouterOutputs<AppRouter>["campaigns"]["recipients"]["preview"][number];
@@ -90,7 +90,7 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-label={title} className="modal-in flex max-h-[88vh] w-[min(960px,100%)] flex-col overflow-hidden bg-float shadow-window">
+      <div role="dialog" aria-label={title} className="modal-in flex max-h-[88vh] w-[min(960px,100%)] flex-col overflow-hidden glass">
         {result ? (
           <Result result={result} onClose={onClose} />
         ) : (
@@ -118,7 +118,7 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
                         r.conflict && "opacity-50",
                       )}
                     >
-                      <span className="flex size-7 shrink-0 items-center justify-center bg-control text-[11px] font-semibold text-muted">{initials(r.person.name)}</span>
+                      <Avatar name={r.person.name} className="size-7 text-[11px]" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm">{r.person.name}</span>
                         <span className={cn("flex min-w-0 items-center gap-1 truncate text-xs", r.conflict ? "text-system-orange" : REVIEW[r.review]?.className)}>

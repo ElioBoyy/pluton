@@ -16,6 +16,7 @@ import {
   Trash,
   X,
 } from "@phosphor-icons/react";
+import { Avatar } from "@pluton/glass";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -31,7 +32,7 @@ import { useChannel } from "../../lib/use-job-events.ts";
 import { formatDate } from "../../lib/format.ts";
 import { translate, useT } from "../../i18n/index.ts";
 import { PIPELINE_LABELS } from "../plays/labels.ts";
-import { COLUMNS, LEAD_TABS, STATUS, initials, type ColumnKey, type LeadTabKey, type RejectReason } from "./labels.ts";
+import { COLUMNS, LEAD_TABS, STATUS, type ColumnKey, type LeadTabKey, type RejectReason } from "./labels.ts";
 import { LeadDrawer } from "./lead-drawer.tsx";
 import { RejectPopover } from "./reject-popover.tsx";
 import { downloadText, useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
@@ -416,8 +417,8 @@ function Row({
       </td>
       <td className="max-w-56 min-w-40 px-3 py-2">
         <div className="flex items-center gap-2.5">
-          <span className="relative flex size-7 shrink-0 items-center justify-center bg-control text-[11px] font-semibold text-muted">
-            {initials(l.person.name)}
+          <span className="relative flex shrink-0">
+            <Avatar name={l.person.name} className="size-7 text-[11px]" />
             {l.isNew && <span className="absolute -top-px -right-px size-2.5 rounded-full bg-system-blue ring-2 ring-canvas" aria-label={t("status.new")} />}
           </span>
           <span className="min-w-0">
@@ -468,7 +469,7 @@ function Row({
       )}
       {has("status") && (
         <td className="px-3 py-2">
-          <span className={cn("inline-flex h-5 items-center px-2 text-xs font-medium whitespace-nowrap", status.className)}>{status.label}</span>
+          <span className={cn("inline-flex rounded-full h-5 items-center px-2 text-xs font-medium whitespace-nowrap", status.className)}>{status.label}</span>
         </td>
       )}
       {has("why") && (

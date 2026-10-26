@@ -35,7 +35,7 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
     <aside
       className={cn(
         "w-[340px] max-w-full shrink-0 flex-col bg-panel 2xl:w-[380px]",
-        open ? "fixed inset-y-0 right-0 z-40 flex shadow-window" : "hidden",
+        open ? "glass fixed inset-y-2 right-2 z-40 flex" : "hidden",
         "xl:static xl:z-auto xl:flex xl:shadow-none",
       )}
     >
@@ -43,7 +43,7 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
         <div className="flex items-center gap-2">
           <Sparkle size={15} weight="fill" className="text-system-pink" />
           <h2 className="text-sm font-semibold">{t("proposals.title")}</h2>
-          {list.length > 0 && <span className="inline-flex h-5 min-w-5 items-center justify-center bg-control px-1.5 text-xs font-medium text-muted tabular-nums">{list.length}</span>}
+          {list.length > 0 && <span className="inline-flex rounded-full h-5 min-w-5 items-center justify-center bg-control px-1.5 text-xs font-medium text-muted tabular-nums">{list.length}</span>}
           <button
             onClick={onClose}
             aria-label={tc("close")}
@@ -179,7 +179,7 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
     // Cards sit a tone off the inspector, as grouped boxes do in System Settings.
     <li className="bg-canvas p-3.5">
       <div className="flex min-w-0 items-center gap-2 text-xs">
-        <span className={cn("inline-flex h-5 shrink-0 items-center px-2 font-medium", KIND_CLASS[p.kind])}>{t(`proposals.kind.${p.kind}`)}</span>
+        <span className={cn("inline-flex rounded-full h-5 shrink-0 items-center px-2 font-medium", KIND_CLASS[p.kind])}>{t(`proposals.kind.${p.kind}`)}</span>
         {section && <span className="truncate text-muted">{t(SECTION_LABELS[section])}</span>}
       </div>
 

@@ -68,14 +68,14 @@ export function SettingsShell() {
             <Link
               key={s.slug}
               to={`/workspace/${s.slug}`}
-              className="flex h-7 shrink-0 items-center gap-2 px-2 text-sm whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised"
+              className="flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-sm whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised"
               activeProps={{ className: "!bg-selected" }}
             >
               <span
                 className={cn(
-                  "flex size-5 shrink-0 items-center justify-center text-white",
+                  "flex size-5 shrink-0 items-center justify-center rounded-[calc(5px*var(--gg-k))] text-white [corner-shape:squircle]",
                   // A faint top light, as on the glossy Golden Gate settings icons.
-                  "",
+                  "shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]",
                   color,
                 )}
               >

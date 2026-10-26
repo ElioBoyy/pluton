@@ -133,7 +133,7 @@ export function IntegrationPage({ provider }: { provider: Provider }) {
       <div className="mb-8 flex items-center gap-4">
         <Logo provider={provider} large />
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold tracking-[-0.03em] text-balance uppercase sm:text-[42px] sm:leading-[38px]">{d.name}</h1>
+          <h1 className="text-2xl font-bold tracking-[-0.03em] text-balance sm:text-[36px] sm:leading-[38px]">{d.name}</h1>
           <p className="mt-0.5 text-base text-muted text-pretty">{d.description}</p>
         </div>
         <StatusPill status={d.row?.status} enabled={d.row?.enabled} />

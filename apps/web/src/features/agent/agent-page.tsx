@@ -15,6 +15,7 @@ import {
   X,
   type Icon,
 } from "@phosphor-icons/react";
+import { AppIcon } from "@pluton/glass";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -68,7 +69,7 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
   return (
     <aside className={cn("flex w-64 shrink-0 flex-col", className)}>
       <div className="flex flex-col gap-3 px-3 pt-5 pb-3">
-        <h1 className="px-1 text-xl font-bold tracking-[-0.03em] uppercase">{t("title")}</h1>
+        <h1 className="px-1 text-xl font-bold tracking-[-0.03em]">{t("title")}</h1>
         <Link
           to="/agent"
           className="flex h-8 items-center gap-2 bg-control px-2.5 text-sm font-medium transition-colors duration-150 hover:bg-control-hover"
@@ -119,11 +120,10 @@ function NewConversation() {
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
       {/* Centered like a fresh prompt: the plate, the question, the field, then ideas. */}
       <div className="mx-auto my-auto flex w-full max-w-2xl flex-col items-center px-4 py-12 sm:px-6">
-        {/* Separate elements: one animation property can't hold both the entrance and the blink. */}
         <span className="rise" aria-hidden>
-          <span className="ai-orb size-14" />
+          <AppIcon className="size-14 rounded-[calc(15px*var(--gg-k))]" />
         </span>
-        <h1 className="rise mt-6 text-center text-[34px] leading-[31px] font-bold tracking-[-0.03em] text-balance uppercase [animation-delay:60ms]">
+        <h1 className="rise mt-6 text-center text-[34px] leading-[36px] font-bold tracking-[-0.03em] text-balance [animation-delay:60ms]">
           {t("new.heading")}
         </h1>
         <p className="rise mt-2 max-w-lg text-center text-base text-balance text-muted [animation-delay:120ms]">

@@ -1,21 +1,21 @@
 @import "@fontsource-variable/jost";
 @import "tailwindcss";
+/* In the components layer, so a utility on a kit component (a width, a margin) still wins. */
+@import "@pluton/glass/glass.css" layer(components);
 
 /* `dark:` follows the app's appearance (data-theme), not only the system setting. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
- * The plates, after the landing page (apps/site/DESIGN.md): the app is a run of photographic
- * plates. The content is one flat field of plate grey (print black in the dark appearance), the
- * sidebar one tone down from it, and brand ultramarine is the ink that marks what moved
- * and what to press. One face (Jost), square corners, no rules and no gloss: surfaces are told
- * apart by one step in tone. The token names predate the plates (canvas, panel, ink, …) so every
- * screen picks them up.
+ * Golden Gate, from @pluton/glass (the landing page's kit): Pluto is the desktop and the app is a
+ * window of glass laid over it. Every token below points at the kit's `--gg-*` tokens, so light
+ * and dark come from the kit and every screen picks them up under the names it already uses
+ * (canvas, panel, ink, …). Brand ultramarine marks what to press and what the AI is doing.
  */
 /* `static` keeps every variable in the output: the dark block and the graph read them at runtime. */
 @theme static {
-  --font-sans: "Jost Variable", "Jost", system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans: var(--gg-font);
+  --font-mono: var(--gg-font-code);
 
   /* Jost runs small, so each step sits a notch above the usual UI sizes. */
   --text-xs: 12px;
@@ -27,60 +27,58 @@
   --text-lg: 18px;
   --text-lg--line-height: 24px;
   --text-xl: 24px;
-  --text-xl--line-height: 26px;
-  /* The page headline: Jost 700, uppercase, set tight (see PageHeader). */
-  --text-2xl: 34px;
-  --text-2xl--line-height: 31px;
+  --text-xl--line-height: 28px;
+  /* The page headline (see PageHeader). */
+  --text-2xl: 30px;
+  --text-2xl--line-height: 34px;
   --text-caption: 11px;
   --text-caption--line-height: 14px;
   --text-callout: 13px;
   --text-callout--line-height: 17px;
 
-  /* Square corners on every rectangle. Circles stay for what is round in the world: stars, the
-     marker ring, the switch (`rounded-full` is not a token and keeps working for those). */
-  --radius-xs: 0px;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-4xl: 0px;
+  /* The kit's continuous corners, from a row up to a window. */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 26px;
+  --radius-4xl: 32px;
 
-  /* The plates, light: plate grey printed in ink. */
-  --color-canvas: #dedfda; /* plate grey: the field */
-  --color-panel: #cdcfc7; /* plate step: grouped content, one tone down */
-  --color-panel-hover: #c4c6be;
-  /* What floats over the page (menus, ⌘K, toasts, dialogs): always opaque, even over a wallpaper. */
-  --color-float: #cdcfc7;
-  --color-field: #f3f3ef; /* paper: text fields, one tone up */
-  --color-raised: rgb(16 16 24 / 0.06); /* fills: hover, wells */
-  --color-selected: rgb(16 16 24 / 0.09);
-  --color-sidebar: #cdcfc7; /* plate step: the sidebar sits one tone down from the field */
-  --color-zebra: rgb(16 16 24 / 0.05); /* alternating rows, a step down */
+  --color-canvas: var(--gg-well); /* wells set into the glass: fields, inner boxes */
+  --color-panel: var(--gg-well); /* grouped content, like the kit's Card */
+  --color-panel-hover: var(--gg-raised);
+  /* What floats over the window (menus, ⌘K, toasts, dialogs): the kit's thick glass. */
+  --color-float: var(--gg-material-thick);
+  --color-field: var(--gg-well);
+  --color-raised: var(--gg-fill); /* fills: hover, wells */
+  --color-selected: var(--gg-accent-soft);
+  --color-sidebar: transparent;
+  --color-zebra: var(--gg-fill);
   --color-selection: #2b3bff;
-  --color-line: rgb(16 16 24 / 0.12); /* only where a step can't be taken (a chart axis) */
-  --color-line-strong: rgb(16 16 24 / 0.24);
-  --color-ink: #101018;
-  --color-muted: #4a4b52;
-  --color-faint: rgb(16 16 24 / 0.4);
+  --color-line: rgb(16 16 24 / 0.1); /* only where spacing can't separate (a chart axis, a field's edge) */
+  --color-line-strong: rgb(16 16 24 / 0.2);
+  --color-ink: var(--gg-ink);
+  --color-muted: var(--gg-ink-2);
+  --color-faint: var(--gg-ink-3);
 
-  /* Flat square controls: a tinted step on whatever field they sit on. */
-  --color-control: rgb(16 16 24 / 0.08);
-  --color-control-hover: rgb(16 16 24 / 0.13);
-  --color-control-pressed: rgb(16 16 24 / 0.2);
-  --color-accent: #2b3bff; /* brand ultramarine: what moved, what to press */
-  --color-accent-press: #2232e0;
-  --color-on-accent: #ffffff;
+  /* Controls inside the glass: a fill on whatever they sit on. */
+  --color-control: var(--gg-fill);
+  --color-control-hover: var(--gg-fill-hover);
+  --color-control-pressed: var(--gg-fill-press);
+  --color-accent: var(--gg-accent); /* brand ultramarine: what moved, what to press */
+  --color-accent-press: var(--gg-accent-press);
+  --color-on-accent: var(--gg-on-accent);
   --color-brand: #2b3bff;
   --color-paper: #f3f3ef;
   --color-print: #0e0e12;
 
-  /* Status colours, pulled toward the plates so they sit with the grey and the ultramarine. */
+  /* Status colours. */
   --color-system-red: #e5332a;
-  --color-system-orange: #e8741c;
+  --color-system-orange: var(--gg-warning);
   --color-system-yellow: #d9a600;
-  --color-system-green: #1f9d55;
+  --color-system-green: var(--gg-positive);
   --color-system-mint: #12a594;
   --color-system-teal: #0e9aa7;
   --color-system-cyan: #1592c4;
@@ -108,44 +106,24 @@
   --color-cat-orange: var(--color-system-orange);
   --color-cat-yellow: var(--color-system-yellow);
 
-  /* Flat at rest: nothing in the page casts a shadow. */
-  --shadow-control: none;
+  --shadow-control: var(--gg-shadow-control);
   --shadow-card: none;
-  /* Only what truly floats over the plate (menus, dialogs, drawers) lifts off it, with one hard shadow. */
-  --shadow-window: 0 24px 60px -16px rgb(14 14 18 / 0.45);
-  --shadow-popover: 0 18px 40px -12px rgb(14 14 18 / 0.4);
+  /* Glass that floats (menus, dialogs, drawers) lifts off with the kit's soft shadow. */
+  --shadow-window: var(--gg-shadow-float);
+  --shadow-popover: var(--gg-shadow);
 
-  /* Motion, as on the landing page. */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Motion, the kit's curves. */
+  --ease-out: var(--gg-ease);
   --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
-  --ease-drawer: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-drawer: var(--gg-ease);
 }
 
-/* Dark appearance: print black printed in paper. data-theme is set before first paint (index.html) and by lib/theme.ts. */
+/* Dark appearance: smoked glass. data-theme is set before first paint (index.html) and by lib/theme.ts. */
 :root[data-theme="dark"] {
-  color-scheme: dark;
-  --color-canvas: #0e0e12;
-  --color-panel: #1d1d24;
-  --color-panel-hover: #25252e;
-  --color-float: #1d1d24;
-  --color-field: #26262f;
-  --color-raised: rgb(243 243 239 / 0.07);
-  --color-selected: rgb(243 243 239 / 0.1);
-  --color-sidebar: #16161b;
-  --color-zebra: rgb(243 243 239 / 0.035);
-  --color-selection: #2b3bff;
-  --color-line: rgb(243 243 239 / 0.1);
-  --color-line-strong: rgb(243 243 239 / 0.2);
-  --color-ink: #f3f3ef;
-  --color-muted: rgb(243 243 239 / 0.62);
-  --color-faint: rgb(243 243 239 / 0.34);
-
-  --color-control: rgb(243 243 239 / 0.09);
-  --color-control-hover: rgb(243 243 239 / 0.14);
-  --color-control-pressed: rgb(243 243 239 / 0.2);
-  /* Ultramarine lifted a notch so it still reads as text on print black. */
+  --color-line: rgb(244 244 247 / 0.1);
+  --color-line-strong: rgb(244 244 247 / 0.2);
+  /* Ultramarine lifted a notch so it still reads as text on smoked glass. */
   --color-accent: #5866ff;
-  --color-accent-press: #4654f0;
 
   --color-chart-1: #5866ff;
   --color-chart-2: #f08a3c;
@@ -155,9 +133,7 @@
   --color-chart-6: #a868ec;
 
   --color-system-red: #ff5a50;
-  --color-system-orange: #f08a3c;
   --color-system-yellow: #f2c230;
-  --color-system-green: #3cc274;
   --color-system-mint: #2bbfac;
   --color-system-teal: #2ab4c0;
   --color-system-cyan: #38aee0;
@@ -167,50 +143,76 @@
   --color-system-pink: #f0587f;
   --color-system-brown: #b48b6a;
   --color-system-gray: #8e8f95;
-
-  --shadow-window: 0 24px 60px -16px rgb(0 0 0 / 0.7);
-  --shadow-popover: 0 18px 40px -12px rgb(0 0 0 / 0.65);
 }
 
 /*
- * Floating surfaces (the composer, the ⌘K field, toasts, dialogs): an opaque plate that lifts off
- * the page with one hard shadow. No blur and no rim: nothing is see-through.
+ * Floating surfaces (the composer, the ⌘K field, toasts, dialogs, side panels): the kit's thick
+ * glass, blurring whatever is under it, with a bright top edge and a soft shadow.
  */
 @utility glass {
-  background: var(--color-float);
-  box-shadow: var(--shadow-popover);
+  background: var(--gg-material-thick);
+  -webkit-backdrop-filter: blur(var(--gg-blur)) saturate(var(--gg-saturate));
+  backdrop-filter: blur(var(--gg-blur)) saturate(var(--gg-saturate));
+  border-radius: var(--gg-r-panel);
+  box-shadow:
+    0 0 0 0.5px var(--gg-edge),
+    inset 0 1px 0 var(--gg-rim),
+    inset 0 0 0 1px var(--gg-rim-low),
+    var(--gg-shadow-float);
 
   &:not(.fixed, .absolute, .sticky) {
     position: relative;
   }
 }
 
-/* Focus: a solid ultramarine outline, offset from the control; paper on print-black grounds. */
+/*
+ * Boxes set into the glass (panels, wells, fields, dialogs) take the kit's card corner unless they
+ * ask for another one with a `rounded-*` utility, which sits in a later layer and wins.
+ */
+@layer components {
+  .bg-panel,
+  .bg-canvas,
+  .bg-field,
+  .bg-float,
+  .bg-raised,
+  .bg-selected {
+    border-radius: var(--radius-lg);
+  }
+}
+
+/* Focus: the kit's ultramarine outline, offset from the control. */
 @utility focus-ring {
-  outline: 3px solid var(--color-accent);
+  outline: 2px solid var(--gg-accent-text);
   outline-offset: 2px;
 }
 
 /*
- * AI at work: the blink. A solid ultramarine edge holds the element, and a marker square jumps
- * between two corners with no interpolation, like the dot that moved between the 1930 plates.
- * Add `ai-glow` only while the AI is working; it makes the element `relative`, so wrap anything
- * already absolutely positioned.
+ * AI at work: the kit's edge light. An ultramarine light runs round the element's edge while the
+ * AI works in it (`gg-ai-edge`, always running here). Add `ai-glow` only while the AI is working.
  */
 @utility ai-glow {
   position: relative;
-  box-shadow: inset 0 0 0 2px var(--color-accent);
 
   &::after {
     content: "";
     position: absolute;
-    top: -3px;
-    left: -3px;
-    width: 7px;
-    height: 7px;
-    background: var(--color-accent);
+    inset: 0;
+    z-index: 2;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--gg-turn),
+      transparent 0 55%,
+      rgb(110 122 255 / 0.9) 70%,
+      var(--gg-accent) 80%,
+      rgb(160 170 255 / 0.95) 86%,
+      transparent 95%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
     pointer-events: none;
-    animation: blink-corner 1.6s steps(1, end) infinite;
+    animation: gg-turn 2.4s linear infinite;
   }
 
   /* A busy AI control stays readable instead of dimming like a plain disabled one (doubled to beat `disabled:opacity-50`). */
@@ -225,25 +227,18 @@
   }
 }
 
-@keyframes blink-corner {
-  50% {
-    top: calc(100% - 4px);
-    left: calc(100% - 4px);
-  }
-}
-
-/* "Thinking…" labels: the words blink in ultramarine, a hard cut, never a sweep. */
+/* "Thinking…" labels: the words breathe between ink and ultramarine. */
 @utility ai-text {
-  color: var(--color-accent);
-  animation: blink-text 1.6s steps(1, end) infinite;
+  color: var(--gg-accent-text);
+  animation: ai-breathe 1.8s var(--gg-ease) infinite alternate;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
 }
 
-@keyframes blink-text {
-  50% {
+@keyframes ai-breathe {
+  to {
     color: var(--color-muted);
   }
 }
@@ -258,8 +253,16 @@ body,
   height: 100%;
 }
 
+html {
+  /* The ground under the desktop picture, seen only while it loads. */
+  background: #cbbfae;
+}
+
+:root[data-theme="dark"] {
+  background: #06060a;
+}
+
 body {
-  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
@@ -270,7 +273,7 @@ body {
 }
 
 /*
- * Pop-up buttons: the native arrow differs by browser, so every select draws a square chevron
+ * Pop-up buttons: the native arrow differs by browser, so every select draws its own chevron
  * instead. Unlayered so the room it needs beats `px-*`.
  */
 select {
@@ -283,8 +286,8 @@ select {
 }
 
 :root {
-  --select-chevron-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%23101018' stroke-width='1.8' stroke-linecap='square'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
-  --select-chevron-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%23f3f3ef' stroke-width='1.8' stroke-linecap='square'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  --select-chevron-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%23101018' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  --select-chevron-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%23f3f3ef' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
   --select-chevron: var(--select-chevron-ink);
 }
 
@@ -308,14 +311,13 @@ select {
   }
 
   ::selection {
-    background: var(--color-brand);
+    background: var(--gg-accent);
     color: #fff;
   }
 }
 
 /*
- * Appearance switch: the new plate is uncovered from the clicked control by a hard-edged disc, like
- * the marker ring growing until it holds the whole window.
+ * Appearance switch: the new appearance is uncovered from the clicked control by a growing disc.
  */
 @property --wave-r {
   syntax: "<length>";
@@ -353,13 +355,11 @@ select {
 }
 
 /*
- * Menus and popovers: an opaque plate with one hard shadow, entering from just above its trigger.
+ * Menus and popovers: thick glass with a soft shadow, entering from just above its trigger.
  * Set the origin with `origin-top-right` and the like when it opens from a corner.
  */
 @utility popover {
-  background: var(--color-float);
-  box-shadow: var(--shadow-popover);
-  @apply popover-motion;
+  @apply glass popover-motion;
 }
 
 /* The popover entrance on its own, for floating surfaces with their own material. */
@@ -447,110 +447,47 @@ select {
 }
 
 /*
- * Wallpaper (Settings → Appearance). The picture fills the window behind a veil that keeps page
- * titles readable, and every panel becomes a plate of tinted grey over it.
+ * The desktop: Pluto behind the app, New Horizons' dunes by day and its icy mountains at sunset by
+ * night, as on the landing page. A wallpaper chosen in Settings → Appearance takes its place, with
+ * the blur, colour and veil tuned there.
  */
-.wallpaper-light,
-.wallpaper-dark {
+.desktop img {
   position: absolute;
   inset: 0;
-  /* Tuned in Settings → Appearance; the fallbacks are the factory values. */
-  filter: blur(var(--wallpaper-blur, 80px)) saturate(var(--wallpaper-saturate, 80%));
-  scale: 1.25;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.wallpaper::after {
+.desktop-day {
+  object-position: 50% 62%;
+}
+
+.desktop-night {
+  object-position: 62% 50%;
+}
+
+.desktop-custom {
+  /* Tuned in Settings → Appearance; the fallbacks are the factory values. */
+  filter: blur(var(--wallpaper-blur, 0px)) saturate(var(--wallpaper-saturate, 100%));
+  scale: 1.1;
+}
+
+/* A veil in the appearance's own tone, so the glass reads anywhere and still shows colour. */
+.desktop::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgb(222 223 218 / var(--wallpaper-veil, 0.5));
+  background: rgb(238 235 230 / var(--wallpaper-veil, 0.18));
 }
 
-:root[data-theme="dark"] .wallpaper::after {
-  background: rgb(14 14 18 / calc(var(--wallpaper-veil, 0.5) + 0.05));
+:root[data-theme="dark"] .desktop::after {
+  background: rgb(4 4 8 / var(--wallpaper-veil, 0.3));
 }
 
-:root[data-theme="dark"] .wallpaper-light,
-:root:not([data-theme="dark"]) .wallpaper-dark {
+:root[data-theme="dark"] .desktop-light,
+:root:not([data-theme="dark"]) .desktop-dark {
   display: none;
-}
-
-:root:not([data-theme="dark"])[data-wallpaper-light],
-:root[data-theme="dark"][data-wallpaper-dark] {
-  --color-panel: rgb(205 207 199 / 0.72);
-  --color-panel-hover: rgb(196 198 190 / 0.8);
-
-  & body {
-    background: transparent;
-  }
-
-  & .bg-sidebar {
-    background: rgb(205 207 199 / 0.8);
-  }
-}
-
-:root[data-theme="dark"][data-wallpaper-dark] {
-  & .bg-sidebar {
-    background: rgb(22 22 27 / 0.86);
-  }
-
-  --color-panel: rgb(29 29 36 / 0.72);
-  --color-panel-hover: rgb(37 37 46 / 0.8);
-}
-
-/*
- * The agent's mark: a plate in miniature. A square of print black scattered with stars, where one
- * dot jumps between two places inside an ultramarine ring, the 1930 blink at the size of an icon.
- */
-@utility ai-orb {
-  display: block;
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 26%, #f3f3ef 0 1px, transparent 1.5px),
-    radial-gradient(circle at 74% 18%, #f3f3ef 0 1.2px, transparent 1.7px),
-    radial-gradient(circle at 86% 64%, #f3f3ef 0 0.8px, transparent 1.3px),
-    radial-gradient(circle at 30% 80%, #f3f3ef 0 1px, transparent 1.5px),
-    radial-gradient(circle at 58% 88%, #f3f3ef 0 0.7px, transparent 1.2px),
-    #0e0e12;
-
-  /* The dot that moved, and its marker ring; both cut between two places. */
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    left: 38%;
-    top: 52%;
-    border-radius: 9999px;
-    translate: -50% -50%;
-    animation: blink-mover 1.6s steps(1, end) infinite;
-  }
-
-  &::before {
-    width: 12%;
-    aspect-ratio: 1;
-    background: #f3f3ef;
-  }
-
-  &::after {
-    width: 40%;
-    aspect-ratio: 1;
-    border: 2px solid #2b3bff;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &::before,
-    &::after {
-      animation: none;
-    }
-  }
-}
-
-@keyframes blink-mover {
-  50% {
-    left: 60%;
-    top: 44%;
-  }
 }
 
 /* A first view settling in: each part rises out of its place, once, staggered by its delay. */
@@ -570,8 +507,8 @@ select {
 }
 
 /*
- * Secondary controls (ghost buttons, pop-up buttons, the search field, segmented tracks): a square
- * of flat tint, one step off the field it sits on. Several buttons can share one (see ButtonGroup).
+ * Secondary controls (pop-up buttons, the search field, button groups): the kit's fill inside the
+ * glass, with a row's corner. Several buttons can share one (see ButtonGroup).
  */
 :root {
   --capsule-bg: var(--color-control);
@@ -580,10 +517,11 @@ select {
 
 @utility capsule {
   background-color: var(--capsule-bg);
+  border-radius: var(--radius-md);
 }
 
 /*
- * Tables: a header of small secondary labels that never wrap, rows on alternating plate steps and
+ * Tables: a header of small secondary labels that never wrap, rows on alternating fills and
  * no lines anywhere, numbers in tabular figures. Put `mac-table` on the <table>; wrap it in a Group
  * for the box.
  */
@@ -628,11 +566,11 @@ select {
 }
 
 /*
- * The top edge of a scrolling column: the field itself, fading out, so content passes under it
+ * The top edge of a scrolling column: the window's glass, fading out, so content passes under it
  * instead of being cut by a line. Kept as three children for the markup that already uses it.
  */
 @utility progressive-blur {
-  background: linear-gradient(to bottom, var(--color-canvas) 20%, transparent);
+  background: linear-gradient(to bottom, var(--gg-material-thick) 20%, transparent);
 
   & > * {
     display: none;

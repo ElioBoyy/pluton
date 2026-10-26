@@ -60,10 +60,3 @@ export const emailSourceLabel = (source: string | null | undefined) =>
 export const COLUMNS = ["position", "company", "location", "status", "why", "fit", "warmness", "email", "play", "found"] as const;
 export type ColumnKey = (typeof COLUMNS)[number];
 
-export const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join("");

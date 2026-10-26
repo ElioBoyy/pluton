@@ -103,7 +103,7 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
               }}
               aria-pressed={selected.has(band)}
               className={cn(
-                "inline-flex h-6 items-center px-2.5 text-xs tabular-nums transition-[background-color,scale] duration-150 ease-out motion-safe:active:scale-[0.96]",
+                "inline-flex rounded-full h-6 items-center px-2.5 text-xs tabular-nums transition-[background-color,scale] duration-150 ease-out motion-safe:active:scale-[0.96]",
                 selected.has(band) ? "bg-accent font-medium text-on-accent" : "bg-control text-ink hover:bg-control-hover",
               )}
             >

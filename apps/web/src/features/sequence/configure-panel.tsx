@@ -233,7 +233,7 @@ function Window({ data, onSaved }: { data: Data; onSaved: () => void }) {
                 aria-pressed={days.includes(d)}
                 onClick={() => setDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d]))}
                 className={cn(
-                  "inline-flex h-6 min-w-10 items-center justify-center px-2 text-xs transition-colors duration-150",
+                  "inline-flex rounded-full h-6 min-w-10 items-center justify-center px-2 text-xs transition-colors duration-150",
                   days.includes(d) ? "bg-accent font-medium text-on-accent" : "bg-control text-muted hover:bg-control-hover hover:text-ink",
                 )}
               >

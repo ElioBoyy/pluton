@@ -334,7 +334,7 @@ function StepLeads({ data, step }: { data: Data; step: Step }) {
           <li key={e.id} className="bg-panel px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-2">
               <span className="truncate font-medium">{e.person.name}</span>
-              <span className={cn("inline-flex h-5 shrink-0 items-center px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
+              <span className={cn("inline-flex rounded-full h-5 shrink-0 items-center px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
             </div>
             {step.kind === "message" && (
               <p className="mt-1 line-clamp-3 text-xs text-muted">

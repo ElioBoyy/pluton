@@ -70,16 +70,24 @@ export function AppShell() {
   const name = workspace.data?.name ?? "…";
 
   return (
-    <div className="flex h-full">
+    // Pluto is the desktop; the app is one window of glass over it, its sidebar a pane inside.
+    <div className="flex h-full p-2 max-md:p-0">
       <Wallpaper />
       {navOpen && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />}
-      {/* The sidebar sits one tone down from the plate: full height, flush with the window edge. A drawer on phones. */}
+      <div className="relative flex min-w-0 flex-1 rounded-[var(--gg-r-window)] max-md:rounded-none">
+        {/*
+          The window's glass is a layer of its own: a backdrop filter would make the window the
+          containing block of every fixed drawer, menu and dialog in the pages.
+        */}
+        <div aria-hidden className="gg-window pointer-events-none absolute inset-0 max-md:rounded-none" />
+      {/* The sidebar floats inside the window as its own pane, like the kit's Sidebar. A drawer of glass on phones. */}
       <aside
         className={cn(
-          "flex w-60 shrink-0 flex-col bg-sidebar",
-          "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-72 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]",
-          "max-md:transition-transform max-md:duration-200 max-md:ease-out motion-reduce:transition-none",
-          navOpen ? "max-md:translate-x-0 max-md:shadow-window" : "max-md:-translate-x-full",
+          "relative flex w-60 shrink-0 flex-col rounded-[calc(var(--gg-r-window)-8px)] bg-control shadow-[inset_0_0_0_1px_var(--gg-rim-low)] md:m-2 md:mr-0",
+          // On phones, thick glass of its own (not the `glass` utility, whose `relative` would beat `fixed` here).
+          "max-md:fixed max-md:inset-y-2 max-md:left-2 max-md:z-50 max-md:w-72 max-md:bg-(--gg-material-thick) max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)] max-md:shadow-window max-md:backdrop-blur-2xl",
+          "max-md:transition-transform max-md:duration-300 max-md:ease-out motion-reduce:transition-none",
+          navOpen ? "max-md:translate-x-0" : "max-md:-translate-x-[110%]",
         )}
       >
         <Link to="/home" aria-label="Pluton" className="flex h-12 items-center px-4 pt-2">
@@ -90,14 +98,13 @@ export function AppShell() {
           <NotificationBell />
         </div>
 
-        <nav className="flex min-h-0 flex-col gap-px overflow-y-auto px-2.5">
+        <nav className="flex min-h-0 flex-col gap-0.5 overflow-y-auto px-2">
           {NAV.map(({ to, key, icon: IconCmp }) => (
             <div key={to} className="group/nav relative">
               <Link
                 to={to}
-                // The landing's chapter swatches: the label slides right on hover; the current page is inked in ultramarine.
-                className="flex h-8 items-center gap-2.5 px-2.5 text-sm font-medium text-ink transition-[padding] duration-240 ease-out hover:bg-raised hover:pl-3.5 motion-reduce:transition-none"
-                activeProps={{ className: "!bg-brand !pl-2.5 !text-white" }}
+                // The kit's sidebar item; the current page is tinted ultramarine.
+                className="gg-side-item min-h-8 gap-2.5 text-sm font-medium"
                 activeOptions={{ exact: to === "/plays" }}
               >
                 <IconCmp size={16} />
@@ -115,7 +122,7 @@ export function AppShell() {
                   onClick={() => setPlaysOpen(!playsOpen)}
                   aria-expanded={playsOpen}
                   aria-label={playsOpen ? t("nav.hidePlays") : t("nav.showPlays")}
-                  className="absolute top-1.5 right-1.5 flex size-5 items-center justify-center text-faint transition-colors duration-150 hover:bg-raised hover:text-ink group-has-[[aria-current=page]]/nav:text-white/70"
+                  className="absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-xs text-faint transition-colors duration-150 hover:bg-raised hover:text-ink group-has-[[aria-current=page]]/nav:text-accent"
                 >
                   <CaretRight size={11} weight="bold" className={cn("transition-transform duration-200 ease-out", playsOpen && "rotate-90")} />
                 </button>
@@ -129,7 +136,7 @@ export function AppShell() {
                   )}
                   inert={!playsOpen}
                 >
-                <ul className="mt-px mb-1 ml-4 flex min-h-0 flex-col gap-px overflow-hidden pl-2">
+                <ul className="mt-0.5 mb-1 ml-4 flex min-h-0 flex-col gap-0.5 overflow-hidden pl-2">
                   {(plays.data ?? [])
                     .filter((p) => p.status !== "archived")
                     .map((p) => (
@@ -138,8 +145,7 @@ export function AppShell() {
                           to="/plays/$playId"
                           params={{ playId: p.id }}
                           onContextMenu={contextMenu(() => playMenu(p))}
-                          className="flex h-7 items-center gap-2 px-2 text-sm text-muted transition-[padding] duration-240 ease-out hover:bg-raised hover:pl-3 hover:text-ink motion-reduce:transition-none"
-                          activeProps={{ className: "!bg-selected !pl-2 !text-ink" }}
+                          className="gg-side-item min-h-7 gap-2 px-2 text-sm text-muted hover:text-ink"
                         >
                           <span className="flex-1 truncate">{p.name}</span>
                           {p.leadCounts.toReview > 0 && <span className="text-xs tabular-nums text-muted">{p.leadCounts.toReview}</span>}
@@ -156,11 +162,7 @@ export function AppShell() {
         <div className="mt-auto flex flex-col gap-3 p-3">
           <GetStarted />
           <div className="flex items-center gap-2">
-            <Link
-              to="/workspace/settings"
-              className="flex h-8 flex-1 items-center gap-2.5 px-2.5 text-sm font-medium text-ink transition-[padding] duration-240 ease-out hover:bg-raised hover:pl-3.5 motion-reduce:transition-none"
-              activeProps={{ className: "!bg-brand !pl-2.5 !text-white" }}
-            >
+            <Link to="/workspace/settings" className="gg-side-item min-h-8 flex-1 gap-2.5 text-sm font-medium">
               <Gear size={16} />
               {tc("settings")}
             </Link>
@@ -169,12 +171,12 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2 bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[var(--gg-r-window)] max-md:rounded-none">
+        <header className="flex h-12 shrink-0 items-center gap-2 px-2 pt-[env(safe-area-inset-top)] md:hidden">
           <button
             onClick={() => setNavOpen(true)}
             aria-label={t("nav.openMenu")}
-            className="flex size-9 items-center justify-center text-ink hover:bg-raised"
+            className="flex size-9 items-center justify-center rounded-full text-ink hover:bg-raised"
           >
             <List size={20} />
           </button>
@@ -182,7 +184,7 @@ export function AppShell() {
           <button
             onClick={() => setPaletteOpen(true)}
             aria-label={t("askPluton")}
-            className="flex size-9 items-center justify-center text-muted hover:bg-raised hover:text-ink"
+            className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-raised hover:text-ink"
           >
             <MagnifyingGlass size={18} />
           </button>
@@ -194,6 +196,7 @@ export function AppShell() {
           {/* Pages with their own composer would be covered by the floating bar; phones use the header button. */}
           {askBar && <AskBar label={t("askAnything")} hidden={paletteOpen} onOpen={() => setPaletteOpen(true)} />}
         </main>
+      </div>
       </div>
 
       <CommandPalette key={workspace.data?.id} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
@@ -212,7 +215,7 @@ function GetStarted() {
   const steps = checklist.data ?? [];
   if (!steps.length || steps.every((s) => s.done)) return null;
   return (
-    <div className="bg-raised p-3">
+    <div className="rounded-xl bg-raised p-3">
       <p className="mb-2 flex items-center text-xs font-semibold text-muted">
         <span className="flex-1">{t("getStarted")}</span>
         <span className="font-normal tabular-nums text-faint">
@@ -263,7 +266,7 @@ function usePlaysOpen() {
 }
 
 /**
- * The floating "Ask Pluton" bar, an opaque plate over the page. It grows
+ * The floating "Ask Pluton" bar, a capsule of glass over the page. It grows
  * with its label so every language fits on one line, and is centred over the content by its
  * measured width, so its slide uses `bottom` and no transform.
  */
@@ -289,18 +292,18 @@ function AskBar({ label, hidden, onOpen }: { label: string; hidden: boolean; onO
     <button
       ref={ref}
       onClick={onOpen}
-      style={{ left: `calc(50% + 120px - ${width / 2}px)` }}
+      style={{ left: `calc(50% + 124px - ${width / 2}px)` }}
       // While ⌘K is open it slides below the window's edge.
       aria-hidden={hidden || undefined}
       tabIndex={hidden ? -1 : undefined}
       className={cn(
-        "glass fixed flex h-12 min-w-80 items-center gap-3 pr-2 pl-4 text-base whitespace-nowrap text-muted shadow-popover transition-[color,bottom] duration-[420ms] ease-out hover:text-ink max-md:hidden motion-reduce:transition-none",
+        "glass fixed flex h-12 min-w-80 items-center gap-3 rounded-full pr-2 pl-4 text-base whitespace-nowrap text-muted transition-[color,bottom] duration-[420ms] ease-out hover:text-ink max-md:hidden motion-reduce:transition-none",
         hidden ? "pointer-events-none -bottom-20" : "bottom-5",
       )}
     >
       <MagnifyingGlass size={18} className="shrink-0" />
       {label}
-      <kbd className="ml-auto flex h-8 items-center bg-brand px-2.5 font-sans text-xs font-medium text-white">⌘K</kbd>
+      <kbd className="ml-auto flex h-8 items-center rounded-full bg-accent px-3 font-sans text-xs font-medium text-on-accent">⌘K</kbd>
     </button>
   );
 }

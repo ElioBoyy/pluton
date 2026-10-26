@@ -54,4 +54,4 @@ export const PILL = {
   gray: "bg-control text-muted",
 } as const;
 
-export const PILL_BASE = "inline-flex h-5 shrink-0 items-center px-2 text-xs font-medium whitespace-nowrap";
+export const PILL_BASE = "inline-flex rounded-full h-5 shrink-0 items-center px-2 text-xs font-medium whitespace-nowrap";

@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { useTRPC } from "../lib/trpc.ts";
 
 /**
- * The wallpaper chosen in Settings → Appearance, fixed behind the whole app. Both images are in the
- * page and CSS shows the one for the current appearance, so switching themes needs no reload. The
- * root's data-wallpaper-<theme> flags tell styles.css to turn surfaces into blurred glass.
+ * The desktop behind the whole app: Pluto by day and by night, as on the landing page, or the
+ * wallpaper chosen in Settings → Appearance in its place. Both appearances are in the page and CSS
+ * shows the one for the current appearance, so switching themes needs no reload.
  */
 export function Wallpaper() {
   const trpc = useTRPC();
@@ -13,30 +12,30 @@ export function Wallpaper() {
   const light = data?.light?.url ?? null;
   const dark = data?.dark?.url ?? null;
 
-  useEffect(() => {
-    const root = document.documentElement.dataset;
-    if (light) root.wallpaperLight = "";
-    else delete root.wallpaperLight;
-    if (dark) root.wallpaperDark = "";
-    else delete root.wallpaperDark;
-  }, [light, dark]);
-
-  if (!light && !dark) return null;
   return (
     <div
       aria-hidden
-      className="wallpaper pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+      className="desktop pointer-events-none fixed inset-0 -z-10 overflow-hidden"
       style={
-        data?.tuning &&
-        ({
+        data?.tuning && (light || dark)
+          ? ({
           "--wallpaper-blur": `${data.tuning.blur}px`,
           "--wallpaper-saturate": `${data.tuning.saturation}%`,
           "--wallpaper-veil": data.tuning.veil / 100,
         } as React.CSSProperties)
+          : undefined
       }
     >
-      {light && <img src={light} alt="" className="wallpaper-light size-full object-cover" />}
-      {dark && <img src={dark} alt="" className="wallpaper-dark size-full object-cover" />}
+      {light ? (
+        <img src={light} alt="" className="desktop-light desktop-custom" />
+      ) : (
+        <img src="/img/wall-day.webp" alt="" className="desktop-light desktop-day" fetchPriority="high" />
+      )}
+      {dark ? (
+        <img src={dark} alt="" className="desktop-dark desktop-custom" />
+      ) : (
+        <img src="/img/wall-night.webp" alt="" className="desktop-dark desktop-night" />
+      )}
     </div>
   );
 }

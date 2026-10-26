@@ -42,7 +42,7 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
       <Group>
         <Row
           label={
-            <span className={cn("inline-flex h-5 items-center gap-1.5 px-2 text-xs font-medium whitespace-nowrap", ENROLLMENT[e.status]?.className)}>
+            <span className={cn("inline-flex rounded-full h-5 items-center gap-1.5 px-2 text-xs font-medium whitespace-nowrap", ENROLLMENT[e.status]?.className)}>
               <span className="size-1.5 rounded-full bg-current" aria-hidden />
               {ENROLLMENT[e.status]?.label}
             </span>
@@ -75,7 +75,7 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
         <Group key={r.id} className="px-4 py-3 text-sm">
           <p className="flex items-center justify-between gap-2 text-xs">
             <span className="font-medium">{t("block.theirReply", { when: when(r.receivedAt) })}</span>
-            {r.label && <span className={cn("inline-flex h-5 items-center px-2", REPLY_LABEL[r.label]?.className)}>{REPLY_LABEL[r.label]?.label}</span>}
+            {r.label && <span className={cn("inline-flex rounded-full h-5 items-center px-2", REPLY_LABEL[r.label]?.className)}>{REPLY_LABEL[r.label]?.label}</span>}
           </p>
           <p className="mt-1.5 whitespace-pre-wrap">{r.text}</p>
         </Group>

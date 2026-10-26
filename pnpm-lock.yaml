@@ -207,6 +207,9 @@ importers:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@pluton/glass':
+        specifier: workspace:*
+        version: link:../../packages/glass
       '@pluton/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

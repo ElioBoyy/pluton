@@ -1,6 +1,7 @@
 import { CaretRight, CircleNotch } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { AppIcon } from "@pluton/glass";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { BrainData } from "@pluton/core";
 import { PlutonLogo } from "../../components/logo.tsx";
@@ -67,7 +68,7 @@ function OnboardingForm() {
         }}
       >
         <PlutonLogo className="mb-8 h-7 text-ink" />
-        <h1 className="text-[28px] leading-[26px] font-bold tracking-[-0.03em] text-balance uppercase">
+        <h1 className="text-[28px] leading-[30px] font-bold tracking-[-0.03em] text-balance">
           {t("form.greeting")}
           <br />
           {t("form.heading")}
@@ -207,9 +208,9 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
         )}
 
         {celebrating && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas/95 motion-safe:animate-[fadeIn_600ms_ease-out]">
-            <span className="ai-orb size-16" aria-hidden />
-            <p className="mt-6 text-[28px] leading-[26px] font-bold tracking-[-0.03em] uppercase">{t("live.title")}</p>
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-(--gg-material-thick) backdrop-blur-2xl motion-safe:animate-[fadeIn_600ms_ease-out]">
+            <AppIcon className="size-16 rounded-[calc(17px*var(--gg-k))]" />
+            <p className="mt-6 text-[28px] leading-[30px] font-bold tracking-[-0.03em]">{t("live.title")}</p>
             <p className="mt-1 text-sm text-muted">{t("live.description")}</p>
           </div>
         )}

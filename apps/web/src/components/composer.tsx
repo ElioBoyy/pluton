@@ -31,9 +31,9 @@ export function Composer({
     <div className="px-3 pt-2 pb-3 sm:px-4 sm:pb-5">
       <div
         className={cn(
-          // A square of paper lifted off the plate; the ultramarine outline only while focused.
-          "glass mx-auto flex max-w-2xl items-end gap-2 bg-field py-1.5 pr-1.5 pl-4",
-          "outline-offset-2 outline-accent focus-within:outline-3",
+          // A rounded field of thick glass, lifted off the window; ringed in ultramarine while focused.
+          "glass mx-auto flex max-w-2xl items-end gap-2 rounded-[22px] py-1.5 pr-1.5 pl-4",
+          "transition-shadow duration-150 focus-within:shadow-[0_0_0_1px_var(--gg-accent),0_0_0_4px_var(--gg-accent-soft),var(--gg-shadow-float)]",
           disabled && "ai-glow",
         )}
       >
@@ -56,10 +56,10 @@ export function Composer({
           onClick={stopping ? onStop : submit}
           disabled={!stopping && !ready}
           className={cn(
-            "flex size-8 shrink-0 items-center justify-center",
+            "flex size-8 shrink-0 items-center justify-center rounded-full",
             "transition-[background-color,color,scale,opacity] duration-150 ease-out motion-safe:enabled:active:scale-90",
             stopping
-              ? "bg-ink text-canvas"
+              ? "bg-ink text-paper dark:text-print"
               : ready
                 ? "bg-accent text-on-accent hover:bg-accent-press"
                 : "bg-control text-faint",

@@ -212,7 +212,7 @@ export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceIte
       <form
         role="dialog"
         aria-label={t("newWorkspace")}
-        className="w-[min(420px,100%)] bg-canvas p-5 shadow-window"
+        className="glass w-[min(420px,100%)] p-5"
         onSubmit={(e) => {
           e.preventDefault();
           create.mutate({ name: name.trim(), copyFrom: settings === "copy" ? (current?.id ?? null) : null }, { onSuccess: onClose });
