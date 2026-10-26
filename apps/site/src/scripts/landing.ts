@@ -262,14 +262,37 @@ for (const el of $$(".reveal")) {
   io.observe(el);
 }
 
-/* ------------------------------------------------------------------ the flyover: plays only while seen, never with reduced motion */
-
+/*
+ * The flyover: the file runs forward then backward (a seamless loop), and its speed follows a
+ * sine curve over each half, slowing to a near stop where it turns round and gliding in between.
+ * Plays only while seen, never with reduced motion.
+ */
 const flyover = $<HTMLVideoElement>(".trust video");
 if (flyover) {
+  const SLOWEST = 0.12;
+  const FASTEST = 0.55;
+  let frame = 0;
+  const ease = () => {
+    const half = flyover.duration / 2;
+    if (half) {
+      const phase = (flyover.currentTime % half) / half; // 0 → 1 across each direction
+      flyover.playbackRate = SLOWEST + (FASTEST - SLOWEST) * Math.sin(Math.PI * phase);
+    }
+    frame = requestAnimationFrame(ease);
+  };
+  flyover.playbackRate = SLOWEST;
+  // timeupdate keeps the curve going where animation frames are throttled.
+  flyover.addEventListener("timeupdate", () => {
+    const half = flyover.duration / 2;
+    if (half) flyover.playbackRate = SLOWEST + (FASTEST - SLOWEST) * Math.sin(Math.PI * ((flyover.currentTime % half) / half));
+  });
   if (reduced) flyover.removeAttribute("autoplay");
   new IntersectionObserver(([e]) => {
-    if (e?.isIntersecting && !reduced) void flyover.play().catch(() => {});
-    else flyover.pause();
+    cancelAnimationFrame(frame);
+    if (e?.isIntersecting && !reduced) {
+      void flyover.play().catch(() => {});
+      frame = requestAnimationFrame(ease);
+    } else flyover.pause();
   }).observe(flyover);
 }
 
@@ -280,4 +303,36 @@ if (hero) {
   new IntersectionObserver(([e]) => {
     if (e) document.documentElement.dataset.desk = e.intersectionRatio < 0.45 ? "back" : "";
   }, { threshold: [0, 0.45, 1] }).observe(hero);
+}
+
+/* ------------------------------------------------------------------ questions open and close smoothly where CSS can't animate to auto */
+
+if (!CSS.supports("interpolate-size", "allow-keywords")) {
+  const items = $$<HTMLDetailsElement>(".faq .gg-disclosure");
+  const slide = (item: HTMLDetailsElement, open: boolean) => {
+    const body = $(".gg-disclosure__body", item)!;
+    if (open) item.open = true;
+    const h = body.scrollHeight;
+    const run = body.animate(
+      [
+        { height: open ? "0px" : `${h}px`, opacity: open ? 0 : 1 },
+        { height: open ? `${h}px` : "0px", opacity: open ? 1 : 0 },
+      ],
+      { duration: reduced ? 0 : 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+    body.style.overflow = "clip";
+    run.onfinish = () => {
+      body.style.overflow = "";
+      if (!open) item.open = false;
+    };
+  };
+  for (const item of items) {
+    item.removeAttribute("name"); // closing the others is done here, with the same slide
+    $("summary", item)!.addEventListener("click", (e) => {
+      e.preventDefault();
+      const opening = !item.open;
+      if (opening) for (const other of items) if (other !== item && other.open) slide(other, false);
+      slide(item, opening);
+    });
+  }
 }

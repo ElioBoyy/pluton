@@ -883,6 +883,30 @@
   rotate: 225deg;
   translate: 0 2px;
 }
+/* Opening and closing slide where the browser can animate to auto height. */
+@supports (interpolate-size: allow-keywords) {
+  .gg-disclosure {
+    interpolate-size: allow-keywords;
+  }
+  .gg-disclosure::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+    transition:
+      block-size 420ms var(--gg-ease),
+      opacity 320ms var(--gg-ease),
+      content-visibility 420ms allow-discrete;
+  }
+  .gg-disclosure[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gg-disclosure::details-content {
+    transition: none;
+  }
+}
 .gg-disclosure__body {
   padding: 0 20px 20px;
   font-size: 16px;
