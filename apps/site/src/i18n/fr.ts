@@ -219,6 +219,8 @@ export default {
     display: "github.com/ElioBoyy/pluton",
     license: "Licence",
     picturesLabel: "Images",
+    creditsLink: "Crédits images",
+    creditsBack: "Retour à Pluton",
     year: "2026",
   },
 } satisfies Strings;

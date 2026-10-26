@@ -2,7 +2,7 @@ import type { Strings } from "./index.ts";
 
 export default {
   meta: {
-    title: "Pluton: Finden Sie, wer sich bewegt hat",
+    title: "Pluton: der richtige Lead im richtigen Moment",
     description:
       "Pluton beobachtet Ihren Markt, erkennt die Menschen, deren Unternehmen gerade begonnen hat einzustellen, zu posten oder Kapital aufzunehmen, und schreibt ihnen in Ihrem Ton. Nichts geht raus, bevor Sie es freigeben.",
   },
@@ -16,7 +16,7 @@ export default {
     language: "Sprache",
   },
   hero: {
-    lines: ["Finden Sie, wer", "sich bewegt hat"],
+    lines: ["Der richtige Lead", "im richtigen Moment."],
     sub: "Pluton beobachtet Ihren Markt, erkennt die Menschen, deren Unternehmen gerade begonnen hat einzustellen, zu posten oder Kapital aufzunehmen, und schreibt ihnen in Ihrem Ton. Nichts geht raus, bevor Sie es freigeben.",
     cta: "Mit Ihrer Website starten",
     pause: "Blinken stoppen",
@@ -26,7 +26,7 @@ export default {
     caption: "Die Platten, auf denen Clyde Tombaugh Pluto fand, Lowell Observatory.",
   },
   intro: {
-    heading: ["Sterne stehen still.", "Achten Sie auf Bewegung."],
+    heading: ["Der Markt wirkt still.", "Ihre nächsten Kunden nicht."],
     lines: ["Pluto wurde 1930 entdeckt", "als einziger Punkt, der sich", "zwischen zwei Platten bewegte.", "Genauso beobachtet Pluton", "Ihren Markt."],
     note: "Clyde Tombaugh fotografierte denselben Himmelsausschnitt im Abstand von sechs Tagen und wechselte zwischen den Platten hin und her. Sterne bleiben, wo sie sind. Was sich bewegt, ist einen Blick wert.",
     photoA: "Der Blinkkomparator, den Tombaugh benutzte, Lowell Observatory.",
@@ -219,6 +219,8 @@ export default {
     display: "github.com/ElioBoyy/pluton",
     license: "Lizenz",
     picturesLabel: "Bilder",
+    creditsLink: "Bildnachweise",
+    creditsBack: "Zurück zu Pluton",
     year: "2026",
   },
 } satisfies Strings;

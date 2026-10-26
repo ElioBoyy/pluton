@@ -1,0 +1,22 @@
+---
+import Base from "../layouts/Base.astro";
+import Logo from "./Logo.astro";
+import { pathFor, strings, type Locale } from "../i18n/index.ts";
+import { PICTURE_CREDITS } from "../credits.ts";
+
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const t = strings(locale);
+---
+<Base locale={locale} t={{ ...t, meta: { ...t.meta, title: `${t.footer.creditsLink} · Pluton` } }}>
+  <main class="credits-page g-plate">
+    <a class="credits-logo" href={pathFor(locale)}><Logo /></a>
+    <h1 class="h-head">{t.footer.creditsLink}</h1>
+    <ul class="credits-list">
+      {PICTURE_CREDITS.map((c) => (
+        <li><a href={c.page}>“{c.title}”</a>, {c.creator}, <a href={c.licenseUrl}>{c.license}</a></li>
+      ))}
+    </ul>
+    <a class="btn btn-blue" href={pathFor(locale)}>{t.footer.creditsBack}</a>
+  </main>
+</Base>

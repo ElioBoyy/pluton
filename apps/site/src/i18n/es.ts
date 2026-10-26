@@ -2,7 +2,7 @@ import type { Strings } from "./index.ts";
 
 export default {
   meta: {
-    title: "Pluton: encuentra a quien acaba de moverse",
+    title: "Pluton: el prospecto justo, en el momento justo",
     description:
       "Pluton vigila tu mercado, detecta a las personas cuya empresa acaba de empezar a contratar, a publicar o a levantar fondos, y les escribe con tu voz. No sale nada hasta que tú lo digas.",
   },
@@ -16,7 +16,7 @@ export default {
     language: "Idioma",
   },
   hero: {
-    lines: ["Encuentra a quien", "acaba de moverse"],
+    lines: ["El prospecto justo,", "en el momento justo."],
     sub: "Pluton vigila tu mercado, detecta a las personas cuya empresa acaba de empezar a contratar, a publicar o a levantar fondos, y les escribe con tu voz. No sale nada hasta que tú lo digas.",
     cta: "Empieza con tu web",
     pause: "Detener el parpadeo",
@@ -26,7 +26,7 @@ export default {
     caption: "Las placas en las que Clyde Tombaugh encontró Plutón, Observatorio Lowell.",
   },
   intro: {
-    heading: ["Las estrellas quedan.", "Mira lo que se mueve."],
+    heading: ["El mercado parece quieto.", "Tus próximos clientes, no."],
     lines: ["Plutón se descubrió en 1930", "gracias al único punto", "que se movía entre dos placas.", "Pluton vigila tu mercado", "de la misma forma."],
     note: "Clyde Tombaugh fotografiaba el mismo trozo de cielo con seis días de diferencia y alternaba entre las placas. Las estrellas no se mueven. Lo que se mueve merece una mirada.",
     photoA: "El comparador de parpadeo que usaba Tombaugh, Observatorio Lowell.",
@@ -219,6 +219,8 @@ export default {
     display: "github.com/ElioBoyy/pluton",
     license: "Licencia",
     picturesLabel: "Imágenes",
+    creditsLink: "Créditos de imágenes",
+    creditsBack: "Volver a Pluton",
     year: "2026",
   },
 } satisfies Strings;
