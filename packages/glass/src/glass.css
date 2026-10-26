@@ -736,6 +736,20 @@
   }
 }
 
+/* When the work ends (`aiSettle()` in ./behaviors.ts), the light leaves a few soft sparks where its head was. */
+.gg-spark {
+  position: absolute;
+  z-index: 3;
+  width: var(--gg-spark-size, 4px);
+  height: var(--gg-spark-size, 4px);
+  margin: calc(var(--gg-spark-size, 4px) / -2) 0 0 calc(var(--gg-spark-size, 4px) / -2);
+  border-radius: 50%;
+  background: var(--gg-spark-colour, var(--gg-accent));
+  box-shadow: 0 0 8px 1px rgb(91 107 255 / 0.55);
+  pointer-events: none;
+  opacity: 0;
+}
+
 .gg-bubble {
   max-width: 85%;
   margin-left: auto;
