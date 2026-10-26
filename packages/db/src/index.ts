@@ -2,11 +2,11 @@ import path from "node:path";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { repoRoot } from "./paths.ts";
+import { HOSTED, repoRoot } from "./paths.ts";
 import * as schema from "./schema.ts";
 
 export * from "./schema.ts";
-export { schema, repoRoot };
+export { schema, repoRoot, HOSTED };
 export * from "./settings.ts";
 export * from "./costs.ts";
 

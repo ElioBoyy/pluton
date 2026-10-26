@@ -2,7 +2,8 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { recordActivity } from "@pluton/core";
-import { mcpClients, sql, withCostScope, settingByWorkspace, type Db } from "@pluton/db";
+import { eq, HOSTED, mcpClients, sql, users, withCostScope, settingByWorkspace, workspaces, type Db } from "@pluton/db";
+import { isPaid } from "./auth.ts";
 import { buildPlutonTools } from "./agent-tools.ts";
 
 /**
@@ -93,6 +94,11 @@ export async function handleMcp(db: Db, req: Request): Promise<Response> {
   if (!workspaceId) {
     return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "Missing or wrong token: copy it from Pluton → Settings → Connect your AI" }, id: null }, { status: 401 });
   }
+  // Hosted, a token works while the account that owns its workspace pays, like the app itself.
+  if (HOSTED) {
+    const [owner] = await db.select({ subscriptionStatus: users.subscriptionStatus }).from(workspaces).innerJoin(users, eq(users.id, workspaces.userId)).where(eq(workspaces.id, workspaceId));
+    if (!owner || !isPaid(owner)) return Response.json({ jsonrpc: "2.0", error: { code: -32002, message: "Payment required" }, id: null }, { status: 402 });
+  }
   const sid = req.headers.get("mcp-session-id");
   if (sid) {
     const session = sessions.get(sid);
@@ -124,5 +130,11 @@ export async function handleMcp(db: Db, req: Request): Promise<Response> {
   return inWorkspace(db, workspaceId, () => transport.handleRequest(req));
 }
 
-/** Tools read and write the token's workspace, and what they spend is charged to it. */
-const inWorkspace = <T>(db: Db, workspaceId: string, fn: () => T) => withCostScope({ db, workspaceId, purpose: "agent" }, fn);
+/**
+ * Tools read and write the token's workspace, and what they spend is charged to it. Hosted, they
+ * act as the account that owns it.
+ */
+async function inWorkspace<T>(db: Db, workspaceId: string, fn: () => T) {
+  const ws = HOSTED ? await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId), columns: { userId: true } }) : undefined;
+  return withCostScope({ db, workspaceId, userId: ws?.userId ?? null, purpose: "agent" }, fn);
+}

@@ -95,11 +95,21 @@ export class AgentRefusalError extends Error {}
 /** Ran out of turns: what the agent saved through its tools still stands. Both backends throw it. */
 export class AgentTurnLimitError extends Error {}
 
+/**
+ * The workspace's own key, from Settings. Never one from the environment or a local config, which
+ * the SDK would otherwise fall back to: without a saved key there is no client.
+ */
+export function anthropicClient() {
+  const key = getSetting("anthropic_api_key");
+  if (!key) throw new Anthropic.AnthropicError("No Anthropic API key: add one in Settings → API keys");
+  return new Anthropic({ apiKey: key });
+}
+
 // Created on first use (and again when the key changes in Settings) so the worker boots without credentials.
-let client: { key: string | undefined; instance: Anthropic } | undefined;
+let client: { key: string; instance: Anthropic } | undefined;
 const getClient = () => {
   const key = getSetting("anthropic_api_key");
-  if (!client || client.key !== key) client = { key, instance: new Anthropic({ apiKey: key }) };
+  if (!client || client.key !== key) client = { key: key ?? "", instance: anthropicClient() };
   return client.instance;
 };
 
