@@ -5,6 +5,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import type { BrainItemView } from "@pluton/core";
 import type { AppRouter } from "@pluton/server/router";
+import { Inspector, useWideScreen } from "../../components/inspector.tsx";
 import { Button, Input } from "../../components/ui.tsx";
 import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
@@ -22,55 +23,53 @@ const KIND_CLASS = {
   question: "bg-system-purple/15 text-system-purple",
 } as const;
 
-/** Docked on wide screens; on narrow ones it opens over the page from a header button. */
+/** The window's inspector pane, beside the page on wide screens; on narrow ones it opens over the page from a header button. */
 export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[]; open: boolean; onClose: () => void }) {
   const t = useT("brain");
   const tc = useT("common");
   const trpc = useTRPC();
   const proposals = useQuery(trpc.brain.proposals.queryOptions());
   const list = proposals.data ?? [];
+  const wide = useWideScreen();
 
+  if (!wide && !open) return null;
   return (
     // A macOS inspector: a fixed header with the panel's one action, the suggestions scrolling below.
-    <aside
-      className={cn(
-        "w-[340px] max-w-full shrink-0 flex-col bg-panel 2xl:w-[380px]",
-        open ? "glass fixed inset-y-2 right-2 z-40 flex" : "hidden",
-        "xl:static xl:z-auto xl:flex xl:shadow-none",
-      )}
-    >
-      <div className="px-4 pt-5 pb-2">
-        <div className="flex items-center gap-2">
-          <Sparkle size={15} weight="fill" className="text-system-pink" />
-          <h2 className="text-sm font-semibold">{t("proposals.title")}</h2>
-          {list.length > 0 && <span className="inline-flex rounded-full h-5 min-w-5 items-center justify-center bg-control px-1.5 text-xs font-medium text-muted tabular-nums">{list.length}</span>}
-          <button
-            onClick={onClose}
-            aria-label={tc("close")}
-            title={tc("close")}
-            className="-my-1 ml-auto flex rounded-full size-7 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink xl:hidden"
-          >
-            <X size={14} />
-          </button>
-        </div>
-        <p className="mt-1 text-xs text-muted">{t("proposals.intro")}</p>
-        <ReviewControl />
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {list.length === 0 ? (
-          <div className="flex flex-col items-center px-4 py-12 text-center">
-            <Sparkle size={22} className="text-muted" />
-            <p className="mt-2 text-sm text-muted">{t("proposals.empty")}</p>
+    <Inspector>
+      <section className="flex h-full w-[340px] max-w-full flex-col 2xl:w-[380px]" aria-label={t("proposals.title")}>
+        <div className="px-4 pt-5 pb-2">
+          <div className="flex items-center gap-2">
+            <Sparkle size={15} weight="fill" className="text-system-pink" />
+            <h2 className="text-sm font-semibold">{t("proposals.title")}</h2>
+            {list.length > 0 && <span className="inline-flex rounded-full h-5 min-w-5 items-center justify-center bg-control px-1.5 text-xs font-medium text-muted tabular-nums">{list.length}</span>}
+            <button
+              onClick={onClose}
+              aria-label={tc("close")}
+              title={tc("close")}
+              className="-my-1 ml-auto flex rounded-full size-7 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink xl:hidden"
+            >
+              <X size={14} />
+            </button>
           </div>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {list.map((p) => (
-              <ProposalCard key={p.id} proposal={p} items={items} />
-            ))}
-          </ul>
-        )}
-      </div>
-    </aside>
+          <p className="mt-1 text-xs text-muted">{t("proposals.intro")}</p>
+          <ReviewControl />
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          {list.length === 0 ? (
+            <div className="flex flex-col items-center px-4 py-12 text-center">
+              <Sparkle size={22} className="text-muted" />
+              <p className="mt-2 text-sm text-muted">{t("proposals.empty")}</p>
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {list.map((p) => (
+                <ProposalCard key={p.id} proposal={p} items={items} />
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+    </Inspector>
   );
 }
 

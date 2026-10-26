@@ -34,6 +34,7 @@ import { RejectPopover } from "./reject-popover.tsx";
 import { LeadCampaignBlock } from "../sequence/lead-campaign-block.tsx";
 import { LeadCrmBlock } from "../integrations/crm-export.tsx";
 import { useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
+import { Inspector } from "../../components/inspector.tsx";
 
 type Detail = inferRouterOutputs<AppRouter>["leads"]["get"];
 type TimelineEvent = Detail["timeline"][number];
@@ -93,180 +94,179 @@ export function LeadDrawer({
   });
 
   return (
-    <aside
-      className="drawer glass fixed top-2 right-2 bottom-2 z-40 flex w-[min(520px,calc(100vw-16px))] flex-col"
-      aria-label={t("drawer.label")}
-    >
-      <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          {onStep && (
-            <ButtonGroup divided>
-              <GroupButton aria-label={t("drawer.previous")} title={t("drawer.previous")} onClick={() => onStep(-1)}>
-                <CaretUp size={15} />
-              </GroupButton>
-              <GroupButton aria-label={t("drawer.next")} title={t("drawer.next")} onClick={() => onStep(1)}>
-                <CaretDown size={15} />
-              </GroupButton>
-            </ButtonGroup>
-          )}
-          <span className="truncate text-xs text-muted">{t("drawer.shortcuts")}</span>
+    <Inspector>
+      <section className="flex h-full w-[min(520px,calc(100vw-16px))] flex-col" aria-label={t("drawer.label")}>
+        <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {onStep && (
+              <ButtonGroup divided>
+                <GroupButton aria-label={t("drawer.previous")} title={t("drawer.previous")} onClick={() => onStep(-1)}>
+                  <CaretUp size={15} />
+                </GroupButton>
+                <GroupButton aria-label={t("drawer.next")} title={t("drawer.next")} onClick={() => onStep(1)}>
+                  <CaretDown size={15} />
+                </GroupButton>
+              </ButtonGroup>
+            )}
+            <span className="truncate text-xs text-muted">{t("drawer.shortcuts")}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {data && (
+              <IconButton
+                icon={DotsThree}
+                label={t("drawer.more")}
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  openContextMenu(r.right - 208, r.bottom + 4, menu(data).slice(2));
+                }}
+              />
+            )}
+            <IconButton icon={X} label={t("drawer.close")} onClick={onClose} />
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          {data && (
-            <IconButton
-              icon={DotsThree}
-              label={t("drawer.more")}
-              onClick={(e) => {
-                const r = e.currentTarget.getBoundingClientRect();
-                openContextMenu(r.right - 208, r.bottom + 4, menu(data).slice(2));
-              }}
-            />
-          )}
-          <IconButton icon={X} label={t("drawer.close")} onClick={onClose} />
-        </div>
-      </div>
 
-      {!data ? (
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted">
-          {lead.error ? lead.error.message : <CircleNotch size={18} className="animate-spin" />}
-        </div>
-      ) : (
-        // The content fades out under the toolbar instead of meeting a hairline (the scroll edge effect).
-        // Children keep their height: a Group clips (overflow hidden), so a flex column would squash it.
-        <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-2 pb-8 [mask-image:linear-gradient(to_bottom,transparent,black_12px)] [&>*]:shrink-0">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-3 px-1">
-              <Avatar name={data.person.name} className="size-12 text-base" />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-semibold break-words">{data.person.name}</h2>
-                {(data.person.title || data.person.company) && (
-                  <p className="mt-0.5 line-clamp-2 text-sm text-muted" title={data.person.title ?? undefined}>
-                    {data.person.title}
-                    {data.person.company && ` @ ${data.person.company}`}
-                  </p>
-                )}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <Pill className={cn("font-medium", STATUS[data.status]?.className)}>
-                    <span className="size-1.5 rounded-full bg-current" aria-hidden />
-                    {STATUS[data.status]?.label}
-                  </Pill>
-                  <Pill className="bg-control text-muted">{stageLabel(data.stage)}</Pill>
+        {!data ? (
+          <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted">
+            {lead.error ? lead.error.message : <CircleNotch size={18} className="animate-spin" />}
+          </div>
+        ) : (
+          // The content fades out under the toolbar instead of meeting a hairline (the scroll edge effect).
+          // Children keep their height: a Group clips (overflow hidden), so a flex column would squash it.
+          <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-2 pb-8 [mask-image:linear-gradient(to_bottom,transparent,black_12px)] [&>*]:shrink-0">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start gap-3 px-1">
+                <Avatar name={data.person.name} className="size-12 text-base" />
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-semibold break-words">{data.person.name}</h2>
+                  {(data.person.title || data.person.company) && (
+                    <p className="mt-0.5 line-clamp-2 text-sm text-muted" title={data.person.title ?? undefined}>
+                      {data.person.title}
+                      {data.person.company && ` @ ${data.person.company}`}
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <Pill className={cn("font-medium", STATUS[data.status]?.className)}>
+                      <span className="size-1.5 rounded-full bg-current" aria-hidden />
+                      {STATUS[data.status]?.label}
+                    </Pill>
+                    <Pill className="bg-control text-muted">{stageLabel(data.stage)}</Pill>
+                  </div>
                 </div>
               </div>
+
+              <div ref={verdictRef}>
+                <Verdict data={data} onApprove={approve} onReject={() => setRejecting(true)} onUndo={(id) => review.undo([id])} pending={review.isPending} />
+              </div>
+              {rejecting && <RejectPopover anchor={verdictRef} align="left" onSubmit={reject} onClose={() => setRejecting(false)} />}
             </div>
 
-            <div ref={verdictRef}>
-              <Verdict data={data} onApprove={approve} onReject={() => setRejecting(true)} onUndo={(id) => review.undo([id])} pending={review.isPending} />
-            </div>
-            {rejecting && <RejectPopover anchor={verdictRef} align="left" onSubmit={reject} onClose={() => setRejecting(false)} />}
-          </div>
-
-          <Group>
-            <EmailRow data={data} />
-            <Field label={t("drawer.title")}>
-              <span className="line-clamp-3" title={data.person.title ?? undefined}>
-                {data.person.title ?? "—"}
-              </span>
-            </Field>
-            <Field label={t("drawer.seniority")}>{data.seniority ? t("drawer.seniorityFromTitle", { seniority: data.seniority }) : "—"}</Field>
-            <Field label={t("drawer.linkedin")}>
-              <LinkedinField data={data} />
-            </Field>
-            <Field label={t("column.company")}>
-              <span className="flex flex-col items-end">
-                <span>{data.person.company ?? "—"}</span>
-                {data.person.companyWebsite && (
-                  <a href={withProtocol(data.person.companyWebsite)} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 text-xs text-accent hover:underline">
-                    <span className="truncate">{data.person.companyWebsite.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</span>
-                    <ArrowSquareOut size={11} className="shrink-0" />
-                  </a>
-                )}
-              </span>
-            </Field>
-            <Field label={t("column.location")}>{data.person.location ?? "—"}</Field>
-            <Field label={t("column.play")}>
-              <Link to="/plays/$playId" params={{ playId: data.playId }} search={{ tab: "leads" }} className="text-accent hover:underline">
-                {data.playName}
-              </Link>
-            </Field>
-            <Field label={t("column.fit")}>
-              <Meter value={data.fit} tone="green" />
-            </Field>
-            <Field label={t("column.warmness")}>
-              <Meter value={data.warmness} tone="orange" />
-            </Field>
-          </Group>
-
-          <Section title={t("drawer.campaign")}>
-            <LeadCampaignBlock leadId={data.id} status={data.status} />
-          </Section>
-
-          <CrmSection leadId={data.id} />
-
-          <Section title={t("column.why")}>
-            <Group className="px-4 py-3.5">
-              <p className="text-sm font-medium">{data.signalLabel}</p>
-              <p className="mt-1.5 text-sm leading-relaxed text-pretty text-muted">{data.reason}</p>
-              <p className="mt-2.5 text-sm leading-relaxed text-muted">
-                <span className="font-medium text-ink">{t("drawer.signal")} · </span>
-                {data.signal}
-              </p>
+            <Group>
+              <EmailRow data={data} />
+              <Field label={t("drawer.title")}>
+                <span className="line-clamp-3" title={data.person.title ?? undefined}>
+                  {data.person.title ?? "—"}
+                </span>
+              </Field>
+              <Field label={t("drawer.seniority")}>{data.seniority ? t("drawer.seniorityFromTitle", { seniority: data.seniority }) : "—"}</Field>
+              <Field label={t("drawer.linkedin")}>
+                <LinkedinField data={data} />
+              </Field>
+              <Field label={t("column.company")}>
+                <span className="flex flex-col items-end">
+                  <span>{data.person.company ?? "—"}</span>
+                  {data.person.companyWebsite && (
+                    <a href={withProtocol(data.person.companyWebsite)} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 text-xs text-accent hover:underline">
+                      <span className="truncate">{data.person.companyWebsite.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</span>
+                      <ArrowSquareOut size={11} className="shrink-0" />
+                    </a>
+                  )}
+                </span>
+              </Field>
+              <Field label={t("column.location")}>{data.person.location ?? "—"}</Field>
+              <Field label={t("column.play")}>
+                <Link to="/plays/$playId" params={{ playId: data.playId }} search={{ tab: "leads" }} className="text-accent hover:underline">
+                  {data.playName}
+                </Link>
+              </Field>
+              <Field label={t("column.fit")}>
+                <Meter value={data.fit} tone="green" />
+              </Field>
+              <Field label={t("column.warmness")}>
+                <Meter value={data.warmness} tone="orange" />
+              </Field>
             </Group>
-          </Section>
 
-          {data.evidence.length > 0 && (
-            <Section title={t("drawer.evidence")}>
-              <Group>
-                {data.evidence.map((e, i) =>
-                  e.url ? (
-                    <Row key={i} className="py-0">
-                      <a href={e.url} target="_blank" rel="noreferrer" className="flex min-w-0 flex-1 items-start gap-2 py-2.5 text-sm hover:text-accent">
-                        <span className="min-w-0 flex-1 break-words">{e.label}</span>
-                        <ArrowSquareOut size={13} className="mt-0.5 shrink-0 text-muted" />
-                      </a>
-                    </Row>
-                  ) : (
-                    <Row key={i}>
-                      <span className="min-w-0 flex-1 text-sm break-words text-muted">{e.label}</span>
-                    </Row>
-                  ),
-                )}
+            <Section title={t("drawer.campaign")}>
+              <LeadCampaignBlock leadId={data.id} status={data.status} />
+            </Section>
+
+            <CrmSection leadId={data.id} />
+
+            <Section title={t("column.why")}>
+              <Group className="px-4 py-3.5">
+                <p className="text-sm font-medium">{data.signalLabel}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-pretty text-muted">{data.reason}</p>
+                <p className="mt-2.5 text-sm leading-relaxed text-muted">
+                  <span className="font-medium text-ink">{t("drawer.signal")} · </span>
+                  {data.signal}
+                </p>
               </Group>
             </Section>
-          )}
 
-          {data.otherPlays.length > 0 && (
-            <Section title={t("drawer.alsoFoundBy")}>
-              <Group>
-                {data.otherPlays.map((o) => (
-                  <Row
-                    key={o.leadId}
-                    label={
-                      <Link to="/plays/$playId" params={{ playId: o.playId }} search={{ tab: "leads", lead: o.leadId }} className="block truncate hover:text-accent">
-                        {o.playName}
-                      </Link>
-                    }
-                  >
-                    <Pill className={STATUS[o.status]?.className}>{STATUS[o.status]?.label}</Pill>
-                  </Row>
-                ))}
-              </Group>
-            </Section>
-          )}
-
-          <Section title={t("drawer.timeline")}>
-            <NoteInput leadId={data.id} autoFocus={focusNote} />
-            {data.timeline.length > 0 && (
-              <Group className="mt-3">
-                {data.timeline.map((e) => (
-                  <TimelineItem key={e.id} event={e} />
-                ))}
-              </Group>
+            {data.evidence.length > 0 && (
+              <Section title={t("drawer.evidence")}>
+                <Group>
+                  {data.evidence.map((e, i) =>
+                    e.url ? (
+                      <Row key={i} className="py-0">
+                        <a href={e.url} target="_blank" rel="noreferrer" className="flex min-w-0 flex-1 items-start gap-2 py-2.5 text-sm hover:text-accent">
+                          <span className="min-w-0 flex-1 break-words">{e.label}</span>
+                          <ArrowSquareOut size={13} className="mt-0.5 shrink-0 text-muted" />
+                        </a>
+                      </Row>
+                    ) : (
+                      <Row key={i}>
+                        <span className="min-w-0 flex-1 text-sm break-words text-muted">{e.label}</span>
+                      </Row>
+                    ),
+                  )}
+                </Group>
+              </Section>
             )}
-          </Section>
-        </div>
-      )}
-    </aside>
+
+            {data.otherPlays.length > 0 && (
+              <Section title={t("drawer.alsoFoundBy")}>
+                <Group>
+                  {data.otherPlays.map((o) => (
+                    <Row
+                      key={o.leadId}
+                      label={
+                        <Link to="/plays/$playId" params={{ playId: o.playId }} search={{ tab: "leads", lead: o.leadId }} className="block truncate hover:text-accent">
+                          {o.playName}
+                        </Link>
+                      }
+                    >
+                      <Pill className={STATUS[o.status]?.className}>{STATUS[o.status]?.label}</Pill>
+                    </Row>
+                  ))}
+                </Group>
+              </Section>
+            )}
+
+            <Section title={t("drawer.timeline")}>
+              <NoteInput leadId={data.id} autoFocus={focusNote} />
+              {data.timeline.length > 0 && (
+                <Group className="mt-3">
+                  {data.timeline.map((e) => (
+                    <TimelineItem key={e.id} event={e} />
+                  ))}
+                </Group>
+              )}
+            </Section>
+          </div>
+        )}
+      </section>
+    </Inspector>
   );
 }
 
