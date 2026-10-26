@@ -231,7 +231,7 @@ export function BrainGraph({
           }}
         />
       )}
-      <div className="glass absolute bottom-5 left-5 flex flex-col overflow-hidden rounded-xl">
+      <div className="glass absolute bottom-5 left-5 flex flex-col overflow-hidden">
         {[
           { icon: Plus, label: t("graph.zoomIn"), run: () => graphRef.current?.zoom(graphRef.current.zoom() * 1.3, 300) },
           { icon: Minus, label: t("graph.zoomOut"), run: () => graphRef.current?.zoom(graphRef.current.zoom() / 1.3, 300) },

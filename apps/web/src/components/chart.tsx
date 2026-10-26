@@ -36,7 +36,7 @@ export function Chart({ spec }: { spec: ChartSpec }) {
   const series = spec.series ?? [{ name: spec.title ?? "", values: spec.data?.map((d) => d.value) ?? [] }];
   const fmt = (v: number) => `${Number.isInteger(v) ? v.toLocaleString() : v.toLocaleString(undefined, { maximumFractionDigits: 2 })}${spec.unit ?? ""}`;
   return (
-    <figure className="my-1 rounded-xl bg-panel px-4 py-3.5 shadow-card">
+    <figure className="my-1 bg-panel px-4 py-3.5">
       {spec.title && <figcaption className="mb-3 text-sm font-semibold">{spec.title}</figcaption>}
       {spec.type === "pie" ? (
         <Donut labels={labels} values={series[0]!.values} fmt={fmt} />
@@ -73,9 +73,9 @@ function Bars({ labels, values, fmt }: { labels: string[]; values: number[]; fmt
       {labels.map((label, i) => (
         <div key={i} className="group grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-3 text-sm" title={`${label}: ${fmt(values[i] ?? 0)}`}>
           <span className="truncate text-muted">{label}</span>
-          <span className="h-2.5 overflow-hidden rounded-full bg-control">
+          <span className="h-2.5 overflow-hidden bg-control">
             <span
-              className="block h-full rounded-full transition-[filter] group-hover:brightness-110"
+              className="block h-full transition-[filter] group-hover:brightness-110"
               style={{ width: `${(Math.abs(values[i] ?? 0) / max) * 100}%`, background: COLORS[0] }}
             />
           </span>
@@ -97,7 +97,7 @@ function GroupedBars({ labels, series, fmt }: { labels: string[]; series: ChartS
               <span
                 key={k}
                 title={`${label} · ${s.name}: ${fmt(s.values[i] ?? 0)}`}
-                className="w-full max-w-4 rounded-t-[4px] hover:brightness-110"
+                className="w-full max-w-4 hover:brightness-110"
                 style={{ height: `${((s.values[i] ?? 0) / max) * 100}%`, background: COLORS[k % COLORS.length] }}
               />
             ))}
@@ -175,7 +175,7 @@ function Line({ labels, series, fmt }: { labels: string[]; series: ChartSpec["se
       </svg>
       {hover !== null && (
         <div
-          className="popover pointer-events-none absolute top-0 z-10 min-w-32 -translate-x-1/2 rounded-lg px-2.5 py-1.5 text-xs"
+          className="popover pointer-events-none absolute top-0 z-10 min-w-32 -translate-x-1/2 px-2.5 py-1.5 text-xs"
           style={{ left: `${(x(hover) / w) * 100}%` }}
         >
           <p className="mb-0.5 font-medium">{labels[hover]}</p>

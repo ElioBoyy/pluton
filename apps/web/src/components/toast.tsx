@@ -51,7 +51,7 @@ export function Toaster() {
           // In from below, out the same way.
           // A compact glass capsule; a long message wraps and the capsule rounds into a card.
           className={cn(
-            "glass pointer-events-auto flex min-h-10 max-w-[min(440px,calc(100vw-40px))] items-center gap-2.5 rounded-[20px] py-2 pr-2 pl-4 text-sm",
+            "glass pointer-events-auto flex min-h-10 max-w-[min(440px,calc(100vw-40px))] items-center gap-2.5 py-2 pr-2 pl-4 text-sm",
             "transition-[opacity,translate] duration-200 ease-out starting:opacity-0 motion-safe:starting:translate-y-2",
             t.leaving && "opacity-0 duration-150 motion-safe:translate-y-2",
           )}
@@ -64,7 +64,7 @@ export function Toaster() {
                 t.action!.run();
                 dismissToast(t.id);
               }}
-              className="shrink-0 rounded-full px-2 py-1 font-medium text-accent transition-colors duration-150 hover:bg-raised"
+              className="shrink-0 px-2 py-1 font-medium text-accent transition-colors duration-150 hover:bg-raised"
             >
               {t.action.label}
             </button>
@@ -72,7 +72,7 @@ export function Toaster() {
           <button
             onClick={() => dismissToast(t.id)}
             aria-label={dismissLabel}
-            className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+            className="flex size-6 shrink-0 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
           >
             <X size={12} />
           </button>

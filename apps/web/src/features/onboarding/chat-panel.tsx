@@ -53,7 +53,7 @@ export function ChatPanel({
 
   return (
     <div ref={scrollRef} className="flex h-full flex-col gap-3 overflow-y-auto px-4 py-5">
-      <div className="rounded-xl bg-raised p-3.5">
+      <div className="bg-raised p-3.5">
         <p className="text-sm font-semibold">{t("chat.introTitle")}</p>
         <p className="mt-1 text-sm leading-relaxed text-muted">{t("chat.intro")}</p>
       </div>
@@ -86,19 +86,19 @@ export function ChatPanel({
 function Bubble({ role, text }: { role: "assistant" | "user"; text: string }) {
   if (role === "user") {
     return (
-      <div className="self-end rounded-2xl bg-accent px-3 py-2 text-sm text-on-accent" style={{ maxWidth: "85%" }}>
+      <div className="self-end bg-accent px-3 py-2 text-sm text-on-accent" style={{ maxWidth: "85%" }}>
         {text}
       </div>
     );
   }
-  return <div className="rounded-xl bg-raised px-3 py-2 text-sm leading-relaxed">{text}</div>;
+  return <div className="bg-raised px-3 py-2 text-sm leading-relaxed">{text}</div>;
 }
 
 function PlanBox({ plan, now }: { plan: PlanStep[]; now: number }) {
   const t = useT("onboarding");
   const done = plan.filter((p) => p.status === "done").length;
   return (
-    <div className="rounded-2xl bg-canvas p-2 shadow-card">
+    <div className="bg-canvas p-2">
       <div className="flex items-center justify-between px-2 py-1.5 text-sm font-semibold text-muted">
         <span>{t("chat.plan")}</span>
         <span className="tabular-nums">
@@ -110,7 +110,7 @@ function PlanBox({ plan, now }: { plan: PlanStep[]; now: number }) {
           <li
             key={p.key}
             className={cn(
-              "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px]",
+              "flex items-center gap-2.5 px-2 py-1.5 text-[13px]",
               p.status === "active" && "bg-raised text-ink",
               p.status === "done" && "text-muted",
               p.status === "pending" && "text-muted",
@@ -165,7 +165,7 @@ function RetryBox({ sessionId }: { sessionId: string }) {
   const retry = useMutation(trpc.onboarding.retry.mutationOptions());
   const t = useT("onboarding");
   return (
-    <div className="rounded-xl bg-system-orange/10 p-3.5 text-sm">
+    <div className="bg-system-orange/10 p-3.5 text-sm">
       <p>{t("chat.failed")}</p>
       <Button variant="ghost" className="mt-3" disabled={retry.isPending} onClick={() => retry.mutate({ sessionId })}>
         <ArrowClockwise size={14} /> {t("chat.retry")}
@@ -187,7 +187,7 @@ function ActivateBox({ sessionId, state, onActivated }: { sessionId: string; sta
   ];
 
   return (
-    <div className="rounded-2xl bg-canvas p-4 shadow-card">
+    <div className="bg-canvas p-4">
       <p className="flex items-center gap-2 text-sm font-semibold">
         <Sparkle size={15} className="text-cat-pink" /> {t("ready.title")}
       </p>
@@ -210,7 +210,7 @@ function CompletedBox() {
   const navigate = useNavigate();
   const t = useT("onboarding");
   return (
-    <div className="rounded-2xl bg-canvas p-4 text-sm shadow-card">
+    <div className="bg-canvas p-4 text-sm">
       <p className="font-semibold">{t("completed.title")}</p>
       <div className="mt-3 flex gap-2">
         <Button onClick={() => void navigate({ to: "/home" })}>{t("completed.open")}</Button>

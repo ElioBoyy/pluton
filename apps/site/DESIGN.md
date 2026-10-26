@@ -116,7 +116,7 @@ components:
 
 # Design System: Pluton (marketing site)
 
-Scope: `apps/site` only. The product app in `apps/web` has its own macOS-style system and does not inherit anything here.
+Scope: `apps/site`, and the product app in `apps/web`, which prints in the same plates at app density (tokens and utilities in `apps/web/src/styles.css`): plate-grey content, a print-black sidebar chapter, Jost, square corners, ultramarine for what moved and what to press, and the blink for the AI at work.
 
 ## Overview
 

@@ -35,7 +35,7 @@ export function NotificationBell() {
         ref={button}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "relative flex size-7 items-center justify-center rounded-full text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90",
+          "relative flex size-7 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90",
           open && "bg-raised text-ink",
         )}
         aria-label={n ? t("bell.unread", { count: n }) : t("bell.title")}
@@ -43,7 +43,7 @@ export function NotificationBell() {
       >
         <Bell size={16} />
         {n > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-system-red px-1 text-[9px] font-semibold text-white tabular-nums">
+          <span className="absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center bg-system-red px-1 text-[9px] font-semibold text-white tabular-nums">
             {n > 99 ? "99+" : n}
           </span>
         )}
@@ -90,7 +90,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
     <div
       ref={ref}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: Math.min(WIDTH, window.innerWidth - 16) }}
-      className="glass popover-motion fixed z-50 flex max-h-[70vh] origin-top-left flex-col overflow-hidden rounded-2xl"
+      className="glass popover-motion fixed z-50 flex max-h-[70vh] origin-top-left flex-col overflow-hidden"
       role="dialog"
       aria-label={t("bell.title")}
     >
@@ -122,7 +122,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
         ))}
       </ul>
       <div className="p-1.5 pt-1">
-        <Link to="/workspace/activity" onClick={onClose} className="flex h-7 items-center justify-center rounded-lg text-xs text-muted transition-colors duration-150 hover:bg-raised hover:text-ink">
+        <Link to="/workspace/activity" onClick={onClose} className="flex h-7 items-center justify-center text-xs text-muted transition-colors duration-150 hover:bg-raised hover:text-ink">
           {t("bell.seeAll")}
         </Link>
       </div>
@@ -145,8 +145,8 @@ function Entry({ item, onOpen }: { item: Item; onOpen: () => void }) {
       {!item.readAt && <span className="mt-1 size-2 shrink-0 rounded-full bg-accent" aria-label={t("bell.unreadDot")} />}
     </>
   );
-    // Rows highlight as rounded rects inset from the panel edge, like a macOS menu.
-  const cls2 = "flex gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors duration-150 hover:bg-raised";
+    // Rows highlight as square blocks inset from the panel edge.
+  const cls2 = "flex gap-3 px-2.5 py-2.5 text-left transition-colors duration-150 hover:bg-raised";
   return item.link ? (
     <AppLink href={item.link} className={cls2} onNavigate={onOpen}>
       {body}

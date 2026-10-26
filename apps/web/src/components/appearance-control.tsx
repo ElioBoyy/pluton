@@ -13,17 +13,17 @@ const OPTIONS: Array<{ value: Appearance; icon: Icon }> = [
 /** Segment width (w-7), which the thumb slides by. */
 const SEGMENT_PX = 28;
 
-/** macOS segmented control for the appearance; the new theme spreads from the clicked segment. */
+/** The appearance chips: an ink block slides to the chosen one; the new theme is uncovered from the clicked segment. */
 export function AppearanceControl() {
   const t = useT("shell");
   const appearance = useAppearance();
   const index = OPTIONS.findIndex((o) => o.value === appearance);
   return (
-    <div role="radiogroup" aria-label={t("appearance.label")} className="relative flex rounded-full bg-control p-0.5">
+    <div role="radiogroup" aria-label={t("appearance.label")} className="relative flex bg-control p-0.5">
       {/* One thumb that slides to the chosen segment. */}
       <span
         aria-hidden
-        className="absolute top-0.5 left-0.5 h-6 w-7 rounded-full bg-canvas shadow-control transition-transform duration-200 ease-out motion-reduce:transition-none"
+        className="absolute top-0.5 left-0.5 h-6 w-7 bg-ink transition-transform duration-240 ease-out motion-reduce:transition-none"
         style={{ transform: `translateX(${index * SEGMENT_PX}px)` }}
       />
       {OPTIONS.map(({ value, icon: IconCmp }) => (
@@ -38,8 +38,8 @@ export function AppearanceControl() {
             setAppearance(value, { x: box.left + box.width / 2, y: box.top + box.height / 2 });
           }}
           className={cn(
-            "relative flex h-6 w-7 items-center justify-center rounded-full transition-colors duration-150",
-            appearance === value ? "text-ink" : "text-muted hover:text-ink",
+            "relative flex h-6 w-7 items-center justify-center transition-colors duration-150",
+            appearance === value ? "text-canvas" : "text-muted hover:text-ink",
           )}
         >
           <IconCmp size={13} weight={appearance === value ? "fill" : "regular"} />

@@ -90,7 +90,7 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-label={title} className="modal-in flex max-h-[88vh] w-[min(960px,100%)] flex-col overflow-hidden rounded-3xl bg-panel shadow-window">
+      <div role="dialog" aria-label={title} className="modal-in flex max-h-[88vh] w-[min(960px,100%)] flex-col overflow-hidden bg-panel shadow-window">
         {result ? (
           <Result result={result} onClose={onClose} />
         ) : (
@@ -113,12 +113,12 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
                     <button
                       onClick={() => setSelected(r.leadId)}
                       className={cn(
-                        "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors duration-150",
+                        "flex w-full items-center gap-2.5 px-2.5 py-2 text-left transition-colors duration-150",
                         current?.leadId === r.leadId ? "bg-accent/15" : "hover:bg-raised",
                         r.conflict && "opacity-50",
                       )}
                     >
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-control text-[11px] font-semibold text-muted">{initials(r.person.name)}</span>
+                      <span className="flex size-7 shrink-0 items-center justify-center bg-control text-[11px] font-semibold text-muted">{initials(r.person.name)}</span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm">{r.person.name}</span>
                         <span className={cn("flex min-w-0 items-center gap-1 truncate text-xs", r.conflict ? "text-system-orange" : REVIEW[r.review]?.className)}>
@@ -188,7 +188,7 @@ function Messages({ recipient: r, onRegenerate }: { recipient: Recipient; onRege
           </div>
         )}
       </div>
-      {r.conflict && <p className="mb-4 rounded-xl bg-system-orange/10 px-3 py-2 text-sm text-system-orange">{t("add.conflict", { reason: r.conflict })}</p>}
+      {r.conflict && <p className="mb-4 bg-system-orange/10 px-3 py-2 text-sm text-system-orange">{t("add.conflict", { reason: r.conflict })}</p>}
       {r.steps.length === 0 && <p className="text-sm text-muted">{t("add.noMessageStep")}</p>}
       <ol className="flex flex-col gap-3">
         {r.steps.map((s, i) => (
@@ -237,7 +237,7 @@ function StepDraft({
   const edit = useMutation(trpc.campaigns.drafts.edit.mutationOptions({ onSuccess: () => refresh(), onError: (e) => toast(e.message, { tone: "error" }) }));
   const state = draft?.review ?? "missing";
   return (
-    <li className="rounded-xl bg-canvas p-4 shadow-card">
+    <li className="bg-canvas p-4">
       <div className="mb-2 flex items-center justify-between gap-3 text-xs">
         <span className="font-medium text-muted">
           {index + 1} · {stepWhen(index, step.delayHours)} · {step.label}
@@ -264,7 +264,7 @@ function StepDraft({
           onChange={(e) => setText(e.target.value)}
           onBlur={() => text.trim() && text !== draft.text && edit.mutate({ draftId: draft.id, text })}
           rows={Math.min(8, Math.max(3, Math.ceil(text.length / 70)))}
-          className="block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent/60 focus:focus-ring"
+          className="block w-full resize-y border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent/60 focus:focus-ring"
         />
       )}
       {draft?.origin === "edited" && <p className="mt-1.5 text-xs text-muted">{t("add.editedByYou")}</p>}

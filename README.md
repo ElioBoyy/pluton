@@ -18,7 +18,7 @@ Designed and built by **Mathis Sportiello**. Free for noncommercial use; commerc
 - **Tells you what needs you.** One activity feed, a notification bell and a morning digest (in the app, or by email through your own SMTP).
 - **Has an agent you can talk to.** Ask about your leads, Plays, Brain or spend from the Agent page or ⌘K. It reads what it needs and asks before it changes anything, starts a search, contacts someone or exports to a CRM.
 - **Plugs into your tools.** New leads in Slack with Approve/Reject buttons, approved leads in HubSpot, Attio or Pipedrive, and a local MCP server so Claude Code, Claude Desktop or Codex can work with your leads.
-- **Feels like a Mac app.** The interface follows Apple's macOS 27 design, with light and dark appearances, and works on a phone.
+- **Printed like the 1930 plates.** The app shares its landing page's look: plate-grey and print-black surfaces, square corners, one ultramarine ink for what to press, in light and dark appearances, and it works on a phone.
 
 ## Requirements
 

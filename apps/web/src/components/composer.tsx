@@ -31,10 +31,9 @@ export function Composer({
     <div className="px-3 pt-2 pb-3 sm:px-4 sm:pb-5">
       <div
         className={cn(
-          // A floating field: a tone step above the page and a soft shadow, the ring only while focused.
-          // Liquid Glass like the Ask bar and ⌘K: what scrolls under it blurs away; the ring only while focused.
-          "glass mx-auto flex max-w-2xl items-end gap-2 rounded-[22px] py-1.5 pr-1.5 pl-4",
-          "outline-0 outline-accent/25 transition-[outline-width] duration-200 ease-out focus-within:outline-3",
+          // A square of paper lifted off the plate; the ultramarine outline only while focused.
+          "glass mx-auto flex max-w-2xl items-end gap-2 bg-field py-1.5 pr-1.5 pl-4",
+          "outline-offset-2 outline-accent focus-within:outline-3",
           disabled && "ai-glow",
         )}
       >
@@ -57,12 +56,12 @@ export function Composer({
           onClick={stopping ? onStop : submit}
           disabled={!stopping && !ready}
           className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-full",
+            "flex size-8 shrink-0 items-center justify-center",
             "transition-[background-color,color,scale,opacity] duration-150 ease-out motion-safe:enabled:active:scale-90",
             stopping
               ? "bg-ink text-canvas"
               : ready
-                ? "bg-accent text-on-accent hover:brightness-110"
+                ? "bg-accent text-on-accent hover:bg-accent-press"
                 : "bg-control text-faint",
           )}
         >

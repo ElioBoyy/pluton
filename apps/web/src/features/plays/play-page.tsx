@@ -70,8 +70,8 @@ export function PlayPage({
       </Link>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2.5 text-2xl font-semibold tracking-[-0.02em]" onContextMenu={contextMenu(() => playMenu(play))}>
-            <span className="min-w-0 truncate" title={play.name}>
+          <h1 className="flex items-start gap-2.5 text-2xl font-bold tracking-[-0.03em] uppercase sm:text-[42px] sm:leading-[38px]" onContextMenu={contextMenu(() => playMenu(play))}>
+            <span className="min-w-0 text-balance break-words">
               {play.name}
             </span>
             {/* The same actions as the right-click menu, for those who don't right-click. */}
@@ -82,7 +82,7 @@ export function PlayPage({
                 const r = e.currentTarget.getBoundingClientRect();
                 openContextMenu(r.left, r.bottom + 4, playMenu(play));
               }}
-              className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-ink"
+              className="flex size-7 shrink-0 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink"
             >
               <DotsThree size={18} weight="bold" />
             </button>
@@ -192,7 +192,7 @@ function NeedsAttention({ run }: { run: Run }) {
   const key = reason as keyof typeof ATTENTION;
   const info = { title: t(`attention.${key}.title`), fix: t(`attention.${key}.fix`), to: ATTENTION[key], cta: t(`attention.${key}.cta`) };
   return (
-    <div className="mb-6 flex items-start gap-3 rounded-xl bg-system-orange/10 px-4 py-3 text-sm max-sm:flex-col">
+    <div className="mb-6 flex items-start gap-3 bg-system-orange/10 px-4 py-3 text-sm max-sm:flex-col">
       <WarningCircle size={18} weight="fill" className="mt-px shrink-0 text-system-orange" />
       <div className="min-w-0 flex-1">
         <p className="font-medium">{info.title}</p>
@@ -358,11 +358,11 @@ function LeadsChart({ playId, onView }: { playId: string; onView: () => void }) 
               {days.map((d) => (
                 <div
                   key={d.day}
-                  className="flex h-full flex-1 flex-col justify-end rounded-[3px] transition-colors hover:bg-raised"
+                  className="flex h-full flex-1 flex-col justify-end transition-colors hover:bg-raised"
                   title={t("chart.bar", { day: formatDate(`${d.day}T12:00:00`, { day: "numeric", month: "short" }), strong: d.qualified, review: d.review })}
                 >
-                  <div className="rounded-t-[3px] bg-system-yellow" style={{ height: `${(d.review / max) * 100}%` }} />
-                  <div className={cn("bg-system-green", d.review === 0 && "rounded-t-[3px]")} style={{ height: `${(d.qualified / max) * 100}%` }} />
+                  <div className="bg-system-yellow" style={{ height: `${(d.review / max) * 100}%` }} />
+                  <div className={cn("bg-system-green", d.review === 0 && "")} style={{ height: `${(d.qualified / max) * 100}%` }} />
                 </div>
               ))}
             </div>
@@ -406,7 +406,7 @@ function NewestLeads({ playId, onOpen, onReviewAll }: { playId: string; onOpen: 
             return (
               <li key={l.id}>
                 <button onClick={() => onOpen(l.id)} className="flex min-h-11 w-full items-center gap-3 px-4 py-2 text-left transition-colors duration-150 hover:bg-raised">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-control text-[11px] font-semibold text-muted">{initials(l.person.name)}</span>
+                  <span className="flex size-7 shrink-0 items-center justify-center bg-control text-[11px] font-semibold text-muted">{initials(l.person.name)}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{l.person.name}</span>
                     <span className="block truncate text-xs text-muted">

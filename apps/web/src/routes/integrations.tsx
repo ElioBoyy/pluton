@@ -28,8 +28,8 @@ function Logo({ provider, large }: { provider: Provider; large?: boolean }) {
   return (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center font-semibold text-white shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.08)]",
-        large ? "size-12 rounded-[11px] text-xl" : "size-8 rounded-[8px] text-sm",
+        "flex shrink-0 items-center justify-center font-semibold text-white",
+        large ? "size-12 text-xl" : "size-8 text-sm",
         l.cls,
       )}
     >
@@ -38,7 +38,7 @@ function Logo({ provider, large }: { provider: Provider; large?: boolean }) {
   );
 }
 
-const PILL = "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap";
+const PILL = "inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-xs font-medium whitespace-nowrap";
 
 function StatusPill({ status, enabled }: { status?: string; enabled?: boolean }) {
   const t = useT("integrations");
@@ -133,7 +133,7 @@ export function IntegrationPage({ provider }: { provider: Provider }) {
       <div className="mb-8 flex items-center gap-4">
         <Logo provider={provider} large />
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em]">{d.name}</h1>
+          <h1 className="text-2xl font-bold tracking-[-0.03em] text-balance uppercase sm:text-[42px] sm:leading-[38px]">{d.name}</h1>
           <p className="mt-0.5 text-base text-muted text-pretty">{d.description}</p>
         </div>
         <StatusPill status={d.row?.status} enabled={d.row?.enabled} />
@@ -209,7 +209,7 @@ function SlackSetupHelp() {
   );
 }
 
-const Code = ({ children }: { children: string }) => <code className="rounded-[4px] bg-control px-1 py-px font-mono text-[10.5px] text-ink">{children}</code>;
+const Code = ({ children }: { children: string }) => <code className="bg-control px-1 py-px font-mono text-[10.5px] text-ink">{children}</code>;
 
 /** Each option's label and hint are the integrations namespace's `delivery.<value>` and `delivery.<value>.hint`. */
 const DELIVERY = ["short", "detailed"] as const;
@@ -265,7 +265,7 @@ function SlackConfigSection({ detail }: { detail: Detail }) {
             value={form.minFit}
             onChange={(e) => setForm({ ...form, minFit: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
             aria-label={t("slack.minFit")}
-            className="h-7 w-16 rounded-md border border-line bg-canvas px-2 text-right text-sm tabular-nums outline-none focus:border-accent/60 focus:focus-ring"
+            className="h-7 w-16 border border-line bg-canvas px-2 text-right text-sm tabular-nums outline-none focus:border-accent/60 focus:focus-ring"
           />
         </Row>
       </Group>
@@ -417,7 +417,7 @@ function ExportLog({ provider }: { provider: CrmProvider }) {
                       href={e.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex size-6 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+                      className="inline-flex size-6 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
                       aria-label={t("log.openInCrm")}
                     >
                       <ArrowSquareOut size={13} />

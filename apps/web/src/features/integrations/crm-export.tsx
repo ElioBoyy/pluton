@@ -72,7 +72,7 @@ export function LeadCrmBlock({ leadId }: { leadId: string }) {
           <span className="font-medium">{NAMES[e.provider]}</span>
           <span
             className={cn(
-              "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+              "shrink-0 px-2 py-0.5 text-xs font-medium",
               e.status === "created" ? "bg-system-green/15 text-system-green" : e.status === "exists" ? "bg-control text-muted" : "bg-system-orange/15 text-system-orange",
             )}
           >
@@ -84,7 +84,7 @@ export function LeadCrmBlock({ leadId }: { leadId: string }) {
               href={e.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+              className="inline-flex size-6 shrink-0 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
               aria-label={t("crm.openIn", { crm: NAMES[e.provider] ?? e.provider })}
             >
               <ArrowSquareOut size={13} />

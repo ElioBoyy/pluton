@@ -108,11 +108,11 @@ function DailyChart({ usage }: { usage: Usage }) {
               {days.map((d) => (
                 <div
                   key={d.day}
-                  className="group flex h-full flex-1 flex-col justify-end rounded-[3px] transition-colors hover:bg-raised"
+                  className="group flex h-full flex-1 flex-col justify-end transition-colors hover:bg-raised"
                   title={t("chart.bar", { day: dayLabel(d.day), billed: usd(d.billed, { precise: true }), unbilled: usd(d.unbilled, { precise: true }) })}
                 >
-                  <div className="rounded-t-[3px] bg-accent/35" style={{ height: `${(d.unbilled / max) * 100}%` }} />
-                  <div className={cn("bg-accent", d.unbilled === 0 && "rounded-t-[3px]")} style={{ height: `${(d.billed / max) * 100}%` }} />
+                  <div className="bg-accent/35" style={{ height: `${(d.unbilled / max) * 100}%` }} />
+                  <div className={cn("bg-accent", d.unbilled === 0 && "")} style={{ height: `${(d.billed / max) * 100}%` }} />
                 </div>
               ))}
             </div>
@@ -188,9 +188,9 @@ function Breakdown({ title, rows }: { title: string; rows: Array<{ key: string; 
                   {r.unbilled > 0 && <span className="ml-1.5 text-xs text-muted">{t("breakdown.plusSubscription", { amount: usd(r.unbilled, { precise: true }) })}</span>}
                 </span>
               </div>
-              <div className="flex h-1.5 overflow-hidden rounded-full bg-control">
-                <div className="rounded-full bg-accent" style={{ width: `${(r.billed / max) * 100}%` }} />
-                <div className="rounded-r-full bg-accent/35" style={{ width: `${(r.unbilled / max) * 100}%` }} />
+              <div className="flex h-1.5 overflow-hidden bg-control">
+                <div className="bg-accent" style={{ width: `${(r.billed / max) * 100}%` }} />
+                <div className="bg-accent/35" style={{ width: `${(r.unbilled / max) * 100}%` }} />
               </div>
             </div>
           ))
@@ -278,7 +278,7 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
                 </td>
                 <td className="text-right">
                   {e.kind === "adjustment" && (
-                    <button onClick={() => remove.mutate({ id: e.id })} className="rounded-full p-1 text-muted hover:bg-raised hover:text-ink" aria-label={t("ledger.deleteExpense")}>
+                    <button onClick={() => remove.mutate({ id: e.id })} className="p-1 text-muted hover:bg-raised hover:text-ink" aria-label={t("ledger.deleteExpense")}>
                       <Trash size={14} />
                     </button>
                   )}

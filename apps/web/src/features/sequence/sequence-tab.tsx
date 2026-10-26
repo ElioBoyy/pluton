@@ -64,7 +64,7 @@ export function SequenceTab({ playId, onPickLeads }: { playId: string; onPickLea
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium whitespace-nowrap",
+              "inline-flex h-6 items-center gap-1.5 px-2.5 text-xs font-medium whitespace-nowrap",
               waiting
                 ? "bg-system-orange/15 text-[color-mix(in_srgb,var(--color-system-orange),black_20%)] dark:text-system-orange"
                 : campaign.status === "paused"
@@ -157,7 +157,7 @@ function Checklist({ data, onObjective, onPickLeads }: { data: Data; onObjective
     <Section title={t("checklist.title")} description={t("checklist.description")}>
       <ul className="grid gap-3 md:grid-cols-3">
         {items.map((i) => (
-          <li key={i.title} className="flex gap-3 rounded-xl bg-panel p-4 shadow-card">
+          <li key={i.title} className="flex gap-3 bg-panel p-4">
             {i.done ? <CheckCircle size={18} weight="fill" className="shrink-0 text-system-green" /> : <Circle size={18} className="shrink-0 text-muted" />}
             <div className="min-w-0">
               <p className={cn("text-sm font-medium", i.done && "text-muted line-through")}>{i.title}</p>
@@ -182,7 +182,7 @@ function Canvas({ data, onOpen, selected }: { data: Data; onOpen: (s: Step) => v
   const firstMessage = steps.findIndex((s) => s.kind === "message");
 
   return (
-    <div className="flex flex-col items-center rounded-2xl bg-panel px-4 py-6 shadow-card">
+    <div className="flex flex-col items-center bg-panel px-4 py-6">
       <Pill>{t("canvas.start")}</Pill>
       {steps.map((s, i) => (
         <div key={s.id} className="flex w-full flex-col items-center">
@@ -199,7 +199,7 @@ function Canvas({ data, onOpen, selected }: { data: Data; onOpen: (s: Step) => v
           />
           {i === inviteIndex && (
             <>
-              <div className="w-full max-w-md rounded-xl bg-system-orange/10 px-4 py-2.5 text-center text-sm">
+              <div className="w-full max-w-md bg-system-orange/10 px-4 py-2.5 text-center text-sm">
                 <span className="inline-flex items-center gap-1.5 font-medium">
                   <Warning size={14} weight="fill" className="text-system-orange" /> {t("canvas.alreadyConnected")}
                 </span>
@@ -235,12 +235,12 @@ function Node({ step, count, selected, onClick, expiry }: { step: Step; count: n
       onClick={onClick}
       className={cn(
         // A raised card on the flow; the open step gets the accent ring, an off step fades back.
-        "flex w-full max-w-md items-center gap-3 rounded-xl bg-canvas px-4 py-3 text-left shadow-control transition-[box-shadow,opacity] duration-150",
+        "flex w-full max-w-md items-center gap-3 bg-canvas px-4 py-3 text-left transition-[box-shadow,opacity] duration-150",
         selected ? "ring-2 ring-accent" : "hover:ring-1 hover:ring-line-strong",
         !step.enabled && "opacity-50",
       )}
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-control text-muted">
+      <span className="flex size-8 shrink-0 items-center justify-center bg-control text-muted">
         <IconCmp size={16} />
       </span>
       <span className="min-w-0 flex-1">
@@ -251,12 +251,12 @@ function Node({ step, count, selected, onClick, expiry }: { step: Step; count: n
         </span>
         {sub && <span className="block truncate text-xs text-muted">{sub}</span>}
       </span>
-      {count > 0 && <span className="inline-flex h-5 shrink-0 items-center rounded-full bg-accent/15 px-2 text-xs font-medium text-accent tabular-nums">{count}</span>}
+      {count > 0 && <span className="inline-flex h-5 shrink-0 items-center bg-accent/15 px-2 text-xs font-medium text-accent tabular-nums">{count}</span>}
     </button>
   );
 }
 
-const Pill = ({ children }: { children: ReactNode }) => <span className="inline-flex h-6 items-center rounded-full bg-control px-3 text-xs font-medium text-muted">{children}</span>;
+const Pill = ({ children }: { children: ReactNode }) => <span className="inline-flex h-6 items-center bg-control px-3 text-xs font-medium text-muted">{children}</span>;
 
 function Connector({ label }: { label?: string }) {
   return (
@@ -284,12 +284,12 @@ function NeedsYou({ campaignId }: { campaignId: string }) {
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((r) => (
-            <li key={r.reply.id} className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
+            <li key={r.reply.id} className="bg-panel px-4 py-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <Link to="/plays/$playId" params={{ playId: r.playId }} search={{ tab: "leads", lead: r.leadId }} className="truncate font-medium hover:underline">
                   {r.person.name}
                 </Link>
-                {r.reply.label && <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs", REPLY_LABEL[r.reply.label]?.className)}>{REPLY_LABEL[r.reply.label]?.label}</span>}
+                {r.reply.label && <span className={cn("inline-flex h-5 shrink-0 items-center px-2 text-xs", REPLY_LABEL[r.reply.label]?.className)}>{REPLY_LABEL[r.reply.label]?.label}</span>}
               </div>
               <p className="mt-1.5 text-sm whitespace-pre-wrap text-muted">“{r.reply.text}”</p>
               {r.reply.summary && <p className="mt-1 text-xs text-muted">{r.reply.summary}</p>}
@@ -329,7 +329,7 @@ function Tasks({ playId }: { playId: string }) {
     <Section title={t("tasks.title", { count: tasks.length })} description={t("tasks.description")}>
       <ul className="flex flex-col gap-2">
         {tasks.map(({ action, person, sender }) => (
-          <li key={action.id} className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
+          <li key={action.id} className="bg-panel px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">{actionLabel(action.kind)}</span>
               <span className="truncate text-xs text-muted">{sender?.name}</span>
@@ -344,7 +344,7 @@ function Tasks({ playId }: { playId: string }) {
             </p>
             {action.detail && action.kind !== "message" && <p className="mt-0.5 text-xs text-muted">{action.detail}</p>}
             {action.text && (
-              <div className="mt-2 rounded-lg bg-canvas px-3 py-2 text-sm whitespace-pre-wrap">
+              <div className="mt-2 bg-canvas px-3 py-2 text-sm whitespace-pre-wrap">
                 {action.text}
                 <button onClick={() => copy(action.text!)} className="mt-1.5 flex items-center gap-1 text-xs text-accent hover:underline">
                   <Copy size={11} /> {tc("copy")}
@@ -373,7 +373,7 @@ function Tasks({ playId }: { playId: string }) {
           </li>
         ))}
         {waiting.map(({ enrollment, person }) => (
-          <li key={enrollment.id} className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
+          <li key={enrollment.id} className="bg-panel px-4 py-3 text-sm">
             <span className="font-medium">{t("tasks.waiting", { name: person.name })}</span>
             <p className="mt-0.5 text-xs text-muted">{t("tasks.invited", { when: when(enrollment.inviteSentAt) })}</p>
             <div className="mt-2.5 flex gap-2">
@@ -396,7 +396,7 @@ function EnrolledPanel({ data, onClose }: { data: Data; onClose: () => void }) {
   const trpc = useTRPC();
   const list = useQuery(trpc.campaigns.enrollments.list.queryOptions({ campaignId: data.campaign.id }, { refetchInterval: 15_000 }));
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(620px,calc(100vw-24px))] flex-col rounded-3xl" aria-label={t("enrolled.title")}>
+    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(620px,calc(100vw-24px))] flex-col" aria-label={t("enrolled.title")}>
       <PanelHeader title={list.data ? t("enrolled.titleCount", { count: list.data.length }) : t("enrolled.title")} onClose={onClose} />
       <div className="flex-1 overflow-y-auto px-4 pt-1 pb-6">
         {list.data?.length === 0 && <p className="py-8 text-center text-sm text-muted">{t("enrolled.empty")}</p>}
@@ -434,10 +434,10 @@ function EnrolledRow({ e }: { e: Enrollment }) {
   const ended = ["reply_received", "auto_reply_sent", "marked_lost", "needs_you", "failed", "stopped", "completed"].includes(e.status);
   const undoable = new Date(e.undoUntil) > new Date();
   return (
-    <li className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
+    <li className="bg-panel px-4 py-3 text-sm">
       <div className="flex items-center justify-between gap-2">
         <span className="truncate font-medium">{e.person.name}</span>
-        <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
+        <span className={cn("inline-flex h-5 shrink-0 items-center px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
       </div>
       <p className="mt-0.5 text-xs text-muted">
         {e.channel === "email" ? t("byEmail", { email: e.person.email ?? "" }) : e.sender ? t("from", { name: e.sender.name }) : t("enrolled.noAccount")}
@@ -471,7 +471,7 @@ function EnrolledRow({ e }: { e: Enrollment }) {
             onChange={(ev) => setReply(ev.target.value)}
             rows={3}
             placeholder={t("enrolled.replyPlaceholder")}
-            className="block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+            className="block w-full resize-y border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
           />
           <Button className="self-end" disabled={!reply.trim() || logReply.isPending} onClick={() => logReply.mutate({ enrollmentId: e.id, text: reply })}>
             {logReply.isPending && <CircleNotch size={12} className="animate-spin" />} {t("enrolled.logReply")}

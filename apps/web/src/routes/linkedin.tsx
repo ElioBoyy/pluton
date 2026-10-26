@@ -178,11 +178,11 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
           description={t("linkedin.inSequences", { provider: s.provider === "manual" ? t("linkedin.manualProvider") : "Unipile", count: s.activeLeads })}
           className="py-3"
         >
-          <span className="order-first flex size-8 shrink-0 items-center justify-center rounded-lg bg-system-blue text-white">
+          <span className="order-first flex size-8 shrink-0 items-center justify-center bg-system-blue text-white">
             <LinkedinLogo size={18} weight="fill" />
           </span>
           <div className="flex shrink-0 items-center gap-2">
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", isStatus(s.status) && STATUS[s.status])}>
+            <span className={cn("px-2 py-0.5 text-xs font-medium", isStatus(s.status) && STATUS[s.status])}>
               {isStatus(s.status) ? t(`linkedin.status.${s.status}`) : s.status}
             </span>
             {s.provider === "unipile" && s.status !== "connected" && (
@@ -195,7 +195,7 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
               onClick={() => window.confirm(t("linkedin.confirmRemove", { name: s.name })) && remove.mutate({ id: s.id })}
               aria-label={t("linkedin.removeAccount")}
               title={t("linkedin.removeAccount")}
-              className="flex size-7 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-system-red"
+              className="flex size-7 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-system-red"
             >
               <Trash size={15} />
             </button>

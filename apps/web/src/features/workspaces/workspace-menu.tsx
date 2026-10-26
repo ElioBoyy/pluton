@@ -32,7 +32,7 @@ export function WorkspaceIcon({
   return (
     <span
       className={cn(
-        "relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs font-semibold text-on-accent",
+        "relative flex size-6 shrink-0 items-center justify-center overflow-hidden text-xs font-semibold text-on-accent",
         loaded === src && src ? "bg-white" : COLORS[hash % COLORS.length],
         className,
       )}
@@ -93,16 +93,16 @@ export function WorkspaceMenu({ className }: { className?: string }) {
         aria-label={t("menuLabel", { name: current?.name ?? "…" })}
         aria-expanded={open}
         className={cn(
-          // A macOS source-list header: app-icon tile, name, and the pop-up chevron, pressable as one control.
-          "flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1.5 text-left transition-[background-color,scale] duration-150 ease-out",
+          // The sidebar header: workspace tile, name, and the pop-up chevron, pressable as one control.
+          "flex h-10 min-w-0 flex-1 items-center gap-2.5 px-1.5 text-left transition-[background-color,scale] duration-150 ease-out",
           "hover:bg-raised motion-safe:active:scale-[0.98]",
           open && "bg-selected",
           className,
         )}
       >
-        <WorkspaceIcon workspace={current} className="size-7 rounded-[8px]! text-sm! shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_1px_2px_rgb(0_0_0/0.15)]" />
+        <WorkspaceIcon workspace={current} className="size-7 text-sm!" />
         <span className="flex-1 truncate text-sm font-semibold">{current?.name ?? "…"}</span>
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-control text-muted">
+        <span className="flex size-5 shrink-0 items-center justify-center bg-control text-muted">
           <CaretUpDown size={11} weight="bold" />
         </span>
       </button>
@@ -147,14 +147,14 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
     };
   }, [anchor, onClose]);
 
-  const item = "flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm text-ink hover:bg-raised disabled:opacity-50";
+  const item = "flex h-8 w-full items-center gap-2.5 px-2 text-left text-sm text-ink hover:bg-raised disabled:opacity-50";
   return createPortal(
     <div
       ref={ref}
       role="menu"
       aria-label={t("workspaces")}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
-      className="glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden rounded-xl p-1 origin-top-left"
+      className="glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden p-1 origin-top-left"
     >
       <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-faint">{t("workspaces")}</p>
       <div className="min-h-0 overflow-y-auto">
@@ -212,7 +212,7 @@ export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceIte
       <form
         role="dialog"
         aria-label={t("newWorkspace")}
-        className="w-[min(420px,100%)] rounded-2xl bg-canvas p-5 shadow-window"
+        className="w-[min(420px,100%)] bg-canvas p-5 shadow-window"
         onSubmit={(e) => {
           e.preventDefault();
           create.mutate({ name: name.trim(), copyFrom: settings === "copy" ? (current?.id ?? null) : null }, { onSuccess: onClose });
@@ -228,7 +228,7 @@ export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceIte
 
         <div className="mt-5 flex flex-col gap-2">
           <span className="text-xs font-medium">{t("settings")}</span>
-          <div role="radiogroup" aria-label={t("settings")} className="flex rounded-full bg-raised p-0.5">
+          <div role="radiogroup" aria-label={t("settings")} className="flex bg-raised p-0.5">
             {(
               [
                 { value: "copy", label: current ? t("copyFrom", { name: current.name }) : t("copyCurrent") },
@@ -242,8 +242,8 @@ export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceIte
                 aria-checked={settings === o.value}
                 onClick={() => setSettings(o.value)}
                 className={cn(
-                  "h-7 flex-1 truncate rounded-full px-3 text-sm transition-colors duration-150",
-                  settings === o.value ? "bg-canvas font-medium text-ink shadow-sm" : "text-muted hover:text-ink",
+                  "h-7 flex-1 truncate px-3 text-sm transition-colors duration-150",
+                  settings === o.value ? "bg-canvas font-medium text-ink" : "text-muted hover:text-ink",
                 )}
               >
                 {o.label}

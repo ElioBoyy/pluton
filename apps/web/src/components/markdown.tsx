@@ -49,7 +49,7 @@ function blocks(lines: string[]): ReactNode[] {
         chart ? (
           <Chart key={key()} spec={chart} />
         ) : (
-          <pre key={key()} className="overflow-x-auto rounded-xl bg-raised px-3.5 py-3 font-mono text-[0.85em] leading-relaxed">
+          <pre key={key()} className="overflow-x-auto bg-raised px-3.5 py-3 font-mono text-[0.85em] leading-relaxed">
             <code>{source}</code>
           </pre>
         ),
@@ -88,7 +88,7 @@ function blocks(lines: string[]): ReactNode[] {
       for (; i < lines.length && /^\s*>/.test(lines[i]!); i++) quoted.push(lines[i]!.replace(/^\s*>\s?/, ""));
       i--;
       out.push(
-        <blockquote key={key()} className="flex flex-col gap-2 rounded-xl bg-raised px-3.5 py-2.5 text-muted">
+        <blockquote key={key()} className="flex flex-col gap-2 bg-raised px-3.5 py-2.5 text-muted">
           {blocks(quoted)}
         </blockquote>,
       );
@@ -145,7 +145,7 @@ function Table({ head, align, rows }: { head: string[]; align: Array<"left" | "r
   const numeric = head.map((_, c) => rows.length > 0 && rows.every((r) => /^[-+]?[\d\s.,]+\s*(%|€|\$|k|m)?$/i.test(r[c] ?? "")));
   const alignOf = (c: number) => (align[c] && align[c] !== "left" ? align[c] : numeric[c] ? "right" : "left");
   return (
-    <div className="-mx-1 overflow-x-auto rounded-xl bg-panel shadow-card">
+    <div className="-mx-1 overflow-x-auto bg-panel">
       <table className="mac-table">
         <thead>
           <tr>
@@ -223,7 +223,7 @@ function inline(text: string): ReactNode {
     if (part.startsWith("~~") && part.endsWith("~~") && part.length > 4) return <s key={i}>{inline(part.slice(2, -2))}</s>;
     if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
       return (
-        <code key={i} className="rounded-md bg-raised px-1 py-px font-mono text-[0.85em]">
+        <code key={i} className="bg-raised px-1 py-px font-mono text-[0.85em]">
           {part.slice(1, -1)}
         </code>
       );

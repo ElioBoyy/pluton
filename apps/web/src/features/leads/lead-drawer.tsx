@@ -135,7 +135,7 @@ export function LeadDrawer({
         <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-2 pb-8 [mask-image:linear-gradient(to_bottom,transparent,black_12px)] [&>*]:shrink-0">
           <div className="flex flex-col gap-4">
             <div className="flex items-start gap-3 px-1">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-control text-base font-semibold text-muted">
+              <span className="flex size-12 shrink-0 items-center justify-center bg-control text-base font-semibold text-muted">
                 {initials(data.person.name)}
               </span>
               <div className="min-w-0 flex-1">
@@ -441,7 +441,7 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
         placeholder={t("note.placeholder")}
         maxLength={2000}
         aria-label={t("note.label")}
-        className="h-7 min-w-0 flex-1 rounded-md border border-line bg-canvas px-2.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+        className="h-7 min-w-0 flex-1 border border-line bg-canvas px-2.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring"
       />
       <Button variant="ghost" disabled={!text.trim() || add.isPending}>
         {tc("add")}
@@ -536,7 +536,7 @@ function CrmSection({ leadId }: { leadId: string }) {
 }
 
 const Pill = ({ className, children }: { className?: string; children: ReactNode }) => (
-  <span className={cn("inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs whitespace-nowrap", className)}>{children}</span>
+  <span className={cn("inline-flex h-5 shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap", className)}>{children}</span>
 );
 
 function Meter({ value, tone }: { value: number; tone: "green" | "orange" }) {

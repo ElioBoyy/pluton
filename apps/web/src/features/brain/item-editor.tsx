@@ -59,7 +59,7 @@ export function ItemEditor({
 
 // Fields match the shared Input: a hairline box on the content color, the accent ring on focus.
 const textareaClass =
-  "block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm leading-relaxed text-ink outline-none placeholder:text-faint transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent/60 focus:focus-ring";
+  "block w-full resize-y border border-line bg-canvas px-2.5 py-1.5 text-sm leading-relaxed text-ink outline-none placeholder:text-faint transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent/60 focus:focus-ring";
 const selectClass = "capsule h-7 justify-self-start pl-3 text-sm outline-none focus:focus-ring";
 
 function FieldInput({ field, value, onChange }: { field: Field; value: unknown; onChange: (v: unknown) => void }) {
@@ -103,7 +103,7 @@ function FieldInput({ field, value, onChange }: { field: Field; value: unknown; 
               }}
               aria-pressed={selected.has(band)}
               className={cn(
-                "inline-flex h-6 items-center rounded-full px-2.5 text-xs tabular-nums transition-[background-color,scale] duration-150 ease-out motion-safe:active:scale-[0.96]",
+                "inline-flex h-6 items-center px-2.5 text-xs tabular-nums transition-[background-color,scale] duration-150 ease-out motion-safe:active:scale-[0.96]",
                 selected.has(band) ? "bg-accent font-medium text-on-accent" : "bg-control text-ink hover:bg-control-hover",
               )}
             >
@@ -128,15 +128,15 @@ function ListInput({ values, onChange, placeholder }: { values: string[]; onChan
   };
   return (
     // A token field: the tokens sit inside one box that takes the focus ring like an Input.
-    <div className="flex min-h-7 flex-wrap items-center gap-1 rounded-md border border-line bg-canvas p-[3px] transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-accent/60 focus-within:focus-ring">
+    <div className="flex min-h-7 flex-wrap items-center gap-1 border border-line bg-canvas p-[3px] transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-accent/60 focus-within:focus-ring">
       {values.map((v) => (
-        <span key={v} className="inline-flex min-h-5 max-w-full items-center gap-1 rounded-[5px] bg-control py-0.5 pr-1 pl-2 text-xs leading-4">
+        <span key={v} className="inline-flex min-h-5 max-w-full items-center gap-1 bg-control py-0.5 pr-1 pl-2 text-xs leading-4">
           <span className="min-w-0 break-words">{v}</span>
           <button
             type="button"
             aria-label={t("editor.removeValue", { value: v })}
             onClick={() => onChange(values.filter((x) => x !== v))}
-            className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted hover:bg-control-hover hover:text-ink"
+            className="flex size-4 shrink-0 items-center justify-center text-muted hover:bg-control-hover hover:text-ink"
           >
             <X size={9} weight="bold" />
           </button>
@@ -190,7 +190,7 @@ function TechInput({
             type="button"
             aria-label={t("editor.removeTool")}
             onClick={() => onChange(values.filter((_, j) => j !== i))}
-            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-ink"
+            className="flex size-7 shrink-0 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink"
           >
             <X size={13} />
           </button>

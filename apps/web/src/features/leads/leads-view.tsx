@@ -219,7 +219,7 @@ export function LeadsView({
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t("view.searchPlaceholder")}
-            className="capsule h-8 w-full min-w-48 pr-4 pl-9 text-sm outline-none transition-[background-color,box-shadow] duration-150 placeholder:text-muted hover:bg-(--capsule-bg-hover) focus:shadow-[var(--capsule-shadow),0_0_0_3px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]"
+            className="capsule h-8 w-full min-w-48 pr-4 pl-9 text-sm outline-none transition-[background-color,box-shadow] duration-150 placeholder:text-muted hover:bg-(--capsule-bg-hover)"
           />
         </label>
         <select value={pipeline} onChange={(e) => setPipeline(e.target.value)} aria-label={t("view.signal")} className="capsule h-8 pl-3.5 text-sm outline-none transition-colors duration-150 hover:bg-(--capsule-bg-hover)">
@@ -416,7 +416,7 @@ function Row({
       </td>
       <td className="max-w-56 min-w-40 px-3 py-2">
         <div className="flex items-center gap-2.5">
-          <span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-control text-[11px] font-semibold text-muted">
+          <span className="relative flex size-7 shrink-0 items-center justify-center bg-control text-[11px] font-semibold text-muted">
             {initials(l.person.name)}
             {l.isNew && <span className="absolute -top-px -right-px size-2.5 rounded-full bg-system-blue ring-2 ring-canvas" aria-label={t("status.new")} />}
           </span>
@@ -468,7 +468,7 @@ function Row({
       )}
       {has("status") && (
         <td className="px-3 py-2">
-          <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-xs font-medium whitespace-nowrap", status.className)}>{status.label}</span>
+          <span className={cn("inline-flex h-5 items-center px-2 text-xs font-medium whitespace-nowrap", status.className)}>{status.label}</span>
         </td>
       )}
       {has("why") && (
@@ -501,7 +501,7 @@ function Row({
       )}
       {has("found") && <td className="px-3 py-2 whitespace-nowrap text-muted tabular-nums">{formatDate(l.createdAt)}</td>}
       {/*
-        * With a pointer, the actions float over the row's trailing edge in a small capsule, on hover or
+        * With a pointer, the actions float over the row's trailing edge in a small block, on hover or
         * keyboard focus, as in Mail, so they take no column. On touch screens they sit in their own column.
         */}
       <td className="sticky right-0 w-0 p-0 [@media(hover:none)]:static [@media(hover:none)]:w-auto [@media(hover:none)]:py-1.5 [@media(hover:none)]:pr-3" onClick={stop}>
@@ -577,7 +577,7 @@ function RowAction({
       aria-pressed={active}
       title={label}
       className={cn(
-        "flex size-7 items-center justify-center rounded-full transition-[background-color,color,scale] duration-150 ease-out",
+        "flex size-7 items-center justify-center transition-[background-color,color,scale] duration-150 ease-out",
         "enabled:hover:bg-control-hover enabled:hover:text-ink motion-safe:enabled:active:scale-90 disabled:opacity-50",
         active ? (tone === "green" ? "text-system-green" : "text-ink") : "text-muted",
       )}
@@ -626,8 +626,8 @@ function BulkBar({
   };
 
   return (
-    // A floating Liquid Glass bar, like the Finder's selection toolbar; it stays in view while the table scrolls.
-    <div className="glass sticky top-2 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-[22px] py-1.5 pr-1.5 pl-4 text-sm">
+    // A floating plate, like a selection toolbar; it stays in view while the table scrolls.
+    <div className="glass sticky top-2 z-20 mb-3 flex flex-wrap items-center gap-2 py-1.5 pr-1.5 pl-4 text-sm">
       <span className="font-medium tabular-nums">{t("bulk.selected", { count })}</span>
       {canSelectAll && <TextButton onClick={onSelectAll}>{t("bulk.selectAll", { count: total })}</TextButton>}
       <span className="flex-1" />
@@ -677,7 +677,7 @@ function BulkBar({
         onClick={onClear}
         aria-label={t("bulk.clear")}
         title={t("bulk.clear")}
-        className="flex size-8 items-center justify-center rounded-full text-muted transition-[background-color,color,scale] duration-150 hover:bg-control hover:text-ink motion-safe:active:scale-90"
+        className="flex size-8 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 hover:bg-control hover:text-ink motion-safe:active:scale-90"
       >
         <X size={14} />
       </button>
@@ -793,16 +793,16 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
       </GroupButton>
       {open &&
         pos &&
-        // In a portal: the toolbar capsule's backdrop blur is its own stacking context, which would leave the menu under the table.
+        // In a portal: the sticky toolbar is its own stacking context, which would leave the menu under the table.
         createPortal(
           <div
             ref={menu}
             role="menu"
             aria-label={t("columns")}
             style={{ top: pos.top, right: pos.right }}
-            className="popover fixed z-50 w-48 origin-top-right rounded-xl p-1.5"
+            className="popover fixed z-50 w-48 origin-top-right p-1.5"
           >
-            {/* A macOS menu: checkmarks in the leading gutter, rounded highlights inset from the edge. */}
+            {/* A menu: checkmarks in the leading gutter, square highlights inset from the edge. */}
             {COLUMNS.map((c) => {
               const on = columns.includes(c);
               return (
@@ -812,7 +812,7 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
                   role="menuitemcheckbox"
                   aria-checked={on}
                   onClick={() => onChange(ordered(on ? columns.filter((x) => x !== c) : [...columns, c]))}
-                  className="flex h-7 w-full items-center gap-1.5 rounded-md pr-3 pl-1.5 text-left text-sm text-ink hover:bg-raised"
+                  className="flex h-7 w-full items-center gap-1.5 pr-3 pl-1.5 text-left text-sm text-ink hover:bg-raised"
                 >
                   <span className="flex w-4 justify-center">{on && <Check size={12} weight="bold" />}</span>
                   {t(`column.${c}`)}

@@ -81,7 +81,7 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
             {s.configured ? (
               <CheckCircle size={14} weight="fill" className="shrink-0 text-system-green" aria-label={t("apiKeys.set")} />
             ) : (
-              <span className="rounded-full bg-control px-1.5 py-px text-xs font-medium text-muted">{t("apiKeys.notSet")}</span>
+              <span className="bg-control px-1.5 py-px text-xs font-medium text-muted">{t("apiKeys.notSet")}</span>
             )}
           </p>
           <p className="mt-0.5 text-xs text-muted">{s.description}</p>

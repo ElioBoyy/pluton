@@ -68,10 +68,10 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
   return (
     <aside className={cn("flex w-64 shrink-0 flex-col", className)}>
       <div className="flex flex-col gap-3 px-3 pt-5 pb-3">
-        <h1 className="px-1 text-lg font-semibold tracking-[-0.01em]">{t("title")}</h1>
+        <h1 className="px-1 text-xl font-bold tracking-[-0.03em] uppercase">{t("title")}</h1>
         <Link
           to="/agent"
-          className="flex h-8 items-center gap-2 rounded-lg bg-control px-2.5 text-sm font-medium transition-colors duration-150 hover:bg-control-hover"
+          className="flex h-8 items-center gap-2 bg-control px-2.5 text-sm font-medium transition-colors duration-150 hover:bg-control-hover"
         >
           <NotePencil size={15} className="text-accent" /> {t("newConversation")}
         </Link>
@@ -84,7 +84,7 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
               params={{ conversationId: c.id }}
               onContextMenu={contextMenu(() => menu(c))}
               className={cn(
-                "flex flex-col gap-0.5 rounded-lg px-2.5 py-2 text-sm transition-colors duration-150 hover:bg-raised",
+                "flex flex-col gap-0.5 px-2.5 py-2 text-sm transition-colors duration-150 hover:bg-raised",
                 c.id === activeId && "!bg-selected",
               )}
             >
@@ -117,16 +117,13 @@ function NewConversation() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-      {/* Centered like a fresh Apple Intelligence prompt: the orb, the question, the field, then ideas. */}
+      {/* Centered like a fresh prompt: the plate, the question, the field, then ideas. */}
       <div className="mx-auto my-auto flex w-full max-w-2xl flex-col items-center px-4 py-12 sm:px-6">
-        {/* Separate elements: one animation property can't hold both the entrance and the spin. */}
+        {/* Separate elements: one animation property can't hold both the entrance and the blink. */}
         <span className="rise" aria-hidden>
-          <span className="ai-orb size-14">
-            {/* The glass bead's shading, above the moving colour. */}
-            <span className="absolute inset-0 rounded-full shadow-[inset_0_-6px_14px_rgb(0_0_0/0.16),inset_0_2px_6px_rgb(255_255_255/0.55)]" />
-          </span>
+          <span className="ai-orb size-14" />
         </span>
-        <h1 className="rise mt-6 text-center text-[28px] leading-[34px] font-semibold tracking-[-0.02em] [animation-delay:60ms]">
+        <h1 className="rise mt-6 text-center text-[34px] leading-[31px] font-bold tracking-[-0.03em] text-balance uppercase [animation-delay:60ms]">
           {t("new.heading")}
         </h1>
         <p className="rise mt-2 max-w-lg text-center text-base text-balance text-muted [animation-delay:120ms]">
@@ -145,11 +142,11 @@ function NewConversation() {
                 onClick={() => ask(t(`suggestion.${s.kind}`))}
                 style={{ animationDelay: `${240 + i * 50}ms` }}
                 className={cn(
-                  "rise flex items-center gap-3 rounded-2xl bg-panel p-3 text-left text-sm shadow-card",
+                  "rise flex items-center gap-3 bg-panel p-3 text-left text-sm",
                   "transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.98] disabled:opacity-50",
                 )}
               >
-                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-[10px]", tint)}>
+                <span className={cn("flex size-8 shrink-0 items-center justify-center", tint)}>
                   <Icon size={16} weight="fill" />
                 </span>
                 {t(`suggestion.${s.kind}`)}
@@ -172,7 +169,7 @@ function NewConversation() {
                   <Link
                     to="/agent/$conversationId"
                     params={{ conversationId: c.id }}
-                    className="flex items-center gap-2 rounded-md py-2 text-sm hover:bg-raised"
+                    className="flex items-center gap-2 py-2 text-sm hover:bg-raised"
                   >
                     <span className="flex-1 truncate">{c.title}</span>
                     <span className="text-xs text-faint">{timeAgo(c.updatedAt)}</span>
@@ -281,7 +278,7 @@ function Chat({ conversationId }: { conversationId: string }) {
     <div className="relative flex min-w-0 flex-1 flex-col">
       {/* The thread scrolls behind the title, under a progressive blur, and under the glass composer at the bottom. */}
       <header className="absolute inset-x-0 top-0 z-20 flex items-center gap-2 px-3 py-2.5 sm:px-5">
-        <Link to="/agent" aria-label={t("allConversations")} className="rounded-md p-1 text-muted hover:bg-raised hover:text-ink md:hidden">
+        <Link to="/agent" aria-label={t("allConversations")} className="p-1 text-muted hover:bg-raised hover:text-ink md:hidden">
           <CaretLeft size={16} />
         </Link>
         <h2 className="min-w-0 flex-1 truncate text-base font-semibold">{state.data?.conversation.title ?? "…"}</h2>
@@ -289,7 +286,7 @@ function Chat({ conversationId }: { conversationId: string }) {
           aria-label={t("deleteConversation")}
           title={t("deleteConversation")}
           onClick={async () => (await confirmDelete(state.data?.conversation.title ?? t("thisConversation"))) && remove.mutate({ id: conversationId })}
-          className="rounded-md p-1 text-faint hover:bg-raised hover:text-ink"
+          className="p-1 text-faint hover:bg-raised hover:text-ink"
         >
           <Trash size={15} />
         </button>
@@ -430,7 +427,7 @@ function ToolGroup({ messages }: { messages: Message[] }) {
 function MessageView({ message, actions, busy }: { message: Message; actions: Action[]; busy: boolean }) {
   if (message.role === "user") {
     return (
-      <div className="max-w-[85%] self-end rounded-[20px] bg-accent px-4 py-2.5 text-base whitespace-pre-wrap text-on-accent">{message.text}</div>
+      <div className="max-w-[85%] self-end bg-accent px-4 py-2.5 text-base whitespace-pre-wrap text-on-accent">{message.text}</div>
     );
   }
   if (message.role === "action") {
@@ -455,7 +452,7 @@ function DraftView({ text }: { text: string }) {
     <div className="text-base leading-[24px]">
       {ready.trim() && <Markdown text={ready} />}
       {drawing && (
-        <div className="mt-3 flex h-28 items-center justify-center gap-2 rounded-2xl bg-panel/60 text-sm shadow-card">
+        <div className="mt-3 flex h-28 items-center justify-center gap-2 bg-panel/60 text-sm">
           <ChartBar size={16} className="text-muted" />
           <span className="ai-text">{t("drawingVisual")}</span>
         </div>
@@ -508,7 +505,7 @@ function ActionCard({ action, busy }: { action: Action; busy: boolean }) {
     }),
   );
   return (
-    <div className={cn("rounded-2xl bg-panel p-4 shadow-card", action.status === "proposed" && "ring-1 ring-accent/35")}>
+    <div className={cn("bg-panel p-4", action.status === "proposed" && "ring-1 ring-accent/35")}>
       <div className="flex items-center gap-2 text-xs">
         <Lightning size={13} weight="fill" className="text-cat-pink" />
         <span className="font-medium text-muted">{toolLabel(t, action.tool)}</span>
@@ -522,7 +519,7 @@ function ActionCard({ action, busy }: { action: Action; busy: boolean }) {
       {action.status === "failed" && action.error && <p className="mt-2 text-xs text-cat-orange">{action.error}</p>}
       <details className="mt-2 text-xs text-faint">
         <summary className="cursor-pointer select-none hover:text-muted">{t("details")}</summary>
-        <pre className="mt-1.5 max-h-48 overflow-auto rounded-md bg-raised p-2 whitespace-pre-wrap">{JSON.stringify(action.input, null, 2)}</pre>
+        <pre className="mt-1.5 max-h-48 overflow-auto bg-raised p-2 whitespace-pre-wrap">{JSON.stringify(action.input, null, 2)}</pre>
       </details>
       {action.status === "proposed" && (
         <div className="mt-3 flex gap-2">

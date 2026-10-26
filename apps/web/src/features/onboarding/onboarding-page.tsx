@@ -1,4 +1,4 @@
-import { CaretRight, CircleNotch, Sparkle } from "@phosphor-icons/react";
+import { CaretRight, CircleNotch } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -67,7 +67,7 @@ function OnboardingForm() {
         }}
       >
         <PlutonLogo className="mb-8 h-7 text-ink" />
-        <h1 className="text-[22px] font-semibold leading-tight tracking-tight">
+        <h1 className="text-[28px] leading-[26px] font-bold tracking-[-0.03em] text-balance uppercase">
           {t("form.greeting")}
           <br />
           {t("form.heading")}
@@ -86,7 +86,7 @@ function OnboardingForm() {
               rows={3}
               autoFocus
               placeholder={t("form.buildingPlaceholder")}
-              className="block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+              className="block w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
             />
           </Field>
         ) : (
@@ -114,7 +114,7 @@ function OnboardingForm() {
               onChange={(e) => setContext(e.target.value)}
               rows={4}
               placeholder={t("form.contextPlaceholder")}
-              className={cn("mt-3", "block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring")}
+              className={cn("mt-3", "block w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring")}
             />
           )}
         </div>
@@ -170,8 +170,8 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
 
   return (
     <div className="flex h-full">
-      {/* The same floating sidebar pane as the rest of the app. */}
-      <aside className="my-2 ml-2 flex w-[300px] shrink-0 flex-col overflow-hidden rounded-[18px] bg-sidebar shadow-[0_0_0_0.5px_var(--color-line),0_6px_24px_rgb(0_0_0/0.08)]">
+      {/* The same print-black sidebar chapter as the rest of the app. */}
+      <aside className="ground-print flex w-[300px] shrink-0 flex-col overflow-hidden bg-sidebar">
         <div className="flex px-2.5 pt-3 pb-3">
           <WorkspaceMenu />
         </div>
@@ -183,7 +183,7 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
         <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />
 
         {hub && leaves.length > 0 && (
-          <div className="glass absolute top-5 right-5 w-64 rounded-3xl p-4">
+          <div className="glass absolute top-5 right-5 w-64 p-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="truncate text-sm font-semibold">{hubMeta(hub) && hubLabel(hubMeta(hub)!.id)}</h3>
               {pickedHub && (
@@ -204,11 +204,9 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
         )}
 
         {celebrating && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas/80 backdrop-blur-sm motion-safe:animate-[fadeIn_600ms_ease-out]">
-            <span className="flex size-14 items-center justify-center rounded-full bg-panel shadow-window">
-              <Sparkle size={26} weight="fill" className="text-ink motion-safe:animate-pulse" />
-            </span>
-            <p className="mt-5 text-lg font-semibold">{t("live.title")}</p>
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas/95 motion-safe:animate-[fadeIn_600ms_ease-out]">
+            <span className="ai-orb size-16" aria-hidden />
+            <p className="mt-6 text-[28px] leading-[26px] font-bold tracking-[-0.03em] uppercase">{t("live.title")}</p>
             <p className="mt-1 text-sm text-muted">{t("live.description")}</p>
           </div>
         )}

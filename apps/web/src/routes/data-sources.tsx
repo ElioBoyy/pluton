@@ -15,7 +15,7 @@ type TryInput = inferRouterInputs<AppRouter>["providers"]["try"];
 type TryOutput = inferRouterOutputs<AppRouter>["providers"]["try"];
 
 /** Tinted status pills; the light appearance darkens the text so it stays readable on its tint. */
-const PILL = "inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap";
+const PILL = "inline-flex h-[18px] shrink-0 items-center gap-1 px-2 text-xs font-medium whitespace-nowrap";
 const ACCESS = {
   free: { className: "bg-system-green/15 text-[color-mix(in_srgb,var(--color-system-green)_75%,black)] dark:text-system-green" },
   subscription: { className: "bg-system-purple/15 text-system-purple" },
@@ -94,7 +94,7 @@ function ProviderRow({
           {p.powers.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-1">
               {p.powers.map((s) => (
-                <li key={s} className="rounded-full bg-control px-2 py-px text-xs text-muted">
+                <li key={s} className="bg-control px-2 py-px text-xs text-muted">
                   {s}
                 </li>
               ))}
@@ -133,7 +133,7 @@ function TryPanel({ providerId }: { providerId: string }) {
   );
 
   return (
-    <div className="mt-3 rounded-lg bg-raised p-3">
+    <div className="mt-3 bg-raised p-3">
       <form
         className="flex items-center gap-2"
         onSubmit={(e) => {
@@ -235,7 +235,7 @@ function ResultRow({ title, meta, detail, href }: { title: string; meta?: string
       <p className="flex min-w-0 items-center gap-1.5 text-sm">
         <span className="min-w-0 break-words">{title}</span>
         {href && (
-          <a href={href} target="_blank" rel="noreferrer" className="shrink-0 rounded-full p-0.5 text-muted hover:bg-raised hover:text-ink" aria-label={tc("open")}>
+          <a href={href} target="_blank" rel="noreferrer" className="shrink-0 p-0.5 text-muted hover:bg-raised hover:text-ink" aria-label={tc("open")}>
             <ArrowSquareOut size={12} />
           </a>
         )}

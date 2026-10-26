@@ -171,7 +171,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     >
       <div className="w-full max-w-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center">
-          <div className={cn("glass flex h-14 flex-1 items-center gap-3 rounded-full px-5", POP)}>
+          <div className={cn("glass flex h-14 flex-1 items-center gap-3 px-5", POP)}>
             {ask.isPending ? (
               <CircleNotch size={22} className="shrink-0 animate-spin text-muted" />
             ) : (
@@ -213,7 +213,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 // The shortcuts follow the field in, 25ms apart.
                 style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
                 className={cn(
-                  "glass flex size-14 items-center justify-center rounded-full text-muted hover:text-ink",
+                  "glass flex size-14 items-center justify-center text-muted hover:text-ink",
                   POP,
                   "transition-[opacity,scale,color] motion-safe:hover:scale-105 motion-safe:active:scale-95",
                 )}
@@ -228,14 +228,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           <ul
             ref={listRef}
             className={cn(
-              "glass mt-2.5 max-h-[min(26rem,60vh)] overflow-y-auto rounded-[26px] p-2",
+              "glass mt-2.5 max-h-[min(26rem,60vh)] overflow-y-auto p-2",
               "transition-[opacity,translate] duration-200 ease-out starting:opacity-0 motion-safe:starting:-translate-y-1 group-data-[state=closed]:opacity-0",
             )}
           >
             {highlight && (
               <span
                 aria-hidden
-                className="absolute inset-x-2 top-0 rounded-[14px] bg-accent transition-[translate,height] duration-150 ease-out motion-reduce:transition-none"
+                className="absolute inset-x-2 top-0 bg-accent transition-[translate,height] duration-150 ease-out motion-reduce:transition-none"
                 style={{ height: highlight.height, translate: `0 ${highlight.top}px` }}
               />
             )}
@@ -251,7 +251,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                           onMouseEnter={() => setActive(i)}
                           onClick={() => run(i)}
                           className={cn(
-                            "relative flex h-9 w-full items-center gap-2.5 rounded-[14px] px-3.5 text-left text-base transition-colors duration-150",
+                            "relative flex h-9 w-full items-center gap-2.5 px-3.5 text-left text-base transition-colors duration-150",
                             i === active ? "text-on-accent" : "text-ink",
                           )}
                         >

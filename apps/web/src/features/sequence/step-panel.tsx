@@ -15,14 +15,14 @@ type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 export type Step = Data["campaign"]["steps"][number];
 
 const textarea =
-  "block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring";
+  "block w-full resize-y border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring";
 
 /** Side panel for one step: what it does (Configure) and who is at it (Leads). */
 export function StepPanel({ data, step, onClose, onSaved, onEditTone }: { data: Data; step: Step; onClose: () => void; onSaved: () => void; onEditTone: () => void }) {
   const t = useT("sequence");
   const [tab, setTab] = useState<"configure" | "leads">("configure");
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(460px,calc(100vw-24px))] flex-col rounded-3xl" aria-label={step.label}>
+    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(460px,calc(100vw-24px))] flex-col" aria-label={step.label}>
       <PanelHeader eyebrow={step.kind === "message" ? t("step.eyebrowMessage") : t("step.eyebrowStep")} title={step.label} onClose={onClose} />
       <div className="flex shrink-0 justify-center px-5 pb-2">
         <Segmented
@@ -146,7 +146,7 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
               <textarea value={draft.guidelines ?? ""} onChange={(e) => set({ guidelines: e.target.value })} maxLength={2000} rows={7} className={textarea} aria-label={t("step.guidelines")} />
               <p className="mt-1 px-1 text-right text-xs text-muted tabular-nums">{(draft.guidelines ?? "").length.toLocaleString(getLocale())} / {(2000).toLocaleString(getLocale())}</p>
               {suggestion && (
-                <div className="mt-2 rounded-xl bg-accent/10 p-4">
+                <div className="mt-2 bg-accent/10 p-4">
                   <p className="flex items-center gap-1 text-xs font-semibold text-accent">
                     <Sparkle size={11} weight="fill" /> {t("step.suggested")}
                   </p>
@@ -178,7 +178,7 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
           {save.isPending && <CircleNotch size={12} className="animate-spin" />} {tc("save")}
         </Button>
         {confirming && (
-          <div className="popover absolute right-0 bottom-full mb-2 w-80 origin-bottom-right rounded-2xl p-4 text-sm">
+          <div className="popover absolute right-0 bottom-full mb-2 w-80 origin-bottom-right p-4 text-sm">
             <p className="font-semibold">{t("step.applyTitle")}</p>
             <p className="mt-1 text-xs text-muted">{t("step.applyBody")}</p>
             <label className="mt-3 flex items-start gap-2 text-xs">
@@ -233,9 +233,9 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
               <BracketsCurly size={12} /> {t("template.insertVariable")}
             </Button>
             {menu && (
-              <div role="menu" className="popover absolute top-full right-0 z-10 mt-2 w-52 origin-top-right rounded-xl p-1.5">
+              <div role="menu" className="popover absolute top-full right-0 z-10 mt-2 w-52 origin-top-right p-1.5">
                 {vars.data?.variables.map((v) => (
-                  <button key={v.key} role="menuitem" onClick={() => insert(v.key)} className="flex h-7 w-full items-center rounded-md px-2.5 text-left text-sm hover:bg-raised">
+                  <button key={v.key} role="menuitem" onClick={() => insert(v.key)} className="flex h-7 w-full items-center px-2.5 text-left text-sm hover:bg-raised">
                     {v.label}
                   </button>
                 ))}
@@ -331,10 +331,10 @@ function StepLeads({ data, step }: { data: Data; step: Step }) {
         const channel = e.channel === "email" || step.channel === "email" ? "email" : "linkedin";
         const draft = e.drafts.find((d) => d.stepId === step.id && d.channel === channel) ?? e.drafts.find((d) => d.stepId === step.id);
         return (
-          <li key={e.id} className="rounded-xl bg-panel px-4 py-3 text-sm shadow-card">
+          <li key={e.id} className="bg-panel px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-2">
               <span className="truncate font-medium">{e.person.name}</span>
-              <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
+              <span className={cn("inline-flex h-5 shrink-0 items-center px-2 text-xs whitespace-nowrap", ENROLLMENT[e.status]?.className)}>{ENROLLMENT[e.status]?.label}</span>
             </div>
             {step.kind === "message" && (
               <p className="mt-1 line-clamp-3 text-xs text-muted">

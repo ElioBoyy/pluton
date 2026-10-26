@@ -29,7 +29,7 @@ function useBrainMutations() {
 }
 
 /** A Brain value as a tag: tinted fill, no border, one height whatever it holds. */
-export const CHIP = "inline-flex min-h-[22px] max-w-full items-center rounded-md bg-control px-2 py-[3px] text-xs leading-4 break-words";
+export const CHIP = "inline-flex min-h-[22px] max-w-full items-center bg-control px-2 py-[3px] text-xs leading-4 break-words";
 
 /**
  * Read-only rendering of one item's fields. `rows` lays them out as Group rows with the label in a
@@ -188,7 +188,7 @@ export function ListSection({ section, items, description }: { section: BrainSec
         <ul className="grid gap-3 md:grid-cols-2">
           {items.map((item) =>
             editingId === item.id ? (
-              <li key={item.id} className="rounded-xl bg-panel p-4 shadow-card md:col-span-2">
+              <li key={item.id} className="bg-panel p-4 md:col-span-2">
                 <ItemEditor
                   section={section}
                   initial={item.data}
@@ -203,7 +203,7 @@ export function ListSection({ section, items, description }: { section: BrainSec
             ) : (
               <li
                 key={item.id}
-                className="group min-w-0 rounded-xl bg-panel px-4 py-3.5 shadow-card"
+                className="group min-w-0 bg-panel px-4 py-3.5"
                 onContextMenu={contextMenu(() => [
                   { label: tc("edit"), icon: PencilSimple, onSelect: () => setEditingId(item.id) },
                   { label: tc("copy"), icon: Copy, onSelect: () => void navigator.clipboard.writeText(titleOf(section, item.data)) },
@@ -258,14 +258,14 @@ export function ListSection({ section, items, description }: { section: BrainSec
   );
 }
 
-/** Icon-only actions are round and muted, like the ones in a macOS list row. */
+/** Icon-only actions are square and muted, like the ones in a list row. */
 function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="flex size-7 items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+      className="flex size-7 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
     >
       {children}
     </button>

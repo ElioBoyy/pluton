@@ -38,7 +38,7 @@ export function BrainPage({ tabSlug: tab, onTab: setTab }: { tabSlug: BrainTabSl
         <PageHeader title={t("page.title")} description={t("page.emptyDescription")} />
         {/* Empty, it reads like a fresh start, as on the Agent page: a mark, one line, the way in. */}
         <div className="flex flex-col items-center px-4 py-16 text-center">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-system-pink/15 text-system-pink">
+          <span className="flex size-11 items-center justify-center bg-system-pink/15 text-system-pink">
             <Brain size={22} weight="fill" />
           </span>
           <p className="mt-4 max-w-sm text-base text-balance text-muted">{t("page.empty")}</p>
@@ -64,7 +64,7 @@ export function BrainPage({ tabSlug: tab, onTab: setTab }: { tabSlug: BrainTabSl
               <Button variant="ghost" className="xl:hidden" onClick={() => setPanelOpen(true)}>
                 <Sparkle size={14} /> {t("page.suggestions")}
                 {pendingCount > 0 && (
-                  <span className="-mr-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[11px] font-semibold text-on-accent tabular-nums">
+                  <span className="-mr-1 inline-flex h-[18px] min-w-[18px] items-center justify-center bg-accent px-1 text-[11px] font-semibold text-on-accent tabular-nums">
                     {pendingCount}
                   </span>
                 )}
@@ -109,7 +109,7 @@ export function BrainPage({ tabSlug: tab, onTab: setTab }: { tabSlug: BrainTabSl
               </>
             )}
             {tab === "graph" && (
-              <div className="h-[620px] overflow-hidden rounded-xl bg-panel shadow-card">
+              <div className="h-[620px] overflow-hidden bg-panel">
                 <BrainGraph items={items} rootLabel={companyName} selectedHub={null} onSelectHub={() => {}} />
               </div>
             )}

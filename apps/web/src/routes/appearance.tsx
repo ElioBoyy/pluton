@@ -77,7 +77,7 @@ function WallpaperSlot({ theme, url }: { theme: Theme; url: string | null }) {
         }}
         aria-label={t(`appearance.choose.${theme}`)}
         className={cn(
-          "group relative aspect-video overflow-hidden rounded-lg bg-raised text-muted shadow-[inset_0_0_0_0.5px_var(--color-line)] transition-[box-shadow,scale] duration-200 ease-out",
+          "group relative aspect-video overflow-hidden bg-raised text-muted transition-[box-shadow,scale] duration-200 ease-out",
           "hover:text-ink motion-safe:active:scale-[0.99]",
           dragging && "ring-2 ring-accent",
           upload.isPending && "ai-glow",
@@ -169,7 +169,7 @@ function GenerateSection({ codex }: { codex: boolean }) {
               disabled={working}
               aria-label={t("appearance.promptLabel")}
               placeholder={t("appearance.promptPlaceholder")}
-              className="w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring disabled:opacity-60"
+              className="w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring disabled:opacity-60"
             />
             <div className="flex flex-wrap items-center justify-end gap-3">
               {working && <span className="ai-text mr-auto min-w-0 text-sm">{status ?? t("appearance.drawing")}</span>}
@@ -189,7 +189,7 @@ function GenerateSection({ codex }: { codex: boolean }) {
       ) : (
         <Group className="px-4 py-3.5 text-sm text-muted">
           {t.rich("appearance.codexMissing", {
-            command: <code className="rounded-md bg-control px-1.5 py-0.5 font-mono text-xs whitespace-nowrap text-ink">npm i -g @openai/codex</code>,
+            command: <code className="bg-control px-1.5 py-0.5 font-mono text-xs whitespace-nowrap text-ink">npm i -g @openai/codex</code>,
           })}
         </Group>
       )}

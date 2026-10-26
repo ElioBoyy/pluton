@@ -45,7 +45,7 @@ export const REJECTION_LABELS = labels("rejection", [
  * Golden Gate tags for the Play screens. Chips list values (titles, regions); pills state a status
  * in a system color. Tinted fills, no borders, one height whatever the content.
  */
-export const CHIP = "inline-flex min-h-[22px] max-w-full items-center rounded-md bg-control px-2 py-[3px] text-xs leading-4 break-words";
+export const CHIP = "inline-flex min-h-[22px] max-w-full items-center bg-control px-2 py-[3px] text-xs leading-4 break-words";
 
 export const PILL = {
   pink: "bg-system-pink/15 text-system-pink",
@@ -54,4 +54,4 @@ export const PILL = {
   gray: "bg-control text-muted",
 } as const;
 
-export const PILL_BASE = "inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs font-medium whitespace-nowrap";
+export const PILL_BASE = "inline-flex h-5 shrink-0 items-center px-2 text-xs font-medium whitespace-nowrap";

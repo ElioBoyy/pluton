@@ -17,7 +17,7 @@ type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 export function ConfigurePanel({ data, onClose, onSaved, focus }: { data: Data; onClose: () => void; onSaved: () => void; focus?: "tone" }) {
   const t = useT("sequence");
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(480px,calc(100vw-24px))] flex-col rounded-3xl" aria-label={t("configure.label")}>
+    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(480px,calc(100vw-24px))] flex-col" aria-label={t("configure.label")}>
       <PanelHeader title={t("configure.title")} onClose={onClose} />
       <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-1 pb-6 [&>*]:shrink-0">
         {focus === "tone" ? (
@@ -72,7 +72,7 @@ const SENDER_STATUS = {
 const Block = ({ className, children }: { className?: string; children: React.ReactNode }) => <div className={cn("px-4 py-3", className)}>{children}</div>;
 
 const textarea =
-  "block w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring";
+  "block w-full resize-y border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring";
 
 function useUpdate(data: Data, onSaved: () => void, done: string) {
   const trpc = useTRPC();
@@ -233,7 +233,7 @@ function Window({ data, onSaved }: { data: Data; onSaved: () => void }) {
                 aria-pressed={days.includes(d)}
                 onClick={() => setDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d]))}
                 className={cn(
-                  "inline-flex h-6 min-w-10 items-center justify-center rounded-full px-2 text-xs transition-colors duration-150",
+                  "inline-flex h-6 min-w-10 items-center justify-center px-2 text-xs transition-colors duration-150",
                   days.includes(d) ? "bg-accent font-medium text-on-accent" : "bg-control text-muted hover:bg-control-hover hover:text-ink",
                 )}
               >

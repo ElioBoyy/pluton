@@ -29,7 +29,7 @@ export function WorkspacesSection() {
           {t("newWorkspace")}
         </Button>
       </div>
-      <div className="overflow-hidden rounded-2xl bg-panel shadow-card">
+      <div className="overflow-hidden bg-panel">
         {workspaces.map((ws) =>
           confirming === ws.id ? (
             <DeleteRow key={ws.id} workspace={ws} onDone={() => setConfirming(null)} />

@@ -43,7 +43,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
 
   return (
     <>
-      <div className="modal-in w-full rounded-3xl bg-panel p-6 shadow-window">
+      <div className="modal-in w-full bg-panel p-6 shadow-window">
         <h2 className="text-lg font-semibold">{card.title}</h2>
         <p className="mt-5 text-sm font-semibold">{card.heading}</p>
         {editing ? (
@@ -52,7 +52,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
             onChange={(e) => setDraft(e.target.value)}
             rows={9}
             autoFocus
-            className={"mt-3 leading-relaxed " + "block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"}
+            className={"mt-3 leading-relaxed " + "block w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"}
           />
         ) : (
           <p className="mt-3 text-sm leading-relaxed text-muted">{card.statement}</p>
@@ -127,7 +127,7 @@ function SelectCard({
 
   return (
     <>
-      <div className="modal-in w-full rounded-3xl bg-panel p-6 shadow-window">
+      <div className="modal-in w-full bg-panel p-6 shadow-window">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-lg font-semibold leading-snug">{card.title}</h2>
           {total > 1 && (
@@ -151,7 +151,7 @@ function SelectCard({
             (draft === null ? (
               <button
                 onClick={() => setDraft("")}
-                className="flex items-center gap-2.5 rounded-xl bg-canvas px-3 py-3 text-left text-sm text-muted shadow-card transition-colors duration-150 hover:text-ink"
+                className="flex items-center gap-2.5 bg-canvas px-3 py-3 text-left text-sm text-muted transition-colors duration-150 hover:text-ink"
               >
                 <Plus size={14} /> {t("card.writeOwn")}
               </button>
@@ -167,7 +167,7 @@ function SelectCard({
                   if (e.key === "Escape") setDraft(null);
                 }}
                 placeholder={t("card.typeAndEnter")}
-                className="rounded-xl border border-accent/60 bg-canvas px-3 py-3 text-sm text-ink outline-none focus-ring placeholder:text-faint"
+                className="border border-accent/60 bg-canvas px-3 py-3 text-sm text-ink outline-none focus-ring placeholder:text-faint"
               />
             ))}
         </div>
@@ -188,15 +188,15 @@ function Tile({ checked, round, onClick, label, detail }: { checked: boolean; ro
       aria-checked={round ? checked : undefined}
       className={cn(
         // A tinted tile when picked, a plain raised one otherwise: no outlines.
-        "flex items-start gap-2.5 rounded-xl px-3 py-3 text-left text-sm transition-[background-color,box-shadow] duration-150",
-        checked ? "bg-accent/12 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]" : "bg-canvas shadow-card hover:bg-panel-hover",
+        "flex items-start gap-2.5 px-3 py-3 text-left text-sm transition-[background-color,box-shadow] duration-150",
+        checked ? "bg-accent/12" : "bg-canvas hover:bg-panel-hover",
       )}
     >
       <span
         className={cn(
           "mt-px flex size-4 shrink-0 items-center justify-center transition-colors duration-150",
-          round ? "rounded-full" : "rounded-[5px]",
-          checked ? "bg-accent text-on-accent" : "bg-canvas shadow-[inset_0_0_0_1px_var(--color-line-strong)]",
+          round ? "rounded-full" : "",
+          checked ? "bg-accent text-on-accent" : "bg-canvas",
         )}
       >
         {checked && <Check size={11} weight="bold" />}

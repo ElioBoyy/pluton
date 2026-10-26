@@ -74,11 +74,11 @@ export function NewPlayPage() {
             {!started && <Intro onPick={send} />}
             {transcript.map((turn, i) =>
               turn.role === "user" ? (
-                <div key={i} className="max-w-[85%] self-end rounded-[18px] bg-accent px-3.5 py-2 text-sm leading-5 text-on-accent">
+                <div key={i} className="max-w-[85%] self-end bg-accent px-3.5 py-2 text-sm leading-5 text-on-accent">
                   {turn.text}
                 </div>
               ) : (
-                <div key={i} className="max-w-[85%] self-start rounded-[18px] bg-control px-3.5 py-2 text-sm leading-5">
+                <div key={i} className="max-w-[85%] self-start bg-control px-3.5 py-2 text-sm leading-5">
                   {turn.text.startsWith(PROPOSAL_PREFIX) ? t("new.proposal") : turn.text}
                 </div>
               ),
@@ -130,10 +130,10 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
 
   return (
     <div className="mb-6">
-      <span className="flex size-11 items-center justify-center rounded-xl bg-system-pink/15 text-system-pink">
+      <span className="flex size-11 items-center justify-center bg-system-pink/15 text-system-pink">
         <Lightning size={22} weight="fill" />
       </span>
-      <h1 className="mt-5 text-2xl font-semibold tracking-[-0.02em]">{t("new.title")}</h1>
+      <h1 className="mt-5 text-2xl font-bold tracking-[-0.03em] text-balance uppercase sm:text-[42px] sm:leading-[38px]">{t("new.title")}</h1>
       <p className="mt-1.5 text-base text-muted">{t("new.description")}</p>
       {ideas.length > 0 && (
         <Section title={t("new.ideas")} className="mt-8">
@@ -142,7 +142,7 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
               <button
                 key={idea}
                 onClick={() => onPick(idea)}
-                className="flex items-center gap-3 rounded-xl bg-panel px-3.5 py-3 text-left text-sm shadow-card transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.99]"
+                className="flex items-center gap-3 bg-panel px-3.5 py-3 text-left text-sm transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.99]"
               >
                 <Lightning size={15} weight="fill" className="shrink-0 text-system-pink" />
                 <span className="min-w-0 flex-1">{idea}</span>
@@ -168,7 +168,7 @@ function QuestionOptions({ question, onAnswer }: { question: Question; onAnswer:
           }
           aria-pressed={question.multiSelect ? picked.includes(o) : undefined}
           className={cn(
-            "inline-flex min-h-8 items-center rounded-full px-3.5 py-1.5 text-sm transition-[background-color,scale] duration-150 ease-out motion-safe:active:scale-[0.97]",
+            "inline-flex min-h-8 items-center px-3.5 py-1.5 text-sm transition-[background-color,scale] duration-150 ease-out motion-safe:active:scale-[0.97]",
             picked.includes(o) ? "bg-accent text-on-accent" : "capsule text-ink hover:bg-(--capsule-bg-hover)",
           )}
         >
@@ -227,7 +227,7 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
           ) : (
             <button
               onClick={() => setEditingName(true)}
-              className="group mt-1 flex w-full min-w-0 items-center gap-2 rounded-md text-left text-lg font-semibold tracking-[-0.01em]"
+              className="group mt-1 flex w-full min-w-0 items-center gap-2 text-left text-lg font-semibold tracking-[-0.01em]"
             >
               <span className="min-w-0">{proposal.name}</span>
               <PencilSimple size={14} className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />

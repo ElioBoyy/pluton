@@ -5,8 +5,8 @@ import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 
 /**
- * Right-click menus, as on macOS 27: a Liquid Glass menu at the pointer, items highlighted in the
- * accent color, destructive ones in red. Any element opens one with
+ * Right-click menus: an opaque plate at the pointer, items highlighted in ultramarine, destructive
+ * ones in red. Any element opens one with
  * `onContextMenu={contextMenu(() => [...items])}`; the host lives once in the app shell.
  * Groups of items are set apart by a little space, not by separator lines.
  */
@@ -156,7 +156,7 @@ function Menu({ state }: { state: NonNullable<MenuState> }) {
       role="menu"
       tabIndex={-1}
       onContextMenu={(e) => e.preventDefault()}
-      className="glass fixed z-[60] min-w-52 rounded-xl p-1.5 text-sm outline-none select-none"
+      className="glass fixed z-[60] min-w-52 p-1.5 text-sm outline-none select-none"
       style={{ left: pos.left, top: pos.top, transformOrigin: pos.origin }}
     >
       {state.items.map((item, i) =>
@@ -171,7 +171,7 @@ function Menu({ state }: { state: NonNullable<MenuState> }) {
             onMouseLeave={() => setActive(-1)}
             onClick={() => choose(i)}
             className={cn(
-              "flex h-[26px] w-full items-center gap-2 rounded-md px-2 text-left disabled:opacity-40",
+              "flex h-[26px] w-full items-center gap-2 px-2 text-left disabled:opacity-40",
               item.destructive ? "text-system-red" : "text-ink",
               active === i && (item.destructive ? "bg-system-red text-white" : "bg-accent text-on-accent"),
             )}
@@ -188,8 +188,8 @@ function Menu({ state }: { state: NonNullable<MenuState> }) {
 }
 
 /**
- * A macOS alert for confirming something that can't be undone: title, message and two capsule
- * buttons, the default one on the right. Resolves true when confirmed.
+ * An alert for confirming something that can't be undone: title, message and two square buttons,
+ * the default one on the right. Resolves true when confirmed.
  */
 type ConfirmOptions = { title: string; message?: ReactNode; confirmLabel: string; destructive?: boolean };
 let pending: (ConfirmOptions & { resolve: (ok: boolean) => void }) | null = null;
@@ -226,7 +226,7 @@ export function ConfirmHost() {
       onClick={(e) => e.target === e.currentTarget && done(false)}
       onKeyDown={(e) => e.key === "Escape" && done(false)}
     >
-      <div role="alertdialog" aria-modal="true" aria-label={state.title} className="glass modal-in w-full max-w-[280px] rounded-[22px] p-5 text-center">
+      <div role="alertdialog" aria-modal="true" aria-label={state.title} className="glass modal-in w-full max-w-[280px] p-5 text-center">
         <p className="text-[15px] leading-5 font-semibold text-balance">{state.title}</p>
         {state.message && <p className="mt-1.5 text-xs text-muted text-pretty">{state.message}</p>}
         <div className="mt-5 flex flex-col gap-2">
@@ -234,13 +234,13 @@ export function ConfirmHost() {
             ref={confirmRef}
             onClick={() => done(true)}
             className={cn(
-              "h-8 rounded-full text-sm font-medium text-white outline-none focus-visible:focus-ring motion-safe:active:scale-[0.98]",
+              "h-8 text-sm font-medium text-white outline-none focus-visible:focus-ring motion-safe:active:scale-[0.98]",
               state.destructive ? "bg-system-red" : "bg-accent",
             )}
           >
             {state.confirmLabel}
           </button>
-          <button onClick={() => done(false)} className="capsule h-8 rounded-full text-sm font-medium motion-safe:active:scale-[0.98]">
+          <button onClick={() => done(false)} className="capsule h-8 text-sm font-medium motion-safe:active:scale-[0.98]">
             {tc("cancel")}
           </button>
         </div>

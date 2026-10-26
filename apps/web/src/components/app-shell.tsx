@@ -23,7 +23,6 @@ import { AppearanceControl } from "./appearance-control.tsx";
 import { CommandPalette } from "./command-palette.tsx";
 import { ConfirmHost, ContextMenuHost, contextMenu } from "./context-menu.tsx";
 import { usePlayMenu } from "../features/plays/play-menu.ts";
-import { LiquidGlassLayer, refractionSupported } from "./liquid-glass.tsx";
 import { NotificationBell } from "./notification-bell.tsx";
 import { Toaster } from "./toast.tsx";
 import { Wallpaper } from "./wallpaper.tsx";
@@ -73,18 +72,16 @@ export function AppShell() {
     <div className="flex h-full">
       <Wallpaper />
       {navOpen && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />}
-      {/* macOS 27 sidebar: opaque, full height and flush with the window edge. A drawer on phones. */}
+      {/* The sidebar is a print-black chapter beside the plate: full height, flush with the window edge. A drawer on phones. */}
       <aside
         className={cn(
-          // macOS 27: the sidebar floats as a rounded pane inset from the window edges; a full-height drawer on phones.
-          "flex w-60 shrink-0 flex-col bg-sidebar",
-          "md:my-2 md:ml-2 md:rounded-[18px] md:shadow-[0_0_0_0.5px_var(--color-line),0_6px_24px_rgb(0_0_0/0.08)]",
+          "ground-print flex w-60 shrink-0 flex-col bg-sidebar",
           "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-72 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]",
           "max-md:transition-transform max-md:duration-200 max-md:ease-out motion-reduce:transition-none",
-          navOpen ? "max-md:translate-x-0 max-md:shadow-2xl" : "max-md:-translate-x-full",
+          navOpen ? "max-md:translate-x-0 max-md:shadow-window" : "max-md:-translate-x-full",
         )}
       >
-        <div className="flex items-center gap-1.5 px-2.5 pt-3 pb-3">
+        <div className="flex items-center gap-1.5 px-2.5 pt-3 pb-4">
           <WorkspaceMenu />
           <NotificationBell />
         </div>
@@ -94,16 +91,17 @@ export function AppShell() {
             <div key={to} className="group/nav relative">
               <Link
                 to={to}
-                className="flex h-7 items-center gap-2 rounded-md px-2 text-sm text-ink transition-colors duration-150 hover:bg-raised"
-                activeProps={{ className: "!bg-selected" }}
+                // The landing's chapter swatches: the label slides right on hover; the current page is inked in ultramarine.
+                className="flex h-8 items-center gap-2.5 px-2.5 text-sm font-medium text-ink transition-[padding] duration-240 ease-out hover:bg-raised hover:pl-3.5 motion-reduce:transition-none"
+                activeProps={{ className: "!bg-brand !pl-2.5 !text-white" }}
                 activeOptions={{ exact: to === "/plays" }}
               >
-                <IconCmp size={16} className="text-accent" />
+                <IconCmp size={16} />
                 <span className="flex-1">{t(`nav.${key}`)}</span>
                 {/* Room for the collapse toggle, which sits over the row's right edge. */}
                 {to === "/plays" && <span className="w-5" aria-hidden />}
                 {to === "/leads" && toReview > 0 && (
-                  <span className="text-xs tabular-nums text-muted" title={t("nav.toReview", { count: toReview })}>
+                  <span className="text-xs tabular-nums opacity-70" title={t("nav.toReview", { count: toReview })}>
                     {toReview}
                   </span>
                 )}
@@ -113,7 +111,7 @@ export function AppShell() {
                   onClick={() => setPlaysOpen(!playsOpen)}
                   aria-expanded={playsOpen}
                   aria-label={playsOpen ? t("nav.hidePlays") : t("nav.showPlays")}
-                  className="absolute top-1 right-1.5 flex size-5 items-center justify-center rounded text-faint transition-colors duration-150 hover:bg-raised hover:text-ink"
+                  className="absolute top-1.5 right-1.5 flex size-5 items-center justify-center text-faint transition-colors duration-150 hover:bg-raised hover:text-ink group-has-[[aria-current=page]]/nav:text-white/70"
                 >
                   <CaretRight size={11} weight="bold" className={cn("transition-transform duration-200 ease-out", playsOpen && "rotate-90")} />
                 </button>
@@ -136,8 +134,8 @@ export function AppShell() {
                           to="/plays/$playId"
                           params={{ playId: p.id }}
                           onContextMenu={contextMenu(() => playMenu(p))}
-                          className="flex h-7 items-center gap-2 rounded-md px-2 text-sm text-muted hover:bg-raised hover:text-ink"
-                          activeProps={{ className: "!bg-selected !text-ink" }}
+                          className="flex h-7 items-center gap-2 px-2 text-sm text-muted transition-[padding] duration-240 ease-out hover:bg-raised hover:pl-3 hover:text-ink motion-reduce:transition-none"
+                          activeProps={{ className: "!bg-selected !pl-2 !text-ink" }}
                         >
                           <span className="flex-1 truncate">{p.name}</span>
                           {p.leadCounts.toReview > 0 && <span className="text-xs tabular-nums text-muted">{p.leadCounts.toReview}</span>}
@@ -156,10 +154,10 @@ export function AppShell() {
           <div className="flex items-center gap-2">
             <Link
               to="/workspace/settings"
-              className="flex h-7 flex-1 items-center gap-2 rounded-md px-2 text-sm text-ink hover:bg-raised"
-              activeProps={{ className: "!bg-selected" }}
+              className="flex h-8 flex-1 items-center gap-2.5 px-2.5 text-sm font-medium text-ink transition-[padding] duration-240 ease-out hover:bg-raised hover:pl-3.5 motion-reduce:transition-none"
+              activeProps={{ className: "!bg-brand !pl-2.5 !text-white" }}
             >
-              <Gear size={16} className="text-accent" />
+              <Gear size={16} />
               {tc("settings")}
             </Link>
             <AppearanceControl />
@@ -168,11 +166,11 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2 bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
+        <header className="ground-print flex h-12 shrink-0 items-center gap-2 bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
           <button
             onClick={() => setNavOpen(true)}
             aria-label={t("nav.openMenu")}
-            className="flex size-9 items-center justify-center rounded-md text-ink hover:bg-raised"
+            className="flex size-9 items-center justify-center text-ink hover:bg-raised"
           >
             <List size={20} />
           </button>
@@ -180,7 +178,7 @@ export function AppShell() {
           <button
             onClick={() => setPaletteOpen(true)}
             aria-label={t("askPluton")}
-            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-ink"
+            className="flex size-9 items-center justify-center text-muted hover:bg-raised hover:text-ink"
           >
             <MagnifyingGlass size={18} />
           </button>
@@ -210,7 +208,7 @@ function GetStarted() {
   const steps = checklist.data ?? [];
   if (!steps.length || steps.every((s) => s.done)) return null;
   return (
-    <div className="rounded-lg bg-raised p-3">
+    <div className="bg-raised p-3">
       <p className="mb-2 flex items-center text-xs font-semibold text-muted">
         <span className="flex-1">{t("getStarted")}</span>
         <span className="font-normal tabular-nums text-faint">
@@ -222,7 +220,7 @@ function GetStarted() {
           <li key={step.key}>
             <AppLink
               href={step.to}
-              className={cn("flex items-center gap-2 rounded py-0.5 text-xs hover:text-ink", step.done ? "text-faint line-through" : "text-muted")}
+              className={cn("flex items-center gap-2 py-0.5 text-xs hover:text-ink", step.done ? "text-faint line-through" : "text-muted")}
             >
               {step.done ? <CheckCircle size={13} weight="fill" className="text-cat-green" /> : <Circle size={13} className="text-faint" />}
               {CHECKLIST_KEYS.includes(step.key as ChecklistKey) ? t(`getStarted.${step.key as ChecklistKey}`) : step.label}
@@ -261,8 +259,9 @@ function usePlaysOpen() {
 }
 
 /**
- * The floating "Ask Pluton" bar. It grows with its label so every language fits on one line, and
- * is centred over the content by its measured width: a transform would break the refraction.
+ * The floating "Ask Pluton" bar, a strip of print black like the landing page's top bar. It grows
+ * with its label so every language fits on one line, and is centred over the content by its
+ * measured width, so its slide uses `bottom` and no transform.
  */
 function AskBar({ label, hidden, onOpen }: { label: string; hidden: boolean; onOpen: () => void }) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -286,27 +285,18 @@ function AskBar({ label, hidden, onOpen }: { label: string; hidden: boolean; onO
     <button
       ref={ref}
       onClick={onOpen}
-      // With refraction the glass layer inside does the backdrop work; the bar itself must not, or the layer would see only the bar.
-      style={{
-        left: `calc(50% + 124px - ${width / 2}px)`,
-        ...(refractionSupported ? { backdropFilter: "none", WebkitBackdropFilter: "none" } : {}),
-      }}
-      data-refract={refractionSupported || undefined}
-      // While ⌘K is open it slides below the window's edge. It moves by `bottom` and never fades: a
-      // transform would misplace the refraction, and opacity under 1 cuts the glass layer off from
-      // the page behind, so the blur would only come back once the fade ended.
+      style={{ left: `calc(50% + 120px - ${width / 2}px)` }}
+      // While ⌘K is open it slides below the window's edge.
       aria-hidden={hidden || undefined}
       tabIndex={hidden ? -1 : undefined}
       className={cn(
-        "glass glass-thin fixed flex h-11 min-w-80 items-center gap-2.5 rounded-full px-4 text-base whitespace-nowrap text-muted transition-[color,bottom] duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink max-md:hidden motion-reduce:transition-none",
+        "ground-print fixed flex h-12 min-w-80 items-center gap-3 bg-print pr-2 dark:bg-panel pl-4 text-base whitespace-nowrap text-muted shadow-popover transition-[color,bottom] duration-[420ms] ease-out hover:text-ink max-md:hidden motion-reduce:transition-none",
         hidden ? "pointer-events-none -bottom-20" : "bottom-5",
       )}
     >
       <MagnifyingGlass size={18} className="shrink-0" />
       {label}
-      <kbd className="ml-auto pl-4 font-sans text-xs text-faint">⌘K</kbd>
-      {/* Keyed on the width: the refraction map is drawn for one exact size. */}
-      {refractionSupported && <LiquidGlassLayer key={width} id="ask-glass" width={width} height={44} radius={22} />}
+      <kbd className="ml-auto flex h-8 items-center bg-brand px-2.5 font-sans text-xs font-medium text-white">⌘K</kbd>
     </button>
   );
 }

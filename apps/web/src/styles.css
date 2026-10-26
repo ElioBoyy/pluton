@@ -1,86 +1,103 @@
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jost";
 @import "tailwindcss";
 
 /* `dark:` follows the app's appearance (data-theme), not only the system setting. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
- * macOS 27 (Golden Gate) theme, from Apple's macOS 27 UI Kit; system colors and text styles from the
- * Human Interface Guidelines (unchanged since macOS 26). Light/dark follow the system appearance,
- * like a native Mac app, unless the user picks one in the sidebar. The token names predate the kit
- * (canvas, panel, ink, …) so every screen picks it up; the values below are the macOS semantic colors.
+ * The plates, after the landing page (apps/site/DESIGN.md): the app is a run of photographic
+ * plates. The content is one flat field of plate grey (print black in the dark appearance), the
+ * sidebar is a print-black chapter in both, and brand ultramarine is the ink that marks what moved
+ * and what to press. One face (Jost), square corners, no rules and no gloss: surfaces are told
+ * apart by one step in tone. The token names predate the plates (canvas, panel, ink, …) so every
+ * screen picks them up.
  */
 /* `static` keeps every variable in the output: the dark block and the graph read them at runtime. */
 @theme static {
-  /* SF Pro on Apple platforms; Inter elsewhere. */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Inter Variable", system-ui, sans-serif;
+  --font-sans: "Jost Variable", "Jost", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* macOS text styles (size / line height): Subheadline, Body, Title 3, Title 2, Title 1, Large Title. */
-  --text-xs: 11px;
-  --text-xs--line-height: 14px;
-  --text-sm: 13px;
-  --text-sm--line-height: 16px;
-  --text-base: 15px;
-  --text-base--line-height: 20px;
-  --text-lg: 17px;
-  --text-lg--line-height: 22px;
-  --text-xl: 22px;
+  /* Jost runs small, so each step sits a notch above the usual UI sizes. */
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 22px;
+  --text-lg: 18px;
+  --text-lg--line-height: 24px;
+  --text-xl: 24px;
   --text-xl--line-height: 26px;
-  --text-2xl: 26px;
-  --text-2xl--line-height: 32px;
-  /* Caption 1 / Footnote and Callout, for the few places that need them. */
-  --text-caption: 10px;
-  --text-caption--line-height: 13px;
-  --text-callout: 12px;
-  --text-callout--line-height: 15px;
+  /* The page headline: Jost 700, uppercase, set tight (see PageHeader). */
+  --text-2xl: 34px;
+  --text-2xl--line-height: 31px;
+  --text-caption: 11px;
+  --text-caption--line-height: 14px;
+  --text-callout: 13px;
+  --text-callout--line-height: 17px;
 
-  /* Light appearance. */
-  --color-canvas: #ffffff; /* content background */
-  --color-panel: #f5f5f7; /* boxes, grouped content */
-  --color-panel-hover: #efeff1;
-  --color-raised: rgb(0 0 0 / 0.05); /* fills: hover, wells */
-  --color-selected: rgb(0 0 0 / 0.06); /* sidebar selection */
-  --color-sidebar: #ececee; /* the floating sidebar pane */
-  --color-zebra: rgb(0 0 0 / 0.05); /* alternating list rows */
-  --color-selection: #0064e1; /* selected list row */
-  --color-line: rgb(0 0 0 / 0.1); /* separator */
-  --color-line-strong: rgb(0 0 0 / 0.18);
-  --color-ink: rgb(0 0 0 / 0.85); /* label */
-  --color-muted: rgb(0 0 0 / 0.5); /* secondary label */
-  --color-faint: rgb(0 0 0 / 0.26); /* tertiary label, placeholders */
+  /* Square corners on every rectangle. Circles stay for what is round in the world: stars, the
+     marker ring, the switch (`rounded-full` is not a token and keeps working for those). */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
 
-  /* Push buttons: flat rounded rectangles, no bezel shadow. */
-  --color-control: rgb(0 0 0 / 0.08);
-  --color-control-hover: rgb(0 0 0 / 0.12);
-  --color-control-pressed: rgb(0 0 0 / 0.16);
-  --color-accent: #0088ff; /* system blue, the default accent */
+  /* The plates, light: plate grey printed in ink. */
+  --color-canvas: #dedfda; /* plate grey: the field */
+  --color-panel: #cdcfc7; /* plate step: grouped content, one tone down */
+  --color-panel-hover: #c4c6be;
+  --color-field: #f3f3ef; /* paper: text fields, one tone up */
+  --color-raised: rgb(16 16 24 / 0.06); /* fills: hover, wells */
+  --color-selected: rgb(16 16 24 / 0.09);
+  --color-sidebar: #0e0e12; /* print black: the sidebar is its own chapter */
+  --color-zebra: rgb(16 16 24 / 0.05); /* alternating rows, a step down */
+  --color-selection: #2b3bff;
+  --color-line: rgb(16 16 24 / 0.12); /* only where a step can't be taken (a chart axis) */
+  --color-line-strong: rgb(16 16 24 / 0.24);
+  --color-ink: #101018;
+  --color-muted: #4a4b52;
+  --color-faint: rgb(16 16 24 / 0.4);
+
+  /* Flat square controls: a tinted step on whatever field they sit on. */
+  --color-control: rgb(16 16 24 / 0.08);
+  --color-control-hover: rgb(16 16 24 / 0.13);
+  --color-control-pressed: rgb(16 16 24 / 0.2);
+  --color-accent: #2b3bff; /* brand ultramarine: what moved, what to press */
+  --color-accent-press: #2232e0;
   --color-on-accent: #ffffff;
-  --color-brand: #2b3bff; /* Pluton's ultramarine, for the logo only; controls keep the accent */
+  --color-brand: #2b3bff;
+  --color-paper: #f3f3ef;
+  --color-print: #0e0e12;
 
-  /* System colors (macOS 26 "unified" palette). */
-  --color-system-red: #ff383c;
-  --color-system-orange: #ff8d28;
-  --color-system-yellow: #ffcc00;
-  --color-system-green: #34c759;
-  --color-system-mint: #00c8b3;
-  --color-system-teal: #00c3d0;
-  --color-system-cyan: #00c0e8;
-  --color-system-blue: #0088ff;
-  --color-system-indigo: #6155f5;
-  --color-system-purple: #cb30e0;
-  --color-system-pink: #ff2d55;
-  --color-system-brown: #ac7f5e;
-  --color-system-gray: #8e8e93;
+  /* Status colours, pulled toward the plates so they sit with the grey and the ultramarine. */
+  --color-system-red: #e5332a;
+  --color-system-orange: #e8741c;
+  --color-system-yellow: #d9a600;
+  --color-system-green: #1f9d55;
+  --color-system-mint: #12a594;
+  --color-system-teal: #0e9aa7;
+  --color-system-cyan: #1592c4;
+  --color-system-blue: #2b3bff;
+  --color-system-indigo: #4b3bd6;
+  --color-system-purple: #8a3fd1;
+  --color-system-pink: #d6336c;
+  --color-system-brown: #8c6a4f;
+  --color-system-gray: #7c7d83;
 
-  /* Chart series, in this fixed order (validated for colour-blind separation on both surfaces). */
-  --color-chart-1: #0088ff;
-  --color-chart-2: #ff8d28;
-  --color-chart-3: #00c8b3;
-  --color-chart-4: #cb30e0;
-  --color-chart-5: #ff2d55;
-  --color-chart-6: #6155f5;
+  /* Chart series, in this fixed order: ultramarine first, then hues far from it and each other. */
+  --color-chart-1: #2b3bff;
+  --color-chart-2: #e8741c;
+  --color-chart-3: #12a594;
+  --color-chart-4: #101018;
+  --color-chart-5: #d6336c;
+  --color-chart-6: #8a3fd1;
 
-  /* Brain graph categories, mapped onto system colors. */
+  /* Brain graph categories, mapped onto the status colours. */
   --color-cat-purple: var(--color-system-purple);
   --color-cat-pink: var(--color-system-pink);
   --color-cat-blue: var(--color-system-blue);
@@ -89,211 +106,139 @@
   --color-cat-orange: var(--color-system-orange);
   --color-cat-yellow: var(--color-system-yellow);
 
-  /* For raised surfaces inside content (a selected segment, a card picker), not for buttons. */
-  --shadow-control: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.08);
-  --shadow-window: 0 0 0 0.5px rgb(0 0 0 / 0.1), 0 8px 40px rgb(0 0 0 / 0.16);
-  /* Grouped content sits on a tone step; a hairline of shadow, not a border, defines its edge. */
-  --shadow-card: 0 0 0 0.5px rgb(0 0 0 / 0.05), 0 1px 2px rgb(0 0 0 / 0.04);
-  /* Menus and popovers: they truly float, so they cast a real shadow. */
-  --shadow-popover: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 4px 12px rgb(0 0 0 / 0.08), 0 16px 40px -8px rgb(0 0 0 / 0.18);
+  /* Flat at rest: nothing in the page casts a shadow. */
+  --shadow-control: none;
+  --shadow-card: none;
+  /* Only what truly floats over the plate (menus, dialogs, drawers) lifts off it, with one hard shadow. */
+  --shadow-window: 0 24px 60px -16px rgb(14 14 18 / 0.45);
+  --shadow-popover: 0 18px 40px -12px rgb(14 14 18 / 0.4);
 
-  /* Liquid Glass, measured on the macOS 27 kit's Materials page (see the glass utility below). */
-  --glass-bg: rgb(255 255 255 / 0.68);
-  --glass-edge: rgb(0 0 0 / 0.08);
-  --glass-shadow: 0 8px 24px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.06);
-  --glass-highlight: rgb(255 255 255 / 0.9); /* the top edge catching the light */
-  --glass-glow: rgb(255 255 255 / 0.9); /* light gathering along the bottom edge */
-  --glass-rim: #ffffff; /* the rim, brightest at the top-left and bottom-right corners */
-
-  /* Motion. Strong curves: the built-in ones are too soft for UI. */
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Motion, as on the landing page. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-drawer: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Dark appearance. data-theme is set before first paint (index.html) and by lib/theme.ts. */
+/* Dark appearance: print black printed in paper. data-theme is set before first paint (index.html) and by lib/theme.ts. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-canvas: #1e1e1e;
-  --color-panel: #262626;
-  --color-panel-hover: #2c2c2c;
-  --color-raised: rgb(255 255 255 / 0.08);
-  --color-selected: rgb(255 255 255 / 0.06);
-  --color-sidebar: #262628;
-  --color-zebra: rgb(255 255 255 / 0.045);
-  --color-selection: #0058d0;
-  --color-line: rgb(255 255 255 / 0.1);
-  --color-line-strong: rgb(255 255 255 / 0.18);
-  --color-ink: rgb(255 255 255 / 0.85);
-  --color-muted: rgb(255 255 255 / 0.55);
-  --color-faint: rgb(255 255 255 / 0.25);
+  --color-canvas: #0e0e12;
+  --color-panel: #1d1d24;
+  --color-panel-hover: #25252e;
+  --color-field: #26262f;
+  --color-raised: rgb(243 243 239 / 0.07);
+  --color-selected: rgb(243 243 239 / 0.1);
+  --color-sidebar: #16161b;
+  --color-zebra: rgb(243 243 239 / 0.035);
+  --color-selection: #2b3bff;
+  --color-line: rgb(243 243 239 / 0.1);
+  --color-line-strong: rgb(243 243 239 / 0.2);
+  --color-ink: #f3f3ef;
+  --color-muted: rgb(243 243 239 / 0.62);
+  --color-faint: rgb(243 243 239 / 0.34);
 
-  --color-control: rgb(255 255 255 / 0.12);
-  --color-control-hover: rgb(255 255 255 / 0.16);
-  --color-control-pressed: rgb(255 255 255 / 0.22);
-  --color-accent: #0091ff;
+  --color-control: rgb(243 243 239 / 0.09);
+  --color-control-hover: rgb(243 243 239 / 0.14);
+  --color-control-pressed: rgb(243 243 239 / 0.2);
+  /* Ultramarine lifted a notch so it still reads as text on print black. */
+  --color-accent: #5866ff;
+  --color-accent-press: #4654f0;
 
-  --color-chart-1: #0091ff;
-  --color-chart-2: #cc6f1f;
-  --color-chart-3: #009b8c;
-  --color-chart-4: #db34f2;
-  --color-chart-5: #ff375f;
-  --color-chart-6: #7a7fff;
+  --color-chart-1: #5866ff;
+  --color-chart-2: #f08a3c;
+  --color-chart-3: #2bbfac;
+  --color-chart-4: #f3f3ef;
+  --color-chart-5: #f0587f;
+  --color-chart-6: #a868ec;
 
-  --color-system-red: #ff4245;
-  --color-system-orange: #ff9230;
-  --color-system-yellow: #ffd600;
-  --color-system-green: #30d158;
-  --color-system-mint: #00dac3;
-  --color-system-teal: #00d2e0;
-  --color-system-cyan: #3cd3fe;
-  --color-system-blue: #0091ff;
-  --color-system-indigo: #6d7cff;
-  --color-system-purple: #db34f2;
-  --color-system-pink: #ff375f;
-  --color-system-brown: #b78a66;
-  --color-system-gray: #8e8e93;
+  --color-system-red: #ff5a50;
+  --color-system-orange: #f08a3c;
+  --color-system-yellow: #f2c230;
+  --color-system-green: #3cc274;
+  --color-system-mint: #2bbfac;
+  --color-system-teal: #2ab4c0;
+  --color-system-cyan: #38aee0;
+  --color-system-blue: #5866ff;
+  --color-system-indigo: #7a6cf0;
+  --color-system-purple: #a868ec;
+  --color-system-pink: #f0587f;
+  --color-system-brown: #b48b6a;
+  --color-system-gray: #8e8f95;
 
-  --shadow-control: inset 0 0.5px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.3);
-  --shadow-window: 0 0 0 0.5px rgb(255 255 255 / 0.12), 0 8px 40px rgb(0 0 0 / 0.5);
-  --shadow-card: inset 0 0.5px 0 rgb(255 255 255 / 0.07), 0 0 0 0.5px rgb(255 255 255 / 0.06);
-  --shadow-popover: inset 0 0.5px 0 rgb(255 255 255 / 0.1), 0 0 0 0.5px rgb(0 0 0 / 0.6), 0 16px 48px -8px rgb(0 0 0 / 0.6);
-
-  --glass-bg: rgb(29 29 29 / 0.66);
-  --glass-edge: rgb(0 0 0 / 0.6);
-  --glass-shadow: 0 8px 28px rgb(0 0 0 / 0.4);
-  --glass-highlight: rgb(255 255 255 / 0.12);
-  --glass-glow: rgb(255 255 255 / 0.12);
-  --glass-rim: rgb(255 255 255 / 0.4);
+  --shadow-window: 0 24px 60px -16px rgb(0 0 0 / 0.7);
+  --shadow-popover: 0 18px 40px -12px rgb(0 0 0 / 0.65);
 }
 
 /*
- * macOS 27 Liquid Glass: a clear, lightly frosted tint (the content behind stays readable), lit from
- * the top left. The rim glows at the top-left and bottom-right corners and fades along the sides; a
- * thin highlight runs along the top and light gathers inside the bottom edge.
+ * A print-black chapter inside a light page (the sidebar, the Ask bar): the same tokens, printed in
+ * paper. Anything inside it, menus included, takes these inks.
+ */
+@utility ground-print {
+  color-scheme: dark;
+  --color-canvas: #0e0e12;
+  --color-panel: #1d1d24;
+  --color-panel-hover: #25252e;
+  --color-field: #1d1d24;
+  --color-raised: rgb(243 243 239 / 0.07);
+  --color-selected: rgb(243 243 239 / 0.1);
+  --color-zebra: rgb(243 243 239 / 0.035);
+  --color-line: rgb(243 243 239 / 0.1);
+  --color-line-strong: rgb(243 243 239 / 0.2);
+  --color-ink: #f3f3ef;
+  --color-muted: rgb(243 243 239 / 0.62);
+  --color-faint: rgb(243 243 239 / 0.34);
+  --color-control: rgb(243 243 239 / 0.09);
+  --color-control-hover: rgb(243 243 239 / 0.14);
+  --color-control-pressed: rgb(243 243 239 / 0.2);
+  --color-accent: #5866ff;
+  --select-chevron: var(--select-chevron-paper);
+  color: var(--color-ink);
+}
+
+/*
+ * Floating surfaces (the composer, the ⌘K field, toasts, dialogs): an opaque plate that lifts off
+ * the page with one hard shadow. No blur and no rim: nothing is see-through.
  */
 @utility glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur, 16px)) saturate(var(--glass-saturate, 180%));
-  -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) saturate(var(--glass-saturate, 180%));
-  box-shadow:
-    inset 0 1px 0 0 var(--glass-highlight),
-    inset 0 -12px 16px -14px var(--glass-glow),
-    0 0 0 0.5px var(--glass-edge),
-    var(--glass-shadow);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-popover);
 
-  /* The rim is drawn by ::before, which needs a positioned box; leave fixed/absolute ones as they are. */
   &:not(.fixed, .absolute, .sticky) {
     position: relative;
   }
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, var(--glass-rim), transparent 30%, transparent 70%, var(--glass-rim));
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-    pointer-events: none;
-  }
 }
 
-/*
- * Clear Liquid Glass, for controls floating over content (the Ask bar), like the iOS 26 Control
- * Center buttons: nearly no tint, a fine blur, a bright rim. Pair it with <LiquidGlassLayer> for
- * the edge refraction where the browser supports it.
- */
+/* The floating bar variant: a print-black strip, like the landing page's top bar. */
 @utility glass-thin {
-  --glass-bg: rgb(255 255 255 / 0.06);
-  --glass-shadow: 0 6px 20px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.05);
-  --glass-rim: rgb(255 255 255 / 0.95);
-  --glass-blur: 1.5px;
-  --glass-saturate: 160%;
+  background: var(--color-print);
+}
 
-  :root[data-theme="dark"] & {
-    --glass-bg: rgb(255 255 255 / 0.025);
-    --glass-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
-    --glass-highlight: rgb(255 255 255 / 0.22);
-    --glass-rim: rgb(255 255 255 / 0.5);
-  }
+/* Focus: a solid ultramarine outline, offset from the control; paper on print-black grounds. */
+@utility focus-ring {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /*
- * Glass with a refraction layer inside (<LiquidGlassLayer>): its rim reads the backdrop just
- * outside the pill, which would include the host's own outer shadow and draw it back in as a dark
- * inner ring. So the host's shadows move to ::after, painted above the layer and out of its sight.
+ * AI at work: the blink. A solid ultramarine edge holds the element, and a marker square jumps
+ * between two corners with no interpolation, like the dot that moved between the 1930 plates.
+ * Add `ai-glow` only while the AI is working; it makes the element `relative`, so wrap anything
+ * already absolutely positioned.
  */
-.glass[data-refract] {
-  box-shadow: none;
+@utility ai-glow {
+  position: relative;
+  box-shadow: inset 0 0 0 2px var(--color-accent);
 
   &::after {
     content: "";
     position: absolute;
-    inset: 0;
-    border-radius: inherit;
+    top: -3px;
+    left: -3px;
+    width: 7px;
+    height: 7px;
+    background: var(--color-accent);
     pointer-events: none;
-    box-shadow:
-      inset 0 1px 0 0 var(--glass-highlight),
-      inset 0 -12px 16px -14px var(--glass-glow),
-      0 0 0 0.5px var(--glass-edge),
-      var(--glass-shadow);
-  }
-}
-
-/* The macOS keyboard focus ring: a soft accent halo around the control. */
-@utility focus-ring {
-  outline: 3px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
-  outline-offset: 0;
-}
-
-/*
- * AI at work, like Apple Intelligence: a thin ring in the Apple Intelligence colors turns around the
- * element's own edge while a soft glow beneath it drifts through the same hues. Add `ai-glow` only
- * while the AI is working; it makes the element `relative`, so wrap anything already absolutely
- * positioned. The glow is a box-shadow, so it follows any corner radius exactly.
- */
-@property --ai-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-:root {
-  /* Only the colors live here: a gradient built at the root would freeze --ai-angle at its root value,
-     so each animated element builds its own conic-gradient from these stops. */
-  --ai-stops: #bc82f3, #f5b9ea, #8d9fff, #ff6778, #ffba71, #c686ff, #bc82f3;
-  --ai-glow-alpha: 22%;
-}
-
-:root[data-theme="dark"] {
-  --ai-glow-alpha: 30%;
-}
-
-@utility ai-glow {
-  position: relative;
-  animation: ai-hue 6s ease-in-out infinite;
-
-  /* The ring, on the element's edge; the 1px padding keeps the cut-out's corners concentric. */
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(from var(--ai-angle), var(--ai-stops));
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-    pointer-events: none;
-    animation: ai-spin 3s linear infinite;
-    transition: opacity 300ms var(--ease-out);
-
-    @starting-style {
-      opacity: 0;
-    }
+    animation: blink-corner 1.6s steps(1, end) infinite;
   }
 
   /* A busy AI control stays readable instead of dimming like a plain disabled one (doubled to beat `disabled:opacity-50`). */
@@ -302,56 +247,32 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    box-shadow: 0 6px 24px -6px color-mix(in srgb, #bc82f3 var(--ai-glow-alpha), transparent);
-    &::before {
+    &::after {
       animation: none;
     }
   }
 }
 
-@keyframes ai-hue {
-  0%,
-  100% {
-    box-shadow: 0 6px 24px -6px color-mix(in srgb, #bc82f3 var(--ai-glow-alpha), transparent);
-  }
-  33% {
-    box-shadow: 0 6px 24px -6px color-mix(in srgb, #8d9fff var(--ai-glow-alpha), transparent);
-  }
-  66% {
-    box-shadow: 0 6px 24px -6px color-mix(in srgb, #ff6778 var(--ai-glow-alpha), transparent);
+@keyframes blink-corner {
+  50% {
+    top: calc(100% - 4px);
+    left: calc(100% - 4px);
   }
 }
 
-/* "Thinking…" labels: the Apple Intelligence colors sweep through the text. */
+/* "Thinking…" labels: the words blink in ultramarine, a hard cut, never a sweep. */
 @utility ai-text {
-  /* One tile twice the text's width, muted at both ends and repeating, so the loop has no seam. */
-  background: linear-gradient(90deg, var(--color-muted) 15%, #bc82f3, #ff6778, #8d9fff, var(--color-muted) 85%) 0 0 / 200% 100% repeat-x;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: ai-sweep 2.4s linear infinite;
+  color: var(--color-accent);
+  animation: blink-text 1.6s steps(1, end) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    background-position: 50% 0;
   }
 }
 
-@keyframes ai-spin {
-  to {
-    --ai-angle: 360deg;
-  }
-}
-
-/* With a tile of 200%, moving from 200% to 0% shifts it by exactly one tile: the last frame
-   matches the first. */
-@keyframes ai-sweep {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: 0% 0;
+@keyframes blink-text {
+  50% {
+    color: var(--color-muted);
   }
 }
 
@@ -373,27 +294,30 @@ body {
   line-height: var(--text-sm--line-height);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
 }
 
 /*
- * Pop-up buttons: the native arrow sits cramped against the edge and differs by browser, so every
- * select draws the macOS up-down chevron instead. Unlayered so the room it needs beats `px-*`.
+ * Pop-up buttons: the native arrow differs by browser, so every select draws a square chevron
+ * instead. Unlayered so the room it needs beats `px-*`.
  */
 select {
   appearance: none;
   padding-right: 28px;
   background-image: var(--select-chevron);
   background-repeat: no-repeat;
-  background-position: right 9px center;
-  background-size: 10px 14px;
+  background-position: right 10px center;
+  background-size: 10px 6px;
 }
 
 :root {
-  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14' fill='none' stroke='rgb(0 0 0 / 0.5)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 5l3-3 3 3M2 9l3 3 3-3'/%3E%3C/svg%3E");
+  --select-chevron-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%23101018' stroke-width='1.8' stroke-linecap='square'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  --select-chevron-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%23f3f3ef' stroke-width='1.8' stroke-linecap='square'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  --select-chevron: var(--select-chevron-ink);
 }
 
 :root[data-theme="dark"] {
-  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14' fill='none' stroke='rgb(255 255 255 / 0.55)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 5l3-3 3 3M2 9l3 3 3-3'/%3E%3C/svg%3E");
+  --select-chevron: var(--select-chevron-paper);
 }
 
 /* Phones zoom into any field under 16px on focus. Unlayered, so it wins over text-sm utilities. */
@@ -406,21 +330,20 @@ select {
 }
 
 @layer base {
-
   /* In the base layer so a utility like `outline-none` can still opt a control out. */
   :focus-visible {
     @apply focus-ring;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+    background: var(--color-brand);
+    color: #fff;
   }
 }
 
 /*
- * Appearance switch: the new theme spreads from the clicked control as a wave. The new snapshot is
- * masked by a circle that grows to --wave-end; its edge is feathered with one ripple behind it,
- * where the old theme still shows through.
+ * Appearance switch: the new plate is uncovered from the clicked control by a hard-edged disc, like
+ * the marker ring growing until it holds the whole window.
  */
 @property --wave-r {
   syntax: "<length>";
@@ -429,7 +352,7 @@ select {
 }
 
 :root[data-theme-switch] * {
-  /* Colors change at once inside the snapshot; the wave is the only motion. */
+  /* Colors change at once inside the snapshot; the disc is the only motion. */
   transition: none !important;
 }
 
@@ -438,15 +361,8 @@ select {
 }
 
 :root[data-theme-switch="wave"]::view-transition-new(root) {
-  mask-image: radial-gradient(
-    circle at var(--wave-x) var(--wave-y),
-    #000 calc(var(--wave-r) - 96px),
-    rgb(0 0 0 / 0.3) calc(var(--wave-r) - 60px),
-    #000 calc(var(--wave-r) - 36px),
-    #000 calc(var(--wave-r) - 22px),
-    transparent var(--wave-r)
-  );
-  animation: theme-wave 700ms var(--ease-in-out) both;
+  mask-image: radial-gradient(circle at var(--wave-x) var(--wave-y), #000 var(--wave-r), transparent var(--wave-r));
+  animation: theme-wave 520ms var(--ease-in-out) both;
 }
 
 @keyframes theme-wave {
@@ -458,15 +374,15 @@ select {
   }
 }
 
-/* Reduced motion: a plain crossfade, no movement. */
+/* Reduced motion: a cut. */
 :root[data-theme-switch="fade"]::view-transition-old(root),
 :root[data-theme-switch="fade"]::view-transition-new(root) {
-  animation-duration: 200ms;
+  animation: none;
 }
 
 /*
- * Menus and popovers: an opaque raised surface with a real shadow, entering from just above its
- * trigger. Set the origin with `origin-top-right` and the like when it opens from a corner.
+ * Menus and popovers: an opaque plate with one hard shadow, entering from just above its trigger.
+ * Set the origin with `origin-top-right` and the like when it opens from a corner.
  */
 @utility popover {
   background: var(--color-panel);
@@ -474,23 +390,20 @@ select {
   @apply popover-motion;
 }
 
-/* The popover entrance on its own, for floating surfaces with their own material (glass). */
+/* The popover entrance on its own, for floating surfaces with their own material. */
 @utility popover-motion {
   transform-origin: top;
   transition:
-    opacity 150ms var(--ease-out),
-    scale 150ms var(--ease-out),
-    translate 150ms var(--ease-out);
+    opacity 160ms var(--ease-out),
+    translate 240ms var(--ease-out);
 
   @starting-style {
     opacity: 0;
-    scale: 0.97;
-    translate: 0 -4px;
+    translate: 0 -6px;
   }
 
   @media (prefers-reduced-motion: reduce) {
     @starting-style {
-      scale: 1;
       translate: 0;
     }
   }
@@ -518,18 +431,17 @@ select {
   }
 }
 
-/* An icon swapping inside the same control (send → stop): it settles in rather than popping. */
+/* An icon swapping inside the same control (send → stop): a cut, with the slightest settle. */
 @keyframes icon-in {
   from {
     opacity: 0;
-    scale: 0.6;
-    filter: blur(2px);
+    scale: 0.8;
   }
 }
 
-/* Side drawers slide in from their edge on the iOS drawer curve. */
+/* Side drawers slide in from their edge. */
 @utility drawer {
-  transition: translate 320ms var(--ease-drawer);
+  transition: translate 420ms var(--ease-out);
 
   @starting-style {
     translate: 100% 0;
@@ -544,31 +456,28 @@ select {
   }
 }
 
-/* Centered dialogs grow out of the middle, slightly; never from nothing. */
+/* Centered dialogs rise a few pixels into place; they never grow out of nothing. */
 @utility modal-in {
   transition:
-    opacity 220ms var(--ease-out),
-    scale 220ms var(--ease-out);
+    opacity 240ms var(--ease-out),
+    translate 240ms var(--ease-out);
 
   @starting-style {
     opacity: 0;
-    scale: 0.96;
+    translate: 0 12px;
   }
 
   @media (prefers-reduced-motion: reduce) {
     @starting-style {
-      scale: 1;
+      translate: 0;
     }
   }
 }
 
 /*
- * Wallpaper (Settings → Appearance). The picture fills the window behind a light veil that keeps
- * page titles readable; the sidebar and every panel become frosted glass over it, blurred enough
- * that their content reads as on an opaque surface. Active only when the current appearance has one.
+ * Wallpaper (Settings → Appearance). The picture fills the window behind a veil that keeps page
+ * titles readable, and every panel becomes a plate of tinted grey over it.
  */
-/* The picture is a mood, not content: blurred well past recognition, like a macOS desktop seen
-   through a window, and enlarged so the blur doesn't fade its edges. */
 .wallpaper-light,
 .wallpaper-dark {
   position: absolute;
@@ -582,11 +491,11 @@ select {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgb(255 255 255 / var(--wallpaper-veil, 0.5));
+  background: rgb(222 223 218 / var(--wallpaper-veil, 0.5));
 }
 
 :root[data-theme="dark"] .wallpaper::after {
-  background: rgb(0 0 0 / calc(var(--wallpaper-veil, 0.5) + 0.05));
+  background: rgb(14 14 18 / calc(var(--wallpaper-veil, 0.5) + 0.05));
 }
 
 :root[data-theme="dark"] .wallpaper-light,
@@ -596,75 +505,61 @@ select {
 
 :root:not([data-theme="dark"])[data-wallpaper-light],
 :root[data-theme="dark"][data-wallpaper-dark] {
-  --color-panel: rgb(255 255 255 / 0.62);
-  --color-panel-hover: rgb(255 255 255 / 0.72);
-  --wallpaper-glass: blur(28px) saturate(170%);
+  --color-panel: rgb(205 207 199 / 0.72);
+  --color-panel-hover: rgb(196 198 190 / 0.8);
 
   & body {
     background: transparent;
   }
 
   & .bg-sidebar {
-    background: rgb(236 236 236 / 0.55);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-  }
-
-  & .bg-panel,
-  & .popover {
-    backdrop-filter: var(--wallpaper-glass);
-    -webkit-backdrop-filter: var(--wallpaper-glass);
+    background: rgb(14 14 18 / 0.86);
   }
 }
 
 :root[data-theme="dark"][data-wallpaper-dark] {
-  --color-panel: rgb(38 38 38 / 0.58);
-  --color-panel-hover: rgb(48 48 48 / 0.66);
-
-  & .bg-sidebar {
-    background: rgb(22 22 22 / 0.55);
-  }
+  --color-panel: rgb(29 29 36 / 0.72);
+  --color-panel-hover: rgb(37 37 46 / 0.8);
 }
 
 /*
- * The agent's mark: an Apple Intelligence orb, the same colors as the working glow, turning slowly
- * and lit from the top left so it reads as a glass bead, not a flat swatch.
+ * The agent's mark: a plate in miniature. A square of print black scattered with stars, where one
+ * dot jumps between two places inside an ultramarine ring, the 1930 blink at the size of an icon.
  */
 @utility ai-orb {
   display: block;
   position: relative;
-  isolation: isolate;
   overflow: hidden;
-  border-radius: 9999px;
-  background: #a77cf2;
-  box-shadow: 0 10px 30px -8px color-mix(in srgb, #bc82f3 60%, transparent);
+  background:
+    radial-gradient(circle at 18% 26%, #f3f3ef 0 1px, transparent 1.5px),
+    radial-gradient(circle at 74% 18%, #f3f3ef 0 1.2px, transparent 1.7px),
+    radial-gradient(circle at 86% 64%, #f3f3ef 0 0.8px, transparent 1.3px),
+    radial-gradient(circle at 30% 80%, #f3f3ef 0 1px, transparent 1.5px),
+    radial-gradient(circle at 58% 88%, #f3f3ef 0 0.7px, transparent 1.2px),
+    #0e0e12;
 
-  /* Two layers of soft colour blobs turning at different speeds and directions, so the colours
-     flow into each other like Siri's orb instead of fanning out as rays from the centre. */
+  /* The dot that moved, and its marker ring; both cut between two places. */
   &::before,
   &::after {
     content: "";
     position: absolute;
-    inset: -30%;
-    border-radius: inherit;
-    filter: blur(8px);
-    z-index: -1;
+    left: 38%;
+    top: 52%;
+    border-radius: 9999px;
+    translate: -50% -50%;
+    animation: blink-mover 1.6s steps(1, end) infinite;
   }
 
   &::before {
-    background:
-      radial-gradient(circle at 30% 30%, #6f86ff 0 24%, transparent 50%),
-      radial-gradient(circle at 72% 38%, #ff5a72 0 20%, transparent 48%),
-      radial-gradient(circle at 46% 76%, #ffad5c 0 20%, transparent 48%);
-    animation: orb-turn 7s linear infinite;
+    width: 12%;
+    aspect-ratio: 1;
+    background: #f3f3ef;
   }
 
   &::after {
-    background:
-      radial-gradient(circle at 66% 70%, #f39ee0 0 20%, transparent 48%),
-      radial-gradient(circle at 28% 62%, #b46cf5 0 22%, transparent 50%);
-    opacity: 0.85;
-    animation: orb-turn 11s linear infinite reverse;
+    width: 40%;
+    aspect-ratio: 1;
+    border: 2px solid #2b3bff;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -675,9 +570,16 @@ select {
   }
 }
 
-/* A first view settling in: each part rises a few pixels out of a soft blur, staggered by its delay. */
+@keyframes blink-mover {
+  50% {
+    left: 60%;
+    top: 44%;
+  }
+}
+
+/* A first view settling in: each part rises out of its place, once, staggered by its delay. */
 @utility rise {
-  animation: rise 520ms var(--ease-out) both;
+  animation: rise 800ms var(--ease-out) both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: fadeIn 200ms ease both;
@@ -687,41 +589,27 @@ select {
 @keyframes rise {
   from {
     opacity: 0;
-    translate: 0 8px;
-    filter: blur(4px);
+    translate: 0 16px;
   }
 }
 
 /*
- * Toolbar controls, as in the macOS 27 Finder toolbar: capsules of clear glass with a fine rim that
- * catches the light at the top. Buttons, pop-up buttons and the search field share it; several
- * buttons can share one capsule (see ButtonGroup). The fill and rim are tokens so each appearance
- * tunes them.
+ * Secondary controls (ghost buttons, pop-up buttons, the search field, segmented tracks): a square
+ * of flat tint, one step off the field it sits on. Several buttons can share one (see ButtonGroup).
  */
 :root {
-  --capsule-bg: rgb(255 255 255 / 0.72);
-  --capsule-bg-hover: rgb(255 255 255 / 0.95);
-  --capsule-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.08);
-}
-
-:root[data-theme="dark"] {
-  --capsule-bg: rgb(255 255 255 / 0.07);
-  --capsule-bg-hover: rgb(255 255 255 / 0.12);
-  --capsule-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.2), 0 0 0 0.5px rgb(255 255 255 / 0.1), 0 1px 3px rgb(0 0 0 / 0.35);
+  --capsule-bg: var(--color-control);
+  --capsule-bg-hover: var(--color-control-hover);
 }
 
 @utility capsule {
-  border-radius: 9999px;
   background-color: var(--capsule-bg);
-  box-shadow: var(--capsule-shadow);
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
 }
 
 /*
- * Tables, as NSTableView draws them in macOS 27: a header of small secondary labels that never
- * wrap, rows on alternating backgrounds and no lines anywhere, numbers in tabular figures.
- * Put `mac-table` on the <table>; wrap it in a Group (or any rounded panel) for the box.
+ * Tables: a header of small secondary labels that never wrap, rows on alternating plate steps and
+ * no lines anywhere, numbers in tabular figures. Put `mac-table` on the <table>; wrap it in a Group
+ * for the box.
  */
 @utility mac-table {
   width: 100%;
@@ -729,7 +617,7 @@ select {
   font-size: var(--text-sm);
 
   & thead th {
-    padding: 8px 12px 6px;
+    padding: 10px 12px 8px;
     font-size: var(--text-xs);
     font-weight: 500;
     color: var(--color-muted);
@@ -738,7 +626,7 @@ select {
   }
 
   & tbody td {
-    padding: 7px 12px;
+    padding: 8px 12px;
     vertical-align: middle;
   }
 
@@ -763,39 +651,14 @@ select {
   }
 }
 
-@keyframes orb-turn {
-  to {
-    rotate: 360deg;
-  }
-}
-
 /*
- * A progressive blur, as above a scrolling list in macOS 27: three backdrop blurs of rising
- * strength, each masked to fade out further down, so content softens gradually as it rises under
- * the edge instead of being cut by a line. The layers are siblings (three empty children): a
- * backdrop-filter on the parent would hide the page from them.
+ * The top edge of a scrolling column: the field itself, fading out, so content passes under it
+ * instead of being cut by a line. Kept as three children for the markup that already uses it.
  */
 @utility progressive-blur {
+  background: linear-gradient(to bottom, var(--color-canvas) 20%, transparent);
+
   & > * {
-    position: absolute;
-    inset: 0;
-  }
-
-  & > :nth-child(1) {
-    backdrop-filter: blur(1px);
-    -webkit-backdrop-filter: blur(1px);
-    mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
-  }
-
-  & > :nth-child(2) {
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    mask-image: linear-gradient(to bottom, #000 0%, transparent 70%);
-  }
-
-  & > :nth-child(3) {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    mask-image: linear-gradient(to bottom, #000 0%, transparent 40%);
+    display: none;
   }
 }

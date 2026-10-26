@@ -81,7 +81,7 @@ export function BudgetPage() {
               {s.limitMicroUsd !== null && (
                 <>
                   <div
-                    className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-control"
+                    className="mt-3 flex h-1.5 overflow-hidden bg-control"
                     role="meter"
                     aria-valuemin={0}
                     aria-valuemax={100}
@@ -89,10 +89,10 @@ export function BudgetPage() {
                     aria-label={t("budget.used")}
                   >
                     <div
-                      className={cn("h-full rounded-full", share >= 1 ? "bg-system-red" : share >= 0.8 ? "bg-system-orange" : "bg-accent")}
+                      className={cn("h-full", share >= 1 ? "bg-system-red" : share >= 0.8 ? "bg-system-orange" : "bg-accent")}
                       style={{ width: `${(s.spentMicroUsd / s.limitMicroUsd) * 100}%` }}
                     />
-                    <div className="h-full rounded-r-full bg-accent/35" style={{ width: `${(s.heldMicroUsd / s.limitMicroUsd) * 100}%` }} />
+                    <div className="h-full bg-accent/35" style={{ width: `${(s.heldMicroUsd / s.limitMicroUsd) * 100}%` }} />
                   </div>
                   {s.heldMicroUsd > 0 && (
                     <p className="mt-2 flex items-center gap-1.5 text-xs text-muted">

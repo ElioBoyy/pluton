@@ -43,12 +43,12 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
         <div className="flex items-center gap-2">
           <Sparkle size={15} weight="fill" className="text-system-pink" />
           <h2 className="text-sm font-semibold">{t("proposals.title")}</h2>
-          {list.length > 0 && <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-control px-1.5 text-xs font-medium text-muted tabular-nums">{list.length}</span>}
+          {list.length > 0 && <span className="inline-flex h-5 min-w-5 items-center justify-center bg-control px-1.5 text-xs font-medium text-muted tabular-nums">{list.length}</span>}
           <button
             onClick={onClose}
             aria-label={tc("close")}
             title={tc("close")}
-            className="-my-1 ml-auto flex size-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-ink xl:hidden"
+            className="-my-1 ml-auto flex size-7 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink xl:hidden"
           >
             <X size={14} />
           </button>
@@ -137,7 +137,7 @@ function ReviewControl() {
         </>
       )}
       {running && (
-        <div className="ai-glow rounded-xl bg-canvas p-3 text-xs text-muted shadow-card">
+        <div className="ai-glow bg-canvas p-3 text-xs text-muted">
           <p className="flex items-center gap-2 font-medium text-ink">
             <CircleNotch size={13} className="animate-spin" /> <span className="ai-text">{t("proposals.reviewing")}</span>
           </p>
@@ -177,9 +177,9 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
 
   return (
     // Cards sit a tone off the inspector, as grouped boxes do in System Settings.
-    <li className="rounded-xl bg-canvas p-3.5 shadow-card">
+    <li className="bg-canvas p-3.5">
       <div className="flex min-w-0 items-center gap-2 text-xs">
-        <span className={cn("inline-flex h-5 shrink-0 items-center rounded-full px-2 font-medium", KIND_CLASS[p.kind])}>{t(`proposals.kind.${p.kind}`)}</span>
+        <span className={cn("inline-flex h-5 shrink-0 items-center px-2 font-medium", KIND_CLASS[p.kind])}>{t(`proposals.kind.${p.kind}`)}</span>
         {section && <span className="truncate text-muted">{t(SECTION_LABELS[section])}</span>}
       </div>
 
@@ -217,7 +217,7 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
             onChange={(e) => setAnswer(e.target.value)}
             rows={2}
             placeholder={t("proposals.answerPlaceholder")}
-            className="block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-faint transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent/60 focus:focus-ring"
+            className="block w-full resize-none border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-faint transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent/60 focus:focus-ring"
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" disabled={busy} onClick={() => reject.mutate({ id: p.id })}>

@@ -42,7 +42,7 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
       <Group>
         <Row
           label={
-            <span className={cn("inline-flex h-5 items-center gap-1.5 rounded-full px-2 text-xs font-medium whitespace-nowrap", ENROLLMENT[e.status]?.className)}>
+            <span className={cn("inline-flex h-5 items-center gap-1.5 px-2 text-xs font-medium whitespace-nowrap", ENROLLMENT[e.status]?.className)}>
               <span className="size-1.5 rounded-full bg-current" aria-hidden />
               {ENROLLMENT[e.status]?.label}
             </span>
@@ -75,7 +75,7 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
         <Group key={r.id} className="px-4 py-3 text-sm">
           <p className="flex items-center justify-between gap-2 text-xs">
             <span className="font-medium">{t("block.theirReply", { when: when(r.receivedAt) })}</span>
-            {r.label && <span className={cn("inline-flex h-5 items-center rounded-full px-2", REPLY_LABEL[r.label]?.className)}>{REPLY_LABEL[r.label]?.label}</span>}
+            {r.label && <span className={cn("inline-flex h-5 items-center px-2", REPLY_LABEL[r.label]?.className)}>{REPLY_LABEL[r.label]?.label}</span>}
           </p>
           <p className="mt-1.5 whitespace-pre-wrap">{r.text}</p>
         </Group>
@@ -88,7 +88,7 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
         </summary>
         <ol className="mt-2 flex flex-col gap-2">
           {d.drafts.map(({ stepId, label, channel, draft }) => (
-            <li key={stepId} className="rounded-xl bg-panel px-4 py-3 shadow-card">
+            <li key={stepId} className="bg-panel px-4 py-3">
               <p className="text-xs text-muted">
                 {label}
                 {channel === "email" && ` · ${t("step.channelEmail")}`} · {draft?.sentAt ? t("block.sentAt", { when: when(draft.sentAt) }) : draft?.text ? t("block.notSent") : t("block.notWritten")}

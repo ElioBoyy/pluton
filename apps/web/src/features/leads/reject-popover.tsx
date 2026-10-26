@@ -67,7 +67,7 @@ export function RejectPopover({
       aria-label={tc("reject")}
       onClick={(e) => e.stopPropagation()}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
-      className="popover fixed z-50 rounded-2xl p-4 text-left"
+      className="popover fixed z-50 p-4 text-left"
     >
       <p className="text-sm font-semibold">{count > 1 ? t("reject.title", { count }) : t("action.notFit")}</p>
       <p className="mt-1 text-xs text-muted">{t("reject.hint")}</p>
@@ -78,9 +78,9 @@ export function RejectPopover({
             type="button"
             onClick={() => toggle(r)}
             aria-pressed={reasons.includes(r)}
-            // Tinted capsules: a quiet fill until picked, then the accent.
+            // Square chips: a quiet tint until picked, then the accent.
             className={cn(
-              "inline-flex h-6 items-center rounded-full px-2.5 text-xs transition-[background-color,color,scale] duration-150 ease-out motion-safe:active:scale-95",
+              "inline-flex h-6 items-center px-2.5 text-xs transition-[background-color,color,scale] duration-150 ease-out motion-safe:active:scale-95",
               reasons.includes(r) ? "bg-accent font-medium text-on-accent" : "bg-control text-ink hover:bg-control-hover",
             )}
           >
@@ -94,7 +94,7 @@ export function RejectPopover({
         placeholder={t("reject.placeholder")}
         rows={2}
         maxLength={1000}
-        className="mt-3 block w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+        className="mt-3 block w-full resize-none border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
       />
       <div className="mt-3 flex justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>
