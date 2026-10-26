@@ -263,35 +263,39 @@ for (const el of $$(".reveal")) {
 }
 
 /*
- * The flyover: the file runs forward then backward (a seamless loop), and its speed follows a
- * sine curve over each half, slowing to a near stop where it turns round and gliding in between.
- * Plays only while seen, never with reduced motion.
+ * The flyover: the file runs forward then backward (a seamless loop). Each direction follows an
+ * ease-in-out cubic curve in time: it leaves the turn slowly, rushes through the middle and settles
+ * into the next turn. The speed is read from where the video is (the curve's slope at that point),
+ * so it never drifts from the curve. Plays only while seen, never with reduced motion.
  */
 const flyover = $<HTMLVideoElement>(".trust video");
 if (flyover) {
-  const SLOWEST = 0.12;
-  const FASTEST = 0.55;
+  const SECONDS_PER_DIRECTION = 20; // the source covers ~30s each way
+  const SLOWEST = 0.08; // at the turn, so it still moves off it
+  const MAX_RATE = 8;
   let frame = 0;
-  const ease = () => {
+  const steer = () => {
     const half = flyover.duration / 2;
-    if (half) {
-      const phase = (flyover.currentTime % half) / half; // 0 → 1 across each direction
-      flyover.playbackRate = SLOWEST + (FASTEST - SLOWEST) * Math.sin(Math.PI * phase);
-    }
-    frame = requestAnimationFrame(ease);
+    if (!half) return;
+    const p = (flyover.currentTime % half) / half; // 0 → 1 across this direction
+    // Invert easeInOutCubic to find where we are on the time axis, then take its slope there.
+    const u = p < 0.5 ? Math.cbrt(p / 4) : 1 - Math.cbrt(2 * (1 - p)) / 2;
+    const slope = u < 0.5 ? 12 * u * u : 3 * (2 - 2 * u) ** 2;
+    flyover.playbackRate = Math.min(MAX_RATE, Math.max(SLOWEST, (slope * half) / SECONDS_PER_DIRECTION));
+  };
+  const tick = () => {
+    steer();
+    frame = requestAnimationFrame(tick);
   };
   flyover.playbackRate = SLOWEST;
   // timeupdate keeps the curve going where animation frames are throttled.
-  flyover.addEventListener("timeupdate", () => {
-    const half = flyover.duration / 2;
-    if (half) flyover.playbackRate = SLOWEST + (FASTEST - SLOWEST) * Math.sin(Math.PI * ((flyover.currentTime % half) / half));
-  });
+  flyover.addEventListener("timeupdate", steer);
   if (reduced) flyover.removeAttribute("autoplay");
   new IntersectionObserver(([e]) => {
     cancelAnimationFrame(frame);
     if (e?.isIntersecting && !reduced) {
       void flyover.play().catch(() => {});
-      frame = requestAnimationFrame(ease);
+      frame = requestAnimationFrame(tick);
     } else flyover.pause();
   }).observe(flyover);
 }
