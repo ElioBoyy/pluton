@@ -673,22 +673,20 @@
   height: 20px;
   overflow: visible;
 }
-.gg-thinking__a,
-.gg-thinking__b {
+.gg-thinking__planet,
+.gg-thinking__moon {
   fill: var(--gg-accent);
-  animation: gg-close-a 1.3s var(--gg-ease) infinite alternate;
 }
-.gg-thinking__b {
-  animation-name: gg-close-b;
+/* The moon swings along its orbit, whose centre (282, 304) sits off the symbol's lower right. */
+.gg-thinking__moon {
+  transform-box: view-box;
+  transform-origin: 282px 304px;
+  transform: rotate(-4deg);
+  animation: gg-orbit 1.3s var(--gg-ease) infinite alternate;
 }
-@keyframes gg-close-a {
+@keyframes gg-orbit {
   to {
-    transform: translate(-15px, 12px);
-  }
-}
-@keyframes gg-close-b {
-  to {
-    transform: translate(15px, -12px);
+    transform: rotate(5deg);
   }
 }
 
@@ -1016,8 +1014,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gg-thinking__a,
-  .gg-thinking__b {
+  .gg-thinking__moon {
     animation: none;
   }
   .gg-ai-edge::after {
