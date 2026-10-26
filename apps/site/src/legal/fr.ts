@@ -182,8 +182,8 @@ const fr: Record<LegalDocId, LegalDoc> = {
         body: [
           {
             list: [
-              "« Votre propre IA » : 19,99 € par mois. Le Client fournit son propre abonnement Claude ou Codex, ou ses clés d'API, dont le coût reste à sa charge.",
-              "« Tout compris » : 49,99 € par mois. L'usage de Claude est inclus jusqu'à un quota mensuel de [À compléter : quota inclus]. Au-delà, l'usage est facturé en plus, au tarif de [À compléter : tarif du dépassement].",
+              "« Votre propre IA » : 39,99 € par mois. Le Client fournit son propre abonnement Claude ou Codex, ou ses clés d'API, dont le coût reste à sa charge.",
+              "« Tout compris » : 59,99 € par mois. L'usage de Claude est inclus jusqu'à un quota mensuel de [À compléter : quota inclus]. Au-delà, l'usage est facturé en plus, au tarif de [À compléter : tarif du dépassement].",
             ],
           },
           "Sauf mention contraire, les services tiers que le Client connecte avec ses propres clés (fournisseurs de données, LinkedIn via Unipile, CRM) sont payés par lui directement à ces services.",

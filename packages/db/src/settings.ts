@@ -204,7 +204,7 @@ const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`
  * PLATFORM_QUOTA_USD_<PLAN> overrides it outright. Credits bought on top cost 2.5× the API price.
  */
 export const CREDITS_PER_USD = 100;
-export const PLAN_PRICE_EUR: Record<SubscriptionPlan, number> = { byo: 19.99, all: 49.99 };
+export const PLAN_PRICE_EUR: Record<SubscriptionPlan, number> = { byo: 39.99, all: 59.99 };
 const envNumber = (name: string, fallback: number) => {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;

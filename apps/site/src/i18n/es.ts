@@ -20,7 +20,7 @@ export default {
     sub: "Pluton es un agente de IA para fundadores que venden. Lee tu web, vigila las empresas de tu mercado que acaban de contratar, publicar o levantar una ronda, y les escribe con tu voz. No sale nada hasta que tú lo dices.",
     cta: "Empieza con tu web",
     code: "Alójalo tú",
-    price: "Desde 19,99 € al mes. Gratis en tu propio equipo.",
+    price: "Desde 39,99 € al mes. Gratis en tu propio equipo.",
   },
   agent: {
     title: "Agente",
@@ -237,7 +237,7 @@ export default {
       ],
       [
         "¿Necesito mi propia cuenta de Claude?",
-        "Con el plan de 19,99 €, sí: aportas una clave API de Anthropic, y Anthropic te factura lo que Pluton consume, al coste real. Con el plan de 49,99 €, Claude está incluido hasta una cuota mensual.",
+        "Con el plan de 39,99 €, sí: aportas una clave API de Anthropic, y Anthropic te factura lo que Pluton consume, al coste real. Con el plan de 59,99 €, Claude está incluido hasta una cuota mensual.",
       ],
       [
         "¿Puedo usarlo desde Claude Code o Codex?",

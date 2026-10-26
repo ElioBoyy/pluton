@@ -944,6 +944,8 @@ a {
   top: calc(var(--section) - 4%);
   right: max(-2vw, -24px);
   width: min(54vw, 760px);
+  /* Its height attribute would otherwise hold at 846px while the width shrinks, stretching the disc. */
+  height: auto;
   clip-path: circle(47.5% at 53% 51%);
   pointer-events: none;
 }

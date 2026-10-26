@@ -12,8 +12,8 @@ import { authStateQuery, post } from "./auth-state.ts";
 
 /** The hosted offer, in euros a month (PRODUCT.md); Stripe holds the prices actually charged. */
 const PLANS = [
-  { id: "byo", price: 19.99 },
-  { id: "all", price: 49.99 },
+  { id: "byo", price: 39.99 },
+  { id: "all", price: 59.99 },
 ] as const;
 type PlanId = (typeof PLANS)[number]["id"];
 
