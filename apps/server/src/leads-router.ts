@@ -11,6 +11,7 @@ import {
   findActiveJob,
   getLeadDetail,
   getLeadWithPerson,
+  markUnreachable,
   getCurrentWorkspace,
   leadCounts,
   leadIdsFor,
@@ -107,7 +108,10 @@ export const leadsRouter = router({
     const url = found.get(0) ?? null;
     if (url) await setPersonLinkedin(ctx.db, person.id, url);
     await addLeadEvent(ctx.db, input.leadId, url ? "linkedin_found" : "linkedin_not_found", url ? { url } : {});
-    return { url };
+    // No profile, and an email lookup already came back empty: no way to contact them for now.
+    // With the email never looked up, it's too soon to say: Find email decides.
+    const unreachable = url || !person.emailCheckedAt ? false : await markUnreachable(ctx.db, input.leadId);
+    return { url, unreachable };
   }),
   exportCsv: publicProcedure
     .input(filterInput.extend({ leadIds: z.array(z.string()).max(5000).optional() }))

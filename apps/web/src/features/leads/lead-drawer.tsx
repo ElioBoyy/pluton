@@ -338,7 +338,7 @@ function EmailRow({ data }: { data: Detail }) {
     trpc.leads.findEmail.mutationOptions({
       onSuccess: (r) => {
         void refresh();
-        if (!r.email) toast(translate("leads", "email.noneFoundFor", { name: data.person.name }));
+        if (!r.email) toast(`${translate("leads", "email.noneFoundFor", { name: data.person.name })}${r.unreachable ? ` ${translate("leads", "unreachable.moved")}` : ""}`);
       },
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
@@ -395,7 +395,7 @@ function LinkedinField({ data }: { data: Detail }) {
     trpc.leads.findLinkedin.mutationOptions({
       onSuccess: (r) => {
         void refresh();
-        if (!r.url) toast(translate("leads", "linkedin.noneFoundFor", { name: data.person.name }));
+        if (!r.url) toast(`${translate("leads", "linkedin.noneFoundFor", { name: data.person.name })}${r.unreachable ? ` ${translate("leads", "unreachable.moved")}` : ""}`);
       },
       onError: (e) => toast(e.message, { tone: "error" }),
     }),

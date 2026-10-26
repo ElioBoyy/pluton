@@ -1,4 +1,4 @@
-import { addLeadEvent, getLeadWithPerson, leadsText, setPersonEmail } from "@pluton/core";
+import { addLeadEvent, getLeadWithPerson, leadsText, markUnreachable, setPersonEmail } from "@pluton/core";
 import { getSetting, type Db } from "@pluton/db";
 import { emailFromWebsite, emailInText, findEmail, HUNTER_KEY, splitName, type EmailResult } from "@pluton/providers";
 import { localized } from "@pluton/i18n/server";
@@ -19,7 +19,7 @@ export type EmailStep = {
  * comes last and is labelled as such. Every source tried or skipped is logged in `steps`, on the
  * lead's timeline and in the result, so it is always clear what was used.
  */
-export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult & { leadId: string; steps: EmailStep[] }> {
+export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult & { leadId: string; steps: EmailStep[]; unreachable: boolean }> {
   const row = await getLeadWithPerson(db, leadId);
   if (!row) throw new Error(leadsText("notFound"));
   const { lead, person } = row;
@@ -32,7 +32,9 @@ export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult
       result?.email ? "email_found" : "email_not_found",
       result?.email ? { email: result.email, source: result.source, confidence: result.confidence, steps } : { steps },
     );
-    return { leadId, email: result?.email ?? null, confidence: result?.confidence ?? null, source: result?.source ?? "none", steps };
+    // Nothing found, and no LinkedIn profile either: no way to contact them for now.
+    const unreachable = result?.email ? false : await markUnreachable(db, lead.id);
+    return { leadId, email: result?.email ?? null, confidence: result?.confidence ?? null, source: result?.source ?? "none", steps, unreachable };
   };
 
   const quoted = emailInText([lead.signal, lead.reason, ...lead.evidence.map((e) => e.label)], person.name);

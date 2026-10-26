@@ -238,10 +238,21 @@ export async function addLeadEvent(db: Db, leadId: string, kind: LeadEvent["kind
   await db.insert(leadEvents).values({ leadId, kind, payload });
 }
 
-/** No LinkedIn profile and no email: set aside until one turns up (see setPersonEmail / setPersonLinkedin). */
+/**
+ * After a lookup that found nothing: a lead still to review with no LinkedIn profile and no email is
+ * set aside until one turns up (see setPersonEmail / setPersonLinkedin). A lead already approved
+ * keeps the founder's verdict. Returns whether it was set aside.
+ */
 export async function markUnreachable(db: Db, leadId: string) {
-  await db.update(leads).set({ status: "unreachable" }).where(and(eq(leads.id, leadId), eq(leads.status, "to_review")));
+  const [row] = await db
+    .select({ status: leads.status, linkedinUrl: people.linkedinUrl, email: people.email })
+    .from(leads)
+    .innerJoin(people, eq(people.id, leads.personId))
+    .where(eq(leads.id, leadId));
+  if (!row || row.status !== "to_review" || row.linkedinUrl || row.email) return false;
+  await db.update(leads).set({ status: "unreachable" }).where(eq(leads.id, leadId));
   await addLeadEvent(db, leadId, "unreachable");
+  return true;
 }
 
 export async function getLeadDetail(db: Db, leadId: string) {

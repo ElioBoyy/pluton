@@ -6,6 +6,7 @@ import {
   emitStreamEvent,
   emptyReport,
   getPlay,
+  getLeadWithPerson,
   getRun,
   describeFeedback,
   feedbackDigest,
@@ -551,9 +552,11 @@ async function setAsideUnreachable(ctx: Ctx, found: Array<{ leadId: string; stag
   await ctx.say(t("lookingUpEmails", { count: found.length }));
   for (const { leadId, stage } of found) {
     if (ctx.signal.aborted) return;
+    // findLeadEmail sets the lead aside when it finds nothing (a broken Hunter key throws after that).
     const result = await findLeadEmail(ctx.db, leadId).catch(() => null);
     if (result?.email) continue;
-    await markUnreachable(ctx.db, leadId);
+    if (!result) await markUnreachable(ctx.db, leadId);
+    if ((await getLeadWithPerson(ctx.db, leadId))?.lead.status !== "unreachable") continue;
     ctx.report.unreachable = (ctx.report.unreachable ?? 0) + 1;
     if (stage === "qualified") ctx.report.qualified--;
     else ctx.report.needsReview--;

@@ -179,6 +179,8 @@ export default defineMessages({
     "event.linkedinFound": "LinkedIn profile found",
     "event.linkedinNotFound": "Looked for a LinkedIn profile, none found",
     "event.unreachable": "Set aside as unreachable: no LinkedIn profile, no email found",
+    "unreachable.moved": "Moved to Unreachable: no LinkedIn profile, no email.",
+    "emails.unreachable": "Unreachable: {count}",
     "event.exported": "Exported to CSV",
   },
   fr: {
@@ -359,6 +361,8 @@ export default defineMessages({
     "event.linkedinFound": "Profil LinkedIn trouvé",
     "event.linkedinNotFound": "Profil LinkedIn recherché, aucun trouvé",
     "event.unreachable": "Mis de côté comme injoignable : ni profil LinkedIn, ni email trouvé",
+    "unreachable.moved": "Passé en Injoignables : ni LinkedIn, ni email.",
+    "emails.unreachable": "Injoignables : {count}",
     "event.exported": "Exporté en CSV",
   },
   it: {
@@ -539,6 +543,8 @@ export default defineMessages({
     "event.linkedinFound": "Profilo LinkedIn trovato",
     "event.linkedinNotFound": "Profilo LinkedIn cercato, nessuno trovato",
     "event.unreachable": "Messo da parte come irraggiungibile: nessun profilo LinkedIn né email trovati",
+    "unreachable.moved": "Spostato in Irraggiungibili: né LinkedIn né email.",
+    "emails.unreachable": "Irraggiungibili: {count}",
     "event.exported": "Esportato in CSV",
   },
   es: {
@@ -719,6 +725,8 @@ export default defineMessages({
     "event.linkedinFound": "Perfil de LinkedIn encontrado",
     "event.linkedinNotFound": "Se buscó un perfil de LinkedIn, sin resultados",
     "event.unreachable": "Apartado como inalcanzable: ni perfil de LinkedIn ni email encontrados",
+    "unreachable.moved": "Movido a Inalcanzables: ni LinkedIn ni email.",
+    "emails.unreachable": "Inalcanzables: {count}",
     "event.exported": "Exportado a CSV",
   },
   de: {
@@ -899,6 +907,8 @@ export default defineMessages({
     "event.linkedinFound": "LinkedIn-Profil gefunden",
     "event.linkedinNotFound": "Nach einem LinkedIn-Profil gesucht, keines gefunden",
     "event.unreachable": "Als nicht erreichbar zurückgestellt: kein LinkedIn-Profil, keine E-Mail gefunden",
+    "unreachable.moved": "Nach „Nicht erreichbar“ verschoben: weder LinkedIn noch E-Mail.",
+    "emails.unreachable": "Nicht erreichbar: {count}",
     "event.exported": "Als CSV exportiert",
   },
 });
