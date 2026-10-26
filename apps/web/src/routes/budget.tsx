@@ -9,6 +9,7 @@ import { credits, CREDITS_PER_USD, formatDate, moneyUnit, usd } from "../lib/for
 import { getLocale } from "../i18n/locale.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { authStateQuery, post } from "../features/account/auth-state.ts";
+import { useResetOnReturn } from "../lib/redirect.ts";
 
 /** Each mode's label and hint are the usage namespace's `mode.<value>` and `mode.<value>.hint`. */
 const MODES = ["enforce", "track"] as const;
@@ -229,6 +230,7 @@ function IncludedUsage({ quota: q }: { quota: Quota }) {
     mutationFn: (count: number) => post<{ url: string }>("/api/billing/credits", { credits: count }),
     onSuccess: ({ url }) => window.location.assign(url),
   });
+  useResetOnReturn(buy.reset);
 
   // Back from Checkout: the pack is recorded here as well as by the webhook, whichever comes first.
   useEffect(() => {
@@ -292,6 +294,7 @@ function Subscription() {
     mutationFn: () => post<{ url: string }>("/api/billing/portal"),
     onSuccess: ({ url }) => window.location.assign(url),
   });
+  useResetOnReturn(portal.reset);
   if (!user?.plan) return null;
   return (
     <Section title={t("manage.title")}>
