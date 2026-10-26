@@ -577,7 +577,7 @@ export async function advance(db: Db, e: Enrollment, campaign: Campaign, patch: 
   if (i >= steps.length) {
     const [row] = await db
       .update(enrollments)
-      .set({ ...patch, stepIndex: i, status: patch.status ?? "completed", nextActionAt: null, endedAt: now })
+      .set({ note: null, ...patch, stepIndex: i, status: patch.status ?? "completed", nextActionAt: null, endedAt: now })
       .where(eq(enrollments.id, e.id))
       .returning();
     return row!;
@@ -585,9 +585,10 @@ export async function advance(db: Db, e: Enrollment, campaign: Campaign, patch: 
   const next = steps[i]!;
   // The first message waits on the connection; its delay runs from acceptance (the engine checks it).
   const at = new Date(now.getTime() + next.delayHours * HOUR + jitterMs());
+  // A step that went through clears the problem the last attempt left on the card.
   const [row] = await db
     .update(enrollments)
-    .set({ ...patch, stepIndex: i, nextActionAt: at })
+    .set({ note: null, ...patch, stepIndex: i, nextActionAt: at })
     .where(eq(enrollments.id, e.id))
     .returning();
   return row!;
@@ -774,11 +775,12 @@ export async function leadCampaignDetail(db: Db, leadId: string) {
   const e = await db.query.enrollments.findFirst({ where: eq(enrollments.leadId, leadId), orderBy: desc(enrollments.createdAt) });
   if (!e) return null;
   const campaign = (await getCampaign(db, e.campaignId))!;
-  const [actions, replyRows, sender, drafts] = await Promise.all([
+  const [actions, replyRows, sender, drafts, [lead]] = await Promise.all([
     db.select().from(outreachActions).where(eq(outreachActions.enrollmentId, e.id)).orderBy(desc(outreachActions.createdAt)),
     db.select().from(replies).where(eq(replies.enrollmentId, e.id)).orderBy(desc(replies.receivedAt)),
     e.senderId ? db.query.senders.findFirst({ where: eq(senders.id, e.senderId) }) : null,
     db.select().from(messageDrafts).where(and(eq(messageDrafts.campaignId, e.campaignId), eq(messageDrafts.leadId, leadId))),
+    db.select({ email: people.email }).from(leads).innerJoin(people, eq(people.id, leads.personId)).where(eq(leads.id, leadId)),
   ]);
   const ended = ENDED_ENROLLMENT.includes(e.status);
   const step = campaign.steps[e.stepIndex];
@@ -787,8 +789,8 @@ export async function leadCampaignDetail(db: Db, leadId: string) {
     playId: campaign.playId,
     campaignStatus: campaign.status,
     sender: sender ? { id: sender.id, name: sender.name, provider: sender.provider } : null,
-    // Email actions record the address they went to.
-    email: actions.find((a) => a.externalId)?.detail ?? null,
+    // Email actions record the address they went to; before the first one, the address it will go to.
+    email: actions.find((a) => a.externalId)?.detail ?? lead?.email ?? null,
     nextStep: !ended && step ? stepLabel(campaign.steps, step) : null,
     actions: actions.map((a) => ({ ...a, label: a.stepId ? stepLabel(campaign.steps, campaign.steps.find((s) => s.id === a.stepId) ?? campaign.steps[0]!) : a.kind })),
     replies: replyRows,

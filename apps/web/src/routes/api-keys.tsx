@@ -120,7 +120,7 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
                 inputMode={s.key.endsWith("_port") || s.key.endsWith("_limit") ? "numeric" : undefined}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder={s.secret ? (s.configured ? t("apiKeys.replaceKey") : t("apiKeys.pasteKey")) : s.defaultValue}
+                placeholder={s.secret ? (s.source === "app" ? t("apiKeys.replaceKey") : t("apiKeys.pasteKey")) : s.defaultValue}
                 aria-label={s.label}
               />
             </div>
@@ -136,7 +136,8 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
         )}
       </div>
 
-      {testable && s.configured && (
+      {/* Pluton's own keys aren't tested here: a check would name Pluton's account with the provider. */}
+      {testable && s.configured && s.source !== "platform" && (
         <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <Button variant="ghost" disabled={test.isPending} onClick={() => test.mutate({ key: s.key })}>
             {test.isPending && <CircleNotch size={12} className="animate-spin" />} {t("apiKeys.test")}

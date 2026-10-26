@@ -169,7 +169,7 @@ function GenerateSection({ codex }: { codex: boolean }) {
               disabled={working}
               aria-label={t("appearance.promptLabel")}
               placeholder={t("appearance.promptPlaceholder")}
-              className="w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring disabled:opacity-60"
+              className="w-full resize-none rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm text-ink outline-none transition-shadow duration-150 ease-out placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)] disabled:opacity-60"
             />
             <div className="flex flex-wrap items-center justify-end gap-3">
               {working && <span className="ai-text mr-auto min-w-0 text-sm">{status ?? t("appearance.drawing")}</span>}

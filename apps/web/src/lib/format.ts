@@ -1,7 +1,36 @@
 import { getLocale } from "../i18n/locale.ts";
 
-/** Money is micro-USD integers end to end; this is the one place it becomes text ("$1.20", "1,20 $US"). */
+/** 1 $ at API prices is 100 credits: the unit the "All included" plan counts in. */
+export const CREDITS_PER_USD = 100;
+let unit: "usd" | "credits" = "usd";
+/** Set by the shell from the account's plan: every amount the app shows then reads in credits. */
+export const setMoneyUnit = (next: "usd" | "credits") => {
+  unit = next;
+};
+export const moneyUnit = () => unit;
+
+// The word after a number of credits. Intl has no unit for it, so the five languages are here.
+const CREDIT_WORD: Record<string, [one: string, other: string]> = {
+  en: ["credit", "credits"],
+  fr: ["crédit", "crédits"],
+  it: ["credito", "crediti"],
+  es: ["crédito", "créditos"],
+  de: ["Credit", "Credits"],
+};
+
+/** Credits from micro-USD: whole ones, with a tenth for small precise amounts ("0,4 crédit"). */
+export function credits(micro: number | null | undefined, opts: { precise?: boolean } = {}) {
+  const n = ((micro ?? 0) / 1_000_000) * CREDITS_PER_USD;
+  const digits = opts.precise && n !== 0 && Math.abs(n) < 10 ? 1 : 0;
+  const locale = getLocale();
+  const words = CREDIT_WORD[locale.slice(0, 2)] ?? CREDIT_WORD.en!;
+  const text = new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(n).replace("-", "−");
+  return `${text} ${new Intl.PluralRules(locale).select(n) === "one" ? words[0] : words[1]}`;
+}
+
+/** Money is micro-USD integers end to end; this is the one place it becomes text ("$1.20", "1,20 $US", or credits). */
 export function usd(micro: number | null | undefined, opts: { precise?: boolean } = {}) {
+  if (unit === "credits") return credits(micro, opts);
   const v = (micro ?? 0) / 1_000_000;
   const abs = Math.abs(v);
   const digits = v === 0 ? 0 : abs >= 100 ? 0 : abs >= 1 || !opts.precise ? 2 : abs >= 0.01 ? 3 : 4;

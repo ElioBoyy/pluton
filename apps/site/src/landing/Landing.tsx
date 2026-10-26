@@ -41,7 +41,7 @@ import { Agent } from "./Agent.tsx";
 type T = Strings;
 type Props = { t: T; locale: Locale };
 
-/** Prices read "19.99 €" in English as in the copy, with each language's own decimal mark. */
+/** Prices read "39.99 €" in English as in the copy, with each language's own decimal mark. */
 const euros = (locale: Locale, n: number) =>
   `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2 }).format(n)}\u00a0€`;
 
@@ -552,8 +552,8 @@ function Pricing({ t, locale }: Props) {
           </div>
           <div className="price-main">
             <p className="price">
-              <span className="plan-own">{euros(locale, 19.99)}</span>
-              <span className="plan-all">{euros(locale, 49.99)}</span>
+              <span className="plan-own">{euros(locale, 39.99)}</span>
+              <span className="plan-all">{euros(locale, 59.99)}</span>
               <small>{p.perMonth}</small>
             </p>
             <ul className="price-lines plan-own">

@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Db } from "./index.ts";
 import type { CostPurpose, CreditEntry } from "./schema.ts";
+import { paidByPlatform } from "./settings.ts";
 import { creditEntries } from "./tables.ts";
 
 /**
@@ -68,6 +69,7 @@ export async function recordCost(input: CostInput, db?: Db) {
       operation: input.operation,
       costMicroUsd: Math.round(input.costMicroUsd),
       billed: input.billed ?? true,
+      platform: (input.billed ?? true) && paidByPlatform(input.source, scope?.workspaceId),
       playId: scope?.playId,
       runId: scope?.runId,
       jobId: scope?.jobId,

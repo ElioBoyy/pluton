@@ -182,8 +182,8 @@ const en: Record<LegalDocId, LegalDoc> = {
         body: [
           {
             list: [
-              "“Your own AI”: €19.99 per month. The Customer provides their own Claude or Codex subscription, or their API keys, at their own cost.",
-              "“All included”: €49.99 per month. Claude usage is included up to a monthly quota of [To fill in: included quota]. Beyond it, usage is billed on top at [To fill in: overage rate].",
+              "“Your own AI”: €39.99 per month. The Customer provides their own Claude or Codex subscription, or their API keys, at their own cost.",
+              "“All included”: €59.99 per month. Claude usage is included up to a monthly quota of [To fill in: included quota]. Beyond it, usage is billed on top at [To fill in: overage rate].",
             ],
           },
           "Unless stated otherwise, the third-party services the Customer connects with their own keys (data providers, LinkedIn through Unipile, CRMs) are paid by the Customer directly to those services.",

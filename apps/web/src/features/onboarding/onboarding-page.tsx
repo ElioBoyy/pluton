@@ -4,7 +4,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { AppIcon } from "@pluton/glass";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { BrainData } from "@pluton/core";
+import { AppearanceControl } from "../../components/appearance-control.tsx";
 import { PlutonLogo } from "../../components/logo.tsx";
+import { Wallpaper } from "../../components/wallpaper.tsx";
 import { Button, Input } from "../../components/ui.tsx";
 import { WorkspaceMenu } from "../workspaces/workspace-menu.tsx";
 import { useT } from "../../i18n/index.ts";
@@ -12,6 +14,7 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { BrainGraph, buildGraph, hubForSection, hubLabel, hubMeta } from "./brain-graph.tsx";
 import { CardModal } from "./card-modal.tsx";
+import { ConnectAiModal } from "./connect-ai-modal.tsx";
 import { ChatPanel } from "./chat-panel.tsx";
 import { pendingCards, useOnboarding } from "./use-onboarding.ts";
 
@@ -20,8 +23,13 @@ export function OnboardingPage({ fresh }: { fresh: boolean }) {
   const current = useQuery(trpc.onboarding.current.queryOptions());
   if (current.isPending) return null;
   const session = current.data;
-  if (!session || fresh) return <OnboardingForm />;
-  return <OnboardingLive sessionId={session.id} startedAt={new Date(session.createdAt).getTime()} />;
+  return (
+    <>
+      {!session || fresh ? <OnboardingForm /> : <OnboardingLive sessionId={session.id} startedAt={new Date(session.createdAt).getTime()} />}
+      {/* Bring your own AI: the workspace's Anthropic key comes first. */}
+      <ConnectAiModal />
+    </>
+  );
 }
 
 function OnboardingForm() {
@@ -87,7 +95,7 @@ function OnboardingForm() {
               rows={3}
               autoFocus
               placeholder={t("form.buildingPlaceholder")}
-              className="block w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+              className="block w-full resize-none rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"
             />
           </Field>
         ) : (
@@ -115,7 +123,7 @@ function OnboardingForm() {
               onChange={(e) => setContext(e.target.value)}
               rows={4}
               placeholder={t("form.contextPlaceholder")}
-              className={cn("mt-3", "block w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring")}
+              className={cn("mt-3", "block w-full resize-none rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]")}
             />
           )}
         </div>
@@ -169,25 +177,50 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
   const questionCards = [...state.cards.values()].filter((c) => c.kind !== "company_statement" && c.kind !== "offer");
   const current = pending[0];
 
-  return (
-    <div className="flex h-full">
-      {/* The same sidebar as the rest of the app. */}
-      <aside className="flex w-[300px] shrink-0 flex-col overflow-hidden bg-sidebar">
-        <div className="flex h-12 items-center px-4 pt-2">
-          <PlutonLogo className="h-[18px]" />
-        </div>
-        <div className="flex px-2.5 pb-3">
-          <WorkspaceMenu />
-        </div>
-        <div className="min-h-0 flex-1">
-          <ChatPanel state={state} sessionId={sessionId} startedAt={startedAt} onActivated={() => setCelebrating(true)} />
-        </div>
-      </aside>
-      <section className="relative flex-1 overflow-hidden">
-        <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />
+  const detail = hub && leaves.length > 0;
 
-        {hub && leaves.length > 0 && (
-          <div className="glass absolute top-5 right-5 w-64 p-4">
+  return (
+    // The app's own window over the wallpaper, its two panes as after onboarding: the sidebar (here
+    // the conversation) on the left, the inspector (what the research found) on the right. On
+    // phones the graph is a band on top and the conversation fills the rest; the cards open full screen.
+    <div className="flex h-full p-2 max-md:p-0">
+      <Wallpaper />
+      <div className="relative flex min-w-0 flex-1 rounded-[var(--gg-r-window)] [corner-shape:squircle] max-md:flex-col max-md:rounded-none">
+        <div aria-hidden className="gg-window pointer-events-none absolute inset-0 max-md:rounded-none" />
+        <aside className="relative flex w-72 shrink-0 flex-col overflow-hidden rounded-[calc(var(--gg-r-window)-8px)] bg-control shadow-[inset_0_0_0_1px_var(--gg-rim-low)] [corner-shape:squircle] md:m-2 md:mr-0 max-md:min-h-0 max-md:w-full max-md:flex-1 max-md:rounded-none max-md:shadow-none">
+          <div className="flex h-12 items-center px-4 pt-2">
+            <PlutonLogo className="h-[18px]" />
+          </div>
+          <div className="flex px-2.5 pb-3">
+            <WorkspaceMenu />
+          </div>
+          <div className="min-h-0 flex-1">
+            <ChatPanel state={state} sessionId={sessionId} startedAt={startedAt} onActivated={() => setCelebrating(true)} />
+          </div>
+          <div className="flex justify-end p-3 max-md:hidden">
+            <AppearanceControl />
+          </div>
+        </aside>
+        <section className="relative min-w-0 flex-1 overflow-hidden max-md:order-first max-md:h-[32%] max-md:flex-none">
+          <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />
+          {celebrating && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-(--gg-material-thick) px-6 text-center backdrop-blur-2xl motion-safe:animate-[fadeIn_600ms_ease-out] max-md:fixed">
+              <AppIcon className="size-16 rounded-[calc(17px*var(--gg-k))]" />
+              <p className="mt-6 text-[28px] leading-[30px] font-bold tracking-[-0.03em]">{t("live.title")}</p>
+              <p className="mt-1 text-sm text-muted">{t("live.description")}</p>
+            </div>
+          )}
+          {current && (
+            <CardModal
+              key={current.id}
+              card={current}
+              index={questionCards.findIndex((c) => c.id === current.id)}
+              total={questionCards.length}
+            />
+          )}
+        </section>
+        {detail && (
+          <aside className="relative m-2 ml-0 flex w-72 shrink-0 flex-col overflow-y-auto rounded-[calc(var(--gg-r-window)-8px)] bg-control px-4 pt-5 pb-4 shadow-[inset_0_0_0_1px_var(--gg-rim-low)] [corner-shape:squircle] max-lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <h3 className="truncate text-sm font-semibold">{hubMeta(hub) && hubLabel(hubMeta(hub)!.id)}</h3>
               {pickedHub && (
@@ -204,25 +237,9 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
                 </li>
               ))}
             </ul>
-          </div>
+          </aside>
         )}
-
-        {celebrating && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-(--gg-material-thick) backdrop-blur-2xl motion-safe:animate-[fadeIn_600ms_ease-out]">
-            <AppIcon className="size-16 rounded-[calc(17px*var(--gg-k))]" />
-            <p className="mt-6 text-[28px] leading-[30px] font-bold tracking-[-0.03em]">{t("live.title")}</p>
-            <p className="mt-1 text-sm text-muted">{t("live.description")}</p>
-          </div>
-        )}
-        {current && (
-          <CardModal
-            key={current.id}
-            card={current}
-            index={questionCards.findIndex((c) => c.id === current.id)}
-            total={questionCards.length}
-          />
-        )}
-      </section>
+      </div>
     </div>
   );
 }

@@ -187,7 +187,7 @@ export function LeadsView({
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         {/* The tab strip is a segmented control; it scrolls sideways rather than wrapping on narrow windows. */}
-        <div className="-m-1 max-w-full min-w-0 overflow-x-auto p-1 [scrollbar-width:none]">
+        <div className="max-w-full min-w-0">
           {/* Keyed on the counts: Segmented measures its thumb only when the value changes, and the counts widen the labels. */}
           <Segmented
             key={LEAD_TABS.map((tab) => counts.data?.counts[tab.key] ?? "").join(",")}

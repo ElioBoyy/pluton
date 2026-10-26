@@ -59,7 +59,7 @@ export function ItemEditor({
 
 // Fields match the shared Input: a hairline box on the content color, the accent ring on focus.
 const textareaClass =
-  "block w-full resize-y border border-line bg-canvas px-2.5 py-1.5 text-sm leading-relaxed text-ink outline-none placeholder:text-faint transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent/60 focus:focus-ring";
+  "block w-full resize-y rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-1.5 text-sm leading-relaxed text-ink outline-none placeholder:text-faint transition-shadow duration-150 ease-out focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]";
 const selectClass = "capsule h-7 justify-self-start pl-3 text-sm outline-none focus:focus-ring";
 
 function FieldInput({ field, value, onChange }: { field: Field; value: unknown; onChange: (v: unknown) => void }) {
@@ -128,7 +128,7 @@ function ListInput({ values, onChange, placeholder }: { values: string[]; onChan
   };
   return (
     // A token field: the tokens sit inside one box that takes the focus ring like an Input.
-    <div className="flex min-h-7 flex-wrap items-center gap-1 border border-line bg-canvas p-[3px] transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-accent/60 focus-within:focus-ring">
+    <div className="flex min-h-7 flex-wrap items-center gap-1 rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] p-[3px] transition-shadow duration-150 ease-out focus-within:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]">
       {values.map((v) => (
         <span key={v} className="inline-flex min-h-5 max-w-full items-center gap-1 bg-control py-0.5 pr-1 pl-2 text-xs leading-4">
           <span className="min-w-0 break-words">{v}</span>

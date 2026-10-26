@@ -8,6 +8,27 @@
       "when": 1793030160354,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793032707753,
+      "tag": "0001_password_sign_in",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793036148000,
+      "tag": "0002_platform_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793036483664,
+      "tag": "0003_credit_packs",
+      "breakpoints": true
     }
   ]
 }

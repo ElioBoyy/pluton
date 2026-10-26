@@ -1,5 +1,5 @@
 import { getSetting, HOSTED, recordCost } from "@pluton/db";
-import { MODEL, newMeter, runAgentWithApiKey, type RunAgentOptions, type RunAgentResult } from "./run-agent.ts";
+import { agentModel, newMeter, runAgentWithApiKey, type RunAgentOptions, type RunAgentResult } from "./run-agent.ts";
 import { runAgentWithSubscription } from "./run-agent-subscription.ts";
 
 export type AgentBackend = "subscription" | "api_key";
@@ -22,7 +22,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   } finally {
     await recordCost({
       source: "claude",
-      operation: opts.model ?? MODEL,
+      operation: opts.model ?? agentModel(),
       costMicroUsd: meter.costUsd * 1_000_000,
       billed: backend === "api_key",
       detail: {

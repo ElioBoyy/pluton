@@ -134,10 +134,16 @@ export function Section({
 /** The grouped box: the kit's card. Put Rows inside. */
 export function Group({ children, className }: { children: ReactNode; className?: string }) {
   // shrink-0: in a scrolling flex column, overflow-hidden would otherwise let it collapse to nothing.
-  return <div className={cn("gg-card shrink-0 overflow-hidden", className)}>{children}</div>;
+  // A container: its rows lay out by the room the card has, not by the window's width. Relative, so
+  // anything absolute inside (a screen-reader label in a table cell) stays in the card instead of
+  // widening the page from where it would sit in a table scrolled sideways.
+  return <div className={cn("gg-card @container relative shrink-0 overflow-hidden", className)}>{children}</div>;
 }
 
-/** One row of a Group: label (and its secondary line) leading, the control trailing. */
+/**
+ * One row of a Group: label (and its secondary line) leading, the control trailing. When both
+ * don't fit, the control moves under the label instead of squeezing it to a word per line.
+ */
 export function Row({
   label,
   description,
@@ -152,12 +158,13 @@ export function Row({
   return (
     <div
       className={cn(
-        "relative flex min-h-12 items-center gap-4 px-4 py-2.5",
+        "relative flex min-h-12 flex-wrap items-center justify-end gap-x-4 gap-y-2 px-4 py-2.5",
         className,
       )}
     >
       {(label || description) && (
-        <div className="min-w-0 flex-1">
+        // In a narrow card (an inspector), a bare label keeps its value beside it; one with a line of text below doesn't.
+        <div className={cn("min-w-[min(12rem,100%)] flex-1", !description && "@max-[22rem]:min-w-[min(5rem,100%)]")}>
           {label && <div className="text-sm">{label}</div>}
           {description && <div className="mt-0.5 text-xs text-muted">{description}</div>}
         </div>
@@ -197,16 +204,19 @@ export function Segmented<T extends string>({
   size?: "sm" | "md";
 }) {
   return (
-    <GlassSegmented
-      options={options}
-      value={value}
-      onChange={onChange}
-      label={label}
-      className={cn(
-        "shrink-0 flex-nowrap [&>button]:whitespace-nowrap",
-        size === "sm" ? "p-0.5 [&>button]:min-h-6 [&>button]:px-3 [&>button]:text-xs" : "[&>button]:min-h-[26px]",
-      )}
-    />
+    // Wider than the room it has (a phone, a pane beside it), it scrolls sideways instead of widening the page.
+    <div className="-m-1 max-w-full min-w-0 overflow-x-auto p-1 [scrollbar-width:none]">
+      <GlassSegmented
+        options={options}
+        value={value}
+        onChange={onChange}
+        label={label}
+        className={cn(
+          "shrink-0 flex-nowrap [&>button]:whitespace-nowrap",
+          size === "sm" ? "p-0.5 [&>button]:min-h-6 [&>button]:px-3 [&>button]:text-xs" : "[&>button]:min-h-[26px]",
+        )}
+      />
+    </div>
   );
 }
 

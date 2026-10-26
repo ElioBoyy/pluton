@@ -102,9 +102,8 @@ const playOf = (p: P) => (typeof p.play === "string" ? p.play : t("deletedPlay")
 
 /** Why a search was refused for budget; also the error the run start throws. `until` is when the monthly budget renews (ISO). */
 export function budgetRefusal(which: string, until: string) {
-  return which === "daily"
-    ? t("refused.daily")
-    : t("refused.monthly", { date: new Date(until).toLocaleDateString(currentLocale(), { day: "numeric", month: "long" }) });
+  const date = new Date(until).toLocaleDateString(currentLocale(), { day: "numeric", month: "long" });
+  return which === "daily" ? t("refused.daily") : which === "quota" ? t("refused.quota", { date }) : t("refused.monthly", { date });
 }
 
 const DESCRIBE: Record<string, (p: P) => Wording | null> = {

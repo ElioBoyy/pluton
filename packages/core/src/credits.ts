@@ -16,6 +16,10 @@ import {
   lt,
   ne,
   onCostRecorded,
+  paidByPlatform,
+  platformQuota,
+  TOP_UP_PACKS,
+  topUpPriceCents,
   type Play,
   plays,
   type RunTrigger,
@@ -171,8 +175,14 @@ export async function budgetStatus(db: Db, ws: Workspace, now = new Date()) {
     openHolds: held.count,
     /** Null when no limit is set. */
     availableMicroUsd: lefts.length ? Math.max(Math.min(...lefts), 0) : null,
+    /** Hosted: what the plan includes this billing period through Pluton's own keys; null without a plan. */
+    platform: withPacks(platformQuota(ws.id)),
   };
 }
+
+/** The packs of credits on sale, priced in euro cents at the fixed rate. */
+const withPacks = <T extends object>(quota: T | null) =>
+  quota && { ...quota, packs: TOP_UP_PACKS.map((credits) => ({ credits, priceCents: topUpPriceCents(credits) })) };
 
 export class BudgetError extends Error {}
 
@@ -187,10 +197,19 @@ export async function planReservation(db: Db, play: Play, trigger: RunTrigger) {
   const ws = (await db.query.workspaces.findFirst({ where: eq(workspaces.id, play.workspaceId) }))!;
   const status = await budgetStatus(db, ws);
   const cap = toMicro(play.definition.policy?.maxCostUsd ?? status.settings.runCapUsd);
-  if (status.settings.mode === "track" || status.availableMicroUsd === null) return cap;
-  if (status.availableMicroUsd < MIN_RESERVE) {
-    const which = status.dailyLimitMicroUsd !== null && status.spentTodayMicroUsd + status.heldMicroUsd >= status.dailyLimitMicroUsd ? "daily" : "monthly";
-    const until = status.period.end.toISOString();
+  // Every run needs Claude: through Pluton's key, it is held to what the plan has left, whatever the budget's mode.
+  const quota = status.platform && paidByPlatform("claude", ws.id) ? status.platform : null;
+  const budgetLeft = status.settings.mode === "enforce" ? status.availableMicroUsd : null;
+  const which =
+    quota && quota.leftMicroUsd < MIN_RESERVE
+      ? "quota"
+      : budgetLeft === null || budgetLeft >= MIN_RESERVE
+        ? null
+        : status.dailyLimitMicroUsd !== null && status.spentTodayMicroUsd + status.heldMicroUsd >= status.dailyLimitMicroUsd
+          ? "daily"
+          : "monthly";
+  if (which) {
+    const until = (which === "quota" ? quota!.periodEnd : status.period.end).toISOString();
     await recordActivity(db, play.workspaceId, "credits", "run.refused", { playId: play.id, trigger, which });
     await notifyDescribed(db, play.workspaceId, {
       category: "runs",
@@ -202,7 +221,7 @@ export async function planReservation(db: Db, play: Play, trigger: RunTrigger) {
     });
     throw new BudgetError(budgetRefusal(which, until));
   }
-  return Math.min(cap, status.availableMicroUsd);
+  return Math.min(cap, quota?.leftMicroUsd ?? cap, budgetLeft ?? cap);
 }
 
 export async function createHold(db: Db, run: { id: string; workspaceId: string; playId: string }, reservedMicroUsd: number) {

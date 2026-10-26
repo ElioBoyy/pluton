@@ -1,7 +1,7 @@
 // Generated from schema.ts by scripts/pg_schema.py: edit schema.ts, not this file.
 import { bigint, bigserial, boolean, index, integer, jsonb, pgTable, primaryKey, real, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type { Locale } from "@pluton/i18n";
-import { ACTION_KINDS, ACTION_STATUSES, ACTIVITY_CONTEXTS, BRAIN_SECTIONS, BRAIN_SOURCES, CAMPAIGN_STATUSES, CARD_KINDS, COPILOT_ACTION_STATUSES, COPILOT_MESSAGE_ROLES, COST_PURPOSES, CRM_PROVIDERS, DRAFT_REVIEW, ENROLLMENT_STATUSES, INTEGRATION_PROVIDERS, JOB_STATUSES, LEAD_EVENT_KINDS, LEAD_STAGES, LEAD_STATUSES, NOTIFICATION_CATEGORIES, ONBOARDING_STAGES, ONBOARDING_STATUSES, OUTREACH_CHANNELS, PIPELINES, PLAY_STATUSES, PROPOSAL_KINDS, PROPOSAL_STATUSES, REPLY_LABELS, RUN_STATUSES, RUN_TRIGGERS, SCHEDULES, SEARCH_KINDS, SENDER_PROVIDERS, SENDER_STATUSES, STOP_REASONS, SUBSCRIPTION_PLANS, type BudgetSettings, type CampaignObjective, type CampaignStep, type CrmConfig, type Evidence, type FeedbackReason, type NotificationSettings, type Play, type PlayDefinition, type RunReport, type SendWindow, type SenderLimits, type SlackConfig } from "./schema.ts";
+import { ACTION_KINDS, ACTION_STATUSES, ACTIVITY_CONTEXTS, AUTH_TOKEN_KINDS, BRAIN_SECTIONS, BRAIN_SOURCES, CAMPAIGN_STATUSES, CARD_KINDS, COPILOT_ACTION_STATUSES, COPILOT_MESSAGE_ROLES, COST_PURPOSES, CRM_PROVIDERS, DRAFT_REVIEW, ENROLLMENT_STATUSES, INTEGRATION_PROVIDERS, JOB_STATUSES, LEAD_EVENT_KINDS, LEAD_STAGES, LEAD_STATUSES, NOTIFICATION_CATEGORIES, ONBOARDING_STAGES, ONBOARDING_STATUSES, OUTREACH_CHANNELS, PIPELINES, PLAY_STATUSES, PROPOSAL_KINDS, PROPOSAL_STATUSES, REPLY_LABELS, RUN_STATUSES, RUN_TRIGGERS, SCHEDULES, SEARCH_KINDS, SENDER_PROVIDERS, SENDER_STATUSES, STOP_REASONS, SUBSCRIPTION_PLANS, type BudgetSettings, type CampaignObjective, type CampaignStep, type CrmConfig, type Evidence, type FeedbackReason, type NotificationSettings, type Play, type PlayDefinition, type RunReport, type SendWindow, type SenderLimits, type SlackConfig } from "./schema.ts";
 
 /**
  * The hosted app's tables (PLUTON_HOSTED=1), on Postgres: the same names, columns and indexes as
@@ -551,6 +551,8 @@ export const creditEntries = pgTable(
     operation: text("operation").notNull(),
     costMicroUsd: bigint("cost_micro_usd", { mode: "number" }).notNull(),
     billed: boolean("billed").notNull().default(true),
+    /** Hosted: paid through Pluton's own key for the source, so it counts against the plan's quota. */
+    platform: boolean("platform").notNull().default(false),
     playId: text("play_id").references(() => plays.id, { onDelete: "set null" }),
     runId: text("run_id").references(() => leadFindingRuns.id, { onDelete: "set null" }),
     jobId: text("job_id"),
@@ -792,7 +794,10 @@ export const workspaceSettings = pgTable(
   (t) => [primaryKey({ columns: [t.workspaceId, t.key] })],
 );
 
-/** A person signed in to the hosted app with Google or Apple. Self-hosted installs have none. */
+/**
+ * A person signed in to the hosted app with Google, Apple or an email and password, any of them
+ * linked to the same account. Self-hosted installs have none.
+ */
 export const users = pgTable(
   "user",
   {
@@ -802,6 +807,10 @@ export const users = pgTable(
     /** The `sub` each provider gives this person; either may be missing until they sign in with it. */
     googleSub: text("google_sub"),
     appleSub: text("apple_sub"),
+    /** scrypt hash (`scrypt$N$r$p$salt$hash`); set only once the address was confirmed. */
+    passwordHash: text("password_hash"),
+    /** When the address was proven theirs: by Google or Apple, or by a link sent to it. */
+    emailVerifiedAt: timestamp("email_verified_at", { mode: "date", precision: 3, withTimezone: true }),
     stripeCustomerId: text("stripe_customer_id"),
     stripeSubscriptionId: text("stripe_subscription_id"),
     plan: text("plan", { enum: SUBSCRIPTION_PLANS }),
@@ -819,6 +828,27 @@ export const users = pgTable(
   ],
 );
 
+/**
+ * Credits bought on top of what a plan includes each month, once Stripe has the payment. They are
+ * spent after the month's own, and carry over until used up.
+ */
+export const creditPacks = pgTable(
+  "credit_pack",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    credits: integer("credits").notNull(),
+    /** What was paid, in the currency's smallest unit. */
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("credit_pack_session_idx").on(t.stripeSessionId), index("credit_pack_user_idx").on(t.userId)],
+);
+
 /** A browser signed in as a user; the cookie holds the token, this table only its SHA-256. */
 export const authSessions = pgTable(
   "auth_session",
@@ -831,4 +861,24 @@ export const authSessions = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("auth_session_user_idx").on(t.userId)],
+);
+
+/**
+ * A link sent by email, kept as the SHA-256 of its token and used once. `signup` carries the
+ * address and password chosen: the account is only created (or the password added to the one
+ * already on that address) when the link is opened. `reset` sets a new password on `userId`.
+ */
+export const authTokens = pgTable(
+  "auth_token",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind", { enum: AUTH_TOKEN_KINDS }).notNull(),
+    email: text("email").notNull(),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    passwordHash: text("password_hash"),
+    name: text("name"),
+    expiresAt: timestamp("expires_at", { mode: "date", precision: 3, withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("auth_token_email_idx").on(t.email)],
 );

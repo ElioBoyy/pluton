@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
+import { Inspector } from "../../components/inspector.tsx";
 import { Button, Group, Input, Row, Section, Segmented, Switch } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
 import { getLocale, useT } from "../../i18n/index.ts";
@@ -15,31 +16,33 @@ type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 export type Step = Data["campaign"]["steps"][number];
 
 const textarea =
-  "block w-full resize-y border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring";
+  "block w-full resize-y rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]";
 
 /** Side panel for one step: what it does (Configure) and who is at it (Leads). */
 export function StepPanel({ data, step, onClose, onSaved, onEditTone }: { data: Data; step: Step; onClose: () => void; onSaved: () => void; onEditTone: () => void }) {
   const t = useT("sequence");
   const [tab, setTab] = useState<"configure" | "leads">("configure");
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(460px,calc(100vw-24px))] flex-col" aria-label={step.label}>
-      <PanelHeader eyebrow={step.kind === "message" ? t("step.eyebrowMessage") : t("step.eyebrowStep")} title={step.label} onClose={onClose} />
-      <div className="flex shrink-0 justify-center px-5 pb-2">
-        <Segmented
-          label={t("step.view")}
-          size="sm"
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "configure", label: t("configure.title") },
-            { value: "leads", label: t("step.leads") },
-          ]}
-        />
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6">
-        {tab === "configure" ? <Configure key={step.id + step.revision} data={data} step={step} onSaved={onSaved} onEditTone={onEditTone} /> : <StepLeads data={data} step={step} />}
-      </div>
-    </aside>
+    <Inspector>
+      <section className="flex h-full w-full flex-col" aria-label={step.label}>
+        <PanelHeader eyebrow={step.kind === "message" ? t("step.eyebrowMessage") : t("step.eyebrowStep")} title={step.label} onClose={onClose} />
+        <div className="flex shrink-0 justify-center px-5 pb-2">
+          <Segmented
+            label={t("step.view")}
+            size="sm"
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "configure", label: t("configure.title") },
+              { value: "leads", label: t("step.leads") },
+            ]}
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6">
+          {tab === "configure" ? <Configure key={step.id + step.revision} data={data} step={step} onSaved={onSaved} onEditTone={onEditTone} /> : <StepLeads data={data} step={step} />}
+        </div>
+      </section>
+    </Inspector>
   );
 }
 

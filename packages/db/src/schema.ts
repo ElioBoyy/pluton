@@ -852,6 +852,8 @@ export const creditEntries = sqliteTable(
     operation: text("operation").notNull(),
     costMicroUsd: integer("cost_micro_usd").notNull(),
     billed: integer("billed", { mode: "boolean" }).notNull().default(true),
+    /** Hosted: paid through Pluton's own key for the source, so it counts against the plan's quota. */
+    platform: integer("platform", { mode: "boolean" }).notNull().default(false),
     playId: text("play_id").references(() => plays.id, { onDelete: "set null" }),
     runId: text("run_id").references(() => leadFindingRuns.id, { onDelete: "set null" }),
     jobId: text("job_id"),
@@ -909,6 +911,7 @@ export const notifications = sqliteTable(
 );
 
 export type CreditEntry = typeof creditEntries.$inferSelect;
+export type CreditPack = typeof creditPacks.$inferSelect;
 export type CreditHold = typeof creditHolds.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 
@@ -1178,7 +1181,10 @@ export const workspaceSettings = sqliteTable(
 export const SUBSCRIPTION_PLANS = ["byo", "all"] as const;
 export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number];
 
-/** A person signed in to the hosted app with Google or Apple. Self-hosted installs have none. */
+/**
+ * A person signed in to the hosted app with Google, Apple or an email and password, any of them
+ * linked to the same account. Self-hosted installs have none.
+ */
 export const users = sqliteTable(
   "user",
   {
@@ -1188,6 +1194,10 @@ export const users = sqliteTable(
     /** The `sub` each provider gives this person; either may be missing until they sign in with it. */
     googleSub: text("google_sub"),
     appleSub: text("apple_sub"),
+    /** scrypt hash (`scrypt$N$r$p$salt$hash`); set only once the address was confirmed. */
+    passwordHash: text("password_hash"),
+    /** When the address was proven theirs: by Google or Apple, or by a link sent to it. */
+    emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
     stripeCustomerId: text("stripe_customer_id"),
     stripeSubscriptionId: text("stripe_subscription_id"),
     plan: text("plan", { enum: SUBSCRIPTION_PLANS }),
@@ -1205,6 +1215,27 @@ export const users = sqliteTable(
   ],
 );
 
+/**
+ * Credits bought on top of what a plan includes each month, once Stripe has the payment. They are
+ * spent after the month's own, and carry over until used up.
+ */
+export const creditPacks = sqliteTable(
+  "credit_pack",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    credits: integer("credits").notNull(),
+    /** What was paid, in the currency's smallest unit. */
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("credit_pack_session_idx").on(t.stripeSessionId), index("credit_pack_user_idx").on(t.userId)],
+);
+
 /** A browser signed in as a user; the cookie holds the token, this table only its SHA-256. */
 export const authSessions = sqliteTable(
   "auth_session",
@@ -1217,4 +1248,27 @@ export const authSessions = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("auth_session_user_idx").on(t.userId)],
+);
+
+export const AUTH_TOKEN_KINDS = ["signup", "reset"] as const;
+export type AuthTokenKind = (typeof AUTH_TOKEN_KINDS)[number];
+
+/**
+ * A link sent by email, kept as the SHA-256 of its token and used once. `signup` carries the
+ * address and password chosen: the account is only created (or the password added to the one
+ * already on that address) when the link is opened. `reset` sets a new password on `userId`.
+ */
+export const authTokens = sqliteTable(
+  "auth_token",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind", { enum: AUTH_TOKEN_KINDS }).notNull(),
+    email: text("email").notNull(),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    passwordHash: text("password_hash"),
+    name: text("name"),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("auth_token_email_idx").on(t.email)],
 );

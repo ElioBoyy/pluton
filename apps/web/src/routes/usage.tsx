@@ -149,11 +149,14 @@ function ByPlay({ usage }: { usage: Usage }) {
           <tbody>
             {usage.byPlay.map((p) => (
               <tr key={p.playId}>
-                <td className="min-w-56">
-                  <Link to="/plays/$playId" params={{ playId: p.playId }} className="hover:text-accent">
-                    {p.name}
-                  </Link>
-                  {p.status !== "active" && <span className="ml-2 text-xs text-muted">{t(`playStatus.${p.status}`)}</span>}
+                <td>
+                  {/* A cell ignores min-width: the block inside holds the column open, the table scrolls instead. */}
+                  <div className="min-w-48">
+                    <Link to="/plays/$playId" params={{ playId: p.playId }} className="hover:text-accent">
+                      {p.name}
+                    </Link>
+                    {p.status !== "active" && <span className="ml-2 text-xs text-muted">{t(`playStatus.${p.status}`)}</span>}
+                  </div>
                 </td>
                 <td className="num text-muted">{p.runs}</td>
                 <td className="num text-muted">{p.leads}</td>
@@ -271,7 +274,12 @@ function Ledger({ purposeLabels }: { purposeLabels: Usage["purposeLabels"] }) {
                     </span>
                   )}
                 </td>
-                <td className="text-muted">{playName ?? "—"}</td>
+                <td className="text-muted">
+                  {/* One line, cut with its full name on hover: the table scrolls instead of stacking words. */}
+                  <div className="max-w-56 min-w-32 truncate" title={playName ?? undefined}>
+                    {playName ?? "—"}
+                  </div>
+                </td>
                 <td className={cn("num", !e.billed && "text-muted")}>
                   {usd(e.costMicroUsd, { precise: true })}
                   {!e.billed && <span className="ml-1 text-xs" title={t("subscription")}>{t("ledger.sub")}</span>}

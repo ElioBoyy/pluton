@@ -1,12 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { getSetting } from "@pluton/db";
+import { assertPlatformQuota, getSetting } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import messages from "./messages/copilot.ts";
 
 const t = localized(messages);
 
-export const MODEL = "claude-opus-5-5";
+/** Research, the Brain, Plays and the agent: Sonnet 5.5 unless the workspace chose Opus 5.5 (Settings → API keys). */
+export const MODEL = "claude-sonnet-5-5";
+export const DEEP_MODEL = "claude-opus-5-5";
+export const agentModel = () => (getSetting("agent_model") === "opus" ? DEEP_MODEL : MODEL);
 /** Writing outreach and judging fit. */
 export const WRITER_MODEL = "claude-sonnet-5-5";
 /** Small classification tasks. */
@@ -45,7 +48,7 @@ export type RunAgentOptions = {
   maxContinuations?: number;
   maxTurns?: number;
   signal?: AbortSignal;
-  /** Defaults to MODEL. */
+  /** Defaults to the workspace's research model (agentModel). */
   model?: string;
   /** Each block of text the agent writes, once that block is complete (for chat-style agents). */
   onText?: (text: string) => Promise<void>;
@@ -96,12 +99,14 @@ export class AgentRefusalError extends Error {}
 export class AgentTurnLimitError extends Error {}
 
 /**
- * The workspace's own key, from Settings. Never one from the environment or a local config, which
- * the SDK would otherwise fall back to: without a saved key there is no client.
+ * The workspace's own key from Settings, or Pluton's own when its plan includes Claude. Never one
+ * from the environment or a local config, which the SDK would otherwise fall back to: without
+ * either there is no client.
  */
 export function anthropicClient() {
   const key = getSetting("anthropic_api_key");
   if (!key) throw new Anthropic.AnthropicError("No Anthropic API key: add one in Settings → API keys");
+  assertPlatformQuota("anthropic_api_key");
   return new Anthropic({ apiKey: key });
 }
 
@@ -109,6 +114,8 @@ export function anthropicClient() {
 let client: { key: string; instance: Anthropic } | undefined;
 const getClient = () => {
   const key = getSetting("anthropic_api_key");
+  // Checked every turn, not only when the client is made: a long run stops once the quota is spent.
+  assertPlatformQuota("anthropic_api_key");
   if (!client || client.key !== key) client = { key: key ?? "", instance: anthropicClient() };
   return client.instance;
 };
@@ -143,7 +150,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
   for (let turn = 0; turn < (opts.maxTurns ?? 30); turn++) {
     const stream = getClient().beta.messages.stream(
       {
-        model: opts.model ?? MODEL,
+        model: opts.model ?? agentModel(),
         max_tokens: 16000,
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",
@@ -158,7 +165,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
     if (opts.onTextDelta) stream.on("text", (delta) => opts.onTextDelta?.(delta));
     const response = await stream.finalMessage();
 
-    meterUsage(meter, response.model ?? opts.model ?? MODEL, response.usage);
+    meterUsage(meter, response.model ?? opts.model ?? agentModel(), response.usage);
 
     if (response.stop_reason === "refusal") {
       throw new AgentRefusalError(response.stop_details?.explanation ?? t("claude.declined"));

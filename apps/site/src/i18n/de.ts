@@ -20,7 +20,7 @@ export default {
     sub: "Pluton ist ein KI-Agent für Gründer, die selbst verkaufen. Er liest Ihre Website, beobachtet die Firmen Ihres Markts, die gerade einstellen, posten oder Kapital aufnehmen, und schreibt ihnen in Ihrem Ton. Nichts geht raus, bevor Sie es freigeben.",
     cta: "Mit Ihrer Website starten",
     code: "Selbst hosten",
-    price: "Ab 19,99 € im Monat. Kostenlos auf Ihrem eigenen Rechner.",
+    price: "Ab 39,99 € im Monat. Kostenlos auf Ihrem eigenen Rechner.",
   },
   agent: {
     title: "Agent",
@@ -205,7 +205,7 @@ export default {
     all: "Alles inklusive",
     perMonth: "pro Monat",
     ownLines: [
-      "Nutzen Sie Ihr Claude- oder Codex-Abo-Token oder Ihre API-Schlüssel",
+      "Ihr eigener Anthropic-API-Schlüssel, von Anthropic zum Selbstkostenpreis abgerechnet",
       "Brain, Plays, Leads, LinkedIn- und E-Mail-Sequenzen",
       "Slack, HubSpot, Attio, Pipedrive und MCP für Ihre KI",
       "Läuft weiter, auch wenn Ihr Laptop zugeklappt ist",
@@ -237,7 +237,7 @@ export default {
       ],
       [
         "Brauche ich ein eigenes Claude-Konto?",
-        "Im Tarif für 19,99 € ja: Sie bringen ein Claude- oder Codex-Abo-Token oder API-Schlüssel mit. Im Tarif für 49,99 € ist Claude bis zu einem monatlichen Kontingent enthalten.",
+        "Im Tarif für 39,99 € ja: Sie bringen einen Anthropic-API-Schlüssel mit, und Anthropic berechnet Ihnen, was Pluton verbraucht, zum Selbstkostenpreis. Im Tarif für 59,99 € ist Claude bis zu einem monatlichen Kontingent enthalten.",
       ],
       [
         "Kann ich es aus Claude Code oder Codex nutzen?",

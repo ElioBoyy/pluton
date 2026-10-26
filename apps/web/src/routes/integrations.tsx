@@ -265,7 +265,7 @@ function SlackConfigSection({ detail }: { detail: Detail }) {
             value={form.minFit}
             onChange={(e) => setForm({ ...form, minFit: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
             aria-label={t("slack.minFit")}
-            className="h-7 w-16 border border-line bg-canvas px-2 text-right text-sm tabular-nums outline-none focus:border-accent/60 focus:focus-ring"
+            className="h-7 w-16 rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2 text-right text-sm tabular-nums outline-none focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"
           />
         </Row>
       </Group>

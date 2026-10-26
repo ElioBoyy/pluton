@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { currentCostScope, eq, getSetting, HOSTED, providerCache, providerCalls, recordCost, type Db } from "@pluton/db";
+import { assertPlatformQuota, currentCostScope, eq, getSetting, HOSTED, providerCache, providerCalls, recordCost, settingSource, type Db } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import messages from "./messages/providers.ts";
 
@@ -30,6 +30,25 @@ async function throttle(host: string, minIntervalMs: number) {
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
 }
 
+/** Codes of a connection that didn't happen or broke: the network, not the service, said no. */
+const NETWORK_CODES = /\b(EHOSTUNREACH|ENETUNREACH|ENETDOWN|ECONNREFUSED|ECONNRESET|ECONNABORTED|ETIMEDOUT|EPIPE|EAI_AGAIN|ENOTFOUND|UND_ERR_CONNECT_TIMEOUT|UND_ERR_SOCKET|UND_ERR_HEADERS_TIMEOUT)\b|fetch failed|socket hang up|timeout/i;
+
+/** fetch only says "fetch failed": the reason (a code such as ENOTFOUND) sits on its cause. */
+const networkReason = (error: unknown) => {
+  const cause = (error as { cause?: { code?: string; message?: string } })?.cause;
+  const why = cause?.code ?? cause?.message;
+  return why ? `${(error as Error).message} (${why})` : (error as Error).message;
+};
+
+/**
+ * Whether an error is the network failing (offline, Wi-Fi switching, a route missing) rather than
+ * the service refusing: worth trying again later, never a reason to give up on someone.
+ */
+export const isNetworkError = (error: unknown) => {
+  const code = (error as { code?: string })?.code;
+  return NETWORK_CODES.test(`${code ?? ""} ${(error as Error)?.message ?? ""}`);
+};
+
 export type HttpOptions = RequestInit & { timeoutMs?: number; minIntervalMs?: number; retries?: number };
 
 /** fetch with a timeout, host throttling and retries on 429/5xx/network errors. */
@@ -51,7 +70,7 @@ export async function http(provider: string, url: string, opts: HttpOptions = {}
       }
       return res;
     } catch (error) {
-      if (attempt >= retries) throw new ProviderError(provider, `request failed: ${(error as Error).message}`);
+      if (attempt >= retries) throw new ProviderError(provider, `request failed: ${networkReason(error)}`);
       await new Promise((r) => setTimeout(r, 800 * 2 ** attempt));
     }
   }
@@ -106,10 +125,11 @@ export async function providerCall<T>(
   }
 }
 
-/** Reads a key saved in Settings → API keys. */
+/** Reads a key saved in Settings → API keys, or Pluton's own while the plan's quota lasts. */
 export function requireKey(provider: string, settingKey: string) {
   const value = getSetting(settingKey)?.trim();
   if (!value) throw new MissingKeyError(provider, settingKey);
+  assertPlatformQuota(settingKey);
   return value;
 }
 
@@ -139,6 +159,8 @@ export async function checkProviderKey(settingKey: string): Promise<string> {
     const accounts = await unipileAccounts();
     return t("check.unipile", { count: accounts.length });
   }
+  // Pluton's own key: a check would show its account with the provider to the workspace.
+  if (settingSource(settingKey) === "platform") return t("check.saved");
   const key = requireKey(settingKey, settingKey);
   switch (settingKey) {
     case "apify_token": {

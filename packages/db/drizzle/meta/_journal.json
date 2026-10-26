@@ -155,6 +155,27 @@
       "when": 1793028618648,
       "tag": "0021_workspace_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1793032707240,
+      "tag": "0022_password_sign_in",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1793036147658,
+      "tag": "0023_platform_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1793036483057,
+      "tag": "0024_credit_packs",
+      "breakpoints": true
     }
   ]
 }

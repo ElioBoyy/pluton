@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
+import { Inspector } from "../../components/inspector.tsx";
 import { Button, Group, Input, Row, Section, Switch } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
 import { useT } from "../../i18n/index.ts";
@@ -17,25 +18,27 @@ type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 export function ConfigurePanel({ data, onClose, onSaved, focus }: { data: Data; onClose: () => void; onSaved: () => void; focus?: "tone" }) {
   const t = useT("sequence");
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(480px,calc(100vw-24px))] flex-col" aria-label={t("configure.label")}>
-      <PanelHeader title={t("configure.title")} onClose={onClose} />
-      <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-1 pb-6 [&>*]:shrink-0">
-        {focus === "tone" ? (
-          <>
-            <Tone data={data} onSaved={onSaved} />
-            <Objective data={data} onSaved={onSaved} />
-          </>
-        ) : (
-          <>
-            <Objective data={data} onSaved={onSaved} />
-            <Tone data={data} onSaved={onSaved} />
-          </>
-        )}
-        <Language data={data} onSaved={onSaved} />
-        <Window data={data} onSaved={onSaved} />
-        <Accounts data={data} onSaved={onSaved} />
-      </div>
-    </aside>
+    <Inspector>
+      <section className="flex h-full w-full flex-col" aria-label={t("configure.label")}>
+        <PanelHeader title={t("configure.title")} onClose={onClose} />
+        <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-1 pb-6 [&>*]:shrink-0">
+          {focus === "tone" ? (
+            <>
+              <Tone data={data} onSaved={onSaved} />
+              <Objective data={data} onSaved={onSaved} />
+            </>
+          ) : (
+            <>
+              <Objective data={data} onSaved={onSaved} />
+              <Tone data={data} onSaved={onSaved} />
+            </>
+          )}
+          <Language data={data} onSaved={onSaved} />
+          <Window data={data} onSaved={onSaved} />
+          <Accounts data={data} onSaved={onSaved} />
+        </div>
+      </section>
+    </Inspector>
   );
 }
 
@@ -72,7 +75,7 @@ const SENDER_STATUS = {
 const Block = ({ className, children }: { className?: string; children: React.ReactNode }) => <div className={cn("px-4 py-3", className)}>{children}</div>;
 
 const textarea =
-  "block w-full resize-y border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring";
+  "block w-full resize-y rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]";
 
 function useUpdate(data: Data, onSaved: () => void, done: string) {
   const trpc = useTRPC();

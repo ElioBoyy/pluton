@@ -3,8 +3,17 @@ import { queryOptions } from "@tanstack/react-query";
 export type AuthState = {
   /** False on a self-hosted install: no accounts, no payment, the app opens straight away. */
   hosted: boolean;
-  providers: { google: boolean; apple: boolean };
-  user: { email: string | null; name: string | null; plan: "byo" | "all" | null; paid: boolean; status: string | null } | null;
+  /** The ways in this server offers; `password` needs it to send email. */
+  providers: { google: boolean; apple: boolean; password: boolean };
+  user: {
+    email: string | null;
+    name: string | null;
+    plan: "byo" | "all" | null;
+    paid: boolean;
+    status: string | null;
+    /** The ways in linked to this account. */
+    methods: { password: boolean; google: boolean; apple: boolean };
+  } | null;
 };
 
 /** Who is signed in and whether they have paid; the router reads it before every page. */
@@ -13,7 +22,7 @@ export const authStateQuery = queryOptions({
   queryFn: async (): Promise<AuthState> => {
     const res = await fetch("/api/auth/state", { credentials: "same-origin" });
     // A server without accounts (older, or self-hosted behind another proxy): the app opens as before.
-    if (res.status === 404) return { hosted: false, providers: { google: false, apple: false }, user: null };
+    if (res.status === 404) return { hosted: false, providers: { google: false, apple: false, password: false }, user: null };
     if (!res.ok) throw new Error(`Auth state: ${res.status}`);
     return res.json();
   },

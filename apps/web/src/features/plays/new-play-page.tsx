@@ -210,8 +210,8 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
   ];
 
   return (
-    // An inspector on its own tone (no rule against the chat): grouped fields that scroll, the actions pinned at the bottom.
-    <aside className="flex w-[380px] shrink-0 flex-col bg-panel max-md:max-h-[55%] max-md:w-full">
+    // The inspector, as the window's own right pane draws it: grouped fields that scroll, the actions pinned at the bottom.
+    <aside className="m-2 flex w-80 shrink-0 flex-col overflow-hidden rounded-[calc(var(--gg-r-window)-8px)] bg-control shadow-[inset_0_0_0_1px_var(--gg-rim-low)] [corner-shape:squircle] 2xl:w-96 max-md:mt-0 max-md:max-h-[55%] max-md:w-auto">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 pb-6">
         <div className="px-1">
           <p className="text-xs font-medium text-muted">{t("list.new")}</p>

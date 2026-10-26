@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { LinkButton } from "@pluton/glass";
 import { useEffect, useState, type ReactNode } from "react";
 import { PlutonLogo } from "../../components/logo.tsx";
-import { Button } from "../../components/ui.tsx";
+import { Button, Input } from "../../components/ui.tsx";
 import { Wallpaper } from "../../components/wallpaper.tsx";
 import { useLocale, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
@@ -12,12 +12,16 @@ import { authStateQuery, post } from "./auth-state.ts";
 
 /** The hosted offer, in euros a month (PRODUCT.md); Stripe holds the prices actually charged. */
 const PLANS = [
-  { id: "byo", price: 19.99 },
-  { id: "all", price: 49.99 },
+  { id: "byo", price: 39.99 },
+  { id: "all", price: 59.99 },
 ] as const;
 type PlanId = (typeof PLANS)[number]["id"];
 
-const ERRORS = ["cancelled", "expired", "provider"] as const;
+const ERRORS = ["cancelled", "expired", "provider", "link"] as const;
+
+/** What the email routes answer with; anything else reads as a generic failure. */
+const EMAIL_ERRORS = ["invalid_credentials", "weak_password", "invalid_email", "too_many", "email_failed"] as const;
+const emailError = (error: unknown) => EMAIL_ERRORS.find((e) => e === (error as Error | null)?.message) ?? "generic";
 
 /** The marketing site, where the legal pages live (English at the root, other languages under /<lang>/). */
 const SITE_URL = "https://plut0n.com";
@@ -59,12 +63,13 @@ function GoogleMark() {
 
 /**
  * Sign in and sign up are the same page: Google or Apple says who you are, and a new address
- * becomes a new account. Payment comes next; nothing about the business is asked before it.
+ * becomes a new account; or an email and password, confirmed by a link before the account
+ * exists. Payment comes next; nothing about the business is asked before it.
  */
 export function SignupPage({ error }: { error?: string }) {
   const t = useT("account");
   const state = useQuery(authStateQuery).data;
-  const providers = state?.providers ?? { google: false, apple: false };
+  const providers = state?.providers ?? { google: false, apple: false, password: false };
   const known = ERRORS.find((e) => e === error);
 
   return (
@@ -91,8 +96,21 @@ export function SignupPage({ error }: { error?: string }) {
             {t("signup.apple")}
           </LinkButton>
         )}
-        {state && !providers.google && !providers.apple && <p className="text-sm text-system-orange">{t("signup.unavailable")}</p>}
+        {state && !providers.google && !providers.apple && !providers.password && <p className="text-sm text-system-orange">{t("signup.unavailable")}</p>}
       </div>
+
+      {providers.password && (
+        <>
+          {(providers.google || providers.apple) && (
+            <div className="my-6 flex items-center gap-3 text-xs text-muted" aria-hidden>
+              <span className="h-px flex-1 bg-[var(--gg-edge)]" />
+              {t("signup.or")}
+              <span className="h-px flex-1 bg-[var(--gg-edge)]" />
+            </div>
+          )}
+          <EmailForm />
+        </>
+      )}
 
       {known && (
         <p role="alert" className="mt-4 text-sm text-system-orange">
@@ -106,6 +124,168 @@ export function SignupPage({ error }: { error?: string }) {
           privacy: <LegalLink doc="privacy">{t("signup.privacy")}</LegalLink>,
         })}
       </p>
+    </AccountFrame>
+  );
+}
+
+type EmailMode = "signIn" | "signUp" | "forgot";
+
+/** Email and password: sign in, create an account (confirmed by a link), or ask for a reset link. */
+function EmailForm() {
+  const t = useT("account");
+  const locale = useLocale();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<EmailMode>("signIn");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [sentTo, setSentTo] = useState<{ email: string; mode: EmailMode } | null>(null);
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      if (mode === "signIn") return post("/api/auth/password/signin", { email, password });
+      if (mode === "signUp") return post("/api/auth/password/signup", { email, password, locale });
+      return post("/api/auth/password/forgot", { email, locale });
+    },
+    onSuccess: async () => {
+      if (mode !== "signIn") return setSentTo({ email: email.trim(), mode });
+      await queryClient.invalidateQueries(authStateQuery);
+      await navigate({ to: "/", search: {} });
+    },
+  });
+  const switchTo = (next: EmailMode) => {
+    setMode(next);
+    submit.reset();
+  };
+
+  if (sentTo) {
+    return (
+      <div role="status" className="text-sm">
+        <p>{t(sentTo.mode === "signUp" ? "signup.sent" : "signup.resetSent", { email: sentTo.email })}</p>
+        <button type="button" onClick={() => (setSentTo(null), switchTo("signIn"))} className="mt-3 text-accent hover:underline">
+          {t("signup.backToSignIn")}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      className="flex flex-col gap-2.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit.mutate();
+      }}
+    >
+      <Input type="email" autoComplete="email" required placeholder={t("signup.email")} aria-label={t("signup.email")} value={email} onChange={(e) => setEmail(e.target.value)} className="h-9" />
+      {mode !== "forgot" && (
+        <Input
+          type="password"
+          autoComplete={mode === "signUp" ? "new-password" : "current-password"}
+          required
+          minLength={mode === "signUp" ? 10 : undefined}
+          placeholder={t("signup.password")}
+          aria-label={t("signup.password")}
+          aria-describedby={mode === "signUp" ? "password-hint" : undefined}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="h-9"
+        />
+      )}
+      {mode === "signUp" && (
+        <p id="password-hint" className="text-xs text-muted">
+          {t("signup.passwordHint")}
+        </p>
+      )}
+      <Button type="submit" disabled={submit.isPending} className="h-9 w-full">
+        {submit.isPending && <CircleNotch size={14} className="animate-spin" />}
+        {t(mode === "signIn" ? "signup.signIn" : mode === "signUp" ? "signup.create" : "signup.sendReset")}
+      </Button>
+      {submit.isError && (
+        <p role="alert" className="text-sm text-system-orange">
+          {t(`error.${emailError(submit.error)}`)}
+        </p>
+      )}
+      <div className="mt-1 flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs">
+        {mode === "signIn" ? (
+          <>
+            <button type="button" onClick={() => switchTo("signUp")} className="text-accent hover:underline">
+              {t("signup.toCreate")}
+            </button>
+            <button type="button" onClick={() => switchTo("forgot")} className="text-muted hover:underline">
+              {t("signup.forgot")}
+            </button>
+          </>
+        ) : (
+          <button type="button" onClick={() => switchTo("signIn")} className="text-accent hover:underline">
+            {mode === "signUp" ? t("signup.toSignIn") : t("signup.backToSignIn")}
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/** The link in a reset email: a new password, then straight into the app. */
+export function ResetPage({ token }: { token?: string }) {
+  const t = useT("account");
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const reset = useMutation({
+    mutationFn: () => post("/api/auth/password/reset", { token, password }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(authStateQuery);
+      await navigate({ to: "/", search: {} });
+    },
+  });
+  const expired = !token || (reset.error as Error | null)?.message === "link_expired";
+
+  return (
+    <AccountFrame>
+      <h1 className="text-[28px] leading-[30px] font-bold tracking-[-0.03em] text-balance">{t("reset.title")}</h1>
+      {expired ? (
+        <>
+          <p className="mt-3 text-sm text-system-orange">{t("reset.expired")}</p>
+          <LinkButton href="/signup" variant="plain" size="lg" className="mt-6 w-full text-sm">
+            {t("reset.again")}
+          </LinkButton>
+        </>
+      ) : (
+        <form
+          className="mt-6 flex flex-col gap-2.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            reset.mutate();
+          }}
+        >
+          <p className="mb-2 text-sm text-muted">{t("reset.description")}</p>
+          <Input
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={10}
+            placeholder={t("signup.password")}
+            aria-label={t("signup.password")}
+            aria-describedby="reset-hint"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-9"
+          />
+          <p id="reset-hint" className="text-xs text-muted">
+            {t("signup.passwordHint")}
+          </p>
+          <Button type="submit" disabled={reset.isPending} className="h-9 w-full">
+            {reset.isPending && <CircleNotch size={14} className="animate-spin" />}
+            {t("reset.submit")}
+          </Button>
+          {reset.isError && (
+            <p role="alert" className="text-sm text-system-orange">
+              {t(`error.${emailError(reset.error)}`)}
+            </p>
+          )}
+        </form>
+      )}
     </AccountFrame>
   );
 }
