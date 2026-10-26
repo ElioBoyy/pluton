@@ -9,6 +9,7 @@ export * from "./lead-finder.ts";
 export * from "./check-claude.ts";
 export * from "./linkedin-lookup.ts";
 export * from "./lead-email.ts";
+export * from "./lead-contacts.ts";
 export * from "./outreach-writer.ts";
 export * from "./sequence-engine.ts";
 export * from "./copilot.ts";

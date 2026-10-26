@@ -1,4 +1,5 @@
 import {
+  AddressBook,
   ArrowSquareOut,
   CaretDown,
   CaretUp,
@@ -8,7 +9,6 @@ import {
   CircleNotch,
   Envelope,
   LinkedinLogo,
-  MagnifyingGlass,
   Prohibit,
   Target,
   ThumbsDown,
@@ -156,22 +156,22 @@ export function LeadDrawer({
               </div>
 
               <div ref={verdictRef}>
-                <Verdict data={data} onApprove={approve} onReject={() => setRejecting(true)} onUndo={(id) => review.undo([id])} pending={review.isPending} />
+                <Verdict
+                  data={data}
+                  onApprove={approve}
+                  onReject={() => setRejecting(true)}
+                  onUndo={(id) => review.undo([id])}
+                  pending={review.isPending}
+                  contacts={<CheckContactsButton data={data} />}
+                />
               </div>
               {rejecting && <RejectPopover anchor={verdictRef} align="left" onSubmit={reject} onClose={() => setRejecting(false)} />}
             </div>
 
+            <ContactSection data={data} />
+
             <Group>
-              <EmailRow data={data} />
-              <Field label={t("drawer.title")}>
-                <span className="line-clamp-3" title={data.person.title ?? undefined}>
-                  {data.person.title ?? "—"}
-                </span>
-              </Field>
               <Field label={t("drawer.seniority")}>{data.seniority ? t("drawer.seniorityFromTitle", { seniority: data.seniority }) : "—"}</Field>
-              <Field label={t("drawer.linkedin")}>
-                <LinkedinField data={data} />
-              </Field>
               <Field label={t("column.company")}>
                 <span className="flex flex-col items-end">
                   <span>{data.person.company ?? "—"}</span>
@@ -277,12 +277,15 @@ function Verdict({
   onReject,
   onUndo,
   pending,
+  contacts,
 }: {
   data: Detail;
   onApprove: () => void;
   onReject: () => void;
   onUndo: (feedbackId: string) => void;
   pending: boolean;
+  /** The contact check, on the same line as the verdict buttons (below the verdict once given). */
+  contacts: ReactNode;
 }) {
   const t = useT("leads");
   const tc = useT("common");
@@ -296,120 +299,142 @@ function Verdict({
         <Button variant="ghost" disabled={pending} onClick={onReject} className="h-8">
           <ThumbsDown size={14} /> {t("action.notFit")}
         </Button>
+        {contacts}
       </div>
     );
   return (
-    <Group>
-      <Row
-        label={
-          <span className="flex items-center gap-2">
-            {fb.verdict === "up" ? <ThumbsUp size={15} className="shrink-0 text-system-green" weight="fill" /> : <ThumbsDown size={15} className="shrink-0 text-muted" weight="fill" />}
-            {fb.verdict === "up" ? t("verdict.markedGood") : t("verdict.markedNotFit")}
-          </span>
-        }
-        description={fb.reasons.length > 0 ? <span className="pl-[23px]">{fb.reasons.map(reasonLabel).join(", ")}</span> : undefined}
-      >
-        <div className="flex shrink-0 items-center gap-2">
-          {fb.verdict === "up" ? (
-            <Button variant="ghost" onClick={onReject} aria-label={t("action.notFit")} title={t("action.notFit")} className="w-9 !px-0">
-              <ThumbsDown size={14} />
+    <div className="flex flex-col gap-2">
+      <Group>
+        <Row
+          label={
+            <span className="flex items-center gap-2">
+              {fb.verdict === "up" ? <ThumbsUp size={15} className="shrink-0 text-system-green" weight="fill" /> : <ThumbsDown size={15} className="shrink-0 text-muted" weight="fill" />}
+              {fb.verdict === "up" ? t("verdict.markedGood") : t("verdict.markedNotFit")}
+            </span>
+          }
+          description={fb.reasons.length > 0 ? <span className="pl-[23px]">{fb.reasons.map(reasonLabel).join(", ")}</span> : undefined}
+        >
+          <div className="flex shrink-0 items-center gap-2">
+            {fb.verdict === "up" ? (
+              <Button variant="ghost" onClick={onReject} aria-label={t("action.notFit")} title={t("action.notFit")} className="w-9 !px-0">
+                <ThumbsDown size={14} />
+              </Button>
+            ) : (
+              <Button variant="ghost" onClick={onApprove} aria-label={t("verdict.approveInstead")} title={t("verdict.approveInstead")} className="w-9 !px-0">
+                <ThumbsUp size={14} />
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => onUndo(fb.id)}>
+              {tc("undo")}
             </Button>
-          ) : (
-            <Button variant="ghost" onClick={onApprove} aria-label={t("verdict.approveInstead")} title={t("verdict.approveInstead")} className="w-9 !px-0">
-              <ThumbsUp size={14} />
-            </Button>
-          )}
-          <Button variant="ghost" onClick={() => onUndo(fb.id)}>
-            {tc("undo")}
-          </Button>
-        </div>
-      </Row>
-    </Group>
+          </div>
+        </Row>
+      </Group>
+      <div className="flex px-1">{contacts}</div>
+    </div>
   );
 }
 
-/** The email row: the address trailing, where it came from beneath the label; or the lookup and its cost. */
-function EmailRow({ data }: { data: Detail }) {
+/** When a channel was last looked up in vain, from the timeline; null if it never was. */
+function lastMiss(data: Detail, kind: "email_not_found" | "linkedin_not_found") {
+  const miss = data.timeline.find((e) => e.kind === kind);
+  return miss ? miss.createdAt : null;
+}
+
+/** Every way to reach the lead, in one card: the value, or when it was looked for in vain, or not yet. */
+function ContactSection({ data }: { data: Detail }) {
   const t = useT("leads");
   const trpc = useTRPC();
-  const refresh = useRefreshLeads();
   const quota = useQuery(trpc.leads.emailQuota.queryOptions(undefined, { staleTime: 60_000 }));
-  const find = useMutation(
-    trpc.leads.findEmail.mutationOptions({
-      onSuccess: (r) => {
-        void refresh();
-        if (!r.email) toast(`${translate("leads", "email.noneFoundFor", { name: data.person.name })}${r.unreachable ? ` ${translate("leads", "unreachable.moved")}` : ""}`);
-      },
-      onError: (e) => toast(e.message, { tone: "error" }),
-    }),
-  );
   const p = data.person;
   const q = quota.data;
-  const cost = !q
-    ? ""
-    : !q.hunter
-      ? t("email.costFree")
-      : "error" in q && q.error
-        ? t("email.costUnavailable", { error: q.error })
-        : t("email.costHunter", { left: "used" in q ? Math.max(0, q.available - q.used) : "?" });
-
-  if (p.email)
-    return (
-      <Row
-        label={t("column.email")}
-        description={
-          <span className={cn(p.emailSource === "pattern" && "text-[color-mix(in_srgb,var(--color-system-orange),black_15%)] dark:text-system-orange")}>
-            {emailSourceLabel(p.emailSource)}
-            {p.emailConfidence !== null && ` · ${t("email.confidence", { value: p.emailConfidence })}`}
-          </span>
-        }
-      >
-        <a href={`mailto:${p.email}`} className="inline-flex max-w-[60%] min-w-0 items-center gap-1.5 text-sm text-accent hover:underline">
-          <Envelope size={13} className="shrink-0" /> <span className="truncate">{p.email}</span>
-        </a>
-      </Row>
-    );
+  // What looking for an email costs, while there is none yet.
+  const cost =
+    p.email || !q
+      ? undefined
+      : !q.hunter
+        ? t("email.costFree")
+        : "error" in q && q.error
+          ? t("email.costUnavailable", { error: q.error })
+          : t("email.costHunter", { left: "used" in q ? Math.max(0, q.available - q.used) : "?" });
+  const emailMiss = p.emailCheckedAt ?? lastMiss(data, "email_not_found");
+  const linkedinMiss = lastMiss(data, "linkedin_not_found");
+  const missing = (when: Date | string | null) => (
+    <span className="text-sm text-muted">{when ? t("contacts.noneFound", { date: formatDate(when) }) : t("contacts.notSearched")}</span>
+  );
   return (
-    <Row
-      label={t("column.email")}
-      description={
-        <>
-          {p.emailCheckedAt && !find.isPending && <span className="block">{t("email.noneFoundOn", { date: formatDate(p.emailCheckedAt) })}</span>}
-          {cost && <span className="block">{cost}</span>}
-        </>
-      }
-    >
-      <Button variant="ghost" className={cn("shrink-0 self-start", find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
-        {find.isPending ? <CircleNotch size={12} className="animate-spin" /> : <MagnifyingGlass size={12} />}
-        {p.emailCheckedAt ? t("email.searchAgain") : t("email.find")}
-      </Button>
-    </Row>
+    <Section title={t("contacts.section")} footnote={cost}>
+      <Group>
+        <Row
+          label={t("column.email")}
+          description={
+            p.email ? (
+              <span className={cn(p.emailSource === "pattern" && "text-[color-mix(in_srgb,var(--color-system-orange),black_15%)] dark:text-system-orange")}>
+                {emailSourceLabel(p.emailSource)}
+                {p.emailConfidence !== null && ` · ${t("email.confidence", { value: p.emailConfidence })}`}
+              </span>
+            ) : undefined
+          }
+        >
+          {p.email ? (
+            <a href={`mailto:${p.email}`} className="inline-flex max-w-[65%] min-w-0 items-center gap-1.5 text-sm text-accent hover:underline">
+              <Envelope size={13} className="shrink-0" /> <span className="truncate">{p.email}</span>
+            </a>
+          ) : (
+            missing(emailMiss)
+          )}
+        </Row>
+        <Row label={t("drawer.linkedin")}>
+          {p.linkedinUrl ? (
+            <a href={p.linkedinUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline">
+              <LinkedinLogo size={14} weight="fill" className="text-system-blue" /> {t("linkedin.profile")} <ArrowSquareOut size={11} />
+            </a>
+          ) : (
+            missing(linkedinMiss)
+          )}
+        </Row>
+      </Group>
+    </Section>
   );
 }
 
-function LinkedinField({ data }: { data: Detail }) {
+/** One button for every way to reach the lead: LinkedIn, then email (more networks later, server side). */
+function CheckContactsButton({ data }: { data: Detail }) {
   const t = useT("leads");
   const trpc = useTRPC();
   const refresh = useRefreshLeads();
-  const find = useMutation(
-    trpc.leads.findLinkedin.mutationOptions({
+  const before = data.status;
+  const check = useMutation(
+    trpc.leads.checkContacts.mutationOptions({
       onSuccess: (r) => {
         void refresh();
-        if (!r.url) toast(`${translate("leads", "linkedin.noneFoundFor", { name: data.person.name })}${r.unreachable ? ` ${translate("leads", "unreachable.moved")}` : ""}`);
+        const parts = r.checks
+          .filter((c) => c.outcome !== "known")
+          .map((c) =>
+            c.outcome === "error"
+              ? `${c.channel}: ${c.detail ?? ""}`
+              : c.channel === "linkedin"
+                ? t(c.outcome === "found" ? "contacts.linkedinFound" : "contacts.linkedinNone")
+                : c.outcome === "found"
+                  ? t("contacts.emailFound", { email: c.value ?? "" })
+                  : t("contacts.emailNone"),
+          );
+        const moved = r.unreachable && before !== "unreachable" ? ` ${t("unreachable.moved")}` : before === "unreachable" && !r.unreachable ? ` ${t("contacts.backTo", { tab: t("tab.to_review") })}` : "";
+        toast(`${t("contacts.summary", { name: data.person.name, parts: parts.join(", ") })}${moved}`, { tone: r.checks.some((c) => c.outcome === "error") ? "error" : undefined });
       },
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
   );
-  if (data.person.linkedinUrl)
-    return (
-      <a href={data.person.linkedinUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-accent hover:underline">
-        <LinkedinLogo size={14} weight="fill" className="text-system-blue" /> {t("linkedin.profile")} <ArrowSquareOut size={11} />
-      </a>
-    );
+  const allKnown = !!data.person.email && !!data.person.linkedinUrl;
   return (
-    <Button variant="ghost" className={cn(find.isPending && "ai-glow")} disabled={find.isPending} onClick={() => find.mutate({ leadId: data.id })}>
-      {find.isPending ? <CircleNotch size={12} className="animate-spin" /> : <LinkedinLogo size={12} />}
-      {t("linkedin.find")}
+    <Button
+      variant="ghost"
+      className={cn("h-8", check.isPending && "ai-glow")}
+      disabled={check.isPending || allKnown}
+      title={allKnown ? t("contacts.allKnown") : undefined}
+      onClick={() => check.mutate({ leadId: data.id })}
+    >
+      {check.isPending ? <CircleNotch size={14} className="animate-spin" /> : <AddressBook size={14} />} {t("contacts.check")}
     </Button>
   );
 }

@@ -22,7 +22,7 @@ import {
   setPersonLinkedin,
   withdrawFeedback,
 } from "@pluton/core";
-import { findLeadEmail, findLinkedinProfiles } from "@pluton/agent";
+import { checkContacts, findLeadEmail, findLinkedinProfiles } from "@pluton/agent";
 import { FEEDBACK_REASONS, PIPELINES, getSetting } from "@pluton/db";
 import { HUNTER_KEY, MissingKeyError, hunterQuota } from "@pluton/providers";
 import { publicProcedure, router } from "./trpc.ts";
@@ -100,6 +100,14 @@ export const leadsRouter = router({
     return enqueueJob(ctx.db, { type: "leads.find_emails", workspaceId: ws, payload: { workspaceId: ws, leadIds: input.leadIds }, maxAttempts: 1 });
   }),
   activeEmailJob: publicProcedure.query(async ({ ctx }) => (await findActiveJob(ctx.db, await workspaceId(ctx.db), "leads.find_emails")) ?? null),
+  /** Every way to reach the lead at once (LinkedIn, then email), and whether it's reachable after. */
+  checkContacts: publicProcedure.input(z.object({ leadId: z.string() })).mutation(async ({ ctx, input }) => {
+    try {
+      return await checkContacts(ctx.db, input.leadId);
+    } catch (error) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
+    }
+  }),
   findLinkedin: publicProcedure.input(z.object({ leadId: z.string() })).mutation(async ({ ctx, input }) => {
     const row = await getLeadWithPerson(ctx.db, input.leadId);
     if (!row) throw new TRPCError({ code: "NOT_FOUND", message: leadsText("notFound") });
