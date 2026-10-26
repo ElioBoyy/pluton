@@ -145,8 +145,8 @@ function outline(el: HTMLElement, inset: number) {
 
 /**
  * Ends the AI's work on an element carrying `gg-ai-edge`. The light keeps turning as it fades, and
- * its head breaks off like a shooting star: it leaves at the speed the light was going, races on
- * along the window's own curved edge with a tail that bends with it, throws soft sparks forward
+ * its head breaks off like a shooting star: it carries on at the light's own pace along the
+ * window's curved edge with a tail that bends with it, throws soft sparks forward
  * and burns out. Under reduced motion the light only fades.
  */
 export function aiSettle(el: HTMLElement) {
@@ -172,9 +172,8 @@ export function aiSettle(el: HTMLElement) {
 
   const DURATION = 760;
   const T = DURATION / 1000;
-  // Distance travelled: starts at v0, speeds up to ~1.8 × v0, eases a little as it burns out.
-  const along = (t: number) => start + v0 * T * (t + 1.2 * t * t - 0.6 * t ** 3);
-  const speed = (t: number) => 1 + 2.4 * t - 1.8 * t * t; // in units of v0
+  // It keeps exactly the light's pace; only its brightness changes as it burns out.
+  const along = (t: number) => start + v0 * T * t;
   const life = (t: number) => (t < 0.06 ? t / 0.06 : t > 0.62 ? Math.max(0, 1 - (t - 0.62) / 0.38) : 1);
 
   // The star is a head and a trail of points that follow the curve exactly, so the tail bends round corners.
@@ -191,8 +190,7 @@ export function aiSettle(el: HTMLElement) {
     const frames: Keyframe[] = [];
     for (let i = 0; i <= STEPS; i++) {
       const t = i / STEPS;
-      // The trail stretches with speed.
-      const p = edge.at(along(t) - k * 2.4 * speed(t));
+      const p = edge.at(along(t) - k * 2.4);
       frames.push({ offset: t, transform: `translate(${p.x}px, ${p.y}px)`, opacity: weight * life(t) });
     }
     dot.animate(frames, { duration: DURATION, easing: "linear", fill: "both" }).finished.finally(() => dot.remove());
@@ -213,7 +211,7 @@ export function aiSettle(el: HTMLElement) {
     }`;
     el.append(spark);
     const heading = ((p.angle + 10 + (Math.random() - 0.5) * 20) * Math.PI) / 180;
-    const drift = (12 + Math.random() * 20) * Math.min(1.6, speed(t));
+    const drift = 12 + Math.random() * 20;
     const dx = Math.cos(heading) * drift;
     const dy = Math.sin(heading) * drift;
     spark
