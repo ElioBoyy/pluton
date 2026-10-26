@@ -13,7 +13,6 @@ import { BrainGraph, buildGraph, hubForSection, hubLabel, hubMeta } from "./brai
 import { CardModal } from "./card-modal.tsx";
 import { ChatPanel } from "./chat-panel.tsx";
 import { pendingCards, useOnboarding } from "./use-onboarding.ts";
-import { Plates } from "../../components/plates.tsx";
 
 export function OnboardingPage({ fresh }: { fresh: boolean }) {
   const trpc = useTRPC();
@@ -209,7 +208,7 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
 
         {celebrating && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas/95 motion-safe:animate-[fadeIn_600ms_ease-out]">
-            <Plates className="w-28" />
+            <span className="ai-orb size-16" aria-hidden />
             <p className="mt-6 text-[28px] leading-[26px] font-bold tracking-[-0.03em] uppercase">{t("live.title")}</p>
             <p className="mt-1 text-sm text-muted">{t("live.description")}</p>
           </div>

@@ -499,42 +499,57 @@ select {
 }
 
 /*
- * The blink, as on the landing page's hero: a hard two-state cut in steps(1), no crossfade.
- * `blink-in` shows on the second half of each 1.6s cycle, `blink-out` on the first; pair them on
- * two stacked things (the plates, their rings, their dates). Reduced motion keeps the first state.
+ * The agent's mark: a plate in miniature. A square of print black scattered with stars, where one
+ * dot jumps between two places inside an ultramarine ring, the 1930 blink at the size of an icon.
  */
-@utility blink-in {
-  opacity: 0;
-  animation: blink-in 1.6s steps(1, end) infinite;
+@utility ai-orb {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 26%, #f3f3ef 0 1px, transparent 1.5px),
+    radial-gradient(circle at 74% 18%, #f3f3ef 0 1.2px, transparent 1.7px),
+    radial-gradient(circle at 86% 64%, #f3f3ef 0 0.8px, transparent 1.3px),
+    radial-gradient(circle at 30% 80%, #f3f3ef 0 1px, transparent 1.5px),
+    radial-gradient(circle at 58% 88%, #f3f3ef 0 0.7px, transparent 1.2px),
+    #0e0e12;
+
+  /* The dot that moved, and its marker ring; both cut between two places. */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    left: 38%;
+    top: 52%;
+    border-radius: 9999px;
+    translate: -50% -50%;
+    animation: blink-mover 1.6s steps(1, end) infinite;
+  }
+
+  &::before {
+    width: 12%;
+    aspect-ratio: 1;
+    background: #f3f3ef;
+  }
+
+  &::after {
+    width: 40%;
+    aspect-ratio: 1;
+    border: 2px solid #2b3bff;
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
+    &::before,
+    &::after {
+      animation: none;
+    }
   }
 }
 
-@utility blink-out {
-  animation: blink-out 1.6s steps(1, end) infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-}
-
-@keyframes blink-in {
-  0% {
-    opacity: 0;
-  }
+@keyframes blink-mover {
   50% {
-    opacity: 1;
-  }
-}
-
-@keyframes blink-out {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
+    left: 60%;
+    top: 44%;
   }
 }
 

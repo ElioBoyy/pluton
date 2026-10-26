@@ -30,7 +30,6 @@ import { timeAgo, usd } from "../../lib/format.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
 import { AGENT_SUGGESTIONS, toolLabel } from "./labels.ts";
-import { Plates } from "../../components/plates.tsx";
 
 type Conversation = inferRouterOutputs<AppRouter>["copilot"]["get"];
 type Message = Conversation["messages"][number];
@@ -120,7 +119,10 @@ function NewConversation() {
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
       {/* Centered like a fresh prompt: the plate, the question, the field, then ideas. */}
       <div className="mx-auto my-auto flex w-full max-w-2xl flex-col items-center px-4 py-12 sm:px-6">
-        <Plates className="rise w-24" />
+        {/* Separate elements: one animation property can't hold both the entrance and the blink. */}
+        <span className="rise" aria-hidden>
+          <span className="ai-orb size-14" />
+        </span>
         <h1 className="rise mt-6 text-center text-[34px] leading-[31px] font-bold tracking-[-0.03em] text-balance uppercase [animation-delay:60ms]">
           {t("new.heading")}
         </h1>

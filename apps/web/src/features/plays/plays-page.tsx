@@ -9,7 +9,6 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useT } from "../../i18n/index.ts";
 import { PILL, PILL_BASE, PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
-import { Plates } from "../../components/plates.tsx";
 
 const FILTERS = ["active", "paused", "archived"] as const;
 
@@ -48,7 +47,9 @@ export function PlaysPage() {
       {shown.length === 0 ? (
         // An empty list reads like a fresh start, as on the Agent page: a mark, one line, the way in.
         <div className="flex flex-col items-center px-4 py-16 text-center">
-          <Plates className="w-20" />
+          <span className="flex size-11 items-center justify-center bg-system-pink/15 text-system-pink">
+            <Lightning size={22} weight="fill" />
+          </span>
           <p className="mt-4 max-w-sm text-base text-balance text-muted">{t(`list.empty.${filter}`)}</p>
           {filter === "active" && (
             <Link to="/plays/new" className="mt-5">
