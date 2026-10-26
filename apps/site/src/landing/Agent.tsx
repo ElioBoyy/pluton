@@ -17,7 +17,7 @@ import {
   Window,
 } from "@pluton/glass";
 import type { Strings } from "../i18n/index.ts";
-import { SIGNUP_URL } from "../links.ts";
+import { APP_URL } from "../links.ts";
 
 type T = Strings;
 const PROMPTS = ["today", "best", "plan", "spend"] as const;
@@ -156,7 +156,7 @@ export function Agent({ t }: { t: T }) {
           </div>
         </div>
       </div>
-      <form className="agent-form" action={SIGNUP_URL}>
+      <form className="agent-form" action={APP_URL}>
         <Field
           name="q"
           autoComplete="off"
@@ -188,7 +188,7 @@ export function Agent({ t }: { t: T }) {
             <p className="turn-text" data-stream="">
               {t.agent.offline}
             </p>
-            <LinkButton variant="accent" size="sm" href={SIGNUP_URL} className="turn-part">
+            <LinkButton variant="accent" size="sm" href={APP_URL} className="turn-part">
               {t.hero.cta}
               <ArrowUpRight weight="bold" aria-hidden />
             </LinkButton>
