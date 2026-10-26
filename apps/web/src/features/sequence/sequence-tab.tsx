@@ -240,7 +240,7 @@ function Node({ step, count, selected, onClick, expiry }: { step: Step; count: n
         !step.enabled && "opacity-50",
       )}
     >
-      <span className="flex size-8 shrink-0 items-center justify-center bg-control text-muted">
+      <span className="flex size-8 rounded-lg shrink-0 items-center justify-center bg-control text-muted">
         <IconCmp size={16} />
       </span>
       <span className="min-w-0 flex-1">

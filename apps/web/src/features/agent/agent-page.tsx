@@ -15,11 +15,12 @@ import {
   X,
   type Icon,
 } from "@phosphor-icons/react";
-import { AppIcon } from "@pluton/glass";
+import { Approval, Bubble, Button as GlassButton, Chip, Logo, Looked, Thinking, Window } from "@pluton/glass";
+import { aiSettle, aiStart } from "@pluton/glass/behaviors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Composer } from "../../components/composer.tsx";
 import { askConfirm, contextMenu, type MenuItem } from "../../components/context-menu.tsx";
@@ -38,10 +39,45 @@ type Action = Conversation["actions"][number];
 
 export function AgentPage({ conversationId }: { conversationId?: string }) {
   return (
-    <div className="flex h-full">
+    <div className="flex h-full gap-2 p-3 max-md:p-2">
       <ConversationList activeId={conversationId} className={cn("max-md:hidden")} />
       {conversationId ? <Chat key={conversationId} conversationId={conversationId} /> : <NewConversation />}
     </div>
+  );
+}
+
+/**
+ * The agent's window, as on the landing page: the kit's Window with the logo in its title bar. An
+ * ultramarine light runs round its edge while the agent works, and breaks off like a shooting star
+ * when the answer is done.
+ */
+function AgentWindow({ title, tools, working, children }: { title: ReactNode; tools?: ReactNode; working: boolean; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const was = useRef(false);
+  useEffect(() => {
+    const edge = box.current?.querySelector<HTMLElement>(".gg-ai-edge");
+    if (!edge) return;
+    if (working) aiStart(edge);
+    else if (was.current) aiSettle(edge);
+    was.current = working;
+  }, [working]);
+  return (
+    <div ref={box} className="flex min-w-0 flex-1">
+      <Window className="min-w-0 flex-1" icon={<Logo symbolOnly className="size-5" />} title={title} tools={tools}>
+        <div className="absolute inset-0 flex flex-col">{children}</div>
+      </Window>
+    </div>
+  );
+}
+
+/** What the founder is reminded of under the field: nothing runs without their approval. */
+function ApprovalNote() {
+  const t = useT("agent");
+  return (
+    <p className="-mt-1 flex items-center justify-center gap-1.5 px-4 pb-3 text-center text-xs text-faint">
+      <ShieldCheck size={13} />
+      {t("new.approvalNote")}
+    </p>
   );
 }
 
@@ -67,27 +103,22 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
     { label: t("deleteMenu"), icon: Trash, destructive: true, onSelect: async () => (await confirmDelete(c.title)) && remove.mutate({ id: c.id }) },
   ];
   return (
-    <aside className={cn("flex w-64 shrink-0 flex-col", className)}>
-      <div className="flex flex-col gap-3 px-3 pt-5 pb-3">
-        <h1 className="px-1 text-xl font-bold tracking-[-0.03em]">{t("title")}</h1>
-        <Link
-          to="/agent"
-          className="flex h-8 items-center gap-2 bg-control px-2.5 text-sm font-medium transition-colors duration-150 hover:bg-control-hover"
-        >
+    <aside className={cn("flex w-60 shrink-0 flex-col", className)}>
+      <div className="flex flex-col gap-3 px-1 pt-2 pb-3">
+        <h1 className="px-2 text-xl font-bold tracking-[-0.03em]">{t("title")}</h1>
+        <Link to="/agent" className="gg-side-item min-h-9 gap-2 bg-control text-sm font-medium hover:bg-control-hover">
           <NotePencil size={15} className="text-accent" /> {t("newConversation")}
         </Link>
       </div>
-      <ul className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto px-2.5 pb-20">
+      <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1 pb-4">
         {(list.data ?? []).map((c) => (
           <li key={c.id}>
             <Link
               to="/agent/$conversationId"
               params={{ conversationId: c.id }}
               onContextMenu={contextMenu(() => menu(c))}
-              className={cn(
-                "flex flex-col gap-0.5 px-2.5 py-2 text-sm transition-colors duration-150 hover:bg-raised",
-                c.id === activeId && "!bg-selected",
-              )}
+              aria-selected={c.id === activeId}
+              className="gg-side-item flex-col items-stretch gap-0.5 py-2 text-sm"
             >
               <span className="truncate">{c.title}</span>
               <span className="text-xs text-faint">{timeAgo(c.updatedAt)}</span>
@@ -116,80 +147,76 @@ function NewConversation() {
   );
   const ask = (text: string) => send.mutate({ text });
 
+  const workspace = useQuery(trpc.workspace.current.queryOptions());
+
   return (
-    <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-      {/* Centered like a fresh prompt: the plate, the question, the field, then ideas. */}
-      <div className="mx-auto my-auto flex w-full max-w-2xl flex-col items-center px-4 py-12 sm:px-6">
-        <span className="rise" aria-hidden>
-          <AppIcon className="size-14 rounded-[calc(15px*var(--gg-k))]" />
-        </span>
-        <h1 className="rise mt-6 text-center text-[34px] leading-[36px] font-bold tracking-[-0.03em] text-balance [animation-delay:60ms]">
-          {t("new.heading")}
-        </h1>
-        <p className="rise mt-2 max-w-lg text-center text-base text-balance text-muted [animation-delay:120ms]">
-          {t("new.description")}
-        </p>
-        <div className="rise mt-7 w-full [animation-delay:180ms] [&>div]:px-0 [&>div]:pb-0 sm:[&>div]:px-0 sm:[&>div]:pb-0">
-          <Composer placeholder={t("new.placeholder")} disabled={send.isPending} onSend={ask} autoFocus />
-        </div>
-        <div className="mt-4 grid w-full gap-2.5 sm:grid-cols-2">
-          {AGENT_SUGGESTIONS.map((s, i) => {
-            const { icon: Icon, tint } = SUGGESTION_ICONS[s.kind];
-            return (
-              <button
-                key={s.kind}
-                disabled={send.isPending}
-                onClick={() => ask(t(`suggestion.${s.kind}`))}
-                style={{ animationDelay: `${240 + i * 50}ms` }}
-                className={cn(
-                  "rise flex items-center gap-3 bg-panel p-3 text-left text-sm",
-                  "transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.98] disabled:opacity-50",
-                )}
-              >
-                <span className={cn("flex size-8 shrink-0 items-center justify-center", tint)}>
-                  <Icon size={16} weight="fill" />
-                </span>
-                {t(`suggestion.${s.kind}`)}
-              </button>
-            );
-          })}
-        </div>
-        <p className="rise mt-5 flex items-center gap-1.5 text-center text-xs text-muted [animation-delay:460ms]">
-          <ShieldCheck size={13} />
-          {t("new.approvalNote")}
-        </p>
-        {send.error && <p className="mt-3 text-sm text-cat-orange">{send.error.message}</p>}
-        {/* The list is beside the chat from md up; below, recent conversations sit here. */}
-        {(list.data?.length ?? 0) > 0 && (
-          <div className="mt-10 w-full md:hidden">
-            <p className="mb-2 text-sm font-semibold text-muted">{t("recent")}</p>
-            <ul className="flex flex-col gap-px">
-              {list.data!.slice(0, 8).map((c) => (
-                <li key={c.id}>
-                  <Link
-                    to="/agent/$conversationId"
-                    params={{ conversationId: c.id }}
-                    className="flex items-center gap-2 py-2 text-sm hover:bg-raised"
-                  >
-                    <span className="flex-1 truncate">{c.title}</span>
-                    <span className="text-xs text-faint">{timeAgo(c.updatedAt)}</span>
-                    <CaretRight size={12} className="text-faint" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
+    <AgentWindow
+      working={send.isPending}
+      title={
+        <>
+          {t("title")}
+          {workspace.data && <span className="font-normal text-faint"> · {workspace.data.name}</span>}
+        </>
+      }
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {/* Centered like the landing's empty agent: the mark, the question, then ideas as chips. */}
+        <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col items-center justify-center px-5 py-10 text-center">
+          <span className="rise" aria-hidden>
+            <Logo symbolOnly className="size-13" />
+          </span>
+          <h2 className="rise mt-4 text-[26px] leading-[30px] font-semibold tracking-[-0.02em] text-balance [animation-delay:60ms]">
+            {t("new.heading")}
+          </h2>
+          <p className="rise mt-2 max-w-[44ch] text-[15px] text-balance text-muted [animation-delay:120ms]">{t("new.description")}</p>
+          <div className="mt-6 flex max-w-xl flex-wrap justify-center gap-2">
+            {AGENT_SUGGESTIONS.map((s, i) => {
+              const { icon: Icon, tint } = SUGGESTION_ICONS[s.kind];
+              return (
+                <Chip
+                  key={s.kind}
+                  disabled={send.isPending}
+                  onClick={() => ask(t(`suggestion.${s.kind}`))}
+                  style={{ animationDelay: `${180 + i * 50}ms` }}
+                  className="rise disabled:opacity-50"
+                >
+                  <Icon size={15} weight="fill" className={tint} />
+                  {t(`suggestion.${s.kind}`)}
+                </Chip>
+              );
+            })}
           </div>
-        )}
+          {send.error && <p className="mt-3 text-sm text-cat-orange">{send.error.message}</p>}
+          {/* The list is beside the window from md up; below, recent conversations sit here. */}
+          {(list.data?.length ?? 0) > 0 && (
+            <div className="mt-10 w-full text-left md:hidden">
+              <p className="mb-2 px-2.5 text-sm font-semibold text-muted">{t("recent")}</p>
+              <ul className="flex flex-col gap-0.5">
+                {list.data!.slice(0, 8).map((c) => (
+                  <li key={c.id}>
+                    <Link to="/agent/$conversationId" params={{ conversationId: c.id }} className="gg-side-item min-h-9 gap-2 text-sm">
+                      <span className="flex-1 truncate">{c.title}</span>
+                      <span className="text-xs text-faint">{timeAgo(c.updatedAt)}</span>
+                      <CaretRight size={12} className="text-faint" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      <Composer placeholder={t("new.placeholder")} disabled={send.isPending} onSend={ask} autoFocus />
+      <ApprovalNote />
+    </AgentWindow>
   );
 }
 
 const SUGGESTION_ICONS: Record<(typeof AGENT_SUGGESTIONS)[number]["kind"], { icon: Icon; tint: string }> = {
-  today: { icon: SunHorizon, tint: "bg-cat-orange/15 text-cat-orange" },
-  leads: { icon: Target, tint: "bg-cat-blue/15 text-cat-blue" },
-  play: { icon: Lightning, tint: "bg-cat-purple/15 text-cat-purple" },
-  spend: { icon: Coins, tint: "bg-cat-green/15 text-cat-green" },
+  today: { icon: SunHorizon, tint: "text-cat-orange" },
+  leads: { icon: Target, tint: "text-cat-blue" },
+  play: { icon: Lightning, tint: "text-cat-purple" },
+  spend: { icon: Coins, tint: "text-cat-green" },
 };
 
 function Chat({ conversationId }: { conversationId: string }) {
@@ -275,30 +302,32 @@ function Chat({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <div className="relative flex min-w-0 flex-1 flex-col">
-      {/* The thread scrolls behind the title, under a progressive blur, and under the glass composer at the bottom. */}
-      <header className="absolute inset-x-0 top-0 z-20 flex items-center gap-2 px-3 py-2.5 sm:px-5">
-        <Link to="/agent" aria-label={t("allConversations")} className="p-1 text-muted hover:bg-raised hover:text-ink md:hidden">
-          <CaretLeft size={16} />
-        </Link>
-        <h2 className="min-w-0 flex-1 truncate text-base font-semibold">{state.data?.conversation.title ?? "…"}</h2>
-        <button
+    <AgentWindow
+      working={thinking}
+      title={
+        <span className="flex min-w-0 items-center gap-1.5">
+          <Link to="/agent" aria-label={t("allConversations")} className="-ml-1 rounded-full p-1 text-muted hover:bg-raised hover:text-ink md:hidden">
+            <CaretLeft size={16} />
+          </Link>
+          <span className="truncate">{state.data?.conversation.title ?? "…"}</span>
+        </span>
+      }
+      tools={
+        <GlassButton
+          variant="quiet"
+          size="sm"
+          iconOnly
           aria-label={t("deleteConversation")}
           title={t("deleteConversation")}
           onClick={async () => (await confirmDelete(state.data?.conversation.title ?? t("thisConversation"))) && remove.mutate({ id: conversationId })}
-          className="p-1 text-faint hover:bg-raised hover:text-ink"
+          className="text-faint hover:text-ink"
         >
           <Trash size={15} />
-        </button>
-      </header>
-      <div className="relative min-h-0 flex-1">
-      <div aria-hidden className="progressive-blur pointer-events-none absolute inset-x-0 top-0 z-10 h-24">
-        <span />
-        <span />
-        <span />
-      </div>
-      <div ref={scrollRef} className="h-full overflow-y-auto">
-        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pt-20 pb-32 sm:px-6">
+        </GlassButton>
+      }
+    >
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="mx-auto flex max-w-2xl flex-col gap-3.5 px-5 pt-2 pb-6">
           {(() => {
             const items = group(messages, state.data?.actions ?? []);
             // The answer still being written belongs above the turn's approval cards, like its saved text.
@@ -317,15 +346,10 @@ function Chat({ conversationId }: { conversationId: string }) {
               </>
             );
           })()}
-          {thinking && !draft && (
-            <p className="flex items-center gap-2 text-sm text-muted">
-              <CircleNotch size={14} className="animate-spin" /> <span className="ai-text">{t("working")}</span>
-            </p>
-          )}
+          {thinking && !draft && <Thinking className="py-1">{t("working")}</Thinking>}
           {error && !thinking && <p className="text-sm text-cat-orange">{t("stopped", { error })}</p>}
         </div>
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10">
       <Composer
         autoFocus
         placeholder={t("replyPlaceholder")}
@@ -336,9 +360,8 @@ function Chat({ conversationId }: { conversationId: string }) {
           send.mutate({ conversationId, text }, { onError: (e) => setError(e.message) });
         }}
       />
-      </div>
-      </div>
-    </div>
+      <ApprovalNote />
+    </AgentWindow>
   );
 }
 
@@ -405,13 +428,15 @@ function ToolGroup({ messages }: { messages: Message[] }) {
   const [open, setOpen] = useState(false);
   const names = [...new Set(messages.map((m) => toolLabel(t, m.tool)))];
   return (
-    <div className="text-xs text-faint">
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-1.5 hover:text-muted">
-        <CaretRight size={10} className={cn("transition-transform", open && "rotate-90")} />
-        {t("lookedAt", { names: names.join(", ") })}
-      </button>
+    <div>
+      <Looked>
+        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex items-center gap-1.5 text-left hover:text-muted">
+          {t("lookedAt", { names: names.join(", ") })}
+          <CaretRight size={10} className={cn("shrink-0 transition-transform", open && "rotate-90")} />
+        </button>
+      </Looked>
       {open && (
-        <ul className="mt-1.5 flex flex-col gap-1 pl-4">
+        <ul className="mt-1.5 flex flex-col gap-1 pl-5 text-xs text-faint">
           {messages.map((m) => (
             <li key={m.id}>
               <span className="text-muted">{toolLabel(t, m.tool)}</span>
@@ -426,9 +451,7 @@ function ToolGroup({ messages }: { messages: Message[] }) {
 
 function MessageView({ message, actions, busy }: { message: Message; actions: Action[]; busy: boolean }) {
   if (message.role === "user") {
-    return (
-      <div className="max-w-[85%] self-end bg-accent px-4 py-2.5 text-base whitespace-pre-wrap text-on-accent">{message.text}</div>
-    );
+    return <Bubble className="whitespace-pre-wrap">{message.text}</Bubble>;
   }
   if (message.role === "action") {
     const action = actions.find((a) => a.id === message.actionId);
@@ -452,7 +475,7 @@ function DraftView({ text }: { text: string }) {
     <div className="text-base leading-[24px]">
       {ready.trim() && <Markdown text={ready} />}
       {drawing && (
-        <div className="mt-3 flex h-28 items-center justify-center gap-2 bg-panel/60 text-sm">
+        <div className="gg-card mt-3 flex h-28 items-center justify-center gap-2 text-sm">
           <ChartBar size={16} className="text-muted" />
           <span className="ai-text">{t("drawingVisual")}</span>
         </div>
@@ -505,34 +528,40 @@ function ActionCard({ action, busy }: { action: Action; busy: boolean }) {
     }),
   );
   return (
-    <div className={cn("bg-panel p-4", action.status === "proposed" && "ring-1 ring-accent/35")}>
-      <div className="flex items-center gap-2 text-xs">
-        <Lightning size={13} weight="fill" className="text-cat-pink" />
-        <span className="font-medium text-muted">{toolLabel(t, action.tool)}</span>
-        <span className={cn("ml-auto", STATUS_CLASS[action.status])}>
-          {action.status === "executing" && <CircleNotch size={11} className="mr-1 inline animate-spin" />}
-          {action.status === "approved" && busy ? t("status.queued") : t(`status.${action.status}`)}
-        </span>
-      </div>
-      <p className="mt-1.5 text-sm">{action.summary}</p>
-      <Preview action={action} />
-      {action.status === "failed" && action.error && <p className="mt-2 text-xs text-cat-orange">{action.error}</p>}
-      <details className="mt-2 text-xs text-faint">
-        <summary className="cursor-pointer select-none hover:text-muted">{t("details")}</summary>
-        <pre className="mt-1.5 max-h-48 overflow-auto bg-raised p-2 whitespace-pre-wrap">{JSON.stringify(action.input, null, 2)}</pre>
-      </details>
-      {action.status === "proposed" && (
-        <div className="mt-3 flex gap-2">
+    <Approval
+      icon={<Lightning size={16} weight="fill" className="shrink-0 text-accent" />}
+      title={toolLabel(t, action.tool)}
+      approved={action.status !== "proposed"}
+      meta={
+        <>
+          <p className="text-ink">{action.summary}</p>
+          <Preview action={action} />
+          {action.status === "failed" && action.error && <p className="mt-2 text-xs text-cat-orange">{action.error}</p>}
+          <details className="mt-2 text-xs text-faint">
+            <summary className="cursor-pointer select-none hover:text-muted">{t("details")}</summary>
+            <pre className="mt-1.5 max-h-48 overflow-auto rounded-md bg-raised p-2 whitespace-pre-wrap">{JSON.stringify(action.input, null, 2)}</pre>
+          </details>
+          {decide.error && <p className="mt-2 text-xs text-cat-orange">{decide.error.message}</p>}
+        </>
+      }
+      actions={
+        <>
           <Button disabled={decide.isPending} onClick={() => decide.mutate({ actionId: action.id, decision: "approve" })}>
             <Check size={13} weight="bold" /> {tc("approve")}
           </Button>
           <Button variant="ghost" disabled={decide.isPending} onClick={() => decide.mutate({ actionId: action.id, decision: "reject" })}>
             <X size={13} /> {t("decline")}
           </Button>
-        </div>
-      )}
-      {decide.error && <p className="mt-2 text-xs text-cat-orange">{decide.error.message}</p>}
-    </div>
+        </>
+      }
+      done={
+        <span className={cn("flex items-center gap-1.5", STATUS_CLASS[action.status])}>
+          {action.status === "executing" && <CircleNotch size={13} className="animate-spin" />}
+          {action.status === "completed" && <Check size={13} weight="bold" />}
+          {action.status === "approved" && busy ? t("status.queued") : t(`status.${action.status}`)}
+        </span>
+      }
+    />
   );
 }
 

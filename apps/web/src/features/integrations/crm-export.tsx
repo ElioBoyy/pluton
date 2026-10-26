@@ -84,7 +84,7 @@ export function LeadCrmBlock({ leadId }: { leadId: string }) {
               href={e.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex size-6 shrink-0 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+              className="inline-flex rounded-full size-6 shrink-0 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
               aria-label={t("crm.openIn", { crm: NAMES[e.provider] ?? e.provider })}
             >
               <ArrowSquareOut size={13} />

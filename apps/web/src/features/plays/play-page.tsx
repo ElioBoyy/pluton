@@ -83,7 +83,7 @@ export function PlayPage({
                 const r = e.currentTarget.getBoundingClientRect();
                 openContextMenu(r.left, r.bottom + 4, playMenu(play));
               }}
-              className="flex size-7 shrink-0 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink"
+              className="flex rounded-full size-7 shrink-0 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink"
             >
               <DotsThree size={18} weight="bold" />
             </button>

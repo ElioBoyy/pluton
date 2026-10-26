@@ -213,7 +213,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 // The shortcuts follow the field in, 25ms apart.
                 style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
                 className={cn(
-                  "glass flex size-14 items-center justify-center text-muted hover:text-ink",
+                  "glass flex rounded-full size-14 items-center justify-center text-muted hover:text-ink",
                   POP,
                   "transition-[opacity,scale,color] motion-safe:hover:scale-105 motion-safe:active:scale-95",
                 )}

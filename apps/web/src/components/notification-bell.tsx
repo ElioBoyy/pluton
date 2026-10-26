@@ -35,7 +35,7 @@ export function NotificationBell() {
         ref={button}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "relative flex size-7 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90",
+          "relative flex rounded-full size-7 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90",
           open && "bg-raised text-ink",
         )}
         aria-label={n ? t("bell.unread", { count: n }) : t("bell.title")}

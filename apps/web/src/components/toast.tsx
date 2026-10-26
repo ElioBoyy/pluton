@@ -72,7 +72,7 @@ export function Toaster() {
           <button
             onClick={() => dismissToast(t.id)}
             aria-label={dismissLabel}
-            className="flex size-6 shrink-0 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+            className="flex rounded-full size-6 shrink-0 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
           >
             <X size={12} />
           </button>

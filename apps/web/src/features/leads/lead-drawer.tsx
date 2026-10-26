@@ -549,7 +549,7 @@ function Meter({ value, tone }: { value: number; tone: "green" | "orange" }) {
 
 function IconButton({ icon: IconCmp, label, onClick }: { icon: Icon; label: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} className="capsule flex size-8 shrink-0 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90">
+    <button onClick={onClick} aria-label={label} title={label} className="capsule flex rounded-full size-8 shrink-0 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90">
       <IconCmp size={15} />
     </button>
   );

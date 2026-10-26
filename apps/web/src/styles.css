@@ -49,8 +49,9 @@
   --color-canvas: var(--gg-well); /* wells set into the glass: fields, inner boxes */
   --color-panel: var(--gg-well); /* grouped content, like the kit's Card */
   --color-panel-hover: var(--gg-raised);
-  /* What floats over the window (menus, ⌘K, toasts, dialogs): the kit's thick glass. */
-  --color-float: var(--gg-material-thick);
+  /* What floats over the window (menus, ⌘K, toasts, dialogs, row actions): glass frosted almost
+     solid, so what is under it never reads through the words on it. */
+  --color-float: rgb(250 250 252 / 0.94);
   --color-field: var(--gg-well);
   --color-raised: var(--gg-fill); /* fills: hover, wells */
   --color-selected: var(--gg-accent-soft);
@@ -122,6 +123,7 @@
 :root[data-theme="dark"] {
   --color-line: rgb(244 244 247 / 0.1);
   --color-line-strong: rgb(244 244 247 / 0.2);
+  --color-float: rgb(30 30 38 / 0.94);
   /* Ultramarine lifted a notch so it still reads as text on smoked glass. */
   --color-accent: #5866ff;
 
@@ -150,15 +152,21 @@
  * glass, blurring whatever is under it, with a bright top edge and a soft shadow.
  */
 @utility glass {
-  background: var(--gg-material-thick);
+  background: var(--color-float);
   -webkit-backdrop-filter: blur(var(--gg-blur)) saturate(var(--gg-saturate));
   backdrop-filter: blur(var(--gg-blur)) saturate(var(--gg-saturate));
-  border-radius: var(--gg-r-panel);
+  /* A step tighter than the window it floats over, so corners nest instead of ballooning. */
+  border-radius: var(--gg-r-card);
   box-shadow:
     0 0 0 0.5px var(--gg-edge),
     inset 0 1px 0 var(--gg-rim),
     inset 0 0 0 1px var(--gg-rim-low),
     var(--gg-shadow-float);
+
+  /* The kit's radii grow where squircles are drawn; keep pills round. */
+  &:not(.rounded-full) {
+    corner-shape: squircle;
+  }
 
   &:not(.fixed, .absolute, .sticky) {
     position: relative;
@@ -565,14 +573,3 @@ select {
   }
 }
 
-/*
- * The top edge of a scrolling column: the window's glass, fading out, so content passes under it
- * instead of being cut by a line. Kept as three children for the markup that already uses it.
- */
-@utility progressive-blur {
-  background: linear-gradient(to bottom, var(--gg-material-thick) 20%, transparent);
-
-  & > * {
-    display: none;
-  }
-}

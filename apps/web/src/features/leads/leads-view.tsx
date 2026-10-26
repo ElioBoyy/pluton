@@ -509,7 +509,7 @@ function Row({
         <div
           className={cn(
             "flex justify-end gap-0.5 transition-opacity duration-150",
-            "[@media(hover:hover)]:capsule [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
+            "[@media(hover:hover)]:absolute [@media(hover:hover)]:rounded-full [@media(hover:hover)]:bg-float [@media(hover:hover)]:shadow-control [@media(hover:hover)]:backdrop-blur-xl [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
             !rejecting &&
               "[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:pointer-events-auto [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
           )}
@@ -578,7 +578,7 @@ function RowAction({
       aria-pressed={active}
       title={label}
       className={cn(
-        "flex size-7 items-center justify-center transition-[background-color,color,scale] duration-150 ease-out",
+        "flex size-7 items-center justify-center rounded-full transition-[background-color,color,scale] duration-150 ease-out",
         "enabled:hover:bg-control-hover enabled:hover:text-ink motion-safe:enabled:active:scale-90 disabled:opacity-50",
         active ? (tone === "green" ? "text-system-green" : "text-ink") : "text-muted",
       )}
@@ -678,7 +678,7 @@ function BulkBar({
         onClick={onClear}
         aria-label={t("bulk.clear")}
         title={t("bulk.clear")}
-        className="flex size-8 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 hover:bg-control hover:text-ink motion-safe:active:scale-90"
+        className="flex rounded-full size-8 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 hover:bg-control hover:text-ink motion-safe:active:scale-90"
       >
         <X size={14} />
       </button>
