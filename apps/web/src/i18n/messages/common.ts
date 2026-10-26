@@ -34,6 +34,9 @@ export default defineMessages({
     connected: "Connected",
     settings: "Settings",
     somethingWentWrong: "Something went wrong.",
+    platesCaption: "The plates on which Clyde Tombaugh found Pluto, Lowell Observatory.",
+    plateA: "23 January 1930",
+    plateB: "29 January 1930",
   },
   fr: {
     save: "Enregistrer",
@@ -67,6 +70,9 @@ export default defineMessages({
     connected: "Connecté",
     settings: "Réglages",
     somethingWentWrong: "Une erreur s’est produite.",
+    platesCaption: "Les plaques sur lesquelles Clyde Tombaugh a trouvé Pluton, observatoire Lowell.",
+    plateA: "23 janvier 1930",
+    plateB: "29 janvier 1930",
   },
   it: {
     save: "Salva",
@@ -100,6 +106,9 @@ export default defineMessages({
     connected: "Collegato",
     settings: "Impostazioni",
     somethingWentWrong: "Si è verificato un errore.",
+    platesCaption: "Le lastre su cui Clyde Tombaugh trovò Plutone, Lowell Observatory.",
+    plateA: "23 gennaio 1930",
+    plateB: "29 gennaio 1930",
   },
   es: {
     save: "Guardar",
@@ -133,6 +142,9 @@ export default defineMessages({
     connected: "Conectado",
     settings: "Ajustes",
     somethingWentWrong: "Algo ha salido mal.",
+    platesCaption: "Las placas en las que Clyde Tombaugh encontró Plutón, Observatorio Lowell.",
+    plateA: "23 de enero de 1930",
+    plateB: "29 de enero de 1930",
   },
   de: {
     save: "Sichern",
@@ -166,5 +178,8 @@ export default defineMessages({
     connected: "Verbunden",
     settings: "Einstellungen",
     somethingWentWrong: "Etwas ist schiefgelaufen.",
+    platesCaption: "Die Platten, auf denen Clyde Tombaugh Pluto fand, Lowell Observatory.",
+    plateA: "23. Januar 1930",
+    plateB: "29. Januar 1930",
   },
 });

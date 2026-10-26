@@ -9,6 +9,7 @@ import { ActivityFeed } from "../features/activity/activity-feed.tsx";
 import { useT } from "../i18n/index.ts";
 import { formatDate, usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
+import { Plates } from "../components/plates.tsx";
 
 type PingEvent = { id: number; type: string; payload: unknown };
 
@@ -24,7 +25,11 @@ export function HomePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
-      <PageHeader title={workspace.data?.name ?? t("title")} description={t("description")} />
+      <PageHeader
+        title={workspace.data?.name ?? t("title")}
+        description={t("description")}
+        actions={<Plates dates className="w-28 max-sm:hidden" />}
+      />
 
       <div className="mb-8 grid items-start gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-8">

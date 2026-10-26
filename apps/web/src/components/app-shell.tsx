@@ -23,6 +23,7 @@ import { AppearanceControl } from "./appearance-control.tsx";
 import { CommandPalette } from "./command-palette.tsx";
 import { ConfirmHost, ContextMenuHost, contextMenu } from "./context-menu.tsx";
 import { usePlayMenu } from "../features/plays/play-menu.ts";
+import { PlutonLogo } from "./logo.tsx";
 import { NotificationBell } from "./notification-bell.tsx";
 import { Toaster } from "./toast.tsx";
 import { Wallpaper } from "./wallpaper.tsx";
@@ -81,7 +82,10 @@ export function AppShell() {
           navOpen ? "max-md:translate-x-0 max-md:shadow-window" : "max-md:-translate-x-full",
         )}
       >
-        <div className="flex items-center gap-1.5 px-2.5 pt-3 pb-4">
+        <Link to="/home" aria-label="Pluton" className="flex h-12 items-center px-4 pt-2">
+          <PlutonLogo className="h-[18px]" />
+        </Link>
+        <div className="flex items-center gap-1.5 px-2.5 pb-4">
           <WorkspaceMenu />
           <NotificationBell />
         </div>
