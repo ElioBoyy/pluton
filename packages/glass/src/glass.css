@@ -725,6 +725,9 @@
   transition: opacity 400ms var(--gg-ease);
   animation: gg-turn 2.4s linear infinite;
 }
+.gg-ai-edge:not([data-ai="working"])::after {
+  animation-play-state: paused;
+}
 .gg-ai-edge[data-ai="working"]::after {
   opacity: 1;
 }

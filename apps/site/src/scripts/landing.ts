@@ -165,24 +165,76 @@ for (const tab of tabs) {
 
 const mail = $(".mail");
 if (mail) {
-  const render = () => {
+  const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+  const ms = (n: number) => (reduced ? 0 : n);
+  const blurOut = [
+    { opacity: 1, filter: "blur(0px)", transform: "none" },
+    { opacity: 0, filter: "blur(10px)", transform: "translateY(-4px)" },
+  ];
+  const blurIn = [
+    { opacity: 0, filter: "blur(10px)", transform: "translateY(6px)" },
+    { opacity: 1, filter: "blur(0px)", transform: "none" },
+  ];
+  const shown = () => [...$$(".mail-body, .mail-subject", mail), ...$$(".gg-window__icon svg", mail)].filter(
+    (el) => !(el as HTMLElement).hidden && getComputedStyle(el).display !== "none",
+  );
+  let run = 0;
+  // State changes wait on a timer, not on the animation, so they land even where animations are throttled.
+  const after = (n: number) => new Promise((done) => setTimeout(done, ms(n)));
+
+  // Changing channel or language: the old words blur away, the window eases to its new height, the new words come into focus.
+  const render = async () => {
+    const id = ++run;
     const { channel, lang } = mail.dataset;
+    const before = shown();
+    for (const el of before) el.animate(blurOut, { duration: ms(180), easing: "ease-in", fill: "forwards" });
+    await after(180);
+    if (id !== run) return;
+    const from = mail.offsetHeight;
     for (const b of $$(".mail-body", mail)) b.hidden = b.dataset.l !== lang || b.dataset.c !== channel;
     for (const s of $$(".mail-subject", mail)) s.hidden = channel !== "email" || s.dataset.l !== lang;
+    for (const el of before) el.getAnimations().forEach((a) => a.cancel());
+    const to = mail.offsetHeight;
+    mail.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: ms(520), easing: EASE });
+    for (const [i, el] of shown().entries())
+      el.animate(blurIn, { duration: ms(460), delay: ms(80 + i * 40), easing: EASE, fill: "backwards" });
   };
+
+  // The status line and the button trade places the same way, the button easing to its new width.
+  const status = $(".mail-status", mail)!;
+  const swapStatus = (change: () => void) => {
+    status.animate(blurOut, { duration: ms(140), easing: "ease-in", fill: "forwards" });
+    void after(140).then(() => {
+      status.getAnimations().forEach((a) => a.cancel());
+      change();
+      status.animate(blurIn, { duration: ms(380), easing: EASE });
+    });
+  };
+
   document.addEventListener("gg-change", (e) => {
     const { name, value } = (e as CustomEvent<{ name?: string; value: string }>).detail;
-    if (name === "channel" || name === "lang" || name === "mode") {
+    if (name === "channel" || name === "lang") {
       mail.dataset[name] = value;
-      render();
+      void render();
+    }
+    if (name === "mode") {
+      if ("approved" in mail.dataset) swapStatus(() => (mail.dataset.mode = value));
+      else mail.dataset.mode = value;
     }
   });
   const approve = $<HTMLButtonElement>(".mail-approve", mail)!;
   approve.addEventListener("click", () => {
     const on = approve.getAttribute("aria-pressed") !== "true";
+    const from = approve.offsetWidth;
     approve.setAttribute("aria-pressed", String(on));
-    if (on) mail.dataset.approved = "";
-    else delete mail.dataset.approved;
+    const to = approve.offsetWidth;
+    approve.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: ms(420), easing: EASE });
+    for (const label of $$(".approve-on, .approve-off", approve))
+      label.animate(blurIn, { duration: ms(380), easing: EASE });
+    swapStatus(() => {
+      if (on) mail.dataset.approved = "";
+      else delete mail.dataset.approved;
+    });
   });
 }
 
