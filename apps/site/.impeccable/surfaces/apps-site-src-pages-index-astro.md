@@ -11,14 +11,12 @@ Mode: Persuade. Audience: B2B founders who do their own sales, small sales teams
 
 ## Direction contract
 
-THESIS: Pluto was found by blinking two photographs of the same sky and seeing the one dot that moved; Pluton finds the people in a market whose situation just changed. The page is a run of photographic plates, negative and print, refusing the dark-gradient AI SaaS hero with a centred headline over an app screenshot.
+THESIS: Pluto is the desktop; Pluton's own windows are the glass laid over it. The founder asked for a macOS 27 "Golden Gate" glass look, smooth continuous corners, SaaS feel, the AI up front, and components reusable by the app; this replaces the 1930 plates world on the golden-gate branch.
 
-OWN-WORLD: plate grey #DEDFDA and print black #0E0E12 alternate as whole chapters, brand ultramarine #2B3BFF is the inked arrow, the marker and the action, and owns one full chapter. One face, Jost, uppercase bold display set huge, sentence-case text. Square corners, no rules, no shadows; interface fragments printed in their chapter's two inks.
+OWN-WORLD: New Horizons' Pluto as the wallpaper (dunes by day, backlit crescent by night), glass material from @pluton/glass, brand ultramarine #2B3BFF for what to press and what the AI is doing, Jost in sentence case.
 
-STORY: the visitor sees the real plates blink, understands "the dot that moved", flips a sample market themselves, watches a stage slider go from website to written message, configures a message, then reads a two-price ticket and starts.
+STORY: the visitor watches the real Agent answer "What should I look at today?", asks it the other three questions, sees the plates that gave the name, walks the Brain → Play → Leads → Message sidebar, reads the notifications that prove it asks before it acts, configures a message, copies the MCP setup for their own AI, then picks a plan in front of Pluto.
 
-FIRST VIEWPORT: columns 1-10 a framed panel where the two aligned 1930 plates blink at the comparator's rhythm, wordmark top-left, headline in the upper third at about 8.6vw in two lines, one sentence bottom-left and the Start button bottom-centre; columns 11-12 a stack of five chapter swatches that are the navigation, lit for the chapter in view.
+FIRST VIEWPORT: wallpaper full bleed under a thin glass menu bar; headline in two lines with one sentence, the Start button and the self-host link bottom-left; the Agent window on the right half, playing its first answer.
 
-FORM: Blink comparator (IMPECCABLE'S PICK, candidate 1 of 7, chosen by the user over the assigned Swiss poster chapters), composed with the taste-skill colour-chapters sheet (seed 348628693). seed:0c00f3241312bf0e. Signature interaction: the blink switch, one toggle at poster size that flips a sample market between Monday and Thursday and marks who moved.
-
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: inspector run in light and dark at 1440, 768 and 390; remaining FAILs are the requested glass material (shadows on floating glass, glass buttons) and the four notifications read as icon cards on phones.

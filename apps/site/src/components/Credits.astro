@@ -1,6 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
-import Logo from "./Logo.astro";
+import { Glass, LinkButton, Logo } from "@pluton/glass";
 import { pathFor, strings, type Locale } from "../i18n/index.ts";
 import { PICTURE_CREDITS } from "../credits.ts";
 
@@ -9,14 +9,20 @@ const { locale } = Astro.props;
 const t = strings(locale);
 ---
 <Base locale={locale} t={{ ...t, meta: { ...t.meta, title: `${t.footer.creditsLink} · Pluton` } }}>
-  <main class="credits-page g-plate">
-    <a class="credits-logo" href={pathFor(locale)}><Logo /></a>
-    <h1 class="h-head">{t.footer.creditsLink}</h1>
-    <ul class="credits-list">
-      {PICTURE_CREDITS.map((c) => (
-        <li><a href={c.page}>“{c.title}”</a>, {c.creator}, <a href={c.licenseUrl}>{c.license}</a></li>
-      ))}
-    </ul>
-    <a class="btn btn-blue" href={pathFor(locale)}>{t.footer.creditsBack}</a>
+  <div class="wall" aria-hidden="true">
+    <img class="wall-day" src="/img/wall-day.webp" width="1920" height="1080" alt="" />
+    <img class="wall-night" src="/img/wall-night.webp" width="1920" height="1080" alt="" />
+  </div>
+  <main class="credits-page">
+    <Glass weight="thick" className="credits-sheet">
+      <a class="credits-logo" href={pathFor(locale)}><Logo /></a>
+      <h1 class="headline">{t.footer.creditsLink}</h1>
+      <ul class="credits-list">
+        {PICTURE_CREDITS.map((c) => (
+          <li><a href={c.page}>“{c.title}”</a>, {c.creator}, <a href={c.licenseUrl}>{c.license}</a></li>
+        ))}
+      </ul>
+      <LinkButton variant="accent" href={pathFor(locale)}>{t.footer.creditsBack}</LinkButton>
+    </Glass>
   </main>
 </Base>
