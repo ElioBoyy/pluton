@@ -35,6 +35,7 @@ import type { CSSProperties } from "react";
 import { LOCALES, LOCALE_NAMES, pathFor, type Locale, type Strings } from "../i18n/index.ts";
 import { SAMPLE_MESSAGES } from "../i18n/messages.ts";
 import { LICENSE_URL, REPO_URL, SIGNUP_URL } from "../links.ts";
+import { LEGAL_DOCS } from "../legal/publisher.ts";
 import { Agent } from "./Agent.tsx";
 
 type T = Strings;
@@ -638,6 +639,11 @@ function Footer({ t, locale }: Props) {
           <a href={REPO_URL}>GitHub</a>
           <a href={LICENSE_URL}>{t.footer.license}</a>
           <a href={`${pathFor(locale)}credits/`}>{t.footer.creditsLink}</a>
+          {LEGAL_DOCS.map((doc) => (
+            <a key={doc} href={`${pathFor(locale)}legal/${doc}/`}>
+              {t.legal[doc]}
+            </a>
+          ))}
           <span>© {t.footer.year} Mathis Sportiello</span>
           <span>{t.footer.domain}</span>
           <a href="#top" className="foot-up">

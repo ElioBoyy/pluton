@@ -271,4 +271,14 @@ export default {
     creditsBack: "Torna a Pluton",
     year: "2026",
   },
+  legal: {
+    label: "Note legali",
+    notice: "Note legali",
+    terms: "Condizioni d'uso",
+    sales: "Condizioni di vendita",
+    privacy: "Privacy",
+    updated: "Ultimo aggiornamento: {date}",
+    note: "Questo testo è disponibile in inglese e in francese. Fa fede la versione francese.",
+    french: "Leggi la versione francese",
+  },
 } satisfies Strings;
