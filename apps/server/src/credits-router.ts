@@ -26,7 +26,7 @@ import {
   usageReport,
 } from "@pluton/core";
 import { ACTIVITY_CONTEXTS, and, COST_PURPOSES, desc, eq, NOTIFICATION_CATEGORIES, notifications } from "@pluton/db";
-import { mailerConfigured } from "@pluton/providers";
+import { appMailConfigured } from "@pluton/providers";
 import { publicProcedure, router } from "./trpc.ts";
 
 const ws = getCurrentWorkspace;
@@ -114,7 +114,7 @@ export const notificationsRouter = router({
   settings: publicProcedure.query(async ({ ctx }) => ({
     settings: notificationSettings(await ws(ctx.db)),
     categories: NOTIFICATION_CATEGORIES.map((c) => ({ key: c, ...notificationCategoryLabel(c) })),
-    smtpConfigured: mailerConfigured(),
+    smtpConfigured: appMailConfigured(),
   })),
   saveSettings: publicProcedure
     .input(

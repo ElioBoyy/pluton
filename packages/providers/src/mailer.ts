@@ -7,8 +7,18 @@ import messages from "./messages/providers.ts";
 
 const t = localized(messages);
 
-/** SMTP from Settings → API keys: the digest leaves from your own mailbox, nothing hosted. */
+/** SMTP from Settings → API keys: outreach leaves from your own mailbox, nothing hosted. */
 export const mailerConfigured = () => Boolean(getSetting("smtp_host") && getSetting("smtp_user") && getSetting("smtp_password"));
+
+/**
+ * The hosted app sends its own emails (the digest) through Resend, from EMAIL_FROM on its domain.
+ * Outreach never goes through it: that stays on the founder's own SMTP.
+ */
+const resend = { apiKey: process.env.RESEND_API_KEY ?? "", from: process.env.EMAIL_FROM ?? "" };
+const resendConfigured = () => Boolean(resend.apiKey && resend.from);
+
+/** Whether the app can email the founder: through Resend when hosted, else through their SMTP. */
+export const appMailConfigured = () => resendConfigured() || mailerConfigured();
 
 /** The mailbox outreach emails leave from. */
 export const fromAddress = () => getSetting("smtp_from") || getSetting("smtp_user")!;
@@ -25,7 +35,27 @@ function transport() {
   });
 }
 
+async function sendWithResend(mail: { to: string; subject: string; html: string; text: string }) {
+  let res: Response;
+  try {
+    res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${resend.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: resend.from, ...mail }),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    throw new ProviderError("resend", (error as Error).message);
+  }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new ProviderError("resend", body?.message ?? res.statusText, res.status);
+  }
+}
+
+/** An email from the app to the founder (the digest). */
 export async function sendMail(mail: { to: string; subject: string; html: string; text: string }) {
+  if (resendConfigured()) return sendWithResend(mail);
   const from = fromAddress();
   try {
     await transport().sendMail({ from: `Pluton <${from}>`, ...mail });

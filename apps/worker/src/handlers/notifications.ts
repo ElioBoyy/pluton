@@ -11,11 +11,11 @@ import {
   type JobHandler,
 } from "@pluton/core";
 import { and, desc, eq, notifications, workspaces } from "@pluton/db";
-import { mailerConfigured, sendMail } from "@pluton/providers";
+import { appMailConfigured, sendMail } from "@pluton/providers";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 
-/** The morning digest: a notification in the app, and an email when SMTP and a recipient are set. */
+/** The morning digest: a notification in the app, and an email when Resend or SMTP and a recipient are set. */
 export const sendDigest: JobHandler = async ({ db, job, emit }) => {
   const { workspaceId, manual } = jobPayloads["notifications.digest"].parse(job.payload);
   const ws = (await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId) })) ?? (await getCurrentWorkspace(db));
@@ -34,7 +34,7 @@ export const sendDigest: JobHandler = async ({ db, job, emit }) => {
   const { html, text } = renderDigest(digest, APP_URL);
   let emailed = false;
   let emailError: string | undefined;
-  if (settings.email && settings.emailTo && mailerConfigured()) {
+  if (settings.email && settings.emailTo && appMailConfigured()) {
     try {
       await sendMail({ to: settings.emailTo, subject: digest.subject, html, text });
       emailed = true;
