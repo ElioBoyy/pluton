@@ -7,6 +7,7 @@ import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { formatDate, usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
+import { authStateQuery, post } from "../features/account/auth-state.ts";
 
 /** Each mode's label and hint are the usage namespace's `mode.<value>` and `mode.<value>.hint`. */
 const MODES = ["enforce", "track"] as const;
@@ -58,6 +59,7 @@ export function BudgetPage() {
       <PageHeader title={t("budget.title")} description={t("budget.description")} />
 
       <div className="flex flex-col gap-8">
+        <Subscription />
         <Section
           title={t("budget.period", { from: formatDate(s.period.start, { day: "numeric", month: "short" }), to: until })}
           actions={
@@ -192,5 +194,27 @@ function Money({ label, value, onChange, placeholder, min = 0, required }: { lab
         className="text-right tabular-nums"
       />
     </div>
+  );
+}
+
+/** Hosted only: the plan paid for, and Stripe's portal to change card or plan, or cancel. */
+function Subscription() {
+  const t = useT("account");
+  const user = useQuery(authStateQuery).data?.user;
+  const portal = useMutation({
+    mutationFn: () => post<{ url: string }>("/api/billing/portal"),
+    onSuccess: ({ url }) => window.location.assign(url),
+  });
+  if (!user?.plan) return null;
+  return (
+    <Section title={t("manage.title")}>
+      <Group>
+        <Row label={t(`plan.${user.plan}.name`)} description={t("manage.hint")}>
+          <Button type="button" variant="ghost" onClick={() => portal.mutate()} disabled={portal.isPending}>
+            {t("manage.open")}
+          </Button>
+        </Row>
+      </Group>
+    </Section>
   );
 }

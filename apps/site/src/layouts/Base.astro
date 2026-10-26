@@ -4,8 +4,9 @@ import "@pluton/glass/glass.css";
 import "../styles/landing.css";
 import { LOCALES, pathFor, type Locale, type Strings } from "../i18n/index.ts";
 
-interface Props { locale: Locale; t: Strings }
-const { locale, t } = Astro.props;
+/** `path` is the page's path after the language prefix ("legal/terms/"), empty for the landing page. */
+interface Props { locale: Locale; t: Strings; path?: string }
+const { locale, t, path = "" } = Astro.props;
 const site = Astro.site ?? new URL("https://pluton.app");
 ---
 <!doctype html>
@@ -19,9 +20,9 @@ const site = Astro.site ?? new URL("https://pluton.app");
     <meta name="theme-color" content="#cfc6b6" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#06060a" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="canonical" href={new URL(pathFor(locale), site)} />
-    {LOCALES.map((l) => <link rel="alternate" hreflang={l} href={new URL(pathFor(l), site)} />)}
-    <link rel="alternate" hreflang="x-default" href={new URL("/", site)} />
+    <link rel="canonical" href={new URL(pathFor(locale) + path, site)} />
+    {LOCALES.map((l) => <link rel="alternate" hreflang={l} href={new URL(pathFor(l) + path, site)} />)}
+    <link rel="alternate" hreflang="x-default" href={new URL("/" + path, site)} />
     <meta property="og:title" content={t.meta.title} />
     <meta property="og:description" content={t.meta.description} />
     <meta property="og:image" content={new URL("/img/wall-day.webp", site)} />

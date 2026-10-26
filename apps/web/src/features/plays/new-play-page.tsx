@@ -130,7 +130,7 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
 
   return (
     <div className="mb-6">
-      <span className="flex size-11 items-center justify-center bg-system-pink/15 text-system-pink">
+      <span className="flex size-11 rounded-xl items-center justify-center bg-system-pink/15 text-system-pink">
         <Lightning size={22} weight="fill" />
       </span>
       <h1 className="mt-5 text-2xl font-bold tracking-[-0.03em] text-balance sm:text-[36px] sm:leading-[38px]">{t("new.title")}</h1>

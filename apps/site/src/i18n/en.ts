@@ -270,4 +270,14 @@ export default {
     creditsBack: "Back to Pluton",
     year: "2026",
   },
+  legal: {
+    label: "Legal",
+    notice: "Legal notice",
+    terms: "Terms of use",
+    sales: "Terms of sale",
+    privacy: "Privacy policy",
+    updated: "Last updated {date}",
+    note: "Translated from French. The French version prevails.",
+    french: "Read the French version",
+  },
 };

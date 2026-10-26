@@ -53,7 +53,7 @@ export function PanelHeader({ eyebrow, title, onClose, closeLabel }: { eyebrow?:
         onClick={onClose}
         aria-label={closeLabel}
         title={closeLabel}
-        className="capsule flex size-8 shrink-0 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90"
+        className="capsule flex rounded-full size-8 shrink-0 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 ease-out hover:bg-(--capsule-bg-hover) hover:text-ink motion-safe:active:scale-90"
       >
         <X size={15} />
       </button>

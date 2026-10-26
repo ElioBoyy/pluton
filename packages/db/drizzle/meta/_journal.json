@@ -141,6 +141,13 @@
       "when": 1792970034728,
       "tag": "0019_draft_channel",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793023310152,
+      "tag": "0020_hosted_accounts",
+      "breakpoints": true
     }
   ]
 }

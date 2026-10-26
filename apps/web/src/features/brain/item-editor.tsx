@@ -136,7 +136,7 @@ function ListInput({ values, onChange, placeholder }: { values: string[]; onChan
             type="button"
             aria-label={t("editor.removeValue", { value: v })}
             onClick={() => onChange(values.filter((x) => x !== v))}
-            className="flex size-4 shrink-0 items-center justify-center text-muted hover:bg-control-hover hover:text-ink"
+            className="flex rounded-full size-4 shrink-0 items-center justify-center text-muted hover:bg-control-hover hover:text-ink"
           >
             <X size={9} weight="bold" />
           </button>
@@ -190,7 +190,7 @@ function TechInput({
             type="button"
             aria-label={t("editor.removeTool")}
             onClick={() => onChange(values.filter((_, j) => j !== i))}
-            className="flex size-7 shrink-0 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink"
+            className="flex rounded-full size-7 shrink-0 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink"
           >
             <X size={13} />
           </button>

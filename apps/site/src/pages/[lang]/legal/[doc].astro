@@ -1,0 +1,11 @@
+---
+import Legal from "../../../components/Legal.astro";
+import { LOCALES, type Locale } from "../../../i18n/index.ts";
+import { LEGAL_DOCS, type LegalDocId } from "../../../legal/index.ts";
+
+export function getStaticPaths() {
+  return LOCALES.filter((l) => l !== "en").flatMap((lang) => LEGAL_DOCS.map((doc) => ({ params: { lang, doc } })));
+}
+const { lang, doc } = Astro.params as { lang: Locale; doc: LegalDocId };
+---
+<Legal locale={lang} doc={doc} />

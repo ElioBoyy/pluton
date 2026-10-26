@@ -82,7 +82,7 @@ function ListRow({ item: a }: { item: ActivityItem }) {
   const { icon: Glyph, tile } = CONTEXT_ICON[a.context] ?? CONTEXT_ICON.system;
   const body = (
     <>
-      <span className={cn("flex size-7 shrink-0 items-center justify-center text-white", tile)}>
+      <span className={cn("flex size-7 rounded-md shrink-0 items-center justify-center text-white", tile)}>
         <Glyph size={16} weight="fill" />
       </span>
       <span className="min-w-0 flex-1 text-pretty">{a.text}</span>

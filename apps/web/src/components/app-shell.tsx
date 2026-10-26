@@ -74,7 +74,7 @@ export function AppShell() {
     <div className="flex h-full p-2 max-md:p-0">
       <Wallpaper />
       {navOpen && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />}
-      <div className="relative flex min-w-0 flex-1 rounded-[var(--gg-r-window)] max-md:rounded-none">
+      <div className="relative flex min-w-0 flex-1 rounded-[var(--gg-r-window)] [corner-shape:squircle] max-md:rounded-none">
         {/*
           The window's glass is a layer of its own: a backdrop filter would make the window the
           containing block of every fixed drawer, menu and dialog in the pages.
@@ -83,7 +83,7 @@ export function AppShell() {
       {/* The sidebar floats inside the window as its own pane, like the kit's Sidebar. A drawer of glass on phones. */}
       <aside
         className={cn(
-          "relative flex w-60 shrink-0 flex-col rounded-[calc(var(--gg-r-window)-8px)] bg-control shadow-[inset_0_0_0_1px_var(--gg-rim-low)] md:m-2 md:mr-0",
+          "relative flex w-60 shrink-0 flex-col rounded-[calc(var(--gg-r-window)-8px)] bg-control [corner-shape:squircle] shadow-[inset_0_0_0_1px_var(--gg-rim-low)] md:m-2 md:mr-0",
           // On phones, thick glass of its own (not the `glass` utility, whose `relative` would beat `fixed` here).
           "max-md:fixed max-md:inset-y-2 max-md:left-2 max-md:z-50 max-md:w-72 max-md:bg-(--gg-material-thick) max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)] max-md:shadow-window max-md:backdrop-blur-2xl",
           "max-md:transition-transform max-md:duration-300 max-md:ease-out motion-reduce:transition-none",
@@ -171,7 +171,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[var(--gg-r-window)] max-md:rounded-none">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[var(--gg-r-window)] [corner-shape:squircle] max-md:rounded-none">
         <header className="flex h-12 shrink-0 items-center gap-2 px-2 pt-[env(safe-area-inset-top)] md:hidden">
           <button
             onClick={() => setNavOpen(true)}

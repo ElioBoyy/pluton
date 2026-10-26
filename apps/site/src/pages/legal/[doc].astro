@@ -1,0 +1,10 @@
+---
+import Legal from "../../components/Legal.astro";
+import { LEGAL_DOCS, type LegalDocId } from "../../legal/index.ts";
+
+export function getStaticPaths() {
+  return LEGAL_DOCS.map((doc) => ({ params: { doc } }));
+}
+const { doc } = Astro.params as { doc: LegalDocId };
+---
+<Legal locale="en" doc={doc} />

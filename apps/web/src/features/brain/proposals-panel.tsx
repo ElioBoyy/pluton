@@ -48,7 +48,7 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
             onClick={onClose}
             aria-label={tc("close")}
             title={tc("close")}
-            className="-my-1 ml-auto flex size-7 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink xl:hidden"
+            className="-my-1 ml-auto flex rounded-full size-7 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink xl:hidden"
           >
             <X size={14} />
           </button>

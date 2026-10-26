@@ -6,9 +6,10 @@ import { useTRPC } from "../lib/trpc.ts";
  * wallpaper chosen in Settings → Appearance in its place. Both appearances are in the page and CSS
  * shows the one for the current appearance, so switching themes needs no reload.
  */
-export function Wallpaper() {
+export function Wallpaper({ defaultOnly }: { defaultOnly?: boolean }) {
   const trpc = useTRPC();
-  const data = useQuery(trpc.appearance.wallpapers.queryOptions()).data;
+  // Before sign-in the API is closed: the sign-in and plan pages show Pluto as on the landing page.
+  const data = useQuery({ ...trpc.appearance.wallpapers.queryOptions(), enabled: !defaultOnly }).data;
   const light = data?.light?.url ?? null;
   const dark = data?.dark?.url ?? null;
 

@@ -1,0 +1,62 @@
+---
+import Base from "../layouts/Base.astro";
+import { Glass, LinkButton, Logo } from "@pluton/glass";
+import { pathFor, strings, type Locale } from "../i18n/index.ts";
+import { LEGAL_DOCS, LEGAL_UPDATED, TODO, legalText, type LegalDocId } from "../legal/index.ts";
+
+interface Props { locale: Locale; doc: LegalDocId }
+const { locale, doc: id } = Astro.props;
+const t = strings(locale);
+const doc = legalText(locale)[id];
+// Italian, Spanish and German pages show the English text, marked as English for screen readers.
+const textLang = locale === "fr" ? "fr" : "en";
+const updated = t.legal.updated.replace("{date}", new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" }).format(LEGAL_UPDATED));
+const href = (l: Locale, d: LegalDocId) => `${pathFor(l)}legal/${d}/`;
+// A field still to fill in shows highlighted, so a blank never goes unnoticed.
+const parts = (text: string) => text.split(TODO).map((part, i) => ({ part, todo: i % 2 === 1 }));
+---
+<Base locale={locale} t={{ ...t, meta: { title: `${doc.title} · Pluton`, description: doc.intro ?? `${doc.title} · Pluton` } }} path={`legal/${id}/`}>
+  <div class="wall" aria-hidden="true">
+    <img class="wall-day" src="/img/wall-day.webp" width="1920" height="1080" alt="" />
+    <img class="wall-night" src="/img/wall-night.webp" width="1920" height="1080" alt="" />
+  </div>
+  <main class="legal-page">
+    <Glass weight="thick" className="legal-sheet">
+      <a class="credits-logo" href={pathFor(locale)}><Logo /></a>
+      <nav class="legal-nav" aria-label={t.legal.label}>
+        {LEGAL_DOCS.map((d) => (
+          <a href={href(locale, d)} aria-current={d === id ? "page" : undefined}>{t.legal[d]}</a>
+        ))}
+      </nav>
+      <article class="legal-text" lang={textLang}>
+        <header>
+          <h1 class="headline">{doc.title}</h1>
+          <p class="legal-updated" lang={locale}>{updated}</p>
+          {t.legal.note && (
+            <p class="legal-note" lang={locale}>
+              {t.legal.note} <a href={href("fr", id)} hreflang="fr">{t.legal.french}</a>
+            </p>
+          )}
+        </header>
+        {doc.intro && <p class="legal-intro">{doc.intro}</p>}
+        {doc.sections.map((section) => (
+          <section>
+            <h2>{section.heading}</h2>
+            {section.body.map((block) =>
+              typeof block === "string" ? (
+                <p>{parts(block).map(({ part, todo }) => (todo ? <mark class="legal-todo">{part}</mark> : part))}</p>
+              ) : (
+                <ul>
+                  {block.list.map((item) => (
+                    <li>{parts(item).map(({ part, todo }) => (todo ? <mark class="legal-todo">{part}</mark> : part))}</li>
+                  ))}
+                </ul>
+              ),
+            )}
+          </section>
+        ))}
+      </article>
+      <LinkButton variant="accent" href={pathFor(locale)}>{t.footer.creditsBack}</LinkButton>
+    </Glass>
+  </main>
+</Base>

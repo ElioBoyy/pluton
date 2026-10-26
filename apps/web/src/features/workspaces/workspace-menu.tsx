@@ -32,7 +32,7 @@ export function WorkspaceIcon({
   return (
     <span
       className={cn(
-        "relative flex size-6 shrink-0 items-center justify-center overflow-hidden text-xs font-semibold text-on-accent",
+        "relative flex size-6 rounded-sm shrink-0 items-center justify-center overflow-hidden text-xs font-semibold text-on-accent",
         loaded === src && src ? "bg-white" : COLORS[hash % COLORS.length],
         className,
       )}
@@ -102,7 +102,7 @@ export function WorkspaceMenu({ className }: { className?: string }) {
       >
         <WorkspaceIcon workspace={current} className="size-7 text-sm!" />
         <span className="flex-1 truncate text-sm font-semibold">{current?.name ?? "…"}</span>
-        <span className="flex size-5 shrink-0 items-center justify-center bg-control text-muted">
+        <span className="flex size-5 rounded-sm shrink-0 items-center justify-center bg-control text-muted">
           <CaretUpDown size={11} weight="bold" />
         </span>
       </button>

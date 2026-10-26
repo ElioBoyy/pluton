@@ -47,7 +47,7 @@ export function PlaysPage() {
       {shown.length === 0 ? (
         // An empty list reads like a fresh start, as on the Agent page: a mark, one line, the way in.
         <div className="flex flex-col items-center px-4 py-16 text-center">
-          <span className="flex size-11 items-center justify-center bg-system-pink/15 text-system-pink">
+          <span className="flex size-11 rounded-xl items-center justify-center bg-system-pink/15 text-system-pink">
             <Lightning size={22} weight="fill" />
           </span>
           <p className="mt-4 max-w-sm text-base text-balance text-muted">{t(`list.empty.${filter}`)}</p>
@@ -124,7 +124,7 @@ function CreateMainPlay() {
   return (
     <Group className="mb-8">
       <div className="flex items-center gap-3 px-4 py-3 max-sm:flex-col max-sm:items-start">
-        <span className="flex size-8 shrink-0 items-center justify-center bg-system-pink/15 text-system-pink max-sm:hidden">
+        <span className="flex size-8 rounded-lg shrink-0 items-center justify-center bg-system-pink/15 text-system-pink max-sm:hidden">
           <Lightning size={16} weight="fill" />
         </span>
         <div className="min-w-0 flex-1">

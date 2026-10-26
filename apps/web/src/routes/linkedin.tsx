@@ -178,7 +178,7 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
           description={t("linkedin.inSequences", { provider: s.provider === "manual" ? t("linkedin.manualProvider") : "Unipile", count: s.activeLeads })}
           className="py-3"
         >
-          <span className="order-first flex size-8 shrink-0 items-center justify-center bg-system-blue text-white">
+          <span className="order-first flex size-8 rounded-lg shrink-0 items-center justify-center bg-system-blue text-white">
             <LinkedinLogo size={18} weight="fill" />
           </span>
           <div className="flex shrink-0 items-center gap-2">
@@ -195,7 +195,7 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
               onClick={() => window.confirm(t("linkedin.confirmRemove", { name: s.name })) && remove.mutate({ id: s.id })}
               aria-label={t("linkedin.removeAccount")}
               title={t("linkedin.removeAccount")}
-              className="flex size-7 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-system-red"
+              className="flex rounded-full size-7 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-system-red"
             >
               <Trash size={15} />
             </button>

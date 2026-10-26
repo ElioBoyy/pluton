@@ -194,7 +194,7 @@ function Tile({ checked, round, onClick, label, detail }: { checked: boolean; ro
     >
       <span
         className={cn(
-          "mt-px flex size-4 shrink-0 items-center justify-center transition-colors duration-150",
+          "mt-px flex size-4 rounded-xs shrink-0 items-center justify-center transition-colors duration-150",
           round ? "rounded-full" : "",
           checked ? "bg-accent text-on-accent" : "bg-canvas",
         )}

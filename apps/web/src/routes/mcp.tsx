@@ -153,7 +153,7 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
     <button
       type="button"
       onClick={onClick}
-      className="flex size-7 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
+      className="flex rounded-full size-7 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
       aria-label={label}
       title={label}
     >
