@@ -695,7 +695,7 @@
 /*
  * The AI at work: an ultramarine light runs round the edge of whatever it is working in.
  * When it finishes (`aiFinish()` in ./behaviors.ts, data-ai="finale"), the light speeds up,
- * turns into a fully saturated rainbow, goes once round, whitens and fades out. The colours and
+ * turns into a soft spectrum, goes once round, whitens and fades out. The colours and
  * the extra spin are registered properties set on the element, so they interpolate.
  */
 @property --gg-turn {

@@ -47,13 +47,13 @@ export function aiStart(el: HTMLElement) {
   el.dataset.ai = "working";
 }
 
-// Pure hues at full saturation: red, orange, yellow, green, blue, violet.
-const RAINBOW = ["#ff0000", "#ff8000", "#ffee00", "#00e040", "#0070ff", "#a000ff"];
-const WHITE = Array(6).fill("#ffffff");
+// A soft spectrum that stays near the brand: ultramarine, violet, rose, peach, sky, periwinkle.
+const SPECTRUM = ["#5b6bff", "#9b7cff", "#e98fcf", "#ffb592", "#86c6ff", "#7385ff"];
+const WHITE = Array(6).fill("rgb(255 255 255 / 0.9)");
 
 /**
  * Ends the AI's work on an element carrying `gg-ai-edge` (a Window): the light speeds up, turns
- * into a saturated rainbow, goes once round, whitens and fades out. Resolves when it has faded; the
+ * into a soft spectrum, goes once round, whitens and fades out. Resolves when it has faded; the
  * element is then back to rest. Under reduced motion it simply fades.
  */
 export function aiFinish(el: HTMLElement): Promise<void> {
@@ -65,19 +65,19 @@ export function aiFinish(el: HTMLElement): Promise<void> {
   const frames: Keyframe[] = reduced
     ? [{ "--gg-edge-alpha": 1 }, { "--gg-edge-alpha": 0 }]
     : [
-        // Speeds up, still blue.
-        { offset: 0, "--gg-spin": "0deg", "--gg-edge-alpha": 1, ...colours(comet), easing: "cubic-bezier(0.5, 0, 0.9, 0.6)" },
-        // Becomes the rainbow at full speed.
-        { offset: 0.28, "--gg-spin": "240deg", "--gg-edge-alpha": 1, ...colours(RAINBOW), easing: "linear" },
-        // One full turn as a rainbow.
-        { offset: 0.68, "--gg-spin": "600deg", "--gg-edge-alpha": 1, ...colours(RAINBOW), easing: "cubic-bezier(0.2, 0.6, 0.4, 1)" },
-        // Whitens as it slows.
-        { offset: 0.84, "--gg-spin": "700deg", "--gg-edge-alpha": 1, ...colours(WHITE), easing: "ease-out" },
+        // Gathers speed, still the working blue.
+        { offset: 0, "--gg-spin": "0deg", "--gg-edge-alpha": 1, ...colours(comet), easing: "cubic-bezier(0.55, 0, 0.75, 0.4)" },
+        // The spectrum fills the edge as it reaches full speed.
+        { offset: 0.26, "--gg-spin": "120deg", "--gg-edge-alpha": 1, ...colours(SPECTRUM), easing: "cubic-bezier(0.3, 0.5, 0.45, 1)" },
+        // One full turn, slowing as it goes.
+        { offset: 0.72, "--gg-spin": "480deg", "--gg-edge-alpha": 1, ...colours(SPECTRUM), easing: "cubic-bezier(0.25, 0.1, 0.25, 1)" },
+        // Whitens.
+        { offset: 0.86, "--gg-spin": "530deg", "--gg-edge-alpha": 0.9, ...colours(WHITE), easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
         // And fades.
-        { offset: 1, "--gg-spin": "740deg", "--gg-edge-alpha": 0, ...colours(WHITE) },
+        { offset: 1, "--gg-spin": "550deg", "--gg-edge-alpha": 0, ...colours(WHITE) },
       ];
   finales.get(el)?.cancel();
-  const run = el.animate(frames, { duration: reduced ? 300 : 2400 });
+  const run = el.animate(frames, { duration: reduced ? 300 : 2000 });
   finales.set(el, run);
   return new Promise((done) => {
     const end = () => {
