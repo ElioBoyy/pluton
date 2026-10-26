@@ -9,14 +9,14 @@ const t = localized(messages);
 /** One source the search tried (or skipped), and what came of it. */
 export type EmailStep = {
   source: "research" | "website" | "hunter";
-  outcome: "found" | "guess" | "nothing" | "no_website" | "no_key" | "no_company" | "error";
+  outcome: "found" | "guess" | "inbox" | "nothing" | "no_website" | "no_key" | "no_company" | "error";
   detail?: string;
 };
 
 /**
  * Finds a lead's work email, free sources first: an address already quoted in the research, then the
- * company's own site, then Hunter (paid, verified) when a key is set. A pattern guess from the site
- * comes last and is labelled as such. Every source tried or skipped is logged in `steps`, on the
+ * company's own site, then Hunter (paid, verified) when a key is set. A pattern guess from the site,
+ * then the company's general inbox, come last and are labelled as such. Every source tried or skipped is logged in `steps`, on the
  * lead's timeline and in the result, so it is always clear what was used.
  */
 export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult & { leadId: string; steps: EmailStep[]; unreachable: boolean }> {
@@ -51,7 +51,7 @@ export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult
     steps.push(
       siteError
         ? { source: "website", outcome: "error", detail: siteError }
-        : { source: "website", outcome: site?.source === "public_text" ? "found" : site ? "guess" : "nothing" },
+        : { source: "website", outcome: site?.source === "public_text" ? "found" : site?.source === "company_inbox" ? "inbox" : site ? "guess" : "nothing" },
     );
     if (site?.source === "public_text") return done(site);
     guess = site;

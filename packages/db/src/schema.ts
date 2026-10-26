@@ -458,7 +458,7 @@ export const people = sqliteTable(
     location: text("location"),
     email: text("email"),
     emailConfidence: integer("email_confidence"),
-    /** Where the email came from: hunter, public_text (found in a public page) or pattern (unverified guess). */
+    /** Where the email came from: hunter, public_text (found in a public page), pattern (unverified guess) or company_inbox (the company's general inbox). */
     emailSource: text("email_source"),
     /** Last email lookup, found or not: the UI says "No email found" instead of offering the same paid search again. */
     emailCheckedAt: integer("email_checked_at", { mode: "timestamp_ms" }),

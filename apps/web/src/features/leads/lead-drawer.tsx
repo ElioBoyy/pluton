@@ -482,7 +482,7 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
 }
 
 type EmailStep = { source: "research" | "website" | "hunter"; outcome: string; detail?: string };
-const STEP_OUTCOMES = ["found", "guess", "nothing", "no_website", "no_key", "no_company", "error"] as const;
+const STEP_OUTCOMES = ["found", "guess", "inbox", "nothing", "no_website", "no_key", "no_company", "error"] as const;
 
 /** Each source an email search tried, in order: "Research: nothing · Company website: nothing · Hunter: no key". */
 function emailSteps(p: Record<string, unknown>) {

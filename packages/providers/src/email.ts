@@ -69,17 +69,32 @@ const GENERIC = /^(contact|info|hello|bonjour|accueil|presse|press|communication
 
 /**
  * Looks for this person's address on their company's site; failing that, guesses one from the
- * pattern other personal addresses on the site follow. A guess is labelled and scored low.
+ * pattern other personal addresses on the site follow (labelled and scored low); failing that, the
+ * company's general inbox.
  */
 export async function emailFromWebsite(db: Db, person: { name: string; website: string }): Promise<EmailResult | null> {
   const domain = toDomain(person.website);
-  const emails = (await siteEmails(db, domain)).filter((e) => !GENERIC.test(e.split("@")[0]!));
+  const all = await siteEmails(db, domain);
+  const emails = all.filter((e) => !GENERIC.test(e.split("@")[0]!));
   const own = emails.find((e) => namesPerson(e.split("@")[0]!, person.name));
   if (own) return { email: own, confidence: 85, source: "public_text" };
 
   const { first, lastWord } = nameParts(person.name);
-  if (!first || !lastWord) return null;
   const votes = PATTERNS.map((p) => ({ p, n: emails.filter((e) => p.test(e.split("@")[0]!)).length })).sort((a, b) => b.n - a.n);
-  if (!votes[0] || votes[0].n === 0) return null;
-  return { email: `${votes[0].p.build(first, lastWord)}@${domain}`, confidence: votes[0].n > 1 ? 35 : 25, source: "pattern" };
+  if (first && lastWord && votes[0] && votes[0].n > 0)
+    return { email: `${votes[0].p.build(first, lastWord)}@${domain}`, confidence: votes[0].n > 1 ? 35 : 25, source: "pattern" };
+  return companyInbox(all);
+}
+
+/**
+ * The company's own general inbox (contact@, bonjour@…) when the site shows no personal address: at
+ * a small business it is often the only one, and the owner reads it. Last resort, scored as such.
+ */
+const INBOXES = ["contact", "bonjour", "info", "hello", "accueil", "commercial", "vente", "ventes", "direction", "secretariat"];
+function companyInbox(emails: string[]): EmailResult | null {
+  for (const box of INBOXES) {
+    const email = emails.find((e) => e.split("@")[0] === box);
+    if (email) return { email, confidence: 50, source: "company_inbox" };
+  }
+  return null;
 }
