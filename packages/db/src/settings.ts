@@ -209,7 +209,7 @@ const envNumber = (name: string, fallback: number) => {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;
 };
-export const usdPerEur = () => envNumber("PLUTON_USD_PER_EUR", 1.16);
+export const usdPerEur = () => envNumber("PLUTON_USD_PER_EUR", 1.12);
 const quotaShare = () => envNumber("PLATFORM_QUOTA_SHARE", 0.3);
 const TOP_UP_MARKUP = 2.5;
 /** The packs a plan sells, in credits. */
