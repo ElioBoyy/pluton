@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { repoRoot } from "@pluton/db";
+import { currentCostScope, HOSTED, repoRoot } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import messages from "./messages/appearance.ts";
 
@@ -21,7 +21,13 @@ type Ext = keyof typeof WALLPAPER_TYPES;
 /** Wallpapers are shown full screen; past this they only slow the app down. */
 export const WALLPAPER_MAX_BYTES = 15 * 1024 * 1024;
 
-export const wallpaperDir = () => path.resolve(repoRoot, "data/backgrounds");
+/** Hosted, each workspace has its own (data/backgrounds/<workspace id>/). */
+export function wallpaperDir() {
+  if (!HOSTED) return path.resolve(repoRoot, "data/backgrounds");
+  const workspaceId = currentCostScope()?.workspaceId;
+  if (!workspaceId) throw new Error("No workspace for this request");
+  return path.resolve(repoRoot, "data/backgrounds", workspaceId);
+}
 
 /** The stored file for a theme, if any; `version` changes with each new image, for cache busting. */
 export async function findWallpaper(theme: WallpaperTheme) {

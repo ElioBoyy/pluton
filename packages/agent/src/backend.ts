@@ -1,11 +1,14 @@
-import { getSetting, recordCost } from "@pluton/db";
+import { getSetting, HOSTED, recordCost } from "@pluton/db";
 import { MODEL, newMeter, runAgentWithApiKey, type RunAgentOptions, type RunAgentResult } from "./run-agent.ts";
 import { runAgentWithSubscription } from "./run-agent-subscription.ts";
 
 export type AgentBackend = "subscription" | "api_key";
 
-/** `subscription` (default) uses the local Claude Code login; `api_key` uses the key saved in Settings. */
-export const agentBackend = (): AgentBackend => (getSetting("agent_backend") === "api_key" ? "api_key" : "subscription");
+/**
+ * `subscription` (default) uses the local Claude Code login; `api_key` uses the key saved in Settings.
+ * Hosted, there is no local login: always the key the workspace saved.
+ */
+export const agentBackend = (): AgentBackend => (HOSTED || getSetting("agent_backend") === "api_key" ? "api_key" : "subscription");
 
 /**
  * Runs the agent and writes what it cost to the ledger, even when it fails. Through the

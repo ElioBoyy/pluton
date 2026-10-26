@@ -57,6 +57,8 @@ export const workspaces = sqliteTable("workspace", {
   budget: text("budget", { mode: "json" }).$type<BudgetSettings>(),
   /** Which events notify, and the morning digest. Null means the defaults in core/notifications. */
   notifications: text("notifications", { mode: "json" }).$type<NotificationSettings>(),
+  /** Hosted: the one account it belongs to (an account has one or more). Null self-hosted. */
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
   /** Last time it was switched to: the most recent one is the workspace the app shows. */
   openedAt: integer("opened_at", { mode: "timestamp_ms" }),
   // Optimistic-concurrency token, bumped on every update.

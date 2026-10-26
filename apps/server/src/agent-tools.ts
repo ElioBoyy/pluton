@@ -47,7 +47,7 @@ const compactLead = (l: { id: string; status: string; stage: string; fit: number
 });
 
 export function buildPlutonTools(db: Db, via: "mcp" | "agent"): PlutonTool[] {
-  const caller = appRouter.createCaller({ db, locale: null });
+  const caller = appRouter.createCaller({ db, locale: null, userId: null });
   // Calls through `caller` are checked by the RPC layer; direct ones check their ids here.
   const inThisWorkspace = async (path: string, input: Record<string, unknown>) => assertInWorkspace(db, (await getCurrentWorkspace(db)).id, path, input);
   const tools: PlutonTool[] = [];

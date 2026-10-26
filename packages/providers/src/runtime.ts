@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { eq, getSetting, providerCache, providerCalls, recordCost, type Db } from "@pluton/db";
+import { currentCostScope, eq, getSetting, HOSTED, providerCache, providerCalls, recordCost, type Db } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import messages from "./messages/providers.ts";
 
@@ -162,8 +162,11 @@ export async function checkProviderKey(settingKey: string): Promise<string> {
   }
 }
 
+/** Hosted, what one workspace paid for is cached for it alone. */
 const cacheKey = (provider: string, operation: string, input: unknown) =>
-  createHash("sha256").update(JSON.stringify([provider, operation, input])).digest("hex");
+  createHash("sha256")
+    .update(JSON.stringify(HOSTED ? [currentCostScope()?.workspaceId ?? null, provider, operation, input] : [provider, operation, input]))
+    .digest("hex");
 
 /** Direct cache access for batch operations that can't go through providerCall one item at a time. */
 export async function cacheGet<T>(db: Db, provider: string, operation: string, input: unknown) {

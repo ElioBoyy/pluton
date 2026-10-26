@@ -10,6 +10,8 @@ import { creditEntries, type CostPurpose, type CreditEntry } from "./schema.ts";
 export type CostScope = {
   db: Db;
   workspaceId: string | null;
+  /** Hosted: the account making the request, whose workspaces are the only ones it may see. */
+  userId?: string | null;
   purpose: CostPurpose;
   playId?: string;
   runId?: string;

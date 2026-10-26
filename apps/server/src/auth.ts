@@ -1,14 +1,15 @@
 import { createHash, createPrivateKey, randomBytes, sign } from "node:crypto";
 import type { Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { and, authSessions, eq, gt, users, type Db } from "@pluton/db";
+import { openWorkspaceFor } from "@pluton/core";
+import { and, authSessions, eq, gt, HOSTED, users, type Db } from "@pluton/db";
 
 /**
  * The hosted app (PLUTON_HOSTED=1) signs people in with Google or Apple and asks them to pay before
  * anything else. Self-hosted installs keep no accounts: every route below answers as if signed out
  * and the app never asks.
  */
-export const HOSTED = process.env.PLUTON_HOSTED === "1";
+export { HOSTED };
 
 /** Where the browser reaches the app; the OAuth and Stripe redirects come back here. */
 export const APP_URL = (process.env.APP_URL ?? "http://localhost:5173").replace(/\/$/, "");
@@ -67,7 +68,7 @@ type Identity = { provider: "google" | "apple"; sub: string; email: string | nul
 
 /**
  * Finds the person by the provider's id, else by a verified email they already signed in with
- * (Google then Apple, same address), else creates them.
+ * (Google then Apple, same address), else creates them, with the workspace they start in.
  */
 async function upsertUser(db: Db, who: Identity): Promise<User> {
   const subColumn = who.provider === "google" ? users.googleSub : users.appleSub;
@@ -84,6 +85,7 @@ async function upsertUser(db: Db, who: Identity): Promise<User> {
     return linked!;
   }
   const [created] = await db.insert(users).values({ [subField]: who.sub, email: who.email, name: who.name }).returning();
+  await openWorkspaceFor(db, created!.id);
   return created!;
 }
 

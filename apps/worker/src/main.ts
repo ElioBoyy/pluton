@@ -21,7 +21,7 @@ import {
   type JobHandler,
   type JobType,
 } from "@pluton/core";
-import { and, createDb, eq, getSetting, inArray, jobs, leadFindingRuns, lt, prepareDb, settingByWorkspace, watchSettings, withCostScope, workspaces, type CostPurpose, type Workspace } from "@pluton/db";
+import { and, createDb, eq, getSetting, HOSTED, inArray, jobs, leadFindingRuns, lt, prepareDb, settingByWorkspace, watchSettings, withCostScope, workspaces, type CostPurpose, type Workspace } from "@pluton/db";
 import { generateWallpaper } from "./handlers/appearance.ts";
 import { brainReview } from "./handlers/brain-review.ts";
 import { copilotTurn } from "./handlers/copilot.ts";
@@ -131,12 +131,17 @@ async function runLoop(slot: number) {
     });
     try {
       if (!handler) throw new Error(`No handler for job type "${job.type}"`);
-      const workspace = job.workspaceId ? await db.query.workspaces.findFirst({ where: eq(workspaces.id, job.workspaceId) }) : await getCurrentWorkspace(db);
-      const workspaceId = job.workspaceId ?? workspace!.id;
+      // Hosted, a job without a workspace (the sequence tick) runs in none: it scopes each one itself.
+      const workspace = job.workspaceId
+        ? await db.query.workspaces.findFirst({ where: eq(workspaces.id, job.workspaceId) })
+        : HOSTED
+          ? undefined
+          : await getCurrentWorkspace(db);
+      const workspaceId = job.workspaceId ?? workspace?.id ?? null;
       // A job writes what the founder reads (activity, notifications, the agent's replies) in their language.
       const result = await Promise.race([
         withLocale(workspace?.language ?? "en", () =>
-          withCostScope({ db, workspaceId, purpose: PURPOSE[job.type as JobType] ?? "other", jobId: job.id }, () =>
+          withCostScope({ db, workspaceId, userId: workspace?.userId ?? null, purpose: PURPOSE[job.type as JobType] ?? "other", jobId: job.id }, () =>
             handler({ db, job, emit, signal: jobAbort.signal }),
           ),
         ),

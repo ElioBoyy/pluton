@@ -6,7 +6,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { currentCostScope } from "./costs.ts";
 import type { Db } from "./index.ts";
 import messages from "./messages/settings.ts";
-import { repoRoot } from "./paths.ts";
+import { HOSTED, repoRoot } from "./paths.ts";
 import { workspaces, workspaceSettings } from "./schema.ts";
 
 export type SettingDef = {
@@ -169,8 +169,12 @@ export type SettingSource = "app" | "default" | "unset";
 /**
  * Settings belong to a workspace: the one of the current job or request (its cost scope), else
  * the workspace the app shows. Deep provider code reads keys without passing ids around.
+ * Hosted, there is no workspace the app shows: outside a job or request, no workspace's keys are read.
  */
-const scopedWorkspace = (workspaceId?: string | null) => workspaceId ?? currentCostScope()?.workspaceId ?? activeWorkspaceId;
+const scopedWorkspace = (workspaceId?: string | null) => workspaceId ?? currentCostScope()?.workspaceId ?? (HOSTED ? undefined : activeWorkspaceId);
+
+/** Hosted, Claude is reached only through the Anthropic API key each workspace enters, so the choice is not offered. */
+const offered = (def: SettingDef) => !(HOSTED && def.key === "agent_backend");
 
 export function getSetting(key: string, workspaceId?: string): string | undefined {
   return resolve(key, scopedWorkspace(workspaceId)).value;
@@ -186,7 +190,7 @@ function resolve(key: string, workspaceId: string | undefined): { value: string 
 
 export async function saveSetting(db: Db, key: string, value: string | null, workspaceId?: string) {
   const def = SETTING_DEFS.find((d) => d.key === key);
-  if (!def) throw new Error(`Unknown setting ${key}`);
+  if (!def || !offered(def)) throw new Error(`Unknown setting ${key}`);
   if (def.options && value !== null && !def.options.some((o) => o.value === value)) throw new Error(`Invalid value for ${key}`);
   const ws = scopedWorkspace(workspaceId);
   if (!ws) throw new Error("No workspace to save the setting in");
@@ -225,7 +229,7 @@ const word = (key: string, english: string) => (key in messages.en ? t(key as Se
 /** What the Settings page shows: never the secret itself, only whether it's set and its last 4 characters. */
 export function describeSettings(workspaceId?: string) {
   const ws = scopedWorkspace(workspaceId);
-  return SETTING_DEFS.map((def) => {
+  return SETTING_DEFS.filter(offered).map((def) => {
     const { value, source } = resolve(def.key, ws);
     return {
       ...def,
