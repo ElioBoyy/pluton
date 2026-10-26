@@ -198,27 +198,24 @@ export const PLATFORM_KEYS: Record<string, { source: string; plans: Subscription
 const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`]?.trim() || undefined;
 
 /**
- * Credits are what the plans count in: 1 $ of Pluton's own spend at API prices is 100 credits. Each
- * month a plan includes 30% of its price (PLATFORM_QUOTA_SHARE), turned into dollars at a fixed
- * rate (PLUTON_USD_PER_EUR) rather than the day's, so the allowance doesn't move under anyone.
- * PLATFORM_QUOTA_USD_<PLAN> overrides it outright. Credits bought on top cost 2.5× the API price.
+ * Credits are what the plans count in: 1 $ of Pluton's own spend at API prices is 100 credits.
+ * Each plan includes a round number of them a month, sized for using Pluton about three times a
+ * week (PLATFORM_QUOTA_CREDITS_<PLAN> changes it); heavier use buys packs, which cost 2.5× the API
+ * price, turned into euros at a fixed rate (PLUTON_USD_PER_EUR) rather than the day's.
  */
 export const CREDITS_PER_USD = 100;
-export const PLAN_PRICE_EUR: Record<SubscriptionPlan, number> = { byo: 39.99, all: 59.99 };
+export const INCLUDED_CREDITS: Record<SubscriptionPlan, number> = { byo: 1300, all: 3000 };
 const envNumber = (name: string, fallback: number) => {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;
 };
 export const usdPerEur = () => envNumber("PLUTON_USD_PER_EUR", 1.12);
-const quotaShare = () => envNumber("PLATFORM_QUOTA_SHARE", 0.3);
 const TOP_UP_MARKUP = 2.5;
 /** The packs a plan sells, in credits. */
 export const TOP_UP_PACKS = [1000, 2500, 5000] as const;
 
-const quotaMicroUsd = (plan: SubscriptionPlan) => {
-  const usd = Number(process.env[`PLATFORM_QUOTA_USD_${plan.toUpperCase()}`]) || PLAN_PRICE_EUR[plan] * quotaShare() * usdPerEur();
-  return Math.round(usd * 1_000_000);
-};
+const quotaMicroUsd = (plan: SubscriptionPlan) =>
+  Math.round((envNumber(`PLATFORM_QUOTA_CREDITS_${plan.toUpperCase()}`, INCLUDED_CREDITS[plan]) / CREDITS_PER_USD) * 1_000_000);
 
 /** What a pack of `credits` costs, in euro cents: its API price, marked up, at the fixed rate. */
 export const topUpPriceCents = (credits: number) => Math.ceil(((credits / CREDITS_PER_USD) * TOP_UP_MARKUP * 100) / usdPerEur());
