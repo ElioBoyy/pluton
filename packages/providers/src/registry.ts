@@ -83,6 +83,7 @@ function toCompany(c: ApiCompany): CompanyRecord {
   return {
     name: c.nom_complet,
     siren: c.siren,
+    registryUrl: `https://annuaire-entreprises.data.gouv.fr/entreprise/${c.siren}`,
     industryCode: c.activite_principale,
     sizeBand: c.tranche_effectif_salarie ? TRANCHES[c.tranche_effectif_salarie] : undefined,
     city: c.siege?.libelle_commune,

@@ -232,7 +232,8 @@ async function collectByResearch(ctx: Ctx, pipeline: Pipeline, wanted: number, s
       }),
       localTool({
         name: "registry_search",
-        description: "Search the French company registry by keyword, with optional headcount bands. Returns companies with sector code, size, city and executives.",
+        description:
+          "Search the French company registry by keyword, with optional headcount bands. Returns companies with sector code, size, city, executives and registryUrl (the company's public registry page: use it as the evidence URL for what the registry told you).",
         schema: z.object({
           query: z.string().trim().min(2).max(120),
           sizeBands: z.array(z.string()).max(8).optional(),
@@ -242,7 +243,7 @@ async function collectByResearch(ctx: Ctx, pipeline: Pipeline, wanted: number, s
       }),
       localTool({
         name: "registry_lookalikes",
-        description: "French organizations with the same sector code and headcount as a reference company.",
+        description: "French organizations with the same sector code and headcount as a reference company, each with its registryUrl (use it as the evidence URL).",
         schema: z.object({ reference: z.string().trim().min(2).max(120), departments: z.array(z.string().max(3)).max(10).optional() }),
         run: async ({ reference, departments }) => JSON.stringify(await registryLookalikes(db, reference, { departments })),
       }),

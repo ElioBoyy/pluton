@@ -5,6 +5,8 @@ export type CompanyRecord = {
   domain?: string;
   /** French SIREN when the company comes from the registry. */
   siren?: string;
+  /** Its public page on annuaire-entreprises.data.gouv.fr, the registry's own site: what evidence links to. */
+  registryUrl?: string;
   industry?: string;
   industryCode?: string;
   sizeBand?: string;

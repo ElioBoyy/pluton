@@ -225,6 +225,11 @@ export function LeadDrawer({
                           <span className="min-w-0 flex-1 break-words">{e.label}</span>
                           <ArrowSquareOut size={13} className="mt-0.5 shrink-0 text-muted" />
                         </a>
+                        {pappersUrl(e.url) && (
+                          <a href={pappersUrl(e.url)!} target="_blank" rel="noreferrer" className="shrink-0 py-2.5 pl-3 text-xs text-accent hover:underline">
+                            Pappers
+                          </a>
+                        )}
                       </Row>
                     ) : (
                       <Row key={i}>
@@ -582,5 +587,11 @@ function IconButton({ icon: IconCmp, label, onClick }: { icon: Icon; label: stri
     </button>
   );
 }
+
+/** A registry page (annuaire-entreprises.data.gouv.fr) also opens on Pappers, by the same SIREN. */
+const pappersUrl = (url: string) => {
+  const siren = url.match(/annuaire-entreprises\.data\.gouv\.fr\/entreprise\/(\d{9})\b/)?.[1];
+  return siren ? `https://www.pappers.fr/entreprise/${siren}` : null;
+};
 
 const withProtocol = (url: string) => (/^https?:\/\//.test(url) ? url : `https://${url}`);
