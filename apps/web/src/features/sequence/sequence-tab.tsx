@@ -1,13 +1,14 @@
 import {
-  ArrowDown,
   ChatCircleText,
   CheckCircle,
   Circle,
   CircleNotch,
+  Clock,
   Copy,
   EnvelopeSimple,
   Eye,
   GearSix,
+  GitFork,
   Heart,
   LinkedinLogo,
   Pause,
@@ -16,13 +17,12 @@ import {
   Users,
   UserCheck,
   Sparkle,
-  Warning,
   type Icon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Inspector } from "../../components/inspector.tsx";
 import { Button, Group, Section, Stat } from "../../components/ui.tsx";
@@ -183,38 +183,79 @@ function Canvas({ data, onOpen, selected }: { data: Data; onOpen: (s: Step) => v
   const firstMessage = steps.findIndex((s) => s.kind === "message");
 
   return (
-    <div className="flex flex-col items-center bg-panel px-4 py-6">
-      <Pill>{t("canvas.start")}</Pill>
-      {steps.map((s, i) => (
-        <div key={s.id} className="flex w-full flex-col items-center">
-          <Connector
-            label={
-              i === firstMessage && inviteIndex >= 0
-                ? t("canvas.acceptedWait", { hours: s.delayHours })
-                : i === 0
-                  ? delayLabel(s.delayHours)
-                  : s.kind === "message"
-                    ? t("canvas.ifNoReply", { delay: delayLabel(s.delayHours) })
-                    : delayLabel(s.delayHours)
-            }
-          />
-          {i === inviteIndex && (
-            <>
-              <div className="w-full max-w-md bg-system-orange/10 px-4 py-2.5 text-center text-sm">
-                <span className="inline-flex items-center gap-1.5 font-medium">
-                  <Warning size={14} weight="fill" className="text-system-orange" /> {t("canvas.alreadyConnected")}
-                </span>
-                <span className="mt-0.5 block text-xs text-muted">{t("canvas.alreadyConnectedHint")}</span>
-              </div>
-              <Connector label={t("canvas.notConnected")} />
-            </>
-          )}
-          <Node step={s} count={atStep(s.id)} selected={selected === s.id} onClick={() => onOpen(s)} expiry={s.kind === "invite" ? data.campaign.inviteExpiryDays : undefined} />
-        </div>
-      ))}
-      <Connector />
-      <Pill>{t("canvas.end")}</Pill>
-    </div>
+    // A timeline in a card: one rail down the left, each step a row on it, the waits between them.
+    <Group className="px-2 py-3">
+      <ol aria-label={t("tab.title")}>
+        <Terminal label={t("canvas.start")} />
+        {steps.map((s, i) => (
+          <Fragment key={s.id}>
+            <Wait
+              label={
+                i === firstMessage && inviteIndex >= 0
+                  ? t("canvas.acceptedWait", { hours: s.delayHours })
+                  : i === 0
+                    ? delayLabel(s.delayHours)
+                    : s.kind === "message"
+                      ? t("canvas.ifNoReply", { delay: delayLabel(s.delayHours) })
+                      : delayLabel(s.delayHours)
+              }
+            />
+            {i === inviteIndex && (
+              <>
+                <li className="flex items-start gap-3 px-2 py-1">
+                  <Rail>
+                    <span className="flex size-7 items-center justify-center text-system-orange">
+                      <GitFork size={15} weight="bold" />
+                    </span>
+                  </Rail>
+                  <span className="min-w-0 flex-1 py-1">
+                    <span className="block text-sm font-medium">{t("canvas.alreadyConnected")}</span>
+                    <span className="block text-xs text-muted">{t("canvas.alreadyConnectedHint")}</span>
+                  </span>
+                </li>
+                <Wait label={t("canvas.notConnected")} />
+              </>
+            )}
+            <li>
+              <Node step={s} count={atStep(s.id)} selected={selected === s.id} onClick={() => onOpen(s)} expiry={s.kind === "invite" ? data.campaign.inviteExpiryDays : undefined} />
+            </li>
+          </Fragment>
+        ))}
+        <Wait />
+        <Terminal label={t("canvas.end")} />
+      </ol>
+    </Group>
+  );
+}
+
+/** The rail's column: as wide as a step's icon, everything in it centred on the line. */
+const Rail = ({ children }: { children: ReactNode }) => <span className="flex w-7 shrink-0 flex-col items-center self-stretch">{children}</span>;
+
+/** A stretch of the rail between two steps, with how long Pluton waits there. */
+function Wait({ label }: { label?: string }) {
+  return (
+    <li aria-hidden={!label} className="flex min-h-7 items-stretch gap-3 px-2">
+      <Rail>
+        <span className="my-1 w-0.5 flex-1 rounded-full bg-line-strong" />
+      </Rail>
+      {label && (
+        <span className="flex items-center gap-1.5 text-xs text-muted">
+          <Clock size={12} /> {label}
+        </span>
+      )}
+    </li>
+  );
+}
+
+/** Where the campaign starts and ends: a dot on the rail and a quiet label. */
+function Terminal({ label }: { label: string }) {
+  return (
+    <li className="flex items-center gap-3 px-2 py-0.5">
+      <Rail>
+        <span className="my-1.5 size-2 rounded-full bg-line-strong" />
+      </Rail>
+      <span className="text-xs font-medium text-muted">{label}</span>
+    </li>
   );
 }
 
@@ -234,38 +275,27 @@ function Node({ step, count, selected, onClick, expiry }: { step: Step; count: n
   return (
     <button
       onClick={onClick}
+      aria-current={selected || undefined}
       className={cn(
-        // A raised card on the flow; the open step gets the accent ring, an off step fades back.
-        "flex w-full max-w-md items-center gap-3 bg-canvas px-4 py-3 text-left transition-[box-shadow,opacity] duration-150",
-        selected ? "ring-2 ring-accent" : "hover:ring-1 hover:ring-line-strong",
+        // A row on the rail, as a sidebar item: the open step is tinted, an off step fades back.
+        "flex w-full items-center gap-3 rounded-[10px] px-2 py-1.5 text-left transition-colors duration-150",
+        selected ? "bg-(--gg-accent-soft)" : "hover:bg-control-hover",
         !step.enabled && "opacity-50",
       )}
     >
-      <span className="flex size-8 rounded-lg shrink-0 items-center justify-center bg-control text-muted">
-        <IconCmp size={16} />
+      <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full", selected ? "bg-accent text-on-accent" : "bg-control text-ink")}>
+        <IconCmp size={14} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
           <span className="truncate">{step.label}</span>
-          {step.kind === "message" && step.mode !== "template" && <Sparkle size={11} weight="fill" className="text-accent" />}
+          {step.kind === "message" && step.mode !== "template" && <Sparkle size={11} weight="fill" className="shrink-0 text-accent" />}
           {!step.enabled && <span className="text-xs font-normal text-muted">· {t("node.off")}</span>}
         </span>
         {sub && <span className="block truncate text-xs text-muted">{sub}</span>}
       </span>
-      {count > 0 && <span className="inline-flex rounded-full h-5 shrink-0 items-center bg-accent/15 px-2 text-xs font-medium text-accent tabular-nums">{count}</span>}
+      {count > 0 && <span className="inline-flex h-5 shrink-0 items-center rounded-full bg-accent/15 px-2 text-xs font-medium text-accent tabular-nums">{count}</span>}
     </button>
-  );
-}
-
-const Pill = ({ children }: { children: ReactNode }) => <span className="inline-flex rounded-full h-6 items-center bg-control px-3 text-xs font-medium text-muted">{children}</span>;
-
-function Connector({ label }: { label?: string }) {
-  return (
-    <div className="flex flex-col items-center py-1 text-muted">
-      <span className="h-3 w-px bg-line-strong" />
-      {label && <span className="my-0.5 text-[11px] text-muted">{label}</span>}
-      <ArrowDown size={11} />
-    </div>
   );
 }
 
