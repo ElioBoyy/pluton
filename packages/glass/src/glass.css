@@ -698,6 +698,12 @@
   inherits: false;
   initial-value: 0deg;
 }
+/* How much of the light's tail is drawn, 0 (just its head) to 1: it grows out as the light starts. */
+@property --gg-comet {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
 .gg-ai-edge {
   position: relative;
 }
@@ -711,10 +717,10 @@
   corner-shape: inherit;
   background: conic-gradient(
     from var(--gg-turn),
-    transparent 0 55%,
-    rgb(110 122 255 / 0.9) 70%,
-    var(--gg-accent) 80%,
-    rgb(160 170 255 / 0.95) 86%,
+    transparent 0 calc(95% - 40% * var(--gg-comet)),
+    rgb(110 122 255 / 0.9) calc(95% - 25% * var(--gg-comet)),
+    var(--gg-accent) calc(95% - 15% * var(--gg-comet)),
+    rgb(160 170 255 / 0.95) calc(95% - 9% * var(--gg-comet)),
     transparent 95%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -722,19 +728,26 @@
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 400ms var(--gg-ease);
+  transition:
+    opacity 400ms var(--gg-ease),
+    --gg-comet 0ms linear 400ms;
   animation: gg-turn 2.4s linear infinite;
   animation-play-state: paused;
 }
+/* Starting: the light grows out from its head and fades in while its turn gathers speed (aiStart). */
 .gg-ai-edge[data-ai="working"]::after {
   opacity: 1;
+  --gg-comet: 1;
   animation-play-state: running;
-  transition-duration: 700ms;
+  transition:
+    opacity 200ms ease-out,
+    --gg-comet 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* Ending: the light keeps turning while it fades, so it never freezes in place. */
 .gg-ai-edge[data-ai="settling"]::after {
+  --gg-comet: 1;
   animation-play-state: running;
-  transition-duration: 380ms;
+  transition: opacity 380ms var(--gg-ease);
 }
 @keyframes gg-turn {
   to {
