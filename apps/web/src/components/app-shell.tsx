@@ -216,8 +216,10 @@ export function AppShell() {
           ref={setInspector}
           className={cn(
             "flex shrink-0 flex-col overflow-hidden rounded-[calc(var(--gg-r-window)-8px)] [corner-shape:squircle] empty:hidden",
+            // One width for every inspector, a little wider than the sidebar it mirrors; pages fill it.
+            "w-80 2xl:w-96 max-xl:w-[min(24rem,calc(100vw-16px))]",
             "xl:relative xl:m-2 xl:ml-0 xl:bg-control xl:shadow-[inset_0_0_0_1px_var(--gg-rim-low)]",
-            "max-xl:drawer max-xl:fixed max-xl:inset-y-2 max-xl:right-2 max-xl:z-40 max-xl:max-w-[calc(100vw-16px)] max-xl:bg-(--gg-material-thick) max-xl:shadow-window max-xl:backdrop-blur-2xl",
+            "max-xl:drawer max-xl:fixed max-xl:inset-y-2 max-xl:right-2 max-xl:z-40 max-xl:bg-(--gg-material-thick) max-xl:shadow-window max-xl:backdrop-blur-2xl",
           )}
         />
         </div>

@@ -36,7 +36,7 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
   return (
     // A macOS inspector: a fixed header with the panel's one action, the suggestions scrolling below.
     <Inspector>
-      <section className="flex h-full w-[340px] max-w-full flex-col 2xl:w-[380px]" aria-label={t("proposals.title")}>
+      <section className="flex h-full w-full flex-col" aria-label={t("proposals.title")}>
         <div className="px-4 pt-5 pb-2">
           <div className="flex items-center gap-2">
             <Sparkle size={15} weight="fill" className="text-system-pink" />
@@ -216,7 +216,7 @@ function ProposalCard({ proposal: p, items }: { proposal: Proposal; items: Brain
             onChange={(e) => setAnswer(e.target.value)}
             rows={2}
             placeholder={t("proposals.answerPlaceholder")}
-            className="block w-full resize-none border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-faint transition-[border-color,box-shadow] duration-150 ease-out focus:border-accent/60 focus:focus-ring"
+            className="block w-full resize-none rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-faint transition-shadow duration-150 ease-out focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" disabled={busy} onClick={() => reject.mutate({ id: p.id })}>

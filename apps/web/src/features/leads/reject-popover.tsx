@@ -94,7 +94,7 @@ export function RejectPopover({
         placeholder={t("reject.placeholder")}
         rows={2}
         maxLength={1000}
-        className="mt-3 block w-full resize-none border border-line bg-canvas px-2.5 py-1.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+        className="mt-3 block w-full resize-none rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-1.5 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"
       />
       <div className="mt-3 flex justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>

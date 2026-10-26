@@ -93,7 +93,7 @@ function OnboardingForm() {
               rows={3}
               autoFocus
               placeholder={t("form.buildingPlaceholder")}
-              className="block w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+              className="block w-full resize-none rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"
             />
           </Field>
         ) : (
@@ -121,7 +121,7 @@ function OnboardingForm() {
               onChange={(e) => setContext(e.target.value)}
               rows={4}
               placeholder={t("form.contextPlaceholder")}
-              className={cn("mt-3", "block w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring")}
+              className={cn("mt-3", "block w-full resize-none rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]")}
             />
           )}
         </div>
@@ -178,8 +178,8 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
   return (
     // On phones the graph is a band on top and the conversation fills the rest; the cards open full screen.
     <div className="flex h-full max-md:flex-col">
-      {/* The same sidebar as the rest of the app. */}
-      <aside className="flex w-[300px] shrink-0 flex-col overflow-hidden bg-sidebar max-md:min-h-0 max-md:w-full max-md:flex-1">
+      {/* The same sidebar as the rest of the app: a pane floating inside the window. */}
+      <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-[calc(var(--gg-r-window)-8px)] bg-control shadow-[inset_0_0_0_1px_var(--gg-rim-low)] [corner-shape:squircle] md:m-2 md:mr-0 max-md:min-h-0 max-md:w-full max-md:flex-1 max-md:rounded-none max-md:shadow-none">
         <div className="flex h-12 items-center px-4 pt-2">
           <PlutonLogo className="h-[18px]" />
         </div>

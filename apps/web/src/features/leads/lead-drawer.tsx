@@ -95,7 +95,7 @@ export function LeadDrawer({
 
   return (
     <Inspector>
-      <section className="flex h-full w-[min(520px,calc(100vw-16px))] flex-col" aria-label={t("drawer.label")}>
+      <section className="flex h-full w-full flex-col" aria-label={t("drawer.label")}>
         <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
           <div className="flex min-w-0 items-center gap-3">
             {onStep && (
@@ -440,7 +440,7 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
         placeholder={t("note.placeholder")}
         maxLength={2000}
         aria-label={t("note.label")}
-        className="h-7 min-w-0 flex-1 border border-line bg-canvas px-2.5 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+        className="h-7 min-w-0 flex-1 rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 text-sm text-ink outline-none transition-shadow duration-150 ease-out placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"
       />
       <Button variant="ghost" disabled={!text.trim() || add.isPending}>
         {tc("add")}

@@ -264,7 +264,7 @@ function StepDraft({
           onChange={(e) => setText(e.target.value)}
           onBlur={() => text.trim() && text !== draft.text && edit.mutate({ draftId: draft.id, text })}
           rows={Math.min(8, Math.max(3, Math.ceil(text.length / 70)))}
-          className="block w-full resize-y border border-line bg-canvas px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent/60 focus:focus-ring"
+          className="block w-full resize-y rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm leading-relaxed text-ink outline-none transition-shadow duration-150 focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"
         />
       )}
       {draft?.origin === "edited" && <p className="mt-1.5 text-xs text-muted">{t("add.editedByYou")}</p>}

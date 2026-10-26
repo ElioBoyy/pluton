@@ -24,6 +24,7 @@ import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useState, type ReactNode } from "react";
 import type { AppRouter } from "@pluton/server/router";
+import { Inspector } from "../../components/inspector.tsx";
 import { Button, Group, Section, Stat } from "../../components/ui.tsx";
 import { toast } from "../../components/toast.tsx";
 import { getLocale, useT } from "../../i18n/index.ts";
@@ -396,17 +397,19 @@ function EnrolledPanel({ data, onClose }: { data: Data; onClose: () => void }) {
   const trpc = useTRPC();
   const list = useQuery(trpc.campaigns.enrollments.list.queryOptions({ campaignId: data.campaign.id }, { refetchInterval: 15_000 }));
   return (
-    <aside className="glass fixed top-3 right-3 bottom-3 z-40 flex w-[min(620px,calc(100vw-24px))] flex-col" aria-label={t("enrolled.title")}>
-      <PanelHeader title={list.data ? t("enrolled.titleCount", { count: list.data.length }) : t("enrolled.title")} onClose={onClose} />
-      <div className="flex-1 overflow-y-auto px-4 pt-1 pb-6">
-        {list.data?.length === 0 && <p className="py-8 text-center text-sm text-muted">{t("enrolled.empty")}</p>}
-        <ul className="flex flex-col gap-2">
-          {(list.data ?? []).map((e) => (
-            <EnrolledRow key={e.id} e={e} />
-          ))}
-        </ul>
-      </div>
-    </aside>
+    <Inspector>
+      <section className="flex h-full w-full flex-col" aria-label={t("enrolled.title")}>
+        <PanelHeader title={list.data ? t("enrolled.titleCount", { count: list.data.length }) : t("enrolled.title")} onClose={onClose} />
+        <div className="flex-1 overflow-y-auto px-4 pt-1 pb-6">
+          {list.data?.length === 0 && <p className="py-8 text-center text-sm text-muted">{t("enrolled.empty")}</p>}
+          <ul className="flex flex-col gap-2">
+            {(list.data ?? []).map((e) => (
+              <EnrolledRow key={e.id} e={e} />
+            ))}
+          </ul>
+        </div>
+      </section>
+    </Inspector>
   );
 }
 
@@ -471,7 +474,7 @@ function EnrolledRow({ e }: { e: Enrollment }) {
             onChange={(ev) => setReply(ev.target.value)}
             rows={3}
             placeholder={t("enrolled.replyPlaceholder")}
-            className="block w-full resize-y border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"
+            className="block w-full resize-y rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"
           />
           <Button className="self-end" disabled={!reply.trim() || logReply.isPending} onClick={() => logReply.mutate({ enrollmentId: e.id, text: reply })}>
             {logReply.isPending && <CircleNotch size={12} className="animate-spin" />} {t("enrolled.logReply")}

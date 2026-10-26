@@ -53,7 +53,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
             onChange={(e) => setDraft(e.target.value)}
             rows={9}
             autoFocus
-            className={"mt-3 leading-relaxed " + "block w-full resize-none border border-line bg-canvas px-2.5 py-2 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-faint focus:border-accent/60 focus:focus-ring"}
+            className={"mt-3 leading-relaxed " + "block w-full resize-none rounded-md bg-field shadow-[inset_0_0_0_1px_var(--gg-edge)] px-2.5 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-faint focus:shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)]"}
           />
         ) : (
           <p className="mt-3 text-sm leading-relaxed text-muted">{card.statement}</p>
@@ -168,7 +168,7 @@ function SelectCard({
                   if (e.key === "Escape") setDraft(null);
                 }}
                 placeholder={t("card.typeAndEnter")}
-                className="border border-accent/60 bg-canvas px-3 py-3 text-sm text-ink outline-none focus-ring placeholder:text-faint"
+                className="rounded-md bg-field px-3 py-3 text-sm text-ink shadow-[inset_0_0_0_1px_var(--gg-edge),0_0_0_3px_var(--gg-accent-soft),0_0_0_1px_var(--gg-accent)] outline-none placeholder:text-faint"
               />
             ))}
         </div>

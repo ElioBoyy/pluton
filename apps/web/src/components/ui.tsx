@@ -163,7 +163,8 @@ export function Row({
       )}
     >
       {(label || description) && (
-        <div className="min-w-[min(12rem,100%)] flex-1">
+        // In a narrow card (an inspector), a bare label keeps its value beside it; one with a line of text below doesn't.
+        <div className={cn("min-w-[min(12rem,100%)] flex-1", !description && "@max-[22rem]:min-w-[min(5rem,100%)]")}>
           {label && <div className="text-sm">{label}</div>}
           {description && <div className="mt-0.5 text-xs text-muted">{description}</div>}
         </div>
