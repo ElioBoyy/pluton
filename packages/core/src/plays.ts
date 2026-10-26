@@ -3,24 +3,25 @@ import {
   activityEvents,
   and,
   count,
-  gte,
+  dayOf,
+  type Db,
   desc,
   eq,
+  type Evidence,
+  gte,
   inArray,
+  type LeadFindingRun,
   leadFindingRuns,
   leads,
   ne,
   people,
-  PIPELINES,
-  plays,
-  sql,
-  type Db,
-  type Evidence,
-  type LeadFindingRun,
   type Pipeline,
+  PIPELINES,
   type Play,
-  type RunTrigger,
+  plays,
   type RunReport,
+  type RunTrigger,
+  sql,
 } from "@pluton/db";
 import { createHold, planReservation } from "./credits.ts";
 import { getSetting } from "@pluton/db";
@@ -322,9 +323,9 @@ export async function leadsPerDay(db: Db, playId: string | undefined, workspaceI
   if (playId) where.push(eq(leads.playId, playId));
   return db
     .select({
-      day: sql<string>`strftime('%Y-%m-%d', ${leads.createdAt} / 1000, 'unixepoch', 'localtime')`,
-      qualified: sql<number>`sum(case when ${leads.stage} = 'qualified' then 1 else 0 end)`,
-      review: sql<number>`sum(case when ${leads.stage} = 'needs_review' then 1 else 0 end)`,
+      day: dayOf(leads.createdAt),
+      qualified: sql<number>`sum(case when ${leads.stage} = 'qualified' then 1 else 0 end)`.mapWith(Number),
+      review: sql<number>`sum(case when ${leads.stage} = 'needs_review' then 1 else 0 end)`.mapWith(Number),
     })
     .from(leads)
     .where(and(...where))

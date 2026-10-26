@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Db } from "./index.ts";
-import { creditEntries, type CostPurpose, type CreditEntry } from "./schema.ts";
+import type { CostPurpose, CreditEntry } from "./schema.ts";
+import { creditEntries } from "./tables.ts";
 
 /**
  * Who pays for the calls made inside a job or request. The worker opens a scope per job and the

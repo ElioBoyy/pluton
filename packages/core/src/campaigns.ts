@@ -1,38 +1,41 @@
 import {
-  ENDED_ENROLLMENT,
   and,
   asc,
+  type Campaign,
   campaigns,
+  type CampaignStep,
   count,
+  type Db,
   desc,
+  ENDED_ENROLLMENT,
+  type Enrollment,
   enrollments,
+  type EnrollmentStatus,
   eq,
+  gt,
   gte,
   inArray,
   isNotNull,
   isNull,
   leads,
+  lt,
   lte,
+  type MessageDraft,
   messageDrafts,
   ne,
   notInArray,
+  or,
+  type OutreachAction,
   outreachActions,
+  type OutreachChannel,
   people,
+  type Person,
   plays,
   replies,
-  senders,
-  sql,
-  type Campaign,
-  type CampaignStep,
-  type Db,
-  type Enrollment,
-  type EnrollmentStatus,
-  type MessageDraft,
-  type OutreachAction,
-  type OutreachChannel,
-  type Person,
   type Sender,
+  senders,
   type SendWindow,
+  sql,
 } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import { recordActivity } from "./events.ts";
@@ -714,14 +717,14 @@ export async function campaignStats(db: Db, campaignId: string) {
     .from(enrollments)
     .where(and(eq(enrollments.campaignId, campaignId), eq(enrollments.connected, true)))) as [{ n: number }];
   const replyRows = await db
-    .select({ label: replies.label, n: sql<number>`count(distinct ${replies.enrollmentId})` })
+    .select({ label: replies.label, n: sql<number>`count(distinct ${replies.enrollmentId})`.mapWith(Number) })
     .from(replies)
     .innerJoin(enrollments, eq(enrollments.id, replies.enrollmentId))
     .where(eq(enrollments.campaignId, campaignId))
     .groupBy(replies.label);
   const repliesTotal = replyRows.reduce((t, r) => t + Number(r.n), 0);
   const contacted = (actions.find((a) => a.kind === "message")?.n ?? 0) > 0 ? (await db
-    .select({ n: sql<number>`count(distinct ${outreachActions.enrollmentId})` })
+    .select({ n: sql<number>`count(distinct ${outreachActions.enrollmentId})`.mapWith(Number) })
     .from(outreachActions)
     .innerJoin(enrollments, eq(enrollments.id, outreachActions.enrollmentId))
     .where(and(eq(enrollments.campaignId, campaignId), eq(outreachActions.status, "done"), eq(outreachActions.kind, "message"))))[0]!.n : 0;
@@ -843,8 +846,8 @@ export async function enrollmentsToPoll(db: Db, now = new Date(), limit = 20) {
         eq(senders.status, "connected"),
         isNotNull(enrollments.chatId),
         inArray(enrollments.status, ["message_sent", "invite_accepted", "completed"]),
-        sql`(${enrollments.lastReplyCheckAt} is null or ${enrollments.lastReplyCheckAt} < ${staleBefore.getTime()})`,
-        sql`(${enrollments.endedAt} is null or ${enrollments.endedAt} > ${now.getTime() - 14 * 24 * HOUR})`,
+        or(isNull(enrollments.lastReplyCheckAt), lt(enrollments.lastReplyCheckAt, staleBefore)),
+        or(isNull(enrollments.endedAt), gt(enrollments.endedAt, new Date(now.getTime() - 14 * 24 * HOUR))),
       ),
     )
     .limit(limit);

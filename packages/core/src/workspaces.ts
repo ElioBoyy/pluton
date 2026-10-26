@@ -8,6 +8,7 @@ import {
   copyWorkspaceSettings,
   count,
   currentCostScope,
+  type Db,
   eq,
   HOSTED,
   integrations,
@@ -16,11 +17,11 @@ import {
   onboardingSessions,
   plays,
   refreshSettings,
+  rowExists,
   saveSetting,
   sql,
-  workspaces,
-  type Db,
   type Workspace,
+  workspaces,
 } from "@pluton/db";
 import { configuredAiClients } from "./ai-clients.ts";
 
@@ -162,7 +163,7 @@ export async function updateWorkspace(db: Db, id: string, revision: number, patc
 
 /** The sidebar's "Get started" steps, each done once the workspace shows it happened. */
 export async function getStartedChecklist(db: Db, workspaceId: string) {
-  const exists = async (query: ReturnType<typeof sql>) => Boolean((await db.get<{ n: number }>(sql`select exists(${query}) as n`))?.n);
+  const exists = (query: ReturnType<typeof sql>) => rowExists(db, query);
   const [reviewedLead, createdPlay, editedBrain, askedAgent, connectedAi] = await Promise.all([
     exists(sql`select 1 from ${leadFeedback} where ${leadFeedback.workspaceId} = ${workspaceId}`),
     exists(sql`select 1 from ${plays} where ${plays.workspaceId} = ${workspaceId} and ${plays.pipeline} != 'waterfall'`),

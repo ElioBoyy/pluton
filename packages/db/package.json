@@ -8,14 +8,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate": "drizzle-kit generate",
+    "generate": "drizzle-kit generate && python3 scripts/pg_schema.py && drizzle-kit generate --config drizzle.pg.config.ts",
     "migrate": "tsx src/migrate-cli.ts",
     "typecheck": "tsc"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "@pluton/i18n": "workspace:*",
-    "drizzle-orm": "^0.45.4"
+    "drizzle-orm": "^0.45.4",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

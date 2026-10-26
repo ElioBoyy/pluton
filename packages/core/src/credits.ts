@@ -1,7 +1,12 @@
 import {
   and,
+  type BudgetSettings,
+  COST_PURPOSES,
+  type CostPurpose,
   creditEntries,
   creditHolds,
+  dayOf,
+  type Db,
   desc,
   eq,
   gte,
@@ -11,16 +16,12 @@ import {
   lt,
   ne,
   onCostRecorded,
-  plays,
-  sql,
-  workspaces,
-  COST_PURPOSES,
-  type BudgetSettings,
-  type CostPurpose,
-  type Db,
   type Play,
+  plays,
   type RunTrigger,
+  sql,
   type Workspace,
+  workspaces,
 } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import { recordActivity } from "./events.ts";
@@ -120,8 +121,8 @@ async function spentSince(db: Db, workspaceId: string, since: Date, until?: Date
   if (until) where.push(lt(creditEntries.createdAt, until));
   const [row] = await db
     .select({
-      billed: sql<number>`coalesce(sum(case when ${creditEntries.billed} then ${creditEntries.costMicroUsd} else 0 end), 0)`,
-      unbilled: sql<number>`coalesce(sum(case when ${creditEntries.billed} then 0 else ${creditEntries.costMicroUsd} end), 0)`,
+      billed: sql<number>`coalesce(sum(case when ${creditEntries.billed} then ${creditEntries.costMicroUsd} else 0 end), 0)`.mapWith(Number),
+      unbilled: sql<number>`coalesce(sum(case when ${creditEntries.billed} then 0 else ${creditEntries.costMicroUsd} end), 0)`.mapWith(Number),
     })
     .from(creditEntries)
     .where(and(...where));
@@ -131,7 +132,7 @@ async function spentSince(db: Db, workspaceId: string, since: Date, until?: Date
 /** Billed spend of one run so far. */
 export async function runSpend(db: Db, runId: string) {
   const [row] = await db
-    .select({ n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)` })
+    .select({ n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
     .from(creditEntries)
     .where(and(eq(creditEntries.runId, runId), eq(creditEntries.billed, true)));
   return Number(row?.n ?? 0);
@@ -315,12 +316,12 @@ export async function estimateRun(db: Db, playId: string) {
   if (!play) throw new Error("Play not found");
   const perLead = async (where: ReturnType<typeof eq>) => {
     const [cost] = await db
-      .select({ n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)` })
+      .select({ n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
       .from(creditEntries)
       .innerJoin(leadFindingRuns, eq(leadFindingRuns.id, creditEntries.runId))
       .where(and(where, eq(creditEntries.billed, true)));
     const [found] = await db
-      .select({ n: sql<number>`count(*)` })
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
       .from(leads)
       .innerJoin(leadFindingRuns, eq(leadFindingRuns.id, leads.runId))
       .where(and(where, ne(leads.stage, "disqualified")));
@@ -344,16 +345,16 @@ export type UsageRange = { from: Date; to: Date };
 
 export async function usageReport(db: Db, workspaceId: string, range: UsageRange) {
   const inRange = and(eq(creditEntries.workspaceId, workspaceId), gte(creditEntries.createdAt, range.from), lt(creditEntries.createdAt, range.to));
-  const billed = sql<number>`coalesce(sum(case when ${creditEntries.billed} then ${creditEntries.costMicroUsd} else 0 end), 0)`;
-  const unbilled = sql<number>`coalesce(sum(case when ${creditEntries.billed} then 0 else ${creditEntries.costMicroUsd} end), 0)`;
-  const calls = sql<number>`count(*)`;
+  const billed = sql<number>`coalesce(sum(case when ${creditEntries.billed} then ${creditEntries.costMicroUsd} else 0 end), 0)`.mapWith(Number);
+  const unbilled = sql<number>`coalesce(sum(case when ${creditEntries.billed} then 0 else ${creditEntries.costMicroUsd} end), 0)`.mapWith(Number);
+  const calls = sql<number>`count(*)`.mapWith(Number);
   const num = <T extends Record<string, unknown>>(rows: T[]) =>
     rows.map((r) => ({ ...r, billed: Number(r.billed), unbilled: Number(r.unbilled), calls: Number(r.calls) }));
 
   const [totals] = num(await db.select({ billed, unbilled, calls }).from(creditEntries).where(inRange));
   const byDay = num(
     await db
-      .select({ day: sql<string>`strftime('%Y-%m-%d', ${creditEntries.createdAt} / 1000, 'unixepoch', 'localtime')`, billed, unbilled, calls })
+      .select({ day: dayOf(creditEntries.createdAt), billed, unbilled, calls })
       .from(creditEntries)
       .where(inRange)
       .groupBy(sql`1`)
@@ -363,13 +364,13 @@ export async function usageReport(db: Db, workspaceId: string, range: UsageRange
   const bySource = num(await db.select({ source: creditEntries.source, billed, unbilled, calls }).from(creditEntries).where(inRange).groupBy(creditEntries.source));
   const playCosts = num(
     await db
-      .select({ playId: creditEntries.playId, billed, unbilled, calls, runs: sql<number>`count(distinct ${creditEntries.runId})` })
+      .select({ playId: creditEntries.playId, billed, unbilled, calls, runs: sql<number>`count(distinct ${creditEntries.runId})`.mapWith(Number) })
       .from(creditEntries)
       .where(and(inRange, sql`${creditEntries.playId} is not null`))
       .groupBy(creditEntries.playId),
   );
   const playLeads = await db
-    .select({ playId: leads.playId, n: sql<number>`count(*)` })
+    .select({ playId: leads.playId, n: sql<number>`count(*)`.mapWith(Number) })
     .from(leads)
     .where(and(eq(leads.workspaceId, workspaceId), ne(leads.stage, "disqualified"), gte(leads.createdAt, range.from), lt(leads.createdAt, range.to)))
     .groupBy(leads.playId);
@@ -450,8 +451,8 @@ export async function playConsumption(db: Db, playId: string) {
     if (since) where.push(gte(creditEntries.createdAt, since));
     const [row] = await db
       .select({
-        billed: sql<number>`coalesce(sum(case when ${creditEntries.billed} then ${creditEntries.costMicroUsd} else 0 end), 0)`,
-        unbilled: sql<number>`coalesce(sum(case when ${creditEntries.billed} then 0 else ${creditEntries.costMicroUsd} end), 0)`,
+        billed: sql<number>`coalesce(sum(case when ${creditEntries.billed} then ${creditEntries.costMicroUsd} else 0 end), 0)`.mapWith(Number),
+        unbilled: sql<number>`coalesce(sum(case when ${creditEntries.billed} then 0 else ${creditEntries.costMicroUsd} end), 0)`.mapWith(Number),
       })
       .from(creditEntries)
       .where(and(...where));
@@ -461,7 +462,7 @@ export async function playConsumption(db: Db, playId: string) {
     sum(period.start),
     sum(),
     db
-      .select({ n: sql<number>`count(*)` })
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
       .from(leads)
       .where(and(eq(leads.playId, playId), ne(leads.stage, "disqualified"), inArray(leads.stage, ["qualified", "needs_review"]))),
   ]);
