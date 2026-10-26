@@ -175,9 +175,12 @@ if (mail) {
     { opacity: 0, filter: "blur(10px)", transform: "translateY(6px)" },
     { opacity: 1, filter: "blur(0px)", transform: "none" },
   ];
-  const shown = () => [...$$(".mail-body, .mail-subject", mail), ...$$(".gg-window__icon svg", mail)].filter(
-    (el) => !(el as HTMLElement).hidden && getComputedStyle(el).display !== "none",
-  );
+  // What changes on screen: the words, plus the channel icon only when the channel itself changed.
+  const shown = (withIcon: boolean) =>
+    [...$$(".mail-body, .mail-subject", mail), ...(withIcon ? $$(".gg-window__icon svg", mail) : [])].filter(
+      (el) => !(el as HTMLElement).hidden && getComputedStyle(el).display !== "none",
+    );
+  let channelShown = mail.dataset.channel;
   let run = 0;
   // State changes wait on a timer, not on the animation, so they land even where animations are throttled.
   const after = (n: number) => new Promise((done) => setTimeout(done, ms(n)));
@@ -186,7 +189,9 @@ if (mail) {
   const render = async () => {
     const id = ++run;
     const { channel, lang } = mail.dataset;
-    const before = shown();
+    const iconChanges = channel !== channelShown;
+    channelShown = channel;
+    const before = shown(iconChanges);
     for (const el of before) el.animate(blurOut, { duration: ms(180), easing: "ease-in", fill: "forwards" });
     await after(180);
     if (id !== run) return;
@@ -196,7 +201,7 @@ if (mail) {
     for (const el of before) el.getAnimations().forEach((a) => a.cancel());
     const to = mail.offsetHeight;
     mail.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: ms(520), easing: EASE });
-    for (const [i, el] of shown().entries())
+    for (const [i, el] of shown(iconChanges).entries())
       el.animate(blurIn, { duration: ms(460), delay: ms(80 + i * 40), easing: EASE, fill: "backwards" });
   };
 
