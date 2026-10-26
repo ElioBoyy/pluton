@@ -94,7 +94,7 @@ export function WorkspaceMenu({ className }: { className?: string }) {
         aria-expanded={open}
         className={cn(
           // The sidebar header: workspace tile, name, and the pop-up chevron, pressable as one control.
-          "flex h-10 min-w-0 flex-1 items-center gap-2.5 px-1.5 text-left transition-[background-color,scale] duration-150 ease-out",
+          "flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-[var(--gg-r-row)] px-1.5 text-left [corner-shape:squircle] transition-[background-color,scale] duration-150 ease-out",
           "hover:bg-raised motion-safe:active:scale-[0.98]",
           open && "bg-selected",
           className,
