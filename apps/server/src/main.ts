@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
@@ -60,10 +61,24 @@ app.use("/rpc/*", async (c, next) => {
 });
 app.use("/rpc/*", trpcServer({ endpoint: "/rpc", router: appRouter, createContext: ({ req }) => ({ db, locale: req.headers.get("x-pluton-locale") }) }));
 
+// Hosted, one server answers for the whole app: the web app's build, and index.html for its routes.
+const webDist = path.resolve(repoRoot, "apps/web/dist");
+if (HOSTED && (await fs.stat(path.join(webDist, "index.html")).catch(() => null))) {
+  const indexHtml = await fs.readFile(path.join(webDist, "index.html"), "utf8");
+  app.use("/assets/*", serveStatic({ root: webDist, onFound: (_path, c) => c.header("Cache-Control", "public, max-age=31536000, immutable") }));
+  app.use("*", serveStatic({ root: webDist }));
+  app.get("*", (c) => (c.req.path.startsWith("/api/") ? c.notFound() : c.html(indexHtml)));
+}
+
 const port = Number(process.env.SERVER_PORT ?? 8787);
-// This machine only: the API has no login of its own, so it must not answer the local network.
-// "localhost" can resolve to either address, so both loopbacks listen (IPv6 only when the machine has it).
-serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, () => console.log(`[server] listening on http://localhost:${port} (MCP at ${MCP_URL})`));
-serve({ fetch: app.fetch, port, hostname: "::1" }).on("error", (error: NodeJS.ErrnoException) => {
-  if (error.code !== "EADDRNOTAVAIL" && error.code !== "EAFNOSUPPORT") throw error;
-});
+if (process.env.SERVER_HOST) {
+  // In a container (hosted), behind the proxy: it listens where the proxy reaches it.
+  serve({ fetch: app.fetch, port, hostname: process.env.SERVER_HOST }, () => console.log(`[server] listening on ${process.env.SERVER_HOST}:${port}`));
+} else {
+  // This machine only: the API has no login of its own, so it must not answer the local network.
+  // "localhost" can resolve to either address, so both loopbacks listen (IPv6 only when the machine has it).
+  serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, () => console.log(`[server] listening on http://localhost:${port} (MCP at ${MCP_URL})`));
+  serve({ fetch: app.fetch, port, hostname: "::1" }).on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code !== "EADDRNOTAVAIL" && error.code !== "EAFNOSUPPORT") throw error;
+  });
+}
