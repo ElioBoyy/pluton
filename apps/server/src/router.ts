@@ -57,7 +57,7 @@ import {
   tailStreamEvents,
   updateWorkspace,
 } from "@pluton/core";
-import { checkClaude, webSearch } from "@pluton/agent";
+import { checkClaude, claudeAccess, webSearch } from "@pluton/agent";
 import { BRAIN_SECTIONS, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, eq, gte, jobs, providerCalls, saveSetting, sql } from "@pluton/db";
 import {
   MissingKeyError,
@@ -443,6 +443,8 @@ const playsRouter = router({
 
 const settingsRouter = router({
   list: publicProcedure.query(() => describeSettings()),
+  /** Whether the agents can reach Claude: the key saved, or this computer's Claude Code signed in. */
+  ai: publicProcedure.query(() => claudeAccess()),
   save: publicProcedure
     .input(z.object({ key: z.string(), value: z.string().max(500).nullable() }))
     .mutation(async ({ ctx, input }) => {

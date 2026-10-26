@@ -12,3 +12,4 @@ export * from "./lead-email.ts";
 export * from "./outreach-writer.ts";
 export * from "./sequence-engine.ts";
 export * from "./copilot.ts";
+export * from "./claude-access.ts";
