@@ -39,152 +39,181 @@ export function wireGlass(root: ParentNode = document) {
   }
 }
 
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** The CSS animation that turns an element's edge light, if it has one. */
+const turnOf = (el: HTMLElement) =>
+  el
+    .getAnimations({ subtree: true })
+    .find((a): a is CSSAnimation => a instanceof CSSAnimation && a.animationName === "gg-turn" && a.effect instanceof KeyframeEffect && a.effect.pseudoElement === "::after");
+
+/** One full turn of the edge light takes this long at full pace (matches `gg-turn` in glass.css). */
+const TURN_SECONDS = 2.4;
+/** Where the light is brightest, as a fraction of the way round its conic gradient. */
+const HEAD = 0.86;
+
 /**
  * Starts the AI's work on an element carrying `gg-ai-edge`: the edge light fades in and its turn
  * gathers speed over the first second instead of starting at full pace.
  */
 export function aiStart(el: HTMLElement) {
   el.dataset.ai = "working";
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const turn = el
-    .getAnimations({ subtree: true })
-    .find((a) => (a.effect as KeyframeEffect | null)?.pseudoElement === "::after" && "animationName" in a && a.animationName === "gg-turn");
+  if (reducedMotion()) return;
+  const turn = turnOf(el);
   if (!turn) return;
   const RAMP = 1100;
   const begun = performance.now();
   turn.playbackRate = 0.05;
   const step = (now: number) => {
-    const t = Math.min(1, (now - begun) / RAMP);
     if (el.dataset.ai !== "working") return;
+    const t = Math.min(1, (now - begun) / RAMP);
     turn.playbackRate = 0.05 + 0.95 * (1 - (1 - t) ** 3); // ease-out cubic
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
 
-/** A point and heading at distance `d` round a rounded rectangle, clockwise from the top-left corner's end. */
-function roundRect(w: number, h: number, r: number) {
-  r = Math.min(r, w / 2, h / 2);
-  const straight = [w - 2 * r, h - 2 * r];
-  const arc = (Math.PI / 2) * r;
-  const perimeter = 2 * straight[0]! + 2 * straight[1]! + 4 * arc;
-  const at = (dist: number) => {
-    let d = ((dist % perimeter) + perimeter) % perimeter;
-    // Top, top-right corner, right, bottom-right, bottom, bottom-left, left, top-left.
-    const corners = [
-      [w - r, r, -90],
-      [w - r, h - r, 0],
-      [r, h - r, 90],
-      [r, r, 180],
-    ] as const;
-    const starts = [
-      [r, 0, 0],
-      [w, r, 90],
-      [w - r, h, 180],
-      [0, h - r, 270],
-    ] as const;
-    for (let side = 0; side < 4; side++) {
-      const len = straight[side % 2]!;
-      const [sx, sy, heading] = starts[side]!;
-      if (d <= len) {
-        const a = (heading * Math.PI) / 180;
-        return { x: sx + Math.cos(a) * d, y: sy + Math.sin(a) * d, angle: heading };
-      }
-      d -= len;
-      if (d <= arc) {
-        const [cx, cy, from] = corners[side]!;
-        const a = from + (d / arc) * 90;
-        const rad = (a * Math.PI) / 180;
-        return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r, angle: heading + (d / arc) * 90 };
-      }
-      d -= arc;
+/**
+ * The element's outline as a polyline, clockwise from the top edge, following its corners as the
+ * browser draws them (circular, or squircle where `corner-shape` is supported), `inset` px inside.
+ */
+function outline(el: HTMLElement, inset: number) {
+  const w = el.offsetWidth;
+  const h = el.offsetHeight;
+  const style = getComputedStyle(el);
+  const r = Math.max(0, Math.min(parseFloat(style.borderTopLeftRadius) || 0, w / 2, h / 2) - inset);
+  // corner-shape computes to superellipse(K) (squircle is K = 2, round is K = 1); the curve is |x|^n + |y|^n = 1 with n = 2^K.
+  const shape = style.getPropertyValue("corner-top-left-shape") || style.getPropertyValue("corner-shape");
+  const k = /squircle/.test(shape) ? 2 : parseFloat(/superellipse\(\s*(-?[\d.]+)/.exec(shape)?.[1] ?? "1");
+  const exponent = 2 ** Math.max(0.5, Math.min(k, 6));
+  const points: [number, number][] = [];
+  const corner = (cx: number, cy: number, from: number) => {
+    for (let i = 0; i <= 24; i++) {
+      const a = ((from + (90 * i) / 24) * Math.PI) / 180;
+      const c = Math.cos(a);
+      const s = Math.sin(a);
+      points.push([cx + Math.sign(c) * Math.abs(c) ** (2 / exponent) * r, cy + Math.sign(s) * Math.abs(s) ** (2 / exponent) * r]);
     }
-    return { x: r, y: 0, angle: 0 };
   };
-  return { perimeter, at };
+  const [left, top, right, bottom] = [inset, inset, w - inset, h - inset];
+  corner(right - r, top + r, -90);
+  corner(right - r, bottom - r, 0);
+  corner(left + r, bottom - r, 90);
+  corner(left + r, top + r, 180);
+  points.push(points[0]!);
+
+  const lengths = [0];
+  for (let i = 1; i < points.length; i++) {
+    const [ax, ay] = points[i - 1]!;
+    const [bx, by] = points[i]!;
+    lengths.push(lengths[i - 1]! + Math.hypot(bx - ax, by - ay));
+  }
+  const perimeter = lengths[lengths.length - 1]!;
+
+  /** The point at distance `dist` round the outline, and the heading there in degrees (0 = right, clockwise). */
+  const at = (dist: number) => {
+    const d = ((dist % perimeter) + perimeter) % perimeter;
+    let i = 1;
+    while (i < lengths.length - 1 && lengths[i]! < d) i++;
+    const [ax, ay] = points[i - 1]!;
+    const [bx, by] = points[i]!;
+    const span = lengths[i]! - lengths[i - 1]! || 1;
+    const f = (d - lengths[i - 1]!) / span;
+    return { x: ax + (bx - ax) * f, y: ay + (by - ay) * f, angle: (Math.atan2(by - ay, bx - ax) * 180) / Math.PI };
+  };
+
+  /** Distance round the outline where a ray from the centre, at `deg` clockwise from up, meets it. */
+  const atBearing = (deg: number) => {
+    const want = (((deg % 360) + 360) % 360) * (Math.PI / 180);
+    let best = Infinity;
+    let found = 0;
+    for (let i = 0; i < 720; i++) {
+      const d = (i / 720) * perimeter;
+      const p = at(d);
+      const a = Math.atan2(p.x - w / 2, -(p.y - h / 2));
+      const diff = Math.abs(Math.atan2(Math.sin(a - want), Math.cos(a - want)));
+      if (diff < best) {
+        best = diff;
+        found = d;
+      }
+    }
+    return found;
+  };
+
+  return { perimeter, at, atBearing };
 }
 
 /**
- * Ends the AI's work on an element carrying `gg-ai-edge`: the edge light fades and its head breaks
- * off like a shooting star, racing on along the edge with a tail, shedding a few soft sparks, and
- * burning out. Under reduced motion the light only fades.
+ * Ends the AI's work on an element carrying `gg-ai-edge`. The light keeps turning as it fades, and
+ * its head breaks off like a shooting star: it leaves at the speed the light was going, races on
+ * along the window's own curved edge with a tail that bends with it, throws soft sparks forward
+ * and burns out. Under reduced motion the light only fades.
  */
 export function aiSettle(el: HTMLElement) {
-  // Where the light's head is: 80% round the conic gradient, measured clockwise from the top.
-  const turn = parseFloat(getComputedStyle(el, "::after").getPropertyValue("--gg-turn")) || 0;
-  el.dataset.ai = "";
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const turn = turnOf(el);
+  const angle = parseFloat(getComputedStyle(el, "::after").getPropertyValue("--gg-turn")) || 0;
+  const rate = turn && turn.playState === "running" ? turn.playbackRate : 1;
 
-  const { width: w, height: h } = el.getBoundingClientRect();
-  const radius = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
-  const edge = roundRect(w - 1.5, h - 1.5, Math.max(0, radius - 0.75));
-  const inset = 0.75;
+  // The light keeps turning while it fades out, then comes to rest.
+  el.dataset.ai = "settling";
+  setTimeout(() => {
+    if (el.dataset.ai === "settling") el.dataset.ai = "";
+  }, 450);
+  if (reducedMotion() || !turn) return;
 
-  // Find the head on the perimeter: the point whose direction from the centre matches the light's angle.
-  const want = ((((turn + 0.8 * 360) % 360) + 360) % 360) * (Math.PI / 180);
-  let start = 0;
-  let best = Infinity;
-  for (let i = 0; i < 360; i++) {
-    const d = (i / 360) * edge.perimeter;
-    const p = edge.at(d);
-    // Angle clockwise from the top, as conic-gradient measures it.
-    const a = Math.atan2(p.x - w / 2, -(p.y - h / 2));
-    const diff = Math.abs(Math.atan2(Math.sin(a - want), Math.cos(a - want)));
-    if (diff < best) {
-      best = diff;
-      start = d;
+  const INSET = 0.75; // the middle of the 1.5px light
+  const edge = outline(el, INSET);
+  const headDeg = angle + HEAD * 360;
+  const start = edge.atBearing(headDeg);
+  // How fast the head was moving along the edge, in px/s, so the star leaves at that speed.
+  const ahead = edge.atBearing(headDeg + 2);
+  const step = (((ahead - start) % edge.perimeter) + edge.perimeter) % edge.perimeter;
+  const v0 = Math.max(200, ((step / 2) * 360 * rate) / TURN_SECONDS);
+
+  const DURATION = 760;
+  const T = DURATION / 1000;
+  // Distance travelled: starts at v0, speeds up to ~1.8 × v0, eases a little as it burns out.
+  const along = (t: number) => start + v0 * T * (t + 1.2 * t * t - 0.6 * t ** 3);
+  const speed = (t: number) => 1 + 2.4 * t - 1.8 * t * t; // in units of v0
+  const life = (t: number) => (t < 0.06 ? t / 0.06 : t > 0.62 ? Math.max(0, 1 - (t - 0.62) / 0.38) : 1);
+
+  // The star is a head and a trail of points that follow the curve exactly, so the tail bends round corners.
+  const TRAIL = 30;
+  const STEPS = 40;
+  for (let k = 0; k < TRAIL; k++) {
+    const dot = document.createElement("span");
+    dot.className = k === 0 ? "gg-meteor gg-meteor--head" : "gg-meteor";
+    dot.setAttribute("aria-hidden", "true");
+    const size = k === 0 ? 4 : 3 - (k / TRAIL) * 1.8;
+    dot.style.setProperty("--gg-meteor-size", `${size}px`);
+    el.append(dot);
+    const weight = (1 - k / TRAIL) ** 1.6;
+    const frames: Keyframe[] = [];
+    for (let i = 0; i <= STEPS; i++) {
+      const t = i / STEPS;
+      // The trail stretches with speed.
+      const p = edge.at(along(t) - k * 2.4 * speed(t));
+      frames.push({ offset: t, transform: `translate(${p.x}px, ${p.y}px)`, opacity: weight * life(t) });
     }
+    dot.animate(frames, { duration: DURATION, easing: "linear", fill: "both" }).finished.finally(() => dot.remove());
   }
 
-  const DURATION = 1100;
-  const TRAVEL = Math.min(edge.perimeter * 0.38, 520);
-  const TAIL = 90;
-  // Gathers speed, races, then burns out as it slows a touch.
-  const along = (t: number) => {
-    const x = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
-    return start + TRAVEL * (0.65 * t * t + 0.35 * x);
-  };
-
-  const star = document.createElement("span");
-  star.className = "gg-meteor";
-  star.setAttribute("aria-hidden", "true");
-  star.style.width = `${TAIL}px`;
-  el.append(star);
-
-  const STEPS = 36;
-  let lastAngle: number | null = null;
-  const frames: Keyframe[] = [];
-  for (let i = 0; i <= STEPS; i++) {
-    const t = i / STEPS;
-    const p = edge.at(along(t));
-    let angle = p.angle;
-    if (lastAngle !== null) while (angle - lastAngle < -180) angle += 360;
-    lastAngle = angle;
-    const tail = 0.25 + 0.75 * Math.sin(Math.min(1, t * 1.6) * (Math.PI / 2)) * (t > 0.75 ? 1 - (t - 0.75) * 2.4 : 1);
-    frames.push({
-      offset: t,
-      transform: `translate(${p.x + inset - TAIL}px, ${p.y + inset - 1}px) rotate(${angle}deg) scaleX(${Math.max(0.15, tail)})`,
-      opacity: t < 0.08 ? t / 0.08 : t > 0.7 ? Math.max(0, 1 - (t - 0.7) / 0.3) : 1,
-    });
-  }
-  star.animate(frames, { duration: DURATION, easing: "linear", fill: "both" }).finished.finally(() => star.remove());
-
-  // Sparks shed along the way, drifting in from the edge and going out.
+  // Sparks thrown forward, the way the star is heading as it sheds them, tipped slightly inward so
+  // the window's edge doesn't cut them.
   const SPARKS = 7;
   for (let i = 0; i < SPARKS; i++) {
-    const t = 0.18 + (i / SPARKS) * 0.7 + Math.random() * 0.06;
-    const p = edge.at(along(t) - 6);
+    const t = 0.15 + (i / SPARKS) * 0.65 + Math.random() * 0.05;
+    const p = edge.at(along(t) - 3);
     const spark = document.createElement("span");
     spark.className = "gg-spark";
     spark.setAttribute("aria-hidden", "true");
     const size = 2 + Math.random() * 2.5;
-    spark.style.cssText = `left:${p.x + inset}px;top:${p.y + inset}px;--gg-spark-size:${size}px;--gg-spark-colour:${
+    spark.style.cssText = `left:${p.x}px;top:${p.y}px;--gg-spark-size:${size}px;--gg-spark-colour:${
       i % 2 ? "rgb(150 160 255)" : "var(--gg-accent)"
     }`;
     el.append(spark);
-    // Thrown forward, the way the star is heading at that moment, fanning a few degrees either side.
-    const heading = ((p.angle + (Math.random() - 0.5) * 24) * Math.PI) / 180;
-    const drift = 12 + Math.random() * 22;
+    const heading = ((p.angle + 10 + (Math.random() - 0.5) * 20) * Math.PI) / 180;
+    const drift = (12 + Math.random() * 20) * Math.min(1.6, speed(t));
     const dx = Math.cos(heading) * drift;
     const dy = Math.sin(heading) * drift;
     spark

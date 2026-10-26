@@ -731,6 +731,11 @@
   animation-play-state: running;
   transition-duration: 700ms;
 }
+/* Ending: the light keeps turning while it fades, so it never freezes in place. */
+.gg-ai-edge[data-ai="settling"]::after {
+  animation-play-state: running;
+  transition-duration: 380ms;
+}
 @keyframes gg-turn {
   to {
     --gg-turn: 360deg;
@@ -739,20 +744,25 @@
 
 /*
  * When the work ends (`aiSettle()` in ./behaviors.ts), the light's head breaks off like a shooting
- * star: a bright point with a fading tail races on along the edge, shedding soft sparks.
+ * star: a bright head and a trail of points that bend with the edge, shedding soft sparks.
  */
 .gg-meteor {
   position: absolute;
   z-index: 3;
   left: 0;
   top: 0;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, rgb(91 107 255 / 0), rgb(91 107 255 / 0.55) 55%, var(--gg-accent) 85%, #ffffff);
-  box-shadow: 0 0 8px 1px rgb(91 107 255 / 0.45);
-  transform-origin: right center;
+  width: var(--gg-meteor-size, 3px);
+  height: var(--gg-meteor-size, 3px);
+  margin: calc(var(--gg-meteor-size, 3px) / -2) 0 0 calc(var(--gg-meteor-size, 3px) / -2);
+  border-radius: 50%;
+  background: var(--gg-accent);
+  box-shadow: 0 0 6px 1px rgb(91 107 255 / 0.5);
   pointer-events: none;
   opacity: 0;
+}
+.gg-meteor--head {
+  background: #ffffff;
+  box-shadow: 0 0 6px 2px rgb(120 134 255 / 0.85);
 }
 .gg-spark {
   position: absolute;
