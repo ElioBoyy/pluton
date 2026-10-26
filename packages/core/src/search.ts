@@ -5,12 +5,16 @@ import {
   and,
   asc,
   brainItems,
+  type BrainSection,
   campaigns,
   copilotConversations,
   copilotMessages,
+  type Db,
   enrollments,
   eq,
+  HOSTED,
   inArray,
+  isNotNull,
   isNull,
   leadEvents,
   leadFeedback,
@@ -23,11 +27,9 @@ import {
   replies,
   repoRoot,
   searchDocuments,
+  type SearchKind,
   sql,
   workspaces,
-  type BrainSection,
-  type Db,
-  type SearchKind,
 } from "@pluton/db";
 import { format, LOCALES, type Locale } from "@pluton/i18n";
 import { localized } from "@pluton/i18n/server";
@@ -457,6 +459,33 @@ const MIN_SEMANTIC_QUERY = 3;
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
+const cosine = (a: number[], b: number[]) => {
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i]! * b[i]!;
+    na += a[i]! * a[i]!;
+    nb += b[i]! * b[i]!;
+  }
+  return na && nb ? dot / Math.sqrt(na * nb) : 0;
+};
+
+/**
+ * Hosted, Postgres keeps embeddings as plain arrays: the closest 30 are picked here, as libSQL's
+ * vector_distance_cos picks them in SQL. A workspace holds a few thousand documents at most.
+ */
+async function closestInNode(db: Db, workspaceId: string, vector: number[]) {
+  const rows = await db
+    .select({ id: searchDocuments.id, kind: searchDocuments.kind, title: searchDocuments.title, subtitle: searchDocuments.subtitle, href: searchDocuments.href, embedding: searchDocuments.embedding })
+    .from(searchDocuments)
+    .where(and(eq(searchDocuments.workspaceId, workspaceId), isNotNull(searchDocuments.embedding)));
+  return rows
+    .map(({ embedding, ...r }) => ({ ...r, similarity: cosine(vector, embedding!) }))
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 30);
+}
+
 /**
  * Finds anything in the workspace by name or by meaning. Name matches come from the folded text
  * and work before the model is downloaded; meaning comes from the embeddings.
@@ -488,14 +517,16 @@ export async function searchWorkspace(db: Db, workspaceId: string, query: string
 
   // Only once the model is loaded: a search never waits for the download.
   const vector = q.length >= MIN_SEMANTIC_QUERY && modelReady ? (await embed([q]))[0] : undefined;
-  const similar = vector
-    ? db
-        .select({ ...columns, similarity: sql<number>`1 - vector_distance_cos(${searchDocuments.embedding}, vector32(${JSON.stringify(vector)}))`.as("similarity") })
-        .from(searchDocuments)
-        .where(and(eq(searchDocuments.workspaceId, workspaceId), sql`${searchDocuments.embedding} is not null`))
-        .orderBy(sql`similarity desc`)
-        .limit(30)
-    : Promise.resolve([]);
+  const similar = !vector
+    ? Promise.resolve([])
+    : HOSTED
+      ? closestInNode(db, workspaceId, vector)
+      : db
+          .select({ ...columns, similarity: sql<number>`1 - vector_distance_cos(${searchDocuments.embedding}, vector32(${JSON.stringify(vector)}))`.as("similarity") })
+          .from(searchDocuments)
+          .where(and(eq(searchDocuments.workspaceId, workspaceId), sql`${searchDocuments.embedding} is not null`))
+          .orderBy(sql`similarity desc`)
+          .limit(30);
   if (!modelReady) void loadModel().catch(() => {});
 
   const [byName, byMeaning] = await Promise.all([named, similar]);

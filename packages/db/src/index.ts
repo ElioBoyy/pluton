@@ -2,15 +2,22 @@ import path from "node:path";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
+import { drizzle as drizzlePg, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { migrate as migratePg } from "drizzle-orm/postgres-js/migrator";
+import postgres from "postgres";
 import { HOSTED, repoRoot } from "./paths.ts";
 import * as schema from "./schema.ts";
+import * as pgSchema from "./schema.pg.ts";
 
-export * from "./schema.ts";
+// schema.ts's types and constants, and the tables of the database in use (Postgres's or SQLite's).
+export * from "./tables.ts";
 export { schema, repoRoot, HOSTED };
 export * from "./settings.ts";
 export * from "./costs.ts";
+export * from "./dialect.ts";
 
 const migrationsFolder = path.resolve(repoRoot, "packages/db/drizzle");
+const pgMigrationsFolder = path.resolve(repoRoot, "packages/db/drizzle-pg");
 
 /** Resolves `file:` URLs against the repo root so every app opens the same SQLite file. */
 export function resolveDatabaseUrl(url = process.env.DATABASE_URL ?? "file:./data/pluton.db") {
@@ -21,25 +28,41 @@ export function resolveDatabaseUrl(url = process.env.DATABASE_URL ?? "file:./dat
 
 const BUSY_TIMEOUT_MS = 5000;
 
-export function createDb(url?: string) {
+function createSqliteDb(url?: string) {
   // The client keeps a pool of connections: a PRAGMA reaches only one of them, so the busy wait is
   // set here, where it applies to every connection. Without it the others fail at once on a lock.
   const client = createClient({ url: resolveDatabaseUrl(url), timeout: BUSY_TIMEOUT_MS });
   return drizzle(client, { schema });
 }
 
-export type Db = ReturnType<typeof createDb>;
+/**
+ * The app's database: hosted (PLUTON_HOSTED=1), Postgres at DATABASE_URL (postgres://…); otherwise
+ * the SQLite file. Typed as the SQLite one: the app only uses what both offer.
+ */
+export function createDb(url?: string): Db {
+  if (!HOSTED) return createSqliteDb(url);
+  const target = url ?? process.env.DATABASE_URL ?? "";
+  if (!/^postgres(ql)?:\/\//.test(target)) throw new Error("PLUTON_HOSTED=1 needs DATABASE_URL=postgres://… (the hosted app runs on Postgres)");
+  return drizzlePg(postgres(target, { onnotice: () => {} }), { schema: pgSchema }) as unknown as Db;
+}
 
-/** Server and worker both open the file concurrently: WAL + busy timeout avoid "database is locked". */
+export type Db = ReturnType<typeof createSqliteDb>;
+
+/**
+ * Server and worker both open the database together. SQLite: WAL + busy timeout avoid "database is
+ * locked". Either way both try to migrate a fresh one and the loser fails on "already exists":
+ * retrying finds the migrations recorded and does nothing.
+ */
 export async function prepareDb(db: Db) {
-  await db.$client.execute("PRAGMA journal_mode = WAL");
-  await db.$client.execute(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`);
-  await db.$client.execute("PRAGMA foreign_keys = ON");
-  // Server and worker start together: on a fresh database both try to migrate, and the loser
-  // fails on "already exists". Retrying finds the migrations recorded and does nothing.
+  if (!HOSTED) {
+    await db.$client.execute("PRAGMA journal_mode = WAL");
+    await db.$client.execute(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`);
+    await db.$client.execute("PRAGMA foreign_keys = ON");
+  }
   for (let attempt = 1; ; attempt++) {
     try {
-      await migrate(db, { migrationsFolder });
+      if (HOSTED) await migratePg(db as unknown as PostgresJsDatabase, { migrationsFolder: pgMigrationsFolder });
+      else await migrate(db, { migrationsFolder });
       return;
     } catch (error) {
       if (attempt >= 5) throw error;

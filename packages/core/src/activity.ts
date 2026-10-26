@@ -1,17 +1,20 @@
 import {
+  type ActivityContext,
+  type ActivityEvent,
   activityEvents,
   and,
   asc,
+  type Db,
   desc,
   eq,
   gt,
   inArray,
+  jsonArrayHas,
+  jsonField,
   lt,
+  or,
   plays,
   sql,
-  type ActivityContext,
-  type ActivityEvent,
-  type Db,
 } from "@pluton/db";
 import { currentLocale, localized } from "@pluton/i18n/server";
 import messages from "./messages/activity.ts";
@@ -162,7 +165,7 @@ export async function listActivity(
   if (opts.contexts?.length) where.push(inArray(activityEvents.context, opts.contexts));
   if (opts.playId) {
     where.push(
-      sql`(json_extract(${activityEvents.payload}, '$.playId') = ${opts.playId} or exists (select 1 from json_each(${activityEvents.payload}, '$.playIds') where value = ${opts.playId}))`,
+      or(eq(jsonField(activityEvents.payload, "playId"), opts.playId), jsonArrayHas(activityEvents.payload, "playIds", opts.playId))!,
     );
   }
   const limit = opts.limit ?? 40;

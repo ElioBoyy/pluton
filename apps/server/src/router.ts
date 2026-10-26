@@ -321,9 +321,9 @@ const providers = router({
       .select({
         provider: providerCalls.provider,
         calls: count(),
-        failed: sql<number>`sum(case when ${providerCalls.ok} then 0 else 1 end)`,
-        items: sql<number>`sum(${providerCalls.items})`,
-        costMicroUsd: sql<number>`sum(${providerCalls.costMicroUsd})`,
+        failed: sql<number>`sum(case when ${providerCalls.ok} then 0 else 1 end)`.mapWith(Number),
+        items: sql<number>`sum(${providerCalls.items})`.mapWith(Number),
+        costMicroUsd: sql<number>`sum(${providerCalls.costMicroUsd})`.mapWith(Number),
       })
       .from(providerCalls)
       .where(gte(providerCalls.createdAt, since))

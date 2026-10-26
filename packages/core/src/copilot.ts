@@ -1,17 +1,18 @@
 import {
   and,
   asc,
+  type CopilotAction,
   copilotActions,
+  type CopilotActionStatus,
   copilotConversations,
   copilotMessages,
+  type Db,
   desc,
   eq,
   inArray,
   jobs,
+  jsonField,
   sql,
-  type CopilotAction,
-  type CopilotActionStatus,
-  type Db,
 } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import { emitStreamEvent } from "./events.ts";
@@ -103,7 +104,7 @@ export async function activeTurn(db: Db, conversationId: string) {
     where: and(
       eq(jobs.type, "copilot.turn"),
       inArray(jobs.status, ["queued", "running"]),
-      sql`json_extract(${jobs.payload}, '$.conversationId') = ${conversationId}`,
+      eq(jsonField(jobs.payload, "conversationId"), conversationId),
     ),
     orderBy: desc(jobs.createdAt),
   });
@@ -115,7 +116,7 @@ export async function activeTurns(db: Db, conversationId: string) {
     where: and(
       eq(jobs.type, "copilot.turn"),
       inArray(jobs.status, ["queued", "running"]),
-      sql`json_extract(${jobs.payload}, '$.conversationId') = ${conversationId}`,
+      eq(jsonField(jobs.payload, "conversationId"), conversationId),
     ),
     orderBy: desc(jobs.createdAt),
   });

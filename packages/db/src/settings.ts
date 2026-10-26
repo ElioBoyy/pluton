@@ -7,7 +7,7 @@ import { currentCostScope } from "./costs.ts";
 import type { Db } from "./index.ts";
 import messages from "./messages/settings.ts";
 import { HOSTED, repoRoot } from "./paths.ts";
-import { workspaces, workspaceSettings } from "./schema.ts";
+import { workspaces, workspaceSettings } from "./tables.ts";
 
 export type SettingDef = {
   key: string;

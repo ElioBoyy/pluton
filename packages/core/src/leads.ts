@@ -2,33 +2,34 @@ import {
   and,
   asc,
   count,
+  type Db,
   desc,
+  enrollments,
+  type EnrollmentStatus,
   eq,
+  type FeedbackReason,
   gt,
   inArray,
   isNull,
   jobs,
+  type Lead,
+  type LeadEvent,
   leadEvents,
   leadFeedback,
   leads,
+  type LeadStatus,
   like,
+  likeAnyCase,
   ne,
   or,
   people,
-  plays,
-  PIPELINES,
-  sql,
-  type Db,
-  type SQL,
-  type SQLWrapper,
-  type FeedbackReason,
-  enrollments,
-  type EnrollmentStatus,
-  type Lead,
-  type LeadEvent,
-  type LeadStatus,
   type Person,
   type Pipeline,
+  PIPELINES,
+  plays,
+  sql,
+  type SQL,
+  type SQLWrapper,
 } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import { recordActivity } from "./events.ts";
@@ -110,7 +111,7 @@ function filterWhere(f: LeadFilter, opts: { tab?: boolean } = { tab: true }) {
   const q = f.search?.trim();
   if (q) {
     const pattern = `%${q.replace(/[%_]/g, "")}%`;
-    where.push(or(like(people.name, pattern), like(people.title, pattern), like(people.company, pattern), like(people.location, pattern))!);
+    where.push(or(likeAnyCase(people.name, pattern), likeAnyCase(people.title, pattern), likeAnyCase(people.company, pattern), likeAnyCase(people.location, pattern))!);
   }
   if (opts.tab && f.tab && f.tab !== "all") {
     if (f.tab === "new") where.push(eq(leads.status, "to_review"), isNull(leads.seenAt));
@@ -216,7 +217,7 @@ export async function leadIdsFor(db: Db, f: LeadFilter, max = 5000) {
 /** Count per tab plus review progress (how many of the leads found have a verdict). */
 export async function leadCounts(db: Db, f: Omit<LeadFilter, "tab">) {
   const rows = await db
-    .select({ status: leads.status, unseen: sql<number>`sum(case when ${leads.seenAt} is null then 1 else 0 end)`, n: count() })
+    .select({ status: leads.status, unseen: sql<number>`sum(case when ${leads.seenAt} is null then 1 else 0 end)`.mapWith(Number), n: count() })
     .from(leads)
     .innerJoin(people, eq(people.id, leads.personId))
     .where(filterWhere(f, { tab: false }))
