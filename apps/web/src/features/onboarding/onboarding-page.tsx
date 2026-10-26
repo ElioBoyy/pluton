@@ -170,8 +170,8 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
 
   return (
     <div className="flex h-full">
-      {/* The same print-black sidebar chapter as the rest of the app. */}
-      <aside className="ground-print flex w-[300px] shrink-0 flex-col overflow-hidden bg-sidebar">
+      {/* The same sidebar as the rest of the app. */}
+      <aside className="flex w-[300px] shrink-0 flex-col overflow-hidden bg-sidebar">
         <div className="flex px-2.5 pt-3 pb-3">
           <WorkspaceMenu />
         </div>

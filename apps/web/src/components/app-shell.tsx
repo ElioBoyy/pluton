@@ -72,10 +72,10 @@ export function AppShell() {
     <div className="flex h-full">
       <Wallpaper />
       {navOpen && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />}
-      {/* The sidebar is a print-black chapter beside the plate: full height, flush with the window edge. A drawer on phones. */}
+      {/* The sidebar sits one tone down from the plate: full height, flush with the window edge. A drawer on phones. */}
       <aside
         className={cn(
-          "ground-print flex w-60 shrink-0 flex-col bg-sidebar",
+          "flex w-60 shrink-0 flex-col bg-sidebar",
           "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-72 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]",
           "max-md:transition-transform max-md:duration-200 max-md:ease-out motion-reduce:transition-none",
           navOpen ? "max-md:translate-x-0 max-md:shadow-window" : "max-md:-translate-x-full",
@@ -166,7 +166,7 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="ground-print flex h-12 shrink-0 items-center gap-2 bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
+        <header className="flex h-12 shrink-0 items-center gap-2 bg-sidebar px-2 pt-[env(safe-area-inset-top)] md:hidden">
           <button
             onClick={() => setNavOpen(true)}
             aria-label={t("nav.openMenu")}
@@ -259,7 +259,7 @@ function usePlaysOpen() {
 }
 
 /**
- * The floating "Ask Pluton" bar, a strip of print black like the landing page's top bar. It grows
+ * The floating "Ask Pluton" bar, an opaque plate over the page. It grows
  * with its label so every language fits on one line, and is centred over the content by its
  * measured width, so its slide uses `bottom` and no transform.
  */
@@ -290,7 +290,7 @@ function AskBar({ label, hidden, onOpen }: { label: string; hidden: boolean; onO
       aria-hidden={hidden || undefined}
       tabIndex={hidden ? -1 : undefined}
       className={cn(
-        "ground-print fixed flex h-12 min-w-80 items-center gap-3 bg-print pr-2 dark:bg-panel pl-4 text-base whitespace-nowrap text-muted shadow-popover transition-[color,bottom] duration-[420ms] ease-out hover:text-ink max-md:hidden motion-reduce:transition-none",
+        "glass fixed flex h-12 min-w-80 items-center gap-3 pr-2 pl-4 text-base whitespace-nowrap text-muted shadow-popover transition-[color,bottom] duration-[420ms] ease-out hover:text-ink max-md:hidden motion-reduce:transition-none",
         hidden ? "pointer-events-none -bottom-20" : "bottom-5",
       )}
     >

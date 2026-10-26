@@ -7,7 +7,7 @@
 /*
  * The plates, after the landing page (apps/site/DESIGN.md): the app is a run of photographic
  * plates. The content is one flat field of plate grey (print black in the dark appearance), the
- * sidebar is a print-black chapter in both, and brand ultramarine is the ink that marks what moved
+ * sidebar one tone down from it, and brand ultramarine is the ink that marks what moved
  * and what to press. One face (Jost), square corners, no rules and no gloss: surfaces are told
  * apart by one step in tone. The token names predate the plates (canvas, panel, ink, …) so every
  * screen picks them up.
@@ -56,7 +56,7 @@
   --color-field: #f3f3ef; /* paper: text fields, one tone up */
   --color-raised: rgb(16 16 24 / 0.06); /* fills: hover, wells */
   --color-selected: rgb(16 16 24 / 0.09);
-  --color-sidebar: #0e0e12; /* print black: the sidebar is its own chapter */
+  --color-sidebar: #cdcfc7; /* plate step: the sidebar sits one tone down from the field */
   --color-zebra: rgb(16 16 24 / 0.05); /* alternating rows, a step down */
   --color-selection: #2b3bff;
   --color-line: rgb(16 16 24 / 0.12); /* only where a step can't be taken (a chart axis) */
@@ -173,33 +173,6 @@
 }
 
 /*
- * A print-black chapter inside a light page (the sidebar, the Ask bar): the same tokens, printed in
- * paper. Anything inside it, menus included, takes these inks.
- */
-@utility ground-print {
-  color-scheme: dark;
-  --color-canvas: #0e0e12;
-  --color-panel: #1d1d24;
-  --color-panel-hover: #25252e;
-  --color-float: #1d1d24;
-  --color-field: #1d1d24;
-  --color-raised: rgb(243 243 239 / 0.07);
-  --color-selected: rgb(243 243 239 / 0.1);
-  --color-zebra: rgb(243 243 239 / 0.035);
-  --color-line: rgb(243 243 239 / 0.1);
-  --color-line-strong: rgb(243 243 239 / 0.2);
-  --color-ink: #f3f3ef;
-  --color-muted: rgb(243 243 239 / 0.62);
-  --color-faint: rgb(243 243 239 / 0.34);
-  --color-control: rgb(243 243 239 / 0.09);
-  --color-control-hover: rgb(243 243 239 / 0.14);
-  --color-control-pressed: rgb(243 243 239 / 0.2);
-  --color-accent: #5866ff;
-  --select-chevron: var(--select-chevron-paper);
-  color: var(--color-ink);
-}
-
-/*
  * Floating surfaces (the composer, the ⌘K field, toasts, dialogs): an opaque plate that lifts off
  * the page with one hard shadow. No blur and no rim: nothing is see-through.
  */
@@ -210,11 +183,6 @@
   &:not(.fixed, .absolute, .sticky) {
     position: relative;
   }
-}
-
-/* The floating bar variant: a print-black strip, like the landing page's top bar. */
-@utility glass-thin {
-  background: var(--color-print);
 }
 
 /* Focus: a solid ultramarine outline, offset from the control; paper on print-black grounds. */
@@ -517,11 +485,15 @@ select {
   }
 
   & .bg-sidebar {
-    background: rgb(14 14 18 / 0.86);
+    background: rgb(205 207 199 / 0.8);
   }
 }
 
 :root[data-theme="dark"][data-wallpaper-dark] {
+  & .bg-sidebar {
+    background: rgb(22 22 27 / 0.86);
+  }
+
   --color-panel: rgb(29 29 36 / 0.72);
   --color-panel-hover: rgb(37 37 46 / 0.8);
 }
