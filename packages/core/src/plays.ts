@@ -29,7 +29,7 @@ import { localized } from "@pluton/i18n/server";
 import messages from "./messages/plays.ts";
 import { getSingleton, listBrain } from "./brain.ts";
 import { recordActivity } from "./events.ts";
-import { enqueueJob, requestJobCancel } from "./jobs.ts";
+import { assertWithinLimits, enqueueJob, requestJobCancel, UsageLimitError } from "./jobs.ts";
 import { addLeadEvent, describeFeedback, feedbackDigest, warmnessFor } from "./leads.ts";
 
 const t = localized(messages);
@@ -188,11 +188,15 @@ export async function startRun(db: Db, playId: string, trigger: RunTrigger = "ma
   const existing = await activeRun(db, playId);
   if (existing) return existing;
   // Throws BudgetError when nothing is left; otherwise the run starts with this much set aside.
-  const reserve = await planReservation(db, play, trigger).catch(async (error) => {
+  // Checked before the run row exists, so a refusal leaves no run without its job.
+  const reserve = await assertWithinLimits(db, { type: "lead_finding.run", workspaceId: play.workspaceId })
+    .then(() => planReservation(db, play, trigger))
+    .catch(async (error) => {
     // A refused scheduled run counts as today's: the scheduler tries again tomorrow, not every minute.
-    if (trigger === "schedule") await db.update(plays).set({ lastRunAt: new Date() }).where(eq(plays.id, playId));
-    throw error;
-  });
+      // A usage limit lifts within the hour: the scheduler tries again on its next pass instead.
+      if (trigger === "schedule" && !(error instanceof UsageLimitError)) await db.update(plays).set({ lastRunAt: new Date() }).where(eq(plays.id, playId));
+      throw error;
+    });
 
   const [run] = await db
     .insert(leadFindingRuns)

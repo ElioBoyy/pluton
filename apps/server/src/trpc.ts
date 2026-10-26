@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import { getCurrentWorkspace, openWorkspaceFor } from "@pluton/core";
+import { getCurrentWorkspace, openWorkspaceFor, UsageLimitError } from "@pluton/core";
 import { currentCostScope, eq, HOSTED, withCostScope, workspaces, type CostPurpose, type Db } from "@pluton/db";
 import { isLocale, withLocale } from "@pluton/i18n/server";
 import { assertInWorkspace } from "./workspace-guard.ts";
@@ -11,7 +11,14 @@ import { assertInWorkspace } from "./workspace-guard.ts";
  */
 export type Context = { db: Db; locale: string | null; userId: string | null };
 
-const t = initTRPC.context<Context>().create({ transformer: superjson });
+const t = initTRPC.context<Context>().create({
+  transformer: superjson,
+  // A usage limit is the account's to wait out, not a server fault: 429, with the reason as written.
+  errorFormatter: ({ shape, error }) =>
+    error.cause instanceof UsageLimitError
+      ? { ...shape, message: error.cause.message, data: { ...shape.data, code: "TOO_MANY_REQUESTS", httpStatus: 429 } }
+      : shape,
+});
 
 /** Calls made while serving a request (sharpen, email lookup, source checks) are charged by area. */
 function purposeFor(path: string): CostPurpose {
