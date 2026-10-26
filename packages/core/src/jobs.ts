@@ -1,5 +1,9 @@
 import { hostname } from "node:os";
-import { and, asc, desc, eq, inArray, jobs, lt, lte, sql, type Db, type Job } from "@pluton/db";
+import { and, asc, count, desc, eq, gte, HOSTED, inArray, jobs, lt, lte, sql, workspaces, type Db, type Job } from "@pluton/db";
+import { localized } from "@pluton/i18n/server";
+import messages from "./messages/limits.ts";
+
+const t = localized(messages);
 
 export type EnqueueInput = {
   type: string;
@@ -10,8 +14,56 @@ export type EnqueueInput = {
   idempotencyKey?: string;
 };
 
-/** Enqueues a job. With an idempotency key, a retry returns the job already enqueued. */
+/** Jobs that spend on Claude or a paid data source; bookkeeping (ticks, digests, CRM, Slack) is free. */
+const SPENDING = ["onboarding.stage", "plays.plan", "lead_finding.run", "campaigns.prepare_drafts", "leads.find_emails", "copilot.turn", "appearance.generate_wallpaper", "brain.review"];
+
+const envLimit = (name: string, fallback: number) => {
+  const value = Number(process.env[name]);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+};
+
+/** Refused before anything is spent: the message says why and when it works again. */
+export class UsageLimitError extends Error {}
+
+/**
+ * Hosted: what one account may ask of Claude and the paid sources, whatever its credits or budget,
+ * so a loop, a script on the MCP or a stuck tab can't burn through a month in an hour. Counted over
+ * all its workspaces: searches running at once (PLUTON_LIMIT_CONCURRENT_RUNS), and paid jobs per
+ * hour and per day (PLUTON_LIMIT_JOBS_PER_HOUR, PLUTON_LIMIT_JOBS_PER_DAY).
+ */
+export async function assertWithinLimits(db: Db, input: Pick<EnqueueInput, "type" | "workspaceId">) {
+  if (!HOSTED || !input.workspaceId || !SPENDING.includes(input.type)) return;
+  const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.id, input.workspaceId) });
+  if (!ws?.userId) return;
+  const own = db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.userId, ws.userId));
+  const counted = (...where: Parameters<typeof and>) =>
+    db
+      .select({ n: count() })
+      .from(jobs)
+      .where(and(inArray(jobs.workspaceId, own), ...where))
+      .then(([row]) => Number(row?.n ?? 0));
+
+  if (input.type === "lead_finding.run") {
+    const most = envLimit("PLUTON_LIMIT_CONCURRENT_RUNS", 2);
+    if ((await counted(eq(jobs.type, "lead_finding.run"), inArray(jobs.status, ["queued", "running"]))) >= most) {
+      throw new UsageLimitError(t("concurrentRuns", { count: most }));
+    }
+  }
+  const now = Date.now();
+  if ((await counted(inArray(jobs.type, SPENDING), gte(jobs.createdAt, new Date(now - 3_600_000)))) >= envLimit("PLUTON_LIMIT_JOBS_PER_HOUR", 60)) {
+    throw new UsageLimitError(t("perHour"));
+  }
+  if ((await counted(inArray(jobs.type, SPENDING), gte(jobs.createdAt, new Date(now - 86_400_000)))) >= envLimit("PLUTON_LIMIT_JOBS_PER_DAY", 300)) {
+    throw new UsageLimitError(t("perDay"));
+  }
+}
+
+/**
+ * Enqueues a job. With an idempotency key, a retry returns the job already enqueued. Throws
+ * UsageLimitError when a hosted account has asked for too much (see assertWithinLimits).
+ */
 export async function enqueueJob(db: Db, input: EnqueueInput): Promise<Job> {
+  await assertWithinLimits(db, input);
   const [created] = await db
     .insert(jobs)
     .values({

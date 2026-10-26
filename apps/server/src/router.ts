@@ -15,6 +15,7 @@ import {
   listPlays,
   leadsPerDay,
   BudgetError,
+  UsageLimitError,
   listActivity,
   listRuns,
   newPlaySchema,
@@ -359,6 +360,7 @@ async function playCall<T>(fn: () => Promise<T>) {
   } catch (error) {
     if (error instanceof PlayConflictError) throw new TRPCError({ code: "CONFLICT", message: error.message });
     if (error instanceof BudgetError) throw new TRPCError({ code: "PRECONDITION_FAILED", message: error.message });
+    if (error instanceof UsageLimitError) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: error.message });
     if (error instanceof z.ZodError) throw new TRPCError({ code: "BAD_REQUEST", message: z.prettifyError(error) });
     if (error instanceof Error) throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
     throw error;
