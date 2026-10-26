@@ -53,21 +53,21 @@ const TURN_SECONDS = 2.4;
 const HEAD = 0.86;
 
 /**
- * Starts the AI's work on an element carrying `gg-ai-edge`: the light grows out from its head and
- * its turn goes from standstill to full pace in 0.2s (the growth and fade-in are CSS, same length).
+ * Starts the AI's work on an element carrying `gg-ai-edge`: the edge light fades in and its turn
+ * gathers speed over the first second instead of starting at full pace.
  */
 export function aiStart(el: HTMLElement) {
   el.dataset.ai = "working";
   if (reducedMotion()) return;
   const turn = turnOf(el);
   if (!turn) return;
-  const RAMP = 200;
+  const RAMP = 1100;
   const begun = performance.now();
-  turn.playbackRate = 0.001;
+  turn.playbackRate = 0.05;
   const step = (now: number) => {
     if (el.dataset.ai !== "working") return;
     const t = Math.min(1, (now - begun) / RAMP);
-    turn.playbackRate = Math.max(0.001, t * t * (3 - 2 * t)); // smoothstep, 0 to 1
+    turn.playbackRate = 0.05 + 0.95 * (1 - (1 - t) ** 3); // ease-out cubic
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
