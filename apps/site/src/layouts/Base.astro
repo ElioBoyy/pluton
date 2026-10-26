@@ -1,0 +1,32 @@
+---
+import "@fontsource-variable/jost";
+import "../styles/site.css";
+import { LOCALES, pathFor, type Locale, type Strings } from "../i18n/index.ts";
+
+interface Props { locale: Locale; t: Strings }
+const { locale, t } = Astro.props;
+const site = Astro.site ?? new URL("https://pluton.app");
+---
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.meta.title}</title>
+    <meta name="description" content={t.meta.description} />
+    <meta name="theme-color" content="#0E0E12" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(pathFor(locale), site)} />
+    {LOCALES.map((l) => <link rel="alternate" hreflang={l} href={new URL(pathFor(l), site)} />)}
+    <link rel="alternate" hreflang="x-default" href={new URL("/", site)} />
+    <meta property="og:title" content={t.meta.title} />
+    <meta property="og:description" content={t.meta.description} />
+    <meta property="og:image" content={new URL("/img/plate-a.webp", site)} />
+    <link rel="preload" as="image" href="/img/plate-a.webp" />
+    <link rel="preload" as="image" href="/img/plate-b.webp" />
+    <script is:inline>document.documentElement.classList.add("js")</script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

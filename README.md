@@ -60,6 +60,7 @@ Want to try the interface without spending Claude credits? Set `PLUTON_SIMULATE_
 
 | Path | What |
 |---|---|
+| `apps/site` | The marketing site: Astro, static, in the app's five languages (`pnpm --filter @pluton/site dev`) |
 | `apps/web` | Vite + React + TanStack Router/Query + tRPC client + Tailwind |
 | `apps/server` | Hono + tRPC (`/rpc`), subscriptions over SSE |
 | `apps/worker` | Polls the `job` table and runs handlers (`src/handlers`) |

@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T00:00:00Z",
+  "title": "Design System: Pluton (marketing site)",
+  "extensions": {
+    "colorMeta": {
+      "brand-ultramarine": { "role": "primary", "displayName": "Brand Ultramarine", "canonical": "#2B3BFF", "tonalRamp": ["#0A0F4D", "#141E8F", "#1A28C4", "#2232E0", "#2B3BFF", "#6470FF", "#A3AAFF", "#E0E3FF"] },
+      "ultramarine-press": { "role": "primary", "displayName": "Ultramarine Press", "canonical": "#2232E0", "tonalRamp": ["#0A0F4D", "#141E8F", "#1A28C4", "#2232E0", "#2B3BFF", "#6470FF", "#A3AAFF", "#E0E3FF"] },
+      "plate-grey": { "role": "neutral", "displayName": "Plate Grey", "canonical": "#DEDFDA", "tonalRamp": ["#26271F", "#4A4B45", "#6F716A", "#9A9C94", "#C0C2B9", "#CDCFC7", "#DEDFDA", "#F3F3EF"] },
+      "plate-step": { "role": "neutral", "displayName": "Plate Step", "canonical": "#CDCFC7", "tonalRamp": ["#26271F", "#4A4B45", "#6F716A", "#9A9C94", "#C0C2B9", "#CDCFC7", "#DEDFDA", "#F3F3EF"] },
+      "print-black": { "role": "neutral", "displayName": "Print Black", "canonical": "#0E0E12", "tonalRamp": ["#0E0E12", "#1D1D24", "#2E2E38", "#45454F", "#64646E", "#8A8A93", "#B8B8BF", "#E6E6EA"] },
+      "print-step": { "role": "neutral", "displayName": "Print Step", "canonical": "#1D1D24", "tonalRamp": ["#0E0E12", "#1D1D24", "#2E2E38", "#45454F", "#64646E", "#8A8A93", "#B8B8BF", "#E6E6EA"] },
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#F3F3EF", "tonalRamp": ["#26271F", "#4A4B45", "#6F716A", "#9A9C94", "#C0C2B9", "#DEDFDA", "#F3F3EF", "#FFFFFF"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#101018", "tonalRamp": ["#101018", "#22222C", "#3A3A46", "#4A4B52", "#6E6E78", "#9696A0", "#C4C4CC", "#ECECF0"] },
+      "ink-muted": { "role": "neutral", "displayName": "Ink Muted", "canonical": "#4A4B52", "tonalRamp": ["#101018", "#22222C", "#3A3A46", "#4A4B52", "#6E6E78", "#9696A0", "#C4C4CC", "#ECECF0"] },
+      "white": { "role": "neutral", "displayName": "White", "canonical": "#FFFFFF", "tonalRamp": ["#1A1A1A", "#3D3D3D", "#636363", "#8A8A8A", "#B0B0B0", "#D4D4D4", "#EDEDED", "#FFFFFF"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headline over the plates, the intro statement and the footer address. Uppercase, fitted to its longest line." },
+      "headline": { "displayName": "Headline", "purpose": "Chapter heads, uppercase and balanced." },
+      "title": { "displayName": "Title", "purpose": "Step titles in the Messages column; set 700 uppercase as the blink chapter heading." },
+      "body": { "displayName": "Body", "purpose": "Running text at 42-58ch; buttons and segments at weight 500." },
+      "label": { "displayName": "Label", "purpose": "Fragment content, captions, navigation, sample notes, footer meta." },
+      "price": { "displayName": "Price", "purpose": "The ticket price only, tabular figures." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Entrances, presses, fragment swaps." },
+      { "name": "ease-in-out", "value": "cubic-bezier(0.76, 0, 0.24, 1)", "purpose": "The blink switch thumb and the slow plate drift." },
+      { "name": "t-press", "value": "140ms", "purpose": "Press scale to 0.97." },
+      { "name": "t-hover", "value": "180ms", "purpose": "Hover colour and opacity changes." },
+      { "name": "t-ui", "value": "240ms", "purpose": "Disclosures, marker rings, swatch slide." },
+      { "name": "t-reveal", "value": "800ms", "purpose": "Once-only entrance, 24px rise, 80ms stagger in reading order." },
+      { "name": "blink", "value": "1.6s steps(1, end) infinite", "purpose": "The signature: a hard cut between the two plates, marker and date. Pausable; manual flip under reduced motion." },
+      { "name": "field-repaint", "value": "300ms ease", "purpose": "The blink chapter and top bar repainting to a new ground." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "1080px" },
+      { "name": "phone", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Paper Button",
+      "kind": "button",
+      "refersTo": "button-paper",
+      "description": "The action on black, blue and the hero panel.",
+      "html": "<div class=\"ds-field-print\"><a class=\"ds-btn ds-btn-paper\" href=\"#\">Start with your website</a></div>",
+      "css": ".ds-field-print { background: #0E0E12; padding: 32px; } .ds-btn { display: inline-flex; align-items: center; min-height: 52px; padding: 0 26px; font-family: 'Jost Variable', 'Jost', system-ui, sans-serif; font-size: 18px; font-weight: 500; text-decoration: none; border-radius: 0; transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, color 180ms ease; } .ds-btn:active { transform: scale(0.97); } .ds-btn-paper { background: #F3F3EF; color: #101018; } .ds-btn-paper:hover { background: #fff; color: #2B3BFF; } .ds-btn-paper:focus-visible { outline: 3px solid #F3F3EF; outline-offset: 3px; }"
+    },
+    {
+      "name": "Blue Button",
+      "kind": "button",
+      "refersTo": "button-blue",
+      "description": "The action on grey grounds and in the top bar.",
+      "html": "<div class=\"ds-field-plate\"><a class=\"ds-btn-blue\" href=\"#\">Approve</a></div>",
+      "css": ".ds-field-plate { background: #DEDFDA; padding: 32px; } .ds-btn-blue { display: inline-flex; align-items: center; min-height: 52px; padding: 0 26px; font-family: 'Jost Variable', 'Jost', system-ui, sans-serif; font-size: 18px; font-weight: 500; text-decoration: none; background: #2B3BFF; color: #fff; border-radius: 0; transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease; } .ds-btn-blue:hover { background: #2232E0; } .ds-btn-blue:active { transform: scale(0.97); } .ds-btn-blue:focus-visible { outline: 3px solid #2B3BFF; outline-offset: 3px; }"
+    },
+    {
+      "name": "Segmented Choice",
+      "kind": "chip",
+      "refersTo": "segment",
+      "description": "Square radio chips; the selected one prints in Ink.",
+      "html": "<div class=\"ds-seg\"><label><input type=\"radio\" name=\"ds-ch\" checked><span>LinkedIn</span></label><label><input type=\"radio\" name=\"ds-ch\"><span>Email</span></label></div>",
+      "css": ".ds-seg { display: flex; gap: 6px; background: #DEDFDA; padding: 24px; font-family: 'Jost Variable', 'Jost', system-ui, sans-serif; } .ds-seg label { position: relative; cursor: pointer; } .ds-seg input { position: absolute; inset: 0; opacity: 0; cursor: pointer; } .ds-seg span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; background: #CDCFC7; color: #101018; font-weight: 500; transition: background-color 180ms ease, color 180ms ease, transform 140ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-seg label:hover span { background: #C0C2B9; } .ds-seg input:checked + span { background: #101018; color: #F3F3EF; } .ds-seg label:active span { transform: scale(0.97); } .ds-seg input:focus-visible + span { outline: 3px solid #2B3BFF; outline-offset: 2px; }"
+    },
+    {
+      "name": "Interface Fragment",
+      "kind": "card",
+      "refersTo": "interface-fragment",
+      "description": "A piece of the product printed in its chapter's two inks, with one ultramarine accent.",
+      "html": "<div class=\"ds-frag-ground\"><div class=\"ds-frag\"><p class=\"ds-frag-title\">Brain <strong>Atelier Kilo</strong></p><dl><div><dt>Company</dt><dd>Accounting software for architecture studios</dd></div><div><dt>Ideal customer</dt><dd>Studios of 3 to 20 people</dd></div><div><dt>Voice</dt><dd>Plain, short, no jargon</dd></div></dl></div></div>",
+      "css": ".ds-frag-ground { background: #CDCFC7; padding: 40px; } .ds-frag { width: min(460px, 100%); background: #DEDFDA; color: #101018; padding: 26px 26px 24px; font-family: 'Jost Variable', 'Jost', system-ui, sans-serif; font-size: 15px; line-height: 1.45; border-radius: 0; } .ds-frag-title { display: flex; font-weight: 500; font-size: 18px; margin: 0 0 18px; } .ds-frag-title strong { margin-left: auto; font-weight: 500; color: #2B3BFF; } .ds-frag dl { margin: 0; } .ds-frag dl > div { display: grid; grid-template-columns: 9.5em 1fr; gap: 12px; padding: 9px 0; } .ds-frag dl > div:nth-child(odd) { background: #CDCFC7; margin: 0 -12px; padding-inline: 12px; } .ds-frag dt { color: #4A4B52; } .ds-frag dd { margin: 0; }"
+    },
+    {
+      "name": "FAQ Item",
+      "kind": "custom",
+      "refersTo": "faq-item",
+      "description": "Stacked square disclosures; the open one becomes an ultramarine block.",
+      "html": "<div class=\"ds-faq\"><details open><summary>Does anything get sent without me?<span class=\"ds-plus\"></span></summary><p>No. Every message waits for your review.</p></details><details><summary>Where do the leads come from?<span class=\"ds-plus\"></span></summary><p>Free public sources first.</p></details></div>",
+      "css": ".ds-faq { display: grid; gap: 8px; background: #DEDFDA; padding: 24px; font-family: 'Jost Variable', 'Jost', system-ui, sans-serif; } .ds-faq details { background: #CDCFC7; color: #101018; transition: background-color 240ms ease, color 240ms ease; } .ds-faq details[open] { background: #2B3BFF; color: #fff; } .ds-faq summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 72px; padding: 18px 24px; font-size: 18px; font-weight: 500; } .ds-faq summary::-webkit-details-marker { display: none; } .ds-faq summary:focus-visible { outline: 3px solid #2B3BFF; outline-offset: 3px; } .ds-faq p { margin: 0; padding: 0 24px 26px; } .ds-plus { position: relative; flex: none; width: 16px; height: 16px; } .ds-plus::before, .ds-plus::after { content: ''; position: absolute; left: 0; top: 6.5px; width: 16px; height: 3px; background: currentColor; transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-plus::after { transform: rotate(90deg); } details[open] .ds-plus::after { transform: rotate(0deg); }"
+    },
+    {
+      "name": "Chapter Swatches",
+      "kind": "nav",
+      "refersTo": "top-bar",
+      "description": "The hero navigation: each chapter link painted in its chapter's ground.",
+      "html": "<nav class=\"ds-swatches\"><a class=\"ds-g-print\" href=\"#\">How it works</a><a class=\"ds-g-blue\" href=\"#\">Blink a market</a><a class=\"ds-g-plate\" href=\"#\">Messages</a><a class=\"ds-g-print\" href=\"#\">Pricing</a><a class=\"ds-g-plate-2\" href=\"#\">Questions</a></nav>",
+      "css": ".ds-swatches { display: flex; flex-direction: column; width: 220px; height: 420px; font-family: 'Jost Variable', 'Jost', system-ui, sans-serif; } .ds-swatches a { flex: 1; padding: 20px; font-size: 18px; font-weight: 500; line-height: 1.2; text-decoration: none; transition: padding 240ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-swatches a:hover { padding-left: 28px; } .ds-swatches a:focus-visible { outline: 3px solid #2B3BFF; outline-offset: -3px; } .ds-g-print { background: #0E0E12; color: #F3F3EF; } .ds-g-blue { background: #2B3BFF; color: #fff; } .ds-g-plate { background: #DEDFDA; color: #101018; } .ds-g-plate-2 { background: #CDCFC7; color: #101018; }"
+    },
+    {
+      "name": "Blink Switch",
+      "kind": "custom",
+      "description": "The signature control: a poster-size toggle that flips the sample market from Monday to Thursday.",
+      "html": "<div class=\"ds-blink\"><input type=\"checkbox\" id=\"ds-bt\" class=\"ds-blink-input\" role=\"switch\"><label for=\"ds-bt\" class=\"ds-switch\"><span class=\"ds-days\"><span class=\"ds-mon\">Monday</span><span class=\"ds-thu\">Thursday</span></span><span class=\"ds-track\"><span class=\"ds-thumb\"></span></span></label></div>",
+      "css": ".ds-blink { background: #2B3BFF; padding: 32px; font-family: 'Jost Variable', 'Jost', system-ui, sans-serif; color: #fff; transition: background-color 300ms ease; } .ds-blink:has(.ds-blink-input:checked) { background: #0E0E12; } .ds-blink-input { position: absolute; opacity: 0; } .ds-switch { display: inline-flex; flex-direction: column; font-size: 14px; cursor: pointer; } .ds-days { display: grid; font-size: 2em; font-weight: 700; text-transform: uppercase; letter-spacing: -0.03em; line-height: 1; margin-bottom: 0.3em; } .ds-days > span { grid-area: 1 / 1; } .ds-thu { visibility: hidden; } .ds-blink-input:checked ~ .ds-switch .ds-thu { visibility: visible; } .ds-blink-input:checked ~ .ds-switch .ds-mon { visibility: hidden; } .ds-track { position: relative; display: block; width: 14em; height: 7em; border-radius: 3.5em; background: #F3F3EF; transition: background-color 300ms ease; } .ds-thumb { position: absolute; left: 0.6em; top: 0.6em; width: 5.8em; height: 5.8em; border-radius: 50%; background: #2B3BFF; transition: transform 420ms cubic-bezier(0.76, 0, 0.24, 1); } .ds-blink-input:checked ~ .ds-switch .ds-track { background: #2B3BFF; } .ds-blink-input:checked ~ .ds-switch .ds-thumb { transform: translateX(7em); background: #F3F3EF; } .ds-blink-input:focus-visible ~ .ds-switch .ds-track { outline: 4px solid #F3F3EF; outline-offset: 6px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Blink Comparator",
+    "overview": "Pluto was found by flicking between two photographs of the same sky and seeing the one dot that moved. The site is built as that instrument: a run of photographic plates, each chapter a whole flat field of plate grey or print black, with brand ultramarine as the ink that marks what moved and what to press. Nothing floats, nothing glows; a surface is told apart from its neighbour by one step in tone, never by a line or a shadow.\n\nDensity is poster-like. Display type is set huge, bold and uppercase, and sits directly on the field; body text is sentence case and calm. The product appears only as interface fragments printed in the two inks of the chapter they sit in, so the app is shown as part of the plate rather than as a screenshot pasted on top. Real archival photographs (the 1930 discovery plates, the comparator, Tombaugh's logbook, the astrograph, New Horizons' Pluto) are shown in greyscale and carry their credits in the footer.\n\nMotion has one signature: the blink, a hard two-state flip in steps(1) with no crossfade. Everything else is quiet entrances that happen once.",
+    "keyCharacteristics": [
+      "Chapters are full-bleed flat fields; grey and black alternate, ultramarine owns one whole chapter (the market blink) and the price ticket.",
+      "One face, Jost, from 400 to 700. Uppercase bold display, sentence-case text.",
+      "Square corners on every rectangle. Circles only where the world is round: stars, the marker ring, the switch, ticket notches.",
+      "No rules, no shadows, no gradients at rest.",
+      "Interface fragments (data-ui) printed in their chapter's two inks.",
+      "The blink as the one signature motion."
+    ],
+    "rules": [
+      { "name": "The Two Inks Rule", "body": "Every chapter prints in exactly two inks: its field and its text colour (grey + ink, black + paper, blue + white). Ultramarine is the only colour allowed to cross into a grey or black chapter.", "section": "colors" },
+      { "name": "The Step Not Line Rule", "body": "Adjacent surfaces are separated by a step in tone (Plate Grey to Plate Step, Print Black to Print Step), never by a border or divider.", "section": "colors" },
+      { "name": "The Ink Is Rare Rule", "body": "On grey and black chapters, ultramarine marks one thing that moved or one thing to press. If two blue things compete on one screen, one of them is wrong.", "section": "colors" },
+      { "name": "The One Face Rule", "body": "Jost only. Hierarchy is weight (400 / 500 / 700), case and size.", "section": "typography" },
+      { "name": "The Shout And Speak Rule", "body": "Uppercase belongs to Display and Headline. Everything a person reads for meaning is sentence case.", "section": "typography" },
+      { "name": "The Flat Plate Rule", "body": "Surfaces are flat at rest. If something needs to stand apart, step its tone one notch; never draw a line or cast a shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do build every chapter as one full-bleed flat field from Plate Grey, Plate Step, Print Black or Brand Ultramarine, printed in two inks.",
+      "Do separate neighbouring surfaces by one tonal step (#DEDFDA to #CDCFC7, #0E0E12 to #1D1D24).",
+      "Do set display and chapter heads in Jost 700 uppercase at line-height 0.9 and -0.03em tracking; keep reading text in sentence case.",
+      "Do show the product as data-ui fragments in their chapter's inks, with exactly one ultramarine accent each.",
+      "Do keep every rectangle square (0px) and reserve circles for things that are round in the world.",
+      "Do make the blink a hard steps(1) flip and offer a pause; give reduced-motion users a manual flip.",
+      "Do label sample data as sample (\"Names are made up\") and credit every archival photograph."
+    ],
+    "donts": [
+      "Don't draw rules, borders or dividers between surfaces.",
+      "Don't cast shadows or use gradients on surfaces at rest.",
+      "Don't round the corners of buttons, cards, fragments or inputs.",
+      "Don't add a second typeface.",
+      "Don't spread ultramarine as decoration; it marks what moved or what to press.",
+      "Don't paste a full app screenshot into a device frame; print a fragment instead.",
+      "Don't crossfade the blink; it is a cut."
+    ]
+  }
+}

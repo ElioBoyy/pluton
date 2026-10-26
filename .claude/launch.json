@@ -4,8 +4,49 @@
     {
       "name": "pluton",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@pluton/site",
+        "dev"
+      ],
+      "port": 4321
+    },
+    {
+      "name": "pluton-demo-api",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DATABASE_URL=file:./data/pluton-demo.db",
+        "SERVER_PORT=8797",
+        "pnpm",
+        "--filter",
+        "@pluton/server",
+        "start"
+      ],
+      "port": 8797
+    },
+    {
+      "name": "pluton-demo",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "SERVER_PORT=8797",
+        "pnpm",
+        "--filter",
+        "@pluton/web",
+        "exec",
+        "vite",
+        "--port",
+        "5183",
+        "--strictPort"
+      ],
+      "port": 5183
     }
   ]
 }
