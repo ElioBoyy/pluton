@@ -183,7 +183,7 @@ const en: Record<LegalDocId, LegalDoc> = {
           {
             list: [
               "“Your own AI”: €39.99 per month. The Customer provides their own Claude or Codex subscription, or their API keys, at their own cost.",
-              "“All included”: €59.99 per month. Usage of Claude and of the data sources Pluton provides is included up to 2,090 credits a month, one credit being $0.01 of usage at the providers' public prices. A month's unused credits do not carry over. Once this quota is spent, the Service pauses until the next month, unless the Customer buys additional credits in the app, at the price shown at the time of purchase. Purchased credits remain valid from month to month until used.",
+              "“All included”: €59.99 per month. Usage of Claude and of the data sources Pluton provides is included up to 2,015 credits a month, one credit being $0.01 of usage at the providers' public prices. A month's unused credits do not carry over. Once this quota is spent, the Service pauses until the next month, unless the Customer buys additional credits in the app, at the price shown at the time of purchase. Purchased credits remain valid from month to month until used.",
             ],
           },
           "Unless stated otherwise, the third-party services the Customer connects with their own keys (data providers, LinkedIn through Unipile, CRMs) are paid by the Customer directly to those services.",
