@@ -9,6 +9,7 @@ import { Wallpaper } from "../../components/wallpaper.tsx";
 import { useLocale, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { authStateQuery, post } from "./auth-state.ts";
+import { useResetOnReturn } from "../../lib/redirect.ts";
 
 /** The hosted offer, in euros a month (PRODUCT.md); Stripe holds the prices actually charged. */
 const PLANS = [
@@ -333,6 +334,7 @@ function PlanPicker() {
     mutationFn: () => post<{ url: string }>("/api/billing/checkout", { plan }),
     onSuccess: ({ url }) => window.location.assign(url),
   });
+  useResetOnReturn(checkout.reset);
 
   return (
     <>

@@ -5,6 +5,7 @@ import { Button, Input, Segmented } from "../../components/ui.tsx";
 import { useT } from "../../i18n/index.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { authStateQuery, post } from "../account/auth-state.ts";
+import { useResetOnReturn } from "../../lib/redirect.ts";
 
 const CONSOLE_KEYS = "https://console.anthropic.com/settings/keys";
 const CONSOLE_BILLING = "https://console.anthropic.com/settings/billing";
@@ -209,6 +210,7 @@ function SwitchPlan() {
     mutationFn: () => post<{ url: string }>("/api/billing/portal"),
     onSuccess: ({ url }) => window.location.assign(url),
   });
+  useResetOnReturn(switchPlan.reset);
   return (
     <p className="mt-5 border-t border-(--gg-edge) pt-4 text-xs text-muted">
       {t("ai.preferIncluded")}{" "}
