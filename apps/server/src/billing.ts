@@ -15,6 +15,8 @@ const stripe = {
 };
 
 const WEBHOOK_TOLERANCE_S = 300;
+/** Software as a service for business use: Stripe's Managed Payments needs a tax code on every product sold. */
+const SAAS_TAX_CODE = "txcd_10103001";
 
 type StripeSubscription = {
   id: string;
@@ -184,7 +186,7 @@ export function mountBilling(app: Hono, db: Db) {
       line_items: [
         {
           quantity: 1,
-          price_data: { currency: "eur", unit_amount: topUpPriceCents(credits!), product_data: { name: `Pluton · ${credits} credits` } },
+          price_data: { currency: "eur", unit_amount: topUpPriceCents(credits!), product_data: { name: `Pluton · ${credits} credits`, tax_code: SAAS_TAX_CODE } },
         },
       ],
       metadata: { user_id: user.id, credits: String(credits) },
