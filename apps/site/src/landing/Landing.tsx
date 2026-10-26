@@ -639,6 +639,7 @@ function Footer({ t, locale }: Props) {
           <a href={LICENSE_URL}>{t.footer.license}</a>
           <a href={`${pathFor(locale)}credits/`}>{t.footer.creditsLink}</a>
           <span>© {t.footer.year} Mathis Sportiello</span>
+          <span>{t.footer.domain}</span>
           <a href="#top" className="foot-up">
             {t.footer.top}
           </a>
