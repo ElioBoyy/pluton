@@ -12,6 +12,7 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { BrainGraph, buildGraph, hubForSection, hubLabel, hubMeta } from "./brain-graph.tsx";
 import { CardModal } from "./card-modal.tsx";
+import { ConnectAiModal } from "./connect-ai-modal.tsx";
 import { ChatPanel } from "./chat-panel.tsx";
 import { pendingCards, useOnboarding } from "./use-onboarding.ts";
 
@@ -20,8 +21,13 @@ export function OnboardingPage({ fresh }: { fresh: boolean }) {
   const current = useQuery(trpc.onboarding.current.queryOptions());
   if (current.isPending) return null;
   const session = current.data;
-  if (!session || fresh) return <OnboardingForm />;
-  return <OnboardingLive sessionId={session.id} startedAt={new Date(session.createdAt).getTime()} />;
+  return (
+    <>
+      {!session || fresh ? <OnboardingForm /> : <OnboardingLive sessionId={session.id} startedAt={new Date(session.createdAt).getTime()} />}
+      {/* Bring your own AI: the workspace's Anthropic key comes first. */}
+      <ConnectAiModal />
+    </>
+  );
 }
 
 function OnboardingForm() {

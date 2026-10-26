@@ -205,7 +205,7 @@ export default {
     all: "Tutto incluso",
     perMonth: "al mese",
     ownLines: [
-      "Usa il token del tuo abbonamento Claude o Codex, o le tue chiavi API",
+      "Usa la tua chiave API Anthropic, fatturata da Anthropic al costo reale",
       "Brain, Plays, leads, sequenze LinkedIn ed email",
       "Slack, HubSpot, Attio, Pipedrive e MCP per la tua IA",
       "Continua a funzionare anche a portatile chiuso",
@@ -237,7 +237,7 @@ export default {
       ],
       [
         "Mi serve un mio account Claude?",
-        "Con il piano da 19,99 €, sì: porti un token di abbonamento Claude o Codex, oppure delle chiavi API. Con il piano da 49,99 € Claude è incluso fino a una quota mensile.",
+        "Con il piano da 19,99 €, sì: porti una chiave API Anthropic, e Anthropic ti fattura ciò che Pluton consuma, al costo reale. Con il piano da 49,99 € Claude è incluso fino a una quota mensile.",
       ],
       [
         "Posso usarlo da Claude Code o Codex?",
