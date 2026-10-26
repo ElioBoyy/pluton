@@ -828,6 +828,27 @@ export const users = pgTable(
   ],
 );
 
+/**
+ * Credits bought on top of what a plan includes each month, once Stripe has the payment. They are
+ * spent after the month's own, and carry over until used up.
+ */
+export const creditPacks = pgTable(
+  "credit_pack",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    credits: integer("credits").notNull(),
+    /** What was paid, in the currency's smallest unit. */
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("credit_pack_session_idx").on(t.stripeSessionId), index("credit_pack_user_idx").on(t.userId)],
+);
+
 /** A browser signed in as a user; the cookie holds the token, this table only its SHA-256. */
 export const authSessions = pgTable(
   "auth_session",

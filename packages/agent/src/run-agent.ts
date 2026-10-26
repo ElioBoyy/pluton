@@ -6,7 +6,10 @@ import messages from "./messages/copilot.ts";
 
 const t = localized(messages);
 
-export const MODEL = "claude-opus-5-5";
+/** Research, the Brain, Plays and the agent: Sonnet 5.5 unless the workspace chose Opus 5.5 (Settings → API keys). */
+export const MODEL = "claude-sonnet-5-5";
+export const DEEP_MODEL = "claude-opus-5-5";
+export const agentModel = () => (getSetting("agent_model") === "opus" ? DEEP_MODEL : MODEL);
 /** Writing outreach and judging fit. */
 export const WRITER_MODEL = "claude-sonnet-5-5";
 /** Small classification tasks. */
@@ -45,7 +48,7 @@ export type RunAgentOptions = {
   maxContinuations?: number;
   maxTurns?: number;
   signal?: AbortSignal;
-  /** Defaults to MODEL. */
+  /** Defaults to the workspace's research model (agentModel). */
   model?: string;
   /** Each block of text the agent writes, once that block is complete (for chat-style agents). */
   onText?: (text: string) => Promise<void>;
@@ -147,7 +150,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
   for (let turn = 0; turn < (opts.maxTurns ?? 30); turn++) {
     const stream = getClient().beta.messages.stream(
       {
-        model: opts.model ?? MODEL,
+        model: opts.model ?? agentModel(),
         max_tokens: 16000,
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",
@@ -162,7 +165,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
     if (opts.onTextDelta) stream.on("text", (delta) => opts.onTextDelta?.(delta));
     const response = await stream.finalMessage();
 
-    meterUsage(meter, response.model ?? opts.model ?? MODEL, response.usage);
+    meterUsage(meter, response.model ?? opts.model ?? agentModel(), response.usage);
 
     if (response.stop_reason === "refusal") {
       throw new AgentRefusalError(response.stop_details?.explanation ?? t("claude.declined"));

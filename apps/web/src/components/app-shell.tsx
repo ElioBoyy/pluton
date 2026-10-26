@@ -18,6 +18,7 @@ import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
+import { setMoneyUnit } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { AppLink } from "./app-link.tsx";
 import { AppearanceControl } from "./appearance-control.tsx";
@@ -31,6 +32,7 @@ import { NotificationBell } from "./notification-bell.tsx";
 import { Toaster } from "./toast.tsx";
 import { Wallpaper } from "./wallpaper.tsx";
 import { WorkspaceMenu } from "../features/workspaces/workspace-menu.tsx";
+import { authStateQuery } from "../features/account/auth-state.ts";
 
 /** Each link's name is the shell namespace's `nav.<key>` string. */
 const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads"; icon: Icon }> = [
@@ -46,6 +48,8 @@ export function AppShell() {
   const tc = useT("common");
   const trpc = useTRPC();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
+  // Set while rendering, before the pages below format a single amount.
+  setMoneyUnit(useQuery(authStateQuery).data?.user?.plan === "all" ? "credits" : "usd");
   const plays = useQuery(trpc.plays.list.queryOptions());
   const leadCounts = useQuery(trpc.leads.counts.queryOptions({}));
   const toReview = leadCounts.data?.counts.to_review ?? 0;

@@ -911,6 +911,7 @@ export const notifications = sqliteTable(
 );
 
 export type CreditEntry = typeof creditEntries.$inferSelect;
+export type CreditPack = typeof creditPacks.$inferSelect;
 export type CreditHold = typeof creditHolds.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 
@@ -1212,6 +1213,27 @@ export const users = sqliteTable(
     uniqueIndex("user_stripe_customer_idx").on(t.stripeCustomerId),
     index("user_email_idx").on(t.email),
   ],
+);
+
+/**
+ * Credits bought on top of what a plan includes each month, once Stripe has the payment. They are
+ * spent after the month's own, and carry over until used up.
+ */
+export const creditPacks = sqliteTable(
+  "credit_pack",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    credits: integer("credits").notNull(),
+    /** What was paid, in the currency's smallest unit. */
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("credit_pack_session_idx").on(t.stripeSessionId), index("credit_pack_user_idx").on(t.userId)],
 );
 
 /** A browser signed in as a user; the cookie holds the token, this table only its SHA-256. */

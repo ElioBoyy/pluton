@@ -169,6 +169,13 @@
       "when": 1793036147658,
       "tag": "0023_platform_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1793036483057,
+      "tag": "0024_credit_packs",
+      "breakpoints": true
     }
   ]
 }

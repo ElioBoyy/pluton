@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Context, Hono } from "hono";
-import { eq, users, type Db, type SubscriptionPlan } from "@pluton/db";
+import { creditPacks, eq, forgetPlans, TOP_UP_PACKS, topUpPriceCents, users, type Db, type SubscriptionPlan } from "@pluton/db";
 import { APP_URL, currentUser, HOSTED, isPaid, type User } from "./auth.ts";
 
 /**
@@ -66,6 +66,29 @@ async function syncSubscription(db: Db, sub: StripeSubscription) {
       currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
     })
     .where(eq(users.stripeCustomerId, sub.customer));
+}
+
+type StripeCheckoutSession = {
+  id: string;
+  mode: string;
+  payment_status: string;
+  client_reference_id: string | null;
+  amount_total: number | null;
+  currency: string | null;
+  metadata?: Record<string, string>;
+};
+
+/** Records a paid pack once (returning its credits), whether the webhook or the page coming back from Checkout gets there first. */
+async function recordPack(db: Db, session: StripeCheckoutSession) {
+  const credits = Number(session.metadata?.credits);
+  const userId = session.metadata?.user_id ?? session.client_reference_id;
+  if (session.mode !== "payment" || session.payment_status !== "paid" || !userId || !credits) return 0;
+  await db
+    .insert(creditPacks)
+    .values({ userId, credits, amountCents: session.amount_total ?? 0, currency: session.currency ?? "eur", stripeSessionId: session.id })
+    .onConflictDoNothing({ target: creditPacks.stripeSessionId });
+  forgetPlans();
+  return credits;
 }
 
 async function ensureCustomer(db: Db, user: User) {
@@ -147,6 +170,40 @@ export function mountBilling(app: Hono, db: Db) {
     return c.json({ paid: fresh ? isPaid(fresh) : false });
   }));
 
+  /** A pack of credits on top of the plan's monthly ones, paid once through Checkout. */
+  app.post("/api/billing/credits", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    if (!isPaid(user)) return c.json({ error: "not_paid" }, 402);
+    const { credits } = await c.req.json<{ credits?: number }>();
+    if (!TOP_UP_PACKS.includes(credits as (typeof TOP_UP_PACKS)[number])) return c.json({ error: "unknown_pack" }, 400);
+    const session = await call<{ url: string }>("POST", "checkout/sessions", {
+      mode: "payment",
+      customer: await ensureCustomer(db, user),
+      client_reference_id: user.id,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: { currency: "eur", unit_amount: topUpPriceCents(credits!), product_data: { name: `Pluton · ${credits} credits` } },
+        },
+      ],
+      metadata: { user_id: user.id, credits: String(credits) },
+      success_url: `${APP_URL}/workspace/billing?credits_session={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${APP_URL}/workspace/billing`,
+    });
+    return c.json({ url: session.url });
+  }));
+
+  app.post("/api/billing/credits/confirm", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const { sessionId } = await c.req.json<{ sessionId?: string }>();
+    if (!sessionId || !sessionId.startsWith("cs_")) return c.json({ error: "unknown_session" }, 400);
+    const session = await call<StripeCheckoutSession>("GET", `checkout/sessions/${encodeURIComponent(sessionId)}`);
+    if (session.client_reference_id !== user.id) return c.json({ error: "unknown_session" }, 400);
+    return c.json({ added: await recordPack(db, session) });
+  }));
+
   /** Stripe's own page to change card, switch plan or cancel. */
   app.post("/api/billing/portal", guarded(async (c) => {
     const user = HOSTED ? await currentUser(db, c) : null;
@@ -164,7 +221,10 @@ export function mountBilling(app: Hono, db: Db) {
     if (!verifyWebhook(payload, c.req.header("stripe-signature"))) return c.json({ error: "bad_signature" }, 400);
     const event = JSON.parse(payload) as { type: string; data: { object: Record<string, unknown> } };
     const object = event.data.object;
-    if (event.type === "checkout.session.completed" && typeof object.subscription === "string") {
+    // A bank debit settles later than the session completes: it is recorded when Stripe says it was paid.
+    if ((event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") && object.mode === "payment") {
+      await recordPack(db, object as unknown as StripeCheckoutSession);
+    } else if (event.type === "checkout.session.completed" && typeof object.subscription === "string") {
       await syncSubscription(db, await call<StripeSubscription>("GET", `subscriptions/${object.subscription}`));
     } else if (event.type.startsWith("customer.subscription.")) {
       await syncSubscription(db, object as unknown as StripeSubscription);

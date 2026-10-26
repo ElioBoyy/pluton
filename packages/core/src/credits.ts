@@ -18,6 +18,8 @@ import {
   onCostRecorded,
   paidByPlatform,
   platformQuota,
+  TOP_UP_PACKS,
+  topUpPriceCents,
   type Play,
   plays,
   type RunTrigger,
@@ -174,9 +176,13 @@ export async function budgetStatus(db: Db, ws: Workspace, now = new Date()) {
     /** Null when no limit is set. */
     availableMicroUsd: lefts.length ? Math.max(Math.min(...lefts), 0) : null,
     /** Hosted: what the plan includes this billing period through Pluton's own keys; null without a plan. */
-    platform: platformQuota(ws.id),
+    platform: withPacks(platformQuota(ws.id)),
   };
 }
+
+/** The packs of credits on sale, priced in euro cents at the fixed rate. */
+const withPacks = <T extends object>(quota: T | null) =>
+  quota && { ...quota, packs: TOP_UP_PACKS.map((credits) => ({ credits, priceCents: topUpPriceCents(credits) })) };
 
 export class BudgetError extends Error {}
 

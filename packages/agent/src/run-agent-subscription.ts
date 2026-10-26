@@ -2,7 +2,7 @@ import os from "node:os";
 import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk";
 import { localized } from "@pluton/i18n/server";
 import messages from "./messages/copilot.ts";
-import { AgentTurnLimitError, MODEL, newMeter, type AgentMeter, type RunAgentOptions, type RunAgentResult } from "./run-agent.ts";
+import { AgentTurnLimitError, agentModel, newMeter, type AgentMeter, type RunAgentOptions, type RunAgentResult } from "./run-agent.ts";
 
 const t = localized(messages);
 
@@ -45,7 +45,7 @@ export async function runAgentWithSubscription(opts: RunAgentOptions, meter: Age
     for await (const message of query({
       prompt,
       options: {
-        model: opts.model ?? MODEL,
+        model: opts.model ?? agentModel(),
         effort: "medium",
         systemPrompt: opts.system,
         // Only web research plus our save tools; nothing from the user's own Claude Code setup.

@@ -2,13 +2,14 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { localized } from "@pluton/i18n/server";
 import fs from "node:fs";
 import path from "node:path";
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { currentCostScope, onCostRecorded } from "./costs.ts";
+import { dayOf } from "./dialect.ts";
 import type { Db } from "./index.ts";
 import messages from "./messages/settings.ts";
 import { HOSTED, repoRoot } from "./paths.ts";
 import type { SubscriptionPlan } from "./schema.ts";
-import { creditEntries, users, workspaces, workspaceSettings } from "./tables.ts";
+import { creditEntries, creditPacks, users, workspaces, workspaceSettings } from "./tables.ts";
 
 export type SettingDef = {
   key: string;
@@ -31,6 +32,18 @@ export const SETTING_DEFS: SettingDef[] = [
       { value: "api_key", label: "Anthropic API key" },
     ],
     defaultValue: "subscription",
+    group: "claude",
+  },
+  {
+    key: "agent_model",
+    label: "Research model",
+    description: "Sonnet 5.5 does Pluton's research well at a lower cost; Opus 5.5 digs deeper, at twice the price.",
+    secret: false,
+    options: [
+      { value: "sonnet", label: "Claude Sonnet 5.5" },
+      { value: "opus", label: "Claude Opus 5.5" },
+    ],
+    defaultValue: "sonnet",
     group: "claude",
   },
   { key: "anthropic_api_key", label: "Anthropic API key", description: "Used when the backend is set to API key.", secret: true, group: "claude" },
@@ -184,11 +197,45 @@ export const PLATFORM_KEYS: Record<string, { source: string; plans: Subscription
 
 const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`]?.trim() || undefined;
 
-/** USD of platform spend each plan includes per billing period: PLATFORM_QUOTA_USD_ALL, PLATFORM_QUOTA_USD_BYO. */
-const DEFAULT_QUOTA_USD: Record<SubscriptionPlan, number> = { byo: 10, all: 50 };
-const quotaMicroUsd = (plan: SubscriptionPlan) => Math.round((Number(process.env[`PLATFORM_QUOTA_USD_${plan.toUpperCase()}`]) || DEFAULT_QUOTA_USD[plan]) * 1_000_000);
+/**
+ * Credits are what the plans count in: 1 $ of Pluton's own spend at API prices is 100 credits. Each
+ * month a plan includes 30% of its price (PLATFORM_QUOTA_SHARE), turned into dollars at a fixed
+ * rate (PLUTON_USD_PER_EUR) rather than the day's, so the allowance doesn't move under anyone.
+ * PLATFORM_QUOTA_USD_<PLAN> overrides it outright. Credits bought on top cost 2.5× the API price.
+ */
+export const CREDITS_PER_USD = 100;
+export const PLAN_PRICE_EUR: Record<SubscriptionPlan, number> = { byo: 19.99, all: 49.99 };
+const envNumber = (name: string, fallback: number) => {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+export const usdPerEur = () => envNumber("PLUTON_USD_PER_EUR", 1.16);
+const quotaShare = () => envNumber("PLATFORM_QUOTA_SHARE", 0.3);
+const TOP_UP_MARKUP = 2.5;
+/** The packs a plan sells, in credits. */
+export const TOP_UP_PACKS = [1000, 2500, 5000] as const;
 
-type WorkspacePlan = { plan: SubscriptionPlan; periodStart: Date; periodEnd: Date; quotaMicroUsd: number; spentMicroUsd: number };
+const quotaMicroUsd = (plan: SubscriptionPlan) => {
+  const usd = Number(process.env[`PLATFORM_QUOTA_USD_${plan.toUpperCase()}`]) || PLAN_PRICE_EUR[plan] * quotaShare() * usdPerEur();
+  return Math.round(usd * 1_000_000);
+};
+
+/** What a pack of `credits` costs, in euro cents: its API price, marked up, at the fixed rate. */
+export const topUpPriceCents = (credits: number) => Math.ceil(((credits / CREDITS_PER_USD) * TOP_UP_MARKUP * 100) / usdPerEur());
+
+/**
+ * One paying account's allowance this billing period, shared by all its workspaces (a second
+ * workspace doesn't double it). `quotaMicroUsd` is the month's own plus what is left of the packs.
+ */
+type WorkspacePlan = {
+  plan: SubscriptionPlan;
+  periodStart: Date;
+  periodEnd: Date;
+  includedMicroUsd: number;
+  topUpMicroUsd: number;
+  quotaMicroUsd: number;
+  spentMicroUsd: number;
+};
 
 /** Paying workspaces only: one whose account has no active subscription gets no platform key. */
 let plans = new Map<string, WorkspacePlan>();
@@ -196,36 +243,90 @@ let plansCheckedAt = 0;
 /** The ledger is summed at most this often; spend recorded in this process is added as it lands. */
 const PLAN_SPEND_TTL_MS = 30_000;
 
+const monthsBefore = (date: Date, months: number) => {
+  const d = new Date(date);
+  d.setUTCMonth(d.getUTCMonth() - months);
+  return d;
+};
+
 /** The subscription's current month, from Stripe's period end; the calendar month when it's unknown or past. */
 function billingPeriod(periodEnd: Date | null, now = new Date()) {
-  if (periodEnd && periodEnd > now) {
-    const start = new Date(periodEnd);
-    start.setUTCMonth(start.getUTCMonth() - 1);
-    return { start, end: periodEnd };
-  }
+  if (periodEnd && periodEnd > now) return { start: monthsBefore(periodEnd, 1), end: periodEnd };
   return { start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), end: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)) };
+}
+
+/**
+ * What is left of the packs an account bought when its current period starts: each earlier period
+ * since the first pack used them for whatever it spent beyond its own allowance.
+ */
+async function topUpLeft(db: Db, userId: string, workspaceIds: string[], current: { start: Date; end: Date }, includedMicroUsd: number) {
+  const packs = await db.select({ credits: creditPacks.credits, createdAt: creditPacks.createdAt }).from(creditPacks).where(eq(creditPacks.userId, userId));
+  if (!packs.length) return 0;
+  const bought = packs.reduce((sum, p) => sum + (p.credits * 1_000_000) / CREDITS_PER_USD, 0);
+  const first = new Date(Math.min(...packs.map((p) => p.createdAt.getTime())));
+  if (first >= current.start) return bought;
+  const days = await db
+    .select({ day: dayOf(creditEntries.createdAt), n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
+    .from(creditEntries)
+    .where(and(inArray(creditEntries.workspaceId, workspaceIds), eq(creditEntries.platform, true), gte(creditEntries.createdAt, monthsBefore(current.start, 1)), lt(creditEntries.createdAt, current.start)))
+    .groupBy(sql`1`);
+  // Earlier periods, newest first, back to the one the first pack was bought in.
+  let used = 0;
+  for (let k = 1; monthsBefore(current.start, k - 1) > first; k++) {
+    const from = monthsBefore(current.start, k);
+    const to = monthsBefore(current.start, k - 1);
+    const spent = days.filter((d) => new Date(`${d.day}T12:00:00Z`) >= from && new Date(`${d.day}T12:00:00Z`) < to).reduce((sum, d) => sum + Number(d.n), 0);
+    used += Math.max(spent - includedMicroUsd, 0);
+    if (k > 36) break;
+  }
+  return Math.max(bought - used, 0);
 }
 
 async function refreshPlans(db: Db) {
   if (Date.now() - plansCheckedAt < PLAN_SPEND_TTL_MS) return;
   plansCheckedAt = Date.now();
   const rows = await db
-    .select({ workspaceId: workspaces.id, plan: users.plan, status: users.subscriptionStatus, periodEnd: users.currentPeriodEnd })
+    .select({ workspaceId: workspaces.id, userId: users.id, plan: users.plan, status: users.subscriptionStatus, periodEnd: users.currentPeriodEnd })
     .from(workspaces)
     .innerJoin(users, eq(users.id, workspaces.userId));
-  const paying = rows.filter((r) => r.plan && (r.status === "active" || r.status === "trialing"));
+  const accounts = new Map<string, { plan: SubscriptionPlan; periodEnd: Date | null; workspaceIds: string[] }>();
+  for (const r of rows) {
+    if (!r.plan || (r.status !== "active" && r.status !== "trialing")) continue;
+    const account = accounts.get(r.userId) ?? { plan: r.plan, periodEnd: r.periodEnd, workspaceIds: [] };
+    account.workspaceIds.push(r.workspaceId);
+    accounts.set(r.userId, account);
+  }
   const next = new Map<string, WorkspacePlan>();
   await Promise.all(
-    paying.map(async (r) => {
-      const period = billingPeriod(r.periodEnd);
-      const [row] = await db
-        .select({ n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
-        .from(creditEntries)
-        .where(and(eq(creditEntries.workspaceId, r.workspaceId), eq(creditEntries.platform, true), gte(creditEntries.createdAt, period.start)));
-      next.set(r.workspaceId, { plan: r.plan!, periodStart: period.start, periodEnd: period.end, quotaMicroUsd: quotaMicroUsd(r.plan!), spentMicroUsd: Number(row?.n ?? 0) });
+    [...accounts].map(async ([userId, a]) => {
+      const period = billingPeriod(a.periodEnd);
+      const includedMicroUsd = quotaMicroUsd(a.plan);
+      const [[row], topUpMicroUsd] = await Promise.all([
+        db
+          .select({ n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
+          .from(creditEntries)
+          .where(and(inArray(creditEntries.workspaceId, a.workspaceIds), eq(creditEntries.platform, true), gte(creditEntries.createdAt, period.start))),
+        topUpLeft(db, userId, a.workspaceIds, period, includedMicroUsd),
+      ]);
+      // One object per account: what one workspace spends is gone for the others too.
+      const shared: WorkspacePlan = {
+        plan: a.plan,
+        periodStart: period.start,
+        periodEnd: period.end,
+        includedMicroUsd,
+        topUpMicroUsd: Math.round(topUpMicroUsd),
+        quotaMicroUsd: Math.round(includedMicroUsd + topUpMicroUsd),
+        spentMicroUsd: Number(row?.n ?? 0),
+      };
+      for (const id of a.workspaceIds) next.set(id, shared);
     }),
   );
   plans = next;
+}
+
+/** A pack just paid for counts at once rather than at the next refresh. */
+export function forgetPlans() {
+  plansCheckedAt = 0;
 }
 
 // The ledger total is up to 30 seconds old: what this process spends counts at once.
@@ -257,6 +358,8 @@ export function platformQuota(workspaceId?: string | null) {
     plan: plan.plan,
     periodStart: plan.periodStart,
     periodEnd: plan.periodEnd,
+    includedMicroUsd: plan.includedMicroUsd,
+    topUpMicroUsd: plan.topUpMicroUsd,
     quotaMicroUsd: plan.quotaMicroUsd,
     spentMicroUsd: plan.spentMicroUsd,
     leftMicroUsd: Math.max(plan.quotaMicroUsd - plan.spentMicroUsd, 0),
