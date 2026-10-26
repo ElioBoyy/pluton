@@ -34,7 +34,7 @@ import {
 import type { CSSProperties } from "react";
 import { LOCALES, LOCALE_NAMES, pathFor, type Locale, type Strings } from "../i18n/index.ts";
 import { SAMPLE_MESSAGES } from "../i18n/messages.ts";
-import { LICENSE_URL, REPO_URL, SIGNUP_URL } from "../links.ts";
+import { APP_URL, LICENSE_URL, REPO_URL } from "../links.ts";
 import { LEGAL_DOCS } from "../legal/publisher.ts";
 import { Agent } from "./Agent.tsx";
 
@@ -81,7 +81,7 @@ function Bar({ t, locale }: Props) {
           ))}
         </Glass>
       </details>
-      <LinkButton variant="accent" size="sm" href={SIGNUP_URL} className="bar-start">
+      <LinkButton variant="accent" size="sm" href={APP_URL} className="bar-start">
         {t.nav.start}
       </LinkButton>
     </Menubar>
@@ -106,7 +106,7 @@ function Hero({ t }: Props) {
         </h1>
         <p className="lead reveal">{t.hero.sub}</p>
         <div className="hero-actions reveal">
-          <LinkButton variant="accent" size="lg" href={SIGNUP_URL}>
+          <LinkButton variant="accent" size="lg" href={APP_URL}>
             {t.hero.cta}
           </LinkButton>
           <LinkButton variant="glass" size="lg" href={REPO_URL}>
@@ -574,10 +574,10 @@ function Pricing({ t, locale }: Props) {
             </ul>
           </div>
           <div className="price-actions">
-            <LinkButton variant="accent" size="lg" href={`${SIGNUP_URL}?plan=own`} className="plan-own">
+            <LinkButton variant="accent" size="lg" href={APP_URL} className="plan-own">
               {p.cta} · {p.own}
             </LinkButton>
-            <LinkButton variant="accent" size="lg" href={`${SIGNUP_URL}?plan=all`} className="plan-all">
+            <LinkButton variant="accent" size="lg" href={APP_URL} className="plan-all">
               {p.cta} · {p.all}
             </LinkButton>
           </div>
