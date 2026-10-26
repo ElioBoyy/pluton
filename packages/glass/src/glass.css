@@ -695,8 +695,8 @@
 /*
  * The AI at work: an ultramarine light runs round the edge of whatever it is working in.
  * When it finishes (`aiFinish()` in ./behaviors.ts, data-ai="finale"), the light speeds up,
- * turns into a rainbow aura, goes once round, whitens and fades out. The colours and the extra
- * spin are registered properties set on the element, so they interpolate and both layers share them.
+ * turns into a fully saturated rainbow, goes once round, whitens and fades out. The colours and
+ * the extra spin are registered properties set on the element, so they interpolate.
  */
 @property --gg-turn {
   syntax: "<angle>";
@@ -712,11 +712,6 @@
   syntax: "<number>";
   inherits: true;
   initial-value: 1;
-}
-@property --gg-aura {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 0;
 }
 @property --gg-c0 { syntax: "<color>"; inherits: true; initial-value: transparent; }
 @property --gg-c1 { syntax: "<color>"; inherits: true; initial-value: transparent; }
@@ -735,8 +730,7 @@
   --gg-c4: var(--gg-accent);
   --gg-c5: rgb(160 170 255 / 0.95);
 }
-.gg-ai-edge::after,
-.gg-ai-edge::before {
+.gg-ai-edge::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -759,28 +753,16 @@
   opacity: 0;
   animation: gg-turn 2.4s linear infinite;
   animation-play-state: paused;
-}
-/* The light on the edge. */
-.gg-ai-edge::after {
   z-index: 2;
   padding: 1.5px;
   transition: opacity 400ms var(--gg-ease);
-}
-/* The aura: the same light, wide and soft, glowing in from the edge. */
-.gg-ai-edge::before {
-  z-index: 1;
-  padding: 18px;
-  filter: blur(14px);
-  opacity: var(--gg-aura);
 }
 .gg-ai-edge[data-ai="working"]::after,
 .gg-ai-edge[data-ai="finale"]::after {
   opacity: var(--gg-edge-alpha);
 }
 .gg-ai-edge[data-ai="working"]::after,
-.gg-ai-edge[data-ai="working"]::before,
-.gg-ai-edge[data-ai="finale"]::after,
-.gg-ai-edge[data-ai="finale"]::before {
+.gg-ai-edge[data-ai="finale"]::after {
   animation-play-state: running;
 }
 @keyframes gg-turn {
@@ -1032,8 +1014,7 @@
   .gg-thinking__b {
     animation: none;
   }
-  .gg-ai-edge::after,
-  .gg-ai-edge::before {
+  .gg-ai-edge::after {
     animation: none;
     --gg-turn: 120deg;
   }

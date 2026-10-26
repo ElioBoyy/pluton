@@ -47,12 +47,13 @@ export function aiStart(el: HTMLElement) {
   el.dataset.ai = "working";
 }
 
-const RAINBOW = ["#ff5f6d", "#ffb34a", "#ffe45c", "#4fd18b", "#4fa8ff", "#b46bff"];
+// Pure hues at full saturation: red, orange, yellow, green, blue, violet.
+const RAINBOW = ["#ff0000", "#ff8000", "#ffee00", "#00e040", "#0070ff", "#a000ff"];
 const WHITE = Array(6).fill("#ffffff");
 
 /**
  * Ends the AI's work on an element carrying `gg-ai-edge` (a Window): the light speeds up, turns
- * into a rainbow aura, goes once round, whitens and fades out. Resolves when it has faded; the
+ * into a saturated rainbow, goes once round, whitens and fades out. Resolves when it has faded; the
  * element is then back to rest. Under reduced motion it simply fades.
  */
 export function aiFinish(el: HTMLElement): Promise<void> {
@@ -65,15 +66,15 @@ export function aiFinish(el: HTMLElement): Promise<void> {
     ? [{ "--gg-edge-alpha": 1 }, { "--gg-edge-alpha": 0 }]
     : [
         // Speeds up, still blue.
-        { offset: 0, "--gg-spin": "0deg", "--gg-aura": 0, "--gg-edge-alpha": 1, ...colours(comet), easing: "cubic-bezier(0.5, 0, 0.9, 0.6)" },
-        // Becomes the rainbow aura at full speed.
-        { offset: 0.28, "--gg-spin": "240deg", "--gg-aura": 0.85, "--gg-edge-alpha": 1, ...colours(RAINBOW), easing: "linear" },
+        { offset: 0, "--gg-spin": "0deg", "--gg-edge-alpha": 1, ...colours(comet), easing: "cubic-bezier(0.5, 0, 0.9, 0.6)" },
+        // Becomes the rainbow at full speed.
+        { offset: 0.28, "--gg-spin": "240deg", "--gg-edge-alpha": 1, ...colours(RAINBOW), easing: "linear" },
         // One full turn as a rainbow.
-        { offset: 0.68, "--gg-spin": "600deg", "--gg-aura": 0.85, "--gg-edge-alpha": 1, ...colours(RAINBOW), easing: "cubic-bezier(0.2, 0.6, 0.4, 1)" },
+        { offset: 0.68, "--gg-spin": "600deg", "--gg-edge-alpha": 1, ...colours(RAINBOW), easing: "cubic-bezier(0.2, 0.6, 0.4, 1)" },
         // Whitens as it slows.
-        { offset: 0.84, "--gg-spin": "700deg", "--gg-aura": 0.5, "--gg-edge-alpha": 1, ...colours(WHITE), easing: "ease-out" },
+        { offset: 0.84, "--gg-spin": "700deg", "--gg-edge-alpha": 1, ...colours(WHITE), easing: "ease-out" },
         // And fades.
-        { offset: 1, "--gg-spin": "740deg", "--gg-aura": 0, "--gg-edge-alpha": 0, ...colours(WHITE) },
+        { offset: 1, "--gg-spin": "740deg", "--gg-edge-alpha": 0, ...colours(WHITE) },
       ];
   finales.get(el)?.cancel();
   const run = el.animate(frames, { duration: reduced ? 300 : 2400 });
