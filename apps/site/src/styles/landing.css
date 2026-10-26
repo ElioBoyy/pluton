@@ -740,11 +740,11 @@ a {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(90deg, rgb(6 6 10 / 0.9), rgb(6 6 10 / 0.78) 42%, rgb(6 6 10 / 0.35) 70%, rgb(6 6 10 / 0.25));
+  background: linear-gradient(90deg, rgb(6 6 10 / 0.66), rgb(6 6 10 / 0.5) 40%, rgb(6 6 10 / 0.12) 68%, rgb(6 6 10 / 0));
 }
 /* The flyover is bright grey ice: dimmed so the words in front of it hold. */
 .trust video.band-photo {
-  filter: brightness(0.62) contrast(1.05);
+  filter: brightness(0.8);
 }
 .band-inner {
   display: grid;
