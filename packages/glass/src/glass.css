@@ -1,0 +1,967 @@
+/*
+ * @pluton/glass: the Golden Gate material, shared by the landing page (apps/site) and the app (apps/web).
+ *
+ * Every surface is a sheet of glass laid over a picture of Pluto: it blurs and saturates what is
+ * behind it, catches light on its top edge, and lifts off with one soft shadow. Corners are
+ * continuous (a squircle where the browser can draw one). Brand ultramarine marks what to press
+ * and what the AI is doing; the AI's own mark is the logo's two halves closing while it works.
+ *
+ * Light and dark follow the system, and `data-theme="light" | "dark"` on <html> overrides it (the
+ * app's appearance setting). Every token is `--gg-*`; every class is `gg-*`.
+ */
+
+:root {
+  --gg-font: "Jost Variable", "Jost", system-ui, -apple-system, sans-serif;
+  --gg-font-code: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --gg-ink: #101018;
+  --gg-ink-2: rgb(16 16 24 / 0.68);
+  --gg-ink-3: rgb(16 16 24 / 0.48);
+  --gg-accent: #2b3bff;
+  --gg-accent-press: #2232e0;
+  --gg-accent-text: #2b3bff;
+  --gg-accent-soft: rgb(43 59 255 / 0.13);
+  --gg-on-accent: #ffffff;
+  --gg-positive: #16884a;
+  --gg-warning: #c25e0f;
+
+  /* The material, from thin (more picture) to thick (more legible). */
+  --gg-material-thin: rgb(248 248 251 / 0.34);
+  --gg-material: rgb(248 248 251 / 0.58);
+  --gg-material-thick: rgb(248 248 251 / 0.8);
+  --gg-blur: 28px;
+  --gg-saturate: 185%;
+
+  /* Inside the glass: fills for controls, wells for fields and inner cards. */
+  --gg-fill: rgb(16 16 24 / 0.06);
+  --gg-fill-hover: rgb(16 16 24 / 0.1);
+  --gg-fill-press: rgb(16 16 24 / 0.15);
+  --gg-well: rgb(255 255 255 / 0.62);
+  --gg-raised: #ffffff;
+
+  /* Light on the glass: a bright top edge and a faint rim all round. */
+  --gg-rim: rgb(255 255 255 / 0.85);
+  --gg-rim-low: rgb(255 255 255 / 0.32);
+  --gg-edge: rgb(16 16 24 / 0.1);
+  --gg-shadow: 0 1px 2px rgb(16 16 24 / 0.06), 0 22px 54px -22px rgb(16 16 24 / 0.42);
+  --gg-shadow-float: 0 2px 8px rgb(16 16 24 / 0.08), 0 34px 80px -26px rgb(16 16 24 / 0.55);
+  --gg-shadow-control: 0 1px 2px rgb(16 16 24 / 0.1), 0 3px 10px -4px rgb(16 16 24 / 0.18);
+
+  /* Continuous corners. With `corner-shape` the radii grow so the curve keeps the same size. */
+  --gg-k: 1;
+  --gg-r-window: calc(26px * var(--gg-k));
+  --gg-r-panel: calc(20px * var(--gg-k));
+  --gg-r-card: calc(16px * var(--gg-k));
+  --gg-r-field: calc(12px * var(--gg-k));
+  --gg-r-row: calc(10px * var(--gg-k));
+
+  --gg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --gg-spring: cubic-bezier(0.32, 1.18, 0.6, 1);
+
+  color-scheme: light;
+}
+
+@supports (corner-shape: squircle) {
+  :root {
+    --gg-k: 1.7;
+  }
+}
+
+/* Dark: smoked glass, paper ink, ultramarine lifted to stay readable as text. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --gg-ink: #f4f4f7;
+    --gg-ink-2: rgb(244 244 247 / 0.7);
+    --gg-ink-3: rgb(244 244 247 / 0.48);
+    --gg-accent: #3443ff;
+    --gg-accent-press: #2b3bff;
+    --gg-accent-text: #9aa3ff;
+    --gg-accent-soft: rgb(110 122 255 / 0.22);
+    --gg-positive: #4fd18b;
+    --gg-warning: #f5a05a;
+    --gg-material-thin: rgb(24 24 32 / 0.3);
+    --gg-material: rgb(24 24 32 / 0.52);
+    --gg-material-thick: rgb(24 24 32 / 0.76);
+    --gg-fill: rgb(255 255 255 / 0.08);
+    --gg-fill-hover: rgb(255 255 255 / 0.13);
+    --gg-fill-press: rgb(255 255 255 / 0.18);
+    --gg-well: rgb(0 0 0 / 0.26);
+    --gg-raised: rgb(255 255 255 / 0.16);
+    --gg-rim: rgb(255 255 255 / 0.26);
+    --gg-rim-low: rgb(255 255 255 / 0.08);
+    --gg-edge: rgb(0 0 0 / 0.45);
+    --gg-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 24px 60px -22px rgb(0 0 0 / 0.75);
+    --gg-shadow-float: 0 2px 8px rgb(0 0 0 / 0.35), 0 36px 90px -26px rgb(0 0 0 / 0.85);
+    --gg-shadow-control: 0 1px 2px rgb(0 0 0 / 0.4), 0 3px 10px -4px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --gg-ink: #f4f4f7;
+  --gg-ink-2: rgb(244 244 247 / 0.7);
+  --gg-ink-3: rgb(244 244 247 / 0.48);
+  --gg-accent: #3443ff;
+  --gg-accent-press: #2b3bff;
+  --gg-accent-text: #9aa3ff;
+  --gg-accent-soft: rgb(110 122 255 / 0.22);
+  --gg-positive: #4fd18b;
+  --gg-warning: #f5a05a;
+  --gg-material-thin: rgb(24 24 32 / 0.3);
+  --gg-material: rgb(24 24 32 / 0.52);
+  --gg-material-thick: rgb(24 24 32 / 0.76);
+  --gg-fill: rgb(255 255 255 / 0.08);
+  --gg-fill-hover: rgb(255 255 255 / 0.13);
+  --gg-fill-press: rgb(255 255 255 / 0.18);
+  --gg-well: rgb(0 0 0 / 0.26);
+  --gg-raised: rgb(255 255 255 / 0.16);
+  --gg-rim: rgb(255 255 255 / 0.26);
+  --gg-rim-low: rgb(255 255 255 / 0.08);
+  --gg-edge: rgb(0 0 0 / 0.45);
+  --gg-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 24px 60px -22px rgb(0 0 0 / 0.75);
+  --gg-shadow-float: 0 2px 8px rgb(0 0 0 / 0.35), 0 36px 90px -26px rgb(0 0 0 / 0.85);
+  --gg-shadow-control: 0 1px 2px rgb(0 0 0 / 0.4), 0 3px 10px -4px rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+
+/* Glass that can't blur (old browsers, reduced transparency) turns into a solid sheet. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --gg-material-thin: rgb(242 242 246 / 0.94);
+    --gg-material: rgb(242 242 246 / 0.96);
+    --gg-material-thick: rgb(242 242 246 / 0.98);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --gg-material-thin: rgb(242 242 246 / 0.96);
+    --gg-material: rgb(242 242 246 / 0.97);
+    --gg-material-thick: rgb(242 242 246 / 0.98);
+  }
+  :root[data-theme="dark"] {
+    --gg-material-thin: rgb(28 28 36 / 0.96);
+    --gg-material: rgb(28 28 36 / 0.97);
+    --gg-material-thick: rgb(28 28 36 / 0.98);
+  }
+}
+
+/* A kit component with `hidden` stays hidden whatever display its class gives it. */
+[class*="gg-"][hidden] {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------ the material */
+
+.gg-glass,
+.gg-window,
+.gg-note,
+.gg-chip,
+.gg-button--glass,
+.gg-menubar {
+  -webkit-backdrop-filter: blur(var(--gg-blur)) saturate(var(--gg-saturate));
+  backdrop-filter: blur(var(--gg-blur)) saturate(var(--gg-saturate));
+}
+
+.gg-glass {
+  position: relative;
+  background: var(--gg-material);
+  color: var(--gg-ink);
+  border-radius: var(--gg-r-panel);
+  box-shadow:
+    0 0 0 0.5px var(--gg-edge),
+    inset 0 1px 0 var(--gg-rim),
+    inset 0 0 0 1px var(--gg-rim-low),
+    var(--gg-shadow);
+}
+.gg-glass--thin {
+  background: var(--gg-material-thin);
+}
+.gg-glass--thick {
+  background: var(--gg-material-thick);
+}
+.gg-glass--flat {
+  box-shadow:
+    0 0 0 0.5px var(--gg-edge),
+    inset 0 1px 0 var(--gg-rim),
+    inset 0 0 0 1px var(--gg-rim-low);
+}
+
+.gg-glass,
+.gg-window,
+.gg-card,
+.gg-field,
+.gg-note,
+.gg-approval,
+.gg-disclosure,
+.gg-code,
+.gg-sidebar,
+.gg-side-item,
+.gg-row,
+.gg-app-icon {
+  corner-shape: squircle;
+}
+
+/* ------------------------------------------------------------------ window */
+
+.gg-window {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: clip;
+  background: var(--gg-material);
+  color: var(--gg-ink);
+  border-radius: var(--gg-r-window);
+  box-shadow:
+    0 0 0 0.5px var(--gg-edge),
+    inset 0 1px 0 var(--gg-rim),
+    inset 0 0 0 1px var(--gg-rim-low),
+    var(--gg-shadow-float);
+}
+.gg-window__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 14px 0 18px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.gg-window__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gg-window__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: var(--gg-accent-text);
+}
+.gg-window__tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gg-window__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.gg-window--split {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+}
+.gg-window--split > .gg-window__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ sidebar */
+
+/* The sidebar floats inside its window as its own pane of glass, inset by 8px. */
+.gg-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px;
+  padding: 10px 8px;
+  border-radius: calc(var(--gg-r-window) - 8px);
+  background: var(--gg-fill);
+  box-shadow: inset 0 0 0 1px var(--gg-rim-low);
+}
+.gg-sidebar__label {
+  padding: 10px 10px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gg-ink-3);
+}
+.gg-side-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--gg-r-row);
+  background: transparent;
+  color: var(--gg-ink);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 180ms var(--gg-ease), color 180ms var(--gg-ease);
+}
+.gg-side-item:hover {
+  background: var(--gg-fill-hover);
+}
+.gg-side-item[aria-selected="true"],
+.gg-side-item[aria-current="page"] {
+  background: var(--gg-accent-soft);
+  color: var(--gg-accent-text);
+}
+.gg-side-item__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.gg-side-item__label {
+  flex: 1;
+  min-width: 0;
+}
+.gg-side-item__count {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gg-ink-3);
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+.gg-button {
+  --gg-h: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--gg-h);
+  padding: 0 calc(var(--gg-h) * 0.45);
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 160ms var(--gg-ease),
+    background-color 180ms var(--gg-ease),
+    box-shadow 180ms var(--gg-ease),
+    color 180ms var(--gg-ease);
+}
+.gg-button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.gg-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.gg-button--sm {
+  --gg-h: 32px;
+  font-size: 14px;
+}
+.gg-button--lg {
+  --gg-h: 54px;
+  font-size: 17px;
+}
+.gg-button--accent {
+  background: var(--gg-accent);
+  color: var(--gg-on-accent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    0 1px 2px rgb(16 16 24 / 0.16);
+}
+.gg-button--accent:hover {
+  background: var(--gg-accent-press);
+}
+.gg-button--glass {
+  background: var(--gg-material-thin);
+  color: var(--gg-ink);
+  box-shadow:
+    0 0 0 0.5px var(--gg-edge),
+    inset 0 1px 0 var(--gg-rim),
+    inset 0 0 0 1px var(--gg-rim-low),
+    var(--gg-shadow-control);
+}
+.gg-button--glass:hover {
+  background: var(--gg-material);
+}
+.gg-button--plain {
+  background: var(--gg-fill);
+  color: var(--gg-ink);
+}
+.gg-button--plain:hover {
+  background: var(--gg-fill-hover);
+}
+.gg-button--plain:active {
+  background: var(--gg-fill-press);
+}
+.gg-button--quiet {
+  background: transparent;
+  color: var(--gg-accent-text);
+}
+.gg-button--quiet:hover {
+  background: var(--gg-accent-soft);
+}
+.gg-button--icon {
+  width: var(--gg-h);
+  padding: 0;
+}
+
+/* ------------------------------------------------------------------ segmented control */
+
+.gg-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--gg-fill);
+  box-shadow: inset 0 0 0 1px var(--gg-rim-low);
+}
+.gg-segmented__option {
+  min-height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gg-ink-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 200ms var(--gg-ease), color 200ms var(--gg-ease), box-shadow 200ms var(--gg-ease);
+}
+.gg-segmented__option:hover {
+  color: var(--gg-ink);
+}
+.gg-segmented__option[aria-checked="true"] {
+  background: var(--gg-raised);
+  color: var(--gg-ink);
+  box-shadow: var(--gg-shadow-control), inset 0 1px 0 var(--gg-rim);
+}
+
+/* ------------------------------------------------------------------ switch */
+
+.gg-switch {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gg-fill-press);
+  cursor: pointer;
+  transition: background-color 220ms var(--gg-ease);
+}
+.gg-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(16 16 24 / 0.3);
+  transition: transform 260ms var(--gg-spring);
+}
+.gg-switch[aria-checked="true"] {
+  background: var(--gg-accent);
+}
+.gg-switch[aria-checked="true"]::after {
+  transform: translateX(18px);
+}
+
+/* ------------------------------------------------------------------ fields */
+
+.gg-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 6px 0 14px;
+  border-radius: var(--gg-r-field);
+  background: var(--gg-well);
+  box-shadow: inset 0 0 0 1px var(--gg-edge);
+  transition: box-shadow 180ms var(--gg-ease);
+}
+.gg-field:focus-within {
+  box-shadow: inset 0 0 0 1px var(--gg-edge), 0 0 0 3px var(--gg-accent-soft), 0 0 0 1px var(--gg-accent);
+}
+.gg-field__input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--gg-ink);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+.gg-field__input::placeholder {
+  color: var(--gg-ink-3);
+}
+
+/* ------------------------------------------------------------------ chips */
+
+.gg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gg-material-thin);
+  color: var(--gg-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 var(--gg-rim), inset 0 0 0 1px var(--gg-rim-low), 0 0 0 0.5px var(--gg-edge);
+  transition: background-color 180ms var(--gg-ease), transform 160ms var(--gg-ease);
+}
+.gg-chip:hover {
+  background: var(--gg-material-thick);
+}
+.gg-chip:active {
+  transform: scale(0.97);
+}
+.gg-chip[aria-pressed="true"] {
+  background: var(--gg-accent-soft);
+  color: var(--gg-accent-text);
+}
+
+/* ------------------------------------------------------------------ rows, cards, avatars */
+
+.gg-card {
+  border-radius: var(--gg-r-card);
+  background: var(--gg-well);
+  box-shadow: inset 0 0 0 1px var(--gg-rim-low), 0 0 0 0.5px var(--gg-edge);
+}
+.gg-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border-radius: var(--gg-r-row);
+  transition: background-color 180ms var(--gg-ease);
+}
+.gg-row:hover {
+  background: var(--gg-fill);
+}
+.gg-row[aria-selected="true"] {
+  background: var(--gg-accent-soft);
+}
+.gg-row__main {
+  flex: 1;
+  min-width: 0;
+}
+.gg-row__title {
+  font-size: 15px;
+  font-weight: 500;
+}
+.gg-row__detail {
+  font-size: 13px;
+  color: var(--gg-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gg-avatar {
+  --gg-hue: 230;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: hsl(var(--gg-hue) 60% 52%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+/* Fit score: a ring that fills to the score, the number inside. */
+.gg-score {
+  --gg-value: 0;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--gg-ink);
+}
+.gg-score svg {
+  position: absolute;
+  inset: 0;
+  rotate: -90deg;
+}
+.gg-score__track {
+  fill: none;
+  stroke: var(--gg-fill-press);
+  stroke-width: 3.5;
+}
+.gg-score__value {
+  fill: none;
+  stroke: var(--gg-ink-3);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: calc(var(--gg-value) * 1.0053) 100.53;
+  transition: stroke-dasharray 900ms var(--gg-ease);
+}
+.gg-score--high .gg-score__value {
+  stroke: var(--gg-accent);
+}
+.gg-score--high {
+  color: var(--gg-accent-text);
+}
+
+.gg-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--gg-fill-press);
+  overflow: hidden;
+}
+.gg-meter__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gg-accent);
+  transform-origin: left;
+  transition: transform 900ms var(--gg-ease);
+}
+
+.gg-app-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: calc(10px * var(--gg-k));
+  background: var(--gg-accent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 2px 6px -2px rgb(16 16 24 / 0.4);
+}
+.gg-app-icon svg {
+  width: 66%;
+  height: 66%;
+}
+
+/* ------------------------------------------------------------------ the AI */
+
+/* Thinking: the logo's two halves slide shut along their 17° cut, and apart again. */
+.gg-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gg-ink-2);
+  font-size: 14px;
+}
+.gg-thinking svg {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+.gg-thinking__a,
+.gg-thinking__b {
+  fill: var(--gg-accent);
+  animation: gg-close-a 1.3s var(--gg-ease) infinite alternate;
+}
+.gg-thinking__b {
+  animation-name: gg-close-b;
+}
+@keyframes gg-close-a {
+  to {
+    transform: translate(-15px, 12px);
+  }
+}
+@keyframes gg-close-b {
+  to {
+    transform: translate(15px, -12px);
+  }
+}
+
+/* The AI at work: an ultramarine light runs round the edge of whatever it is working in. */
+@property --gg-turn {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.gg-ai-edge {
+  position: relative;
+}
+.gg-ai-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1.5px;
+  border-radius: inherit;
+  corner-shape: inherit;
+  background: conic-gradient(
+    from var(--gg-turn),
+    transparent 0 55%,
+    rgb(110 122 255 / 0.9) 70%,
+    var(--gg-accent) 80%,
+    rgb(160 170 255 / 0.95) 86%,
+    transparent 95%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms var(--gg-ease);
+  animation: gg-turn 2.4s linear infinite;
+}
+.gg-ai-edge[data-ai="working"]::after {
+  opacity: 1;
+}
+@keyframes gg-turn {
+  to {
+    --gg-turn: 360deg;
+  }
+}
+
+.gg-bubble {
+  max-width: 85%;
+  margin-left: auto;
+  padding: 10px 14px;
+  border-radius: 18px 18px 6px 18px;
+  background: var(--gg-accent);
+  color: var(--gg-on-accent);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+/* "Looked at Leads, Play details": what the agent read, in one quiet line. */
+.gg-looked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gg-ink-3);
+}
+
+/* An action the agent prepared, waiting for a person. */
+.gg-approval {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--gg-r-card);
+  background: var(--gg-well);
+  box-shadow: inset 0 0 0 1px var(--gg-rim-low), 0 0 0 0.5px var(--gg-edge);
+}
+.gg-approval__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.gg-approval__meta {
+  font-size: 14px;
+  color: var(--gg-ink-2);
+}
+.gg-approval__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gg-approval__done {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gg-positive);
+}
+.gg-approval[data-state="approved"] .gg-approval__actions {
+  display: none;
+}
+.gg-approval[data-state="approved"] .gg-approval__done {
+  display: flex;
+}
+
+/* ------------------------------------------------------------------ notifications */
+
+.gg-note {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  padding: 14px 16px;
+  border-radius: calc(22px * var(--gg-k));
+  background: var(--gg-material);
+  color: var(--gg-ink);
+  box-shadow:
+    0 0 0 0.5px var(--gg-edge),
+    inset 0 1px 0 var(--gg-rim),
+    inset 0 0 0 1px var(--gg-rim-low),
+    var(--gg-shadow);
+}
+.gg-note > .gg-app-icon {
+  grid-row: span 3;
+}
+.gg-note__head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--gg-ink-2);
+}
+.gg-note__time {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.gg-note__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.gg-note__body {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--gg-ink-2);
+}
+.gg-note__actions {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ------------------------------------------------------------------ disclosure */
+
+.gg-disclosure {
+  border-radius: var(--gg-r-card);
+  background: var(--gg-material-thin);
+  box-shadow: inset 0 1px 0 var(--gg-rim), inset 0 0 0 1px var(--gg-rim-low), 0 0 0 0.5px var(--gg-edge);
+  transition: background-color 240ms var(--gg-ease);
+}
+.gg-disclosure[open] {
+  background: var(--gg-material-thick);
+}
+.gg-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+  padding: 12px 20px;
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+.gg-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.gg-disclosure > summary::after {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  rotate: 45deg;
+  translate: 0 -3px;
+  transition: rotate 260ms var(--gg-ease), translate 260ms var(--gg-ease);
+}
+.gg-disclosure[open] > summary::after {
+  rotate: 225deg;
+  translate: 0 2px;
+}
+.gg-disclosure__body {
+  padding: 0 20px 20px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--gg-ink-2);
+  max-width: 68ch;
+}
+
+/* ------------------------------------------------------------------ code */
+
+.gg-code {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  border-radius: var(--gg-r-card);
+  background: var(--gg-well);
+  box-shadow: inset 0 0 0 1px var(--gg-edge);
+  font-family: var(--gg-font-code);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--gg-ink);
+  white-space: pre;
+}
+
+/* ------------------------------------------------------------------ menu bar */
+
+.gg-menubar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 10px;
+  background: var(--gg-material-thin);
+  color: var(--gg-ink);
+  box-shadow: inset 0 -1px 0 var(--gg-rim-low), 0 0.5px 0 var(--gg-edge);
+}
+.gg-menubar__item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 8px;
+  color: inherit;
+  font-size: 15px;
+  text-decoration: none;
+  transition: background-color 160ms var(--gg-ease);
+}
+.gg-menubar__item:hover,
+.gg-menubar__item[aria-current="true"] {
+  background: var(--gg-fill-hover);
+}
+
+/* ------------------------------------------------------------------ focus and motion */
+
+.gg-button:focus-visible,
+.gg-chip:focus-visible,
+.gg-side-item:focus-visible,
+.gg-segmented__option:focus-visible,
+.gg-switch:focus-visible,
+.gg-menubar__item:focus-visible,
+.gg-disclosure > summary:focus-visible {
+  outline: 2px solid var(--gg-accent-text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gg-thinking__a,
+  .gg-thinking__b {
+    animation: none;
+  }
+  .gg-ai-edge::after {
+    animation: none;
+    --gg-turn: 120deg;
+  }
+  .gg-button,
+  .gg-chip,
+  .gg-switch::after,
+  .gg-score__value,
+  .gg-meter__fill {
+    transition-duration: 0ms;
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@pluton/glass",
+  "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Mathis Sportiello",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./glass.css": "./src/glass.css",
+    "./behaviors": "./src/behaviors.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1",
+    "typescript": "^7.0.2"
+  }
+}
