@@ -3,6 +3,7 @@ import type { Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { openWorkspaceFor } from "@pluton/core";
 import { and, authSessions, eq, gt, HOSTED, users, type Db } from "@pluton/db";
+import { appMailConfigured } from "@pluton/providers";
 
 /**
  * The hosted app (PLUTON_HOSTED=1) signs people in with Google or Apple and asks them to pay before
@@ -34,12 +35,14 @@ const apple = {
 export const providers = {
   google: Boolean(google.clientId && google.clientSecret),
   apple: Boolean(apple.clientId && apple.teamId && apple.keyId && apple.privateKey),
+  /** An email and password needs the app to send its confirmation links (Resend). */
+  password: appMailConfigured(),
 };
 
 export type User = typeof users.$inferSelect;
 
-const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
-const base64url = (bytes: Buffer) => bytes.toString("base64url");
+export const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+export const base64url = (bytes: Buffer) => bytes.toString("base64url");
 
 /** Paid means Stripe says the subscription runs: active, or in a trial it started. */
 export const isPaid = (user: Pick<User, "subscriptionStatus">) => user.subscriptionStatus === "active" || user.subscriptionStatus === "trialing";
@@ -56,7 +59,7 @@ export async function currentUser(db: Db, c: Context): Promise<User | null> {
   return row?.user ?? null;
 }
 
-async function startSession(db: Db, c: Context, userId: string) {
+export async function startSession(db: Db, c: Context, userId: string) {
   const token = base64url(randomBytes(32));
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
   await db.insert(authSessions).values({ id: sha256(token), userId, expiresAt });
@@ -66,27 +69,53 @@ async function startSession(db: Db, c: Context, userId: string) {
 /** What a provider told us about the person, read from the ID token it handed over. */
 type Identity = { provider: "google" | "apple"; sub: string; email: string | null; emailVerified: boolean; name: string | null };
 
+/** Whether the account's address is proven theirs, so another way in may join it on that address. */
+const addressProven = (user: User) => Boolean(user.emailVerifiedAt || user.googleSub || user.appleSub);
+
 /**
- * Finds the person by the provider's id, else by a verified email they already signed in with
- * (Google then Apple, same address), else creates them, with the workspace they start in.
+ * Finds the person by the provider's id, else by a verified email of an account whose address is
+ * proven too (Google, Apple or a confirmed password, same address), else creates them, with the
+ * workspace they start in.
  */
 async function upsertUser(db: Db, who: Identity): Promise<User> {
   const subColumn = who.provider === "google" ? users.googleSub : users.appleSub;
   const subField = who.provider === "google" ? "googleSub" : "appleSub";
+  const verifiedAt = who.emailVerified ? new Date() : null;
   const bySub = await db.query.users.findFirst({ where: eq(subColumn, who.sub) });
   if (bySub) return bySub;
   const byEmail = who.email && who.emailVerified ? await db.query.users.findFirst({ where: eq(users.email, who.email) }) : undefined;
-  if (byEmail && !byEmail[subField]) {
+  if (byEmail && !byEmail[subField] && addressProven(byEmail)) {
     const [linked] = await db
       .update(users)
-      .set({ [subField]: who.sub, name: byEmail.name ?? who.name })
+      .set({ [subField]: who.sub, name: byEmail.name ?? who.name, emailVerifiedAt: byEmail.emailVerifiedAt ?? verifiedAt })
       .where(eq(users.id, byEmail.id))
       .returning();
     return linked!;
   }
-  const [created] = await db.insert(users).values({ [subField]: who.sub, email: who.email, name: who.name }).returning();
+  const [created] = await db.insert(users).values({ [subField]: who.sub, email: who.email, name: who.name, emailVerifiedAt: verifiedAt }).returning();
   await openWorkspaceFor(db, created!.id);
   return created!;
+}
+
+/** Where linking from Settings comes back to: the account's page. */
+const SETTINGS_URL = `${APP_URL}/workspace/billing`;
+
+/**
+ * Signed in and asking to link (Settings → "Connect Google"): the provider's account joins this
+ * one, unless it already belongs to another account. Otherwise, the usual sign-in.
+ */
+async function signInOrLink(db: Db, c: Context, linking: boolean, who: Identity, status?: 302 | 303) {
+  const subField = who.provider === "google" ? "googleSub" : "appleSub";
+  const current = linking ? await currentUser(db, c) : null;
+  if (current) {
+    const owner = await db.query.users.findFirst({ where: eq(who.provider === "google" ? users.googleSub : users.appleSub, who.sub) });
+    if (owner && owner.id !== current.id) return c.redirect(`${SETTINGS_URL}?link=taken`, status);
+    await db.update(users).set({ [subField]: who.sub }).where(eq(users.id, current.id));
+    return c.redirect(`${SETTINGS_URL}?link=done`, status);
+  }
+  const user = await upsertUser(db, who);
+  await startSession(db, c, user.id);
+  return c.redirect(`${APP_URL}/`, status);
 }
 
 /**
@@ -130,7 +159,8 @@ export function mountAuth(app: Hono, db: Db) {
     if (!HOSTED || !providers.google) return c.notFound();
     const state = base64url(randomBytes(16));
     const verifier = base64url(randomBytes(32));
-    setCookie(c, "pluton_oauth", `${state}.${verifier}`, { ...stateCookie, sameSite: "Lax" });
+    const link = c.req.query("link") === "1" ? "link" : "";
+    setCookie(c, "pluton_oauth", `${state}.${verifier}.${link}`, { ...stateCookie, sameSite: "Lax" });
     const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     url.search = new URLSearchParams({
       client_id: google.clientId,
@@ -147,7 +177,7 @@ export function mountAuth(app: Hono, db: Db) {
 
   app.get("/api/auth/google/callback", async (c) => {
     if (!HOSTED || !providers.google) return c.notFound();
-    const [state, verifier] = (getCookie(c, "pluton_oauth") ?? "").split(".");
+    const [state, verifier, link] = (getCookie(c, "pluton_oauth") ?? "").split(".");
     deleteCookie(c, "pluton_oauth", { path: "/api/auth" });
     const code = c.req.query("code");
     if (c.req.query("error")) return failed(c, "cancelled");
@@ -161,15 +191,13 @@ export function mountAuth(app: Hono, db: Db) {
         grant_type: "authorization_code",
         code_verifier: verifier,
       });
-      const user = await upsertUser(db, {
+      return await signInOrLink(db, c, link === "link", {
         provider: "google",
         sub: String(token.sub),
         email: typeof token.email === "string" ? token.email.toLowerCase() : null,
         emailVerified: token.email_verified === true,
         name: typeof token.name === "string" ? token.name : null,
       });
-      await startSession(db, c, user.id);
-      return c.redirect(`${APP_URL}/`);
     } catch (error) {
       console.error("[auth] Google sign-in failed", error);
       return failed(c, "provider");
@@ -179,7 +207,8 @@ export function mountAuth(app: Hono, db: Db) {
   app.get("/api/auth/apple", (c) => {
     if (!HOSTED || !providers.apple) return c.notFound();
     const state = base64url(randomBytes(16));
-    setCookie(c, "pluton_oauth", state, stateCookie);
+    const link = c.req.query("link") === "1" ? "link" : "";
+    setCookie(c, "pluton_oauth", `${state}.${link}`, stateCookie);
     const url = new URL("https://appleid.apple.com/auth/authorize");
     url.search = new URLSearchParams({
       client_id: apple.clientId,
@@ -195,7 +224,7 @@ export function mountAuth(app: Hono, db: Db) {
 
   app.post("/api/auth/apple/callback", async (c) => {
     if (!HOSTED || !providers.apple) return c.notFound();
-    const state = getCookie(c, "pluton_oauth");
+    const [state, link] = (getCookie(c, "pluton_oauth") ?? "").split(".");
     deleteCookie(c, "pluton_oauth", { path: "/api/auth", secure: true, sameSite: "None" });
     const form = await c.req.parseBody();
     if (form.error) return failed(c, "cancelled");
@@ -215,17 +244,21 @@ export function mountAuth(app: Hono, db: Db) {
         const sent = JSON.parse(form.user) as { name?: { firstName?: string; lastName?: string } };
         name = [sent.name?.firstName, sent.name?.lastName].filter(Boolean).join(" ") || null;
       }
-      const user = await upsertUser(db, {
-        provider: "apple",
-        sub: String(token.sub),
-        email: typeof token.email === "string" ? token.email.toLowerCase() : null,
-        // Apple sends it as a boolean or as the string "true".
-        emailVerified: token.email_verified === true || token.email_verified === "true",
-        name,
-      });
-      await startSession(db, c, user.id);
       // A 303 turns the provider's POST into a GET of the app.
-      return c.redirect(`${APP_URL}/`, 303);
+      return await signInOrLink(
+        db,
+        c,
+        link === "link",
+        {
+          provider: "apple",
+          sub: String(token.sub),
+          email: typeof token.email === "string" ? token.email.toLowerCase() : null,
+          // Apple sends it as a boolean or as the string "true".
+          emailVerified: token.email_verified === true || token.email_verified === "true",
+          name,
+        },
+        303,
+      );
     } catch (error) {
       console.error("[auth] Apple sign-in failed", error);
       return failed(c, "provider");
@@ -239,6 +272,19 @@ export function mountAuth(app: Hono, db: Db) {
     return c.json({ ok: true });
   });
 
+  /** Settings → disconnect a way in. The last one stays: an account always has a way back. */
+  app.post("/api/auth/unlink", async (c) => {
+    const user = await currentUser(db, c);
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const { method } = (await c.req.json().catch(() => ({}))) as { method?: string };
+    const field = method === "google" ? "googleSub" : method === "apple" ? "appleSub" : method === "password" ? "passwordHash" : null;
+    if (!field) return c.json({ error: "unknown_method" }, 400);
+    const remaining = [user.googleSub, user.appleSub, user.passwordHash].filter(Boolean).length - (user[field] ? 1 : 0);
+    if (remaining < 1) return c.json({ error: "last_method" }, 409);
+    await db.update(users).set({ [field]: null }).where(eq(users.id, user.id));
+    return c.json({ ok: true });
+  });
+
   /** What the app needs to decide where to go: sign in, pay, or carry on. */
   app.get("/api/auth/state", async (c) => {
     const user = await currentUser(db, c);
@@ -246,7 +292,14 @@ export function mountAuth(app: Hono, db: Db) {
     return c.json({
       hosted: HOSTED,
       providers,
-      user: user && { email: user.email, name: user.name, plan: user.plan, paid: isPaid(user), status: user.subscriptionStatus },
+      user: user && {
+        email: user.email,
+        name: user.name,
+        plan: user.plan,
+        paid: isPaid(user),
+        status: user.subscriptionStatus,
+        methods: { password: Boolean(user.passwordHash), google: Boolean(user.googleSub), apple: Boolean(user.appleSub) },
+      },
     });
   });
 }

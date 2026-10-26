@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button, Group, Input, PageHeader, Row, Section, Segmented } from "../components/ui.tsx";
-import { useT } from "../i18n/index.ts";
+import { useLocale, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { formatDate, usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -60,6 +60,7 @@ export function BudgetPage() {
 
       <div className="flex flex-col gap-8">
         <Subscription />
+        <SignInMethods />
         <Section
           title={t("budget.period", { from: formatDate(s.period.start, { day: "numeric", month: "short" }), to: until })}
           actions={
@@ -214,6 +215,79 @@ function Subscription() {
             {t("manage.open")}
           </Button>
         </Row>
+      </Group>
+    </Section>
+  );
+}
+
+/** What linking a provider from here came back with (?link=done|taken). */
+const LINK_RESULTS = { done: "methods.linkDone", taken: "methods.linkTaken" } as const;
+
+/**
+ * Hosted only: the ways into this account (email and password, Google, Apple). Connecting one
+ * goes through its sign-in and joins this account; the last one can't be disconnected.
+ */
+function SignInMethods() {
+  const t = useT("account");
+  const locale = useLocale();
+  const queryClient = useQueryClient();
+  const { data } = useQuery(authStateQuery);
+  const user = data?.user;
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const result = new URLSearchParams(window.location.search).get("link") as keyof typeof LINK_RESULTS | null;
+    if (result && result in LINK_RESULTS) {
+      setNotice(t(LINK_RESULTS[result]));
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [t]);
+
+  const unlink = useMutation({
+    mutationFn: (method: "password" | "google" | "apple") => post("/api/auth/unlink", { method }),
+    onSuccess: () => queryClient.invalidateQueries(authStateQuery),
+    onError: () => setNotice(t("methods.last")),
+  });
+  const passwordLink = useMutation({
+    mutationFn: () => post("/api/auth/password/forgot", { email: user?.email, locale }),
+    onSuccess: () => setNotice(t("methods.passwordSent", { email: user?.email ?? "" })),
+    onError: () => setNotice(t("error.email_failed")),
+  });
+
+  if (!data?.hosted || !user) return null;
+  const linked = Object.values(user.methods).filter(Boolean).length;
+  const status = (on: boolean) => (on ? t("methods.connected") : t("methods.notConnected"));
+  const disconnect = (method: "password" | "google" | "apple") => (
+    <Button type="button" variant="ghost" onClick={() => unlink.mutate(method)} disabled={unlink.isPending || linked <= 1}>
+      {t("methods.disconnect")}
+    </Button>
+  );
+
+  return (
+    <Section title={t("methods.title")} description={t("methods.hint")} footnote={notice && <span role="status">{notice}</span>}>
+      <Group>
+        {data.providers.password && user.email && (
+          <Row label={t("methods.password")} description={user.methods.password ? user.email : status(false)}>
+            <Button type="button" variant="ghost" onClick={() => passwordLink.mutate()} disabled={passwordLink.isPending}>
+              {t(user.methods.password ? "methods.changePassword" : "methods.setPassword")}
+            </Button>
+            {user.methods.password && disconnect("password")}
+          </Row>
+        )}
+        {(["google", "apple"] as const)
+          .filter((p) => data.providers[p] || user.methods[p])
+          .map((p) => (
+            <Row key={p} label={t(`methods.${p}`)} description={status(user.methods[p])}>
+              {user.methods[p] ? (
+                disconnect(p)
+              ) : (
+                // A full-page navigation: the provider's sign-in, then back here.
+                <Button type="button" variant="ghost" onClick={() => window.location.assign(`/api/auth/${p}?link=1`)}>
+                  {t("methods.connect")}
+                </Button>
+              )}
+            </Row>
+          ))}
       </Group>
     </Section>
   );

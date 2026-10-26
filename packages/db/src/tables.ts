@@ -49,3 +49,4 @@ export const searchDocuments = active.searchDocuments;
 export const workspaceSettings = active.workspaceSettings;
 export const users = active.users;
 export const authSessions = active.authSessions;
+export const authTokens = active.authTokens;

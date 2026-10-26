@@ -22,7 +22,7 @@ import { HomePage } from "./routes/home.tsx";
 import { AppearancePage } from "./routes/appearance.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
 import { useT } from "./i18n/index.ts";
-import { SignupPage, SubscribePage } from "./features/account/account-pages.tsx";
+import { ResetPage, SignupPage, SubscribePage } from "./features/account/account-pages.tsx";
 import { authStateQuery } from "./features/account/auth-state.ts";
 import { queryClient } from "./lib/trpc.ts";
 
@@ -38,6 +38,8 @@ const rootRoute = createRootRoute({
    */
   beforeLoad: async ({ location }) => {
     const { hosted, user } = await queryClient.ensureQueryData(authStateQuery);
+    // A reset link works signed in or out: it signs in once the new password is saved.
+    if (hosted && location.pathname === "/reset") return;
     const onAccountPage = ACCOUNT_PATHS.includes(location.pathname);
     if (!hosted || user?.paid) {
       if (onAccountPage) throw redirect({ to: "/home" });
@@ -85,6 +87,14 @@ const loginRoute = createRoute({
   path: "/login",
   beforeLoad: () => {
     throw redirect({ to: "/signup", search: {} });
+  },
+});
+const resetRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/reset",
+  validateSearch: (s: Record<string, unknown>): { token?: string } => (typeof s.token === "string" ? { token: s.token } : {}),
+  component: function Reset() {
+    return <ResetPage token={resetRoute.useSearch().token} />;
   },
 });
 const subscribeRoute = createRoute({
@@ -223,6 +233,7 @@ const agentConversationRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   signupRoute,
+  resetRoute,
   loginRoute,
   subscribeRoute,
   onboardingRoute,

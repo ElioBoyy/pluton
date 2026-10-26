@@ -1178,7 +1178,10 @@ export const workspaceSettings = sqliteTable(
 export const SUBSCRIPTION_PLANS = ["byo", "all"] as const;
 export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number];
 
-/** A person signed in to the hosted app with Google or Apple. Self-hosted installs have none. */
+/**
+ * A person signed in to the hosted app with Google, Apple or an email and password, any of them
+ * linked to the same account. Self-hosted installs have none.
+ */
 export const users = sqliteTable(
   "user",
   {
@@ -1188,6 +1191,10 @@ export const users = sqliteTable(
     /** The `sub` each provider gives this person; either may be missing until they sign in with it. */
     googleSub: text("google_sub"),
     appleSub: text("apple_sub"),
+    /** scrypt hash (`scrypt$N$r$p$salt$hash`); set only once the address was confirmed. */
+    passwordHash: text("password_hash"),
+    /** When the address was proven theirs: by Google or Apple, or by a link sent to it. */
+    emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
     stripeCustomerId: text("stripe_customer_id"),
     stripeSubscriptionId: text("stripe_subscription_id"),
     plan: text("plan", { enum: SUBSCRIPTION_PLANS }),
@@ -1217,4 +1224,27 @@ export const authSessions = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("auth_session_user_idx").on(t.userId)],
+);
+
+export const AUTH_TOKEN_KINDS = ["signup", "reset"] as const;
+export type AuthTokenKind = (typeof AUTH_TOKEN_KINDS)[number];
+
+/**
+ * A link sent by email, kept as the SHA-256 of its token and used once. `signup` carries the
+ * address and password chosen: the account is only created (or the password added to the one
+ * already on that address) when the link is opened. `reset` sets a new password on `userId`.
+ */
+export const authTokens = sqliteTable(
+  "auth_token",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind", { enum: AUTH_TOKEN_KINDS }).notNull(),
+    email: text("email").notNull(),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    passwordHash: text("password_hash"),
+    name: text("name"),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("auth_token_email_idx").on(t.email)],
 );
