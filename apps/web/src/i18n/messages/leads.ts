@@ -12,6 +12,7 @@ export default defineMessages({
     "tab.in_campaign": "In campaign",
     "tab.contacted": "Contacted",
     "tab.rejected": "Rejected",
+    "tab.unreachable": "Unreachable",
 
     "status.new": "New",
     "status.to_review": "To review",
@@ -19,6 +20,7 @@ export default defineMessages({
     "status.in_campaign": "In campaign",
     "status.contacted": "Contacted",
     "status.rejected": "Rejected",
+    "status.unreachable": "Unreachable",
 
     "stage.qualified": "Strong match",
     "stage.needs_review": "Worth a look",
@@ -176,6 +178,7 @@ export default defineMessages({
     "emailStep.error": "error",
     "event.linkedinFound": "LinkedIn profile found",
     "event.linkedinNotFound": "Looked for a LinkedIn profile, none found",
+    "event.unreachable": "Set aside as unreachable: no LinkedIn profile, no email found",
     "event.exported": "Exported to CSV",
   },
   fr: {
@@ -189,6 +192,7 @@ export default defineMessages({
     "tab.in_campaign": "En campagne",
     "tab.contacted": "Contactés",
     "tab.rejected": "Rejetés",
+    "tab.unreachable": "Injoignables",
 
     "status.new": "Nouveau",
     "status.to_review": "À examiner",
@@ -196,6 +200,7 @@ export default defineMessages({
     "status.in_campaign": "En campagne",
     "status.contacted": "Contacté",
     "status.rejected": "Rejeté",
+    "status.unreachable": "Injoignable",
 
     "stage.qualified": "Très pertinent",
     "stage.needs_review": "À regarder",
@@ -353,6 +358,7 @@ export default defineMessages({
     "emailStep.error": "erreur",
     "event.linkedinFound": "Profil LinkedIn trouvé",
     "event.linkedinNotFound": "Profil LinkedIn recherché, aucun trouvé",
+    "event.unreachable": "Mis de côté comme injoignable : ni profil LinkedIn, ni email trouvé",
     "event.exported": "Exporté en CSV",
   },
   it: {
@@ -366,6 +372,7 @@ export default defineMessages({
     "tab.in_campaign": "In campagna",
     "tab.contacted": "Contattati",
     "tab.rejected": "Rifiutati",
+    "tab.unreachable": "Irraggiungibili",
 
     "status.new": "Nuovo",
     "status.to_review": "Da esaminare",
@@ -373,6 +380,7 @@ export default defineMessages({
     "status.in_campaign": "In campagna",
     "status.contacted": "Contattato",
     "status.rejected": "Rifiutato",
+    "status.unreachable": "Irraggiungibile",
 
     "stage.qualified": "Ottima corrispondenza",
     "stage.needs_review": "Da valutare",
@@ -530,6 +538,7 @@ export default defineMessages({
     "emailStep.error": "errore",
     "event.linkedinFound": "Profilo LinkedIn trovato",
     "event.linkedinNotFound": "Profilo LinkedIn cercato, nessuno trovato",
+    "event.unreachable": "Messo da parte come irraggiungibile: nessun profilo LinkedIn né email trovati",
     "event.exported": "Esportato in CSV",
   },
   es: {
@@ -543,6 +552,7 @@ export default defineMessages({
     "tab.in_campaign": "En campaña",
     "tab.contacted": "Contactados",
     "tab.rejected": "Rechazados",
+    "tab.unreachable": "Inalcanzables",
 
     "status.new": "Nuevo",
     "status.to_review": "Por revisar",
@@ -550,6 +560,7 @@ export default defineMessages({
     "status.in_campaign": "En campaña",
     "status.contacted": "Contactado",
     "status.rejected": "Rechazado",
+    "status.unreachable": "Inalcanzable",
 
     "stage.qualified": "Muy afín",
     "stage.needs_review": "Merece un vistazo",
@@ -707,6 +718,7 @@ export default defineMessages({
     "emailStep.error": "error",
     "event.linkedinFound": "Perfil de LinkedIn encontrado",
     "event.linkedinNotFound": "Se buscó un perfil de LinkedIn, sin resultados",
+    "event.unreachable": "Apartado como inalcanzable: ni perfil de LinkedIn ni email encontrados",
     "event.exported": "Exportado a CSV",
   },
   de: {
@@ -720,6 +732,7 @@ export default defineMessages({
     "tab.in_campaign": "In Kampagne",
     "tab.contacted": "Kontaktiert",
     "tab.rejected": "Abgelehnt",
+    "tab.unreachable": "Nicht erreichbar",
 
     "status.new": "Neu",
     "status.to_review": "Zu prüfen",
@@ -727,6 +740,7 @@ export default defineMessages({
     "status.in_campaign": "In Kampagne",
     "status.contacted": "Kontaktiert",
     "status.rejected": "Abgelehnt",
+    "status.unreachable": "Nicht erreichbar",
 
     "stage.qualified": "Sehr passend",
     "stage.needs_review": "Einen Blick wert",
@@ -884,6 +898,7 @@ export default defineMessages({
     "emailStep.error": "Fehler",
     "event.linkedinFound": "LinkedIn-Profil gefunden",
     "event.linkedinNotFound": "Nach einem LinkedIn-Profil gesucht, keines gefunden",
+    "event.unreachable": "Als nicht erreichbar zurückgestellt: kein LinkedIn-Profil, keine E-Mail gefunden",
     "event.exported": "Als CSV exportiert",
   },
 });

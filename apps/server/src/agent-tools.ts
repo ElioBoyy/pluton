@@ -141,7 +141,7 @@ export function buildPlutonTools(db: Db, via: "mcp" | "agent"): PlutonTool[] {
     "Leads, newest first. tab: to_review, approved, in_campaign, contacted, rejected or all.",
     {
       playId: z.string().optional(),
-      tab: z.enum(["all", "new", "to_review", "approved", "in_campaign", "contacted", "rejected"]).default("to_review"),
+      tab: z.enum(["all", "new", "to_review", "approved", "in_campaign", "contacted", "rejected", "unreachable"]).default("to_review"),
       search: z.string().max(120).optional(),
       sort: z.enum(["newest", "fit", "warmness"]).default("fit"),
       limit: z.number().int().min(1).max(100).default(25),

@@ -464,6 +464,7 @@ export async function estimatePlay(db: Db, workspaceId: string, pipeline: Pipeli
 
 export async function setPersonLinkedin(db: Db, personId: string, linkedinUrl: string) {
   await db.update(people).set({ linkedinUrl }).where(eq(people.id, personId));
+  await reviveUnreachable(db, personId);
 }
 
 /** Records a lookup, found or not; a later miss never erases an address found before. */
@@ -472,6 +473,12 @@ export async function setPersonEmail(db: Db, personId: string, email: string | n
     .update(people)
     .set(email ? { email, emailConfidence: confidence, emailSource: source, emailCheckedAt: new Date() } : { emailCheckedAt: new Date() })
     .where(eq(people.id, personId));
+  if (email) await reviveUnreachable(db, personId);
+}
+
+/** A way to reach them turned up: their unreachable leads go back to review. */
+async function reviveUnreachable(db: Db, personId: string) {
+  await db.update(leads).set({ status: "to_review" }).where(and(eq(leads.personId, personId), eq(leads.status, "unreachable")));
 }
 
 export async function getLeadWithPerson(db: Db, leadId: string) {

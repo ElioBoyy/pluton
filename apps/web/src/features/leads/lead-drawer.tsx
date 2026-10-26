@@ -9,6 +9,7 @@ import {
   Envelope,
   LinkedinLogo,
   MagnifyingGlass,
+  Prohibit,
   Target,
   ThumbsDown,
   ThumbsUp,
@@ -490,6 +491,7 @@ const EVENT: Record<string, { icon: Icon; text: (p: Record<string, unknown>) => 
   email_not_found: { icon: Envelope, text: () => translate("leads", "event.emailNotFound"), detail: emailSteps },
   linkedin_found: { icon: LinkedinLogo, text: () => translate("leads", "event.linkedinFound") },
   linkedin_not_found: { icon: LinkedinLogo, text: () => translate("leads", "event.linkedinNotFound") },
+  unreachable: { icon: Prohibit, text: () => translate("leads", "event.unreachable") },
   exported: { icon: CheckCircle, text: () => translate("leads", "event.exported") },
 };
 

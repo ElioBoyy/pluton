@@ -396,7 +396,7 @@ function Row({
   const menu = useLeadMenu({
     open: () => onOpen(),
     reject: () => setRejecting(true),
-    addToCampaign: l.sequenceStatus || l.status === "rejected" ? undefined : () => setAdding(true),
+    addToCampaign: l.sequenceStatus || l.status === "rejected" || l.status === "unreachable" ? undefined : () => setAdding(true),
     addNote: () => onOpen(true),
   });
 

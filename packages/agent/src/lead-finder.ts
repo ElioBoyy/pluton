@@ -11,6 +11,7 @@ import {
   feedbackDigest,
   insertLead,
   isLeadOfPlay,
+  markUnreachable,
   rejectedPersonIds,
   budgetSettings,
   getRunHold,
@@ -41,6 +42,7 @@ import {
   searchRegistry,
 } from "@pluton/providers";
 import { runAgent } from "./backend.ts";
+import { findLeadEmail } from "./lead-email.ts";
 import { findLinkedinProfiles } from "./linkedin-lookup.ts";
 import { AgentTurnLimitError, localTool } from "./run-agent.ts";
 import { SERVICES_JUDGE, SERVICES_LEADS } from "./offer.ts";
@@ -498,6 +500,7 @@ ${batch.map((c, i) => `${i}. ${JSON.stringify({ name: c.name, title: c.title, co
     ],
   });
 
+  const withoutProfile: Array<{ leadId: string; stage: "qualified" | "needs_review" }> = [];
   for (const [i, c] of batch.entries()) {
     const v = verdicts.get(i);
     report.judged++;
@@ -530,7 +533,29 @@ ${batch.map((c, i) => `${i}. ${JSON.stringify({ name: c.name, title: c.title, co
       report.disqualified++;
       addRejection(report, v.rejection ?? "other", `${c.name} @ ${c.company}: ${v.reason}`);
     }
+    if (v.stage !== "disqualified" && !c.linkedinUrl) withoutProfile.push({ leadId: lead.id, stage: v.stage });
     await emit(db, runId, "lead", { name: c.name, title: c.title, company: c.company, stage: v.stage, fit: v.fit, reason: v.reason });
   }
+  await setAsideUnreachable(ctx, withoutProfile);
   await emit(db, runId, "report", report);
+}
+
+/**
+ * Leads worth keeping but without a LinkedIn profile: look for an email (free sources first, Hunter
+ * only with a key, see findLeadEmail). With neither, they're set aside as unreachable, not rejected.
+ * Only scored leads get here, so nothing is spent on people the judge turned down. They don't count
+ * toward the Play's target either: the search goes on until it has people one can actually contact.
+ */
+async function setAsideUnreachable(ctx: Ctx, found: Array<{ leadId: string; stage: "qualified" | "needs_review" }>) {
+  if (!found.length) return;
+  await ctx.say(t("lookingUpEmails", { count: found.length }));
+  for (const { leadId, stage } of found) {
+    if (ctx.signal.aborted) return;
+    const result = await findLeadEmail(ctx.db, leadId).catch(() => null);
+    if (result?.email) continue;
+    await markUnreachable(ctx.db, leadId);
+    ctx.report.unreachable = (ctx.report.unreachable ?? 0) + 1;
+    if (stage === "qualified") ctx.report.qualified--;
+    else ctx.report.needsReview--;
+  }
 }

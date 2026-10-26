@@ -407,6 +407,8 @@ export type RunReport = {
   duplicates: number;
   /** LinkedIn profiles found by the lookup step (absent on older runs). */
   linkedinFound?: number;
+  /** Leads kept but set aside as unreachable: no LinkedIn profile and no email found (absent on older runs). */
+  unreachable?: number;
   /** For the Main Play: what each chained pipeline added. */
   stages?: Array<{ pipeline: string; qualified: number; discovered: number; skipped?: string }>;
   /** Why candidates were set aside, with a few examples each. */
@@ -470,8 +472,10 @@ export const LEAD_STAGES = ["qualified", "needs_review", "disqualified"] as cons
 /**
  * Where a lead is in the founder's review. Every lead starts in to_review; the "New" tab shows the
  * to_review leads nobody opened yet (seen_at null). `new` is a legacy value, migrated to to_review.
+ * `unreachable`: a fit, but no way to contact them (no LinkedIn profile, no email). Not a rejection:
+ * it teaches the judge nothing, and the lead goes back to to_review once a profile or email turns up.
  */
-export const LEAD_STATUSES = ["new", "to_review", "approved", "in_campaign", "contacted", "rejected"] as const;
+export const LEAD_STATUSES = ["new", "to_review", "approved", "in_campaign", "contacted", "rejected", "unreachable"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const leads = sqliteTable(
@@ -552,6 +556,7 @@ export const LEAD_EVENT_KINDS = [
   "email_not_found",
   "linkedin_found",
   "linkedin_not_found",
+  "unreachable",
   "exported",
   "campaign_added",
   "campaign_removed",

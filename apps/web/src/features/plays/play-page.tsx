@@ -306,9 +306,11 @@ function Funnel({ report: r }: { report: Report }) {
     { label: t("funnel.linkedinFound"), value: r.linkedinFound ?? 0 },
     { label: t("funnel.qualified"), value: r.qualified, accent: "text-system-green" },
     { label: t("funnel.toReview"), value: r.needsReview, accent: "text-system-orange" },
+    // Only on runs that set some aside (older runs never counted them).
+    ...(r.unreachable ? [{ label: t("funnel.unreachable"), value: r.unreachable, accent: "text-muted" }] : []),
   ];
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5">
+    <div className={cn("grid grid-cols-2", steps.length > 5 ? "sm:grid-cols-6" : "sm:grid-cols-5")}>
       {steps.map((s) => (
         <div
           key={s.label}
