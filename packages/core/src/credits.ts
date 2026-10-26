@@ -278,10 +278,34 @@ export async function settleOrphanHolds(db: Db) {
   return n;
 }
 
+/**
+ * Hosted: says once per billing period when the plan's credits reach 80%, then when they run out,
+ * with the way to more, so nobody finds their searches stopped without warning.
+ */
+async function checkQuotaThresholds(db: Db, workspaceId: string) {
+  const quota = platformQuota(workspaceId);
+  if (!quota || quota.quotaMicroUsd <= 0) return;
+  const share = quota.spentMicroUsd / quota.quotaMicroUsd;
+  const key = quota.periodStart.toISOString().slice(0, 10);
+  for (const threshold of [1, 0.8]) {
+    if (share < threshold) continue;
+    await notifyDescribed(db, workspaceId, {
+      category: "budget",
+      kind: threshold === 1 ? "quota.exhausted" : "quota.warning",
+      tone: "warning",
+      payload: { until: quota.periodEnd.toISOString() },
+      link: "/workspace/billing",
+      dedupeKey: `quota${threshold * 100}:${workspaceId}:${key}`,
+    });
+    break;
+  }
+}
+
 /** Alerts once per period at 80% and 100% of the monthly budget. */
 export async function checkBudgetThresholds(db: Db, workspaceId: string) {
   const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId) });
   if (!ws) return;
+  await checkQuotaThresholds(db, workspaceId);
   const status = await budgetStatus(db, ws);
   if (!status.limitMicroUsd) return;
   const share = status.spentMicroUsd / status.limitMicroUsd;

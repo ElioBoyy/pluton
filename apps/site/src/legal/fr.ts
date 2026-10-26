@@ -182,8 +182,8 @@ const fr: Record<LegalDocId, LegalDoc> = {
         body: [
           {
             list: [
-              "« Votre propre IA » : 39,99 € par mois. Le Client fournit son propre abonnement Claude ou Codex, ou ses clés d'API, dont le coût reste à sa charge.",
-              "« Tout compris » : 59,99 € par mois. L'usage de Claude et des sources de données fournies par Pluton est inclus jusqu'à 2 015 crédits par mois, un crédit correspondant à 0,01 $ d'usage au prix public des fournisseurs. Les crédits du mois non utilisés ne sont pas reportés. Une fois ce quota épuisé, le Service s'interrompt jusqu'au mois suivant, sauf si le Client achète des crédits supplémentaires depuis l'application, au prix affiché au moment de l'achat. Les crédits achetés restent valables d'un mois sur l'autre jusqu'à leur utilisation.",
+              "« Votre propre IA » : 39,99 € par mois. Le Client fournit sa propre clé d'API Anthropic, dont le coût reste à sa charge. Les sources de données fournies par Pluton sont incluses jusqu'à 1 300 crédits par mois, dans les conditions décrites ci-dessous pour l'offre « Tout compris ».",
+              "« Tout compris » : 59,99 € par mois. L'usage de Claude et des sources de données fournies par Pluton est inclus jusqu'à 3 000 crédits par mois, un crédit correspondant à 0,01 $ d'usage au prix public des fournisseurs. Les crédits du mois non utilisés ne sont pas reportés. Une fois ce quota épuisé, le Service s'interrompt jusqu'au mois suivant, sauf si le Client achète des crédits supplémentaires depuis l'application, au prix affiché au moment de l'achat. Les crédits achetés restent valables d'un mois sur l'autre jusqu'à leur utilisation.",
             ],
           },
           "Sauf mention contraire, les services tiers que le Client connecte avec ses propres clés (fournisseurs de données, LinkedIn via Unipile, CRM) sont payés par lui directement à ces services.",

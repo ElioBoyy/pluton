@@ -100,6 +100,8 @@ const CRM_NAMES: Record<string, string> = { hubspot: "HubSpot", attio: "Attio", 
 const has = (p: P, ...keys: string[]) => keys.every((k) => p[k] !== undefined && p[k] !== null);
 const playOf = (p: P) => (typeof p.play === "string" ? p.play : t("deletedPlay"));
 
+const dayMonth = (iso: string) => new Date(iso).toLocaleDateString(currentLocale(), { day: "numeric", month: "long" });
+
 /** Why a search was refused for budget; also the error the run start throws. `until` is when the monthly budget renews (ISO). */
 export function budgetRefusal(which: string, until: string) {
   const date = new Date(until).toLocaleDateString(currentLocale(), { day: "numeric", month: "long" });
@@ -132,6 +134,8 @@ const DESCRIBE: Record<string, (p: P) => Wording | null> = {
     has(p, "spentMicroUsd", "limitMicroUsd")
       ? { title: t("budgetWarning.title"), body: t("budgetWarning.body", { spent: fmtUsd(Number(p.spentMicroUsd)), limit: fmtUsd(Number(p.limitMicroUsd)) }) }
       : null,
+  "quota.warning": (p) => (has(p, "until") ? { title: t("quotaWarning.title"), body: t("quotaWarning.body", { date: dayMonth(String(p.until)) }) } : null),
+  "quota.exhausted": (p) => (has(p, "until") ? { title: t("quotaExhausted.title"), body: t("quotaExhausted.body", { date: dayMonth(String(p.until)) }) } : null),
   "crm.failed": (p) =>
     has(p, "failed", "provider")
       ? { title: t("crmFailed.title", { count: Number(p.failed), crm: CRM_NAMES[String(p.provider)] ?? String(p.provider) }), body: t("crmFailed.body") }
