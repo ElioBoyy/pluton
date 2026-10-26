@@ -4,7 +4,6 @@ import Logo from "./Logo.astro";
 import { LOCALES, LOCALE_NAMES, pathFor, strings, type Locale } from "../i18n/index.ts";
 import { SAMPLE_MESSAGES } from "../i18n/messages.ts";
 import { SIGNUP_URL, REPO_URL, LICENSE_URL } from "../links.ts";
-import credits from "../../assets/credits.json";
 
 interface Props { locale: Locale }
 const { locale } = Astro.props;
@@ -43,15 +42,6 @@ const swatches = [
   { href: "#pricing", label: t.nav.pricing, ground: "print" },
   { href: "#faq", label: t.nav.faq, ground: "plate-2" },
 ];
-const usedPictures = new Set([
-  "assets/pluto-discovery-plates.png",
-  "assets/zeiss-blink-comparator-at-lowell-observatory-used.jpg",
-  "assets/clyde-tombaugh-records-flickr-brewbooks.jpg",
-  "assets/abbot-l-lowell-astrograph-flickr-brewbooks-2.jpg",
-  "assets/pluto-01-stern-03-pluto-color-txt.jpg",
-]);
-const pictureCredits = (credits as { file: string; title: string; creator: string; license: string; licenseUrl: string; page: string }[])
-  .filter((c) => usedPictures.has(c.file));
 const longestHeroLine = Math.max(...t.hero.lines.map((l) => l.length));
 ---
 <Base locale={locale} t={t}>
@@ -309,9 +299,7 @@ const longestHeroLine = Math.max(...t.hero.lines.map((l) => l.length));
     <p class="foot-display"><a href={REPO_URL}><span>{t.footer.display.slice(0, t.footer.display.lastIndexOf("/"))}</span><span>{t.footer.display.slice(t.footer.display.lastIndexOf("/"))}</span></a></p>
     <div class="foot-meta">
       <p><a href={REPO_URL}>GitHub</a> <a href={LICENSE_URL}>{t.footer.license}</a></p>
-      <p class="credits">{t.footer.picturesLabel}: {pictureCredits.map((c, i) => (
-        <>{i > 0 && "; "}<a href={c.page}>“{c.title}”</a>, {c.creator}, <a href={c.licenseUrl}>{c.license}</a></>
-      ))}.</p>
+      <p><a href={`${pathFor(locale)}credits/`}>{t.footer.creditsLink}</a></p>
       <p>© {t.footer.year} Mathis Sportiello</p>
     </div>
   </footer>

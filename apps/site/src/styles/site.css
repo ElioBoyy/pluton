@@ -108,6 +108,10 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: 0.
 .bar[data-ground="plate"], .bar[data-ground="plate-2"] { background: var(--plate); color: var(--ink); }
 .bar[data-ground="blue"] { background: var(--blue); color: #fff; }
 .bar[data-ground="blue"] .bar-start { background: var(--paper); color: var(--ink); }
+/* On the blue chapter the mark would vanish into its own colour: use the kit's black logo. */
+.bar[data-ground="blue"] .bar-logo { color: #000; }
+.bar[data-ground="blue"] .logo-symbol { fill: #000; }
+.bar .logo-symbol { transition: fill 300ms ease; }
 .bar-logo { font-size: 22px; }
 .bar-nav { display: flex; gap: 22px; margin-left: auto; font-size: var(--step-small); }
 .bar-nav a { text-decoration: none; opacity: 0.62; transition: opacity var(--t-hover) ease; }
@@ -317,10 +321,12 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: 0.
   box-shadow: 0 18px 40px -12px rgb(0 0 0 / 0.5); /* taste-skill-ignore: a popover that floats over the plate */
 }
 .mover[data-flip] .mover-card { left: auto; right: 0; }
+/* An open card rises above the big switch and its day word. */
+.market.has-focus { z-index: 5; }
 .mover.is-open .mover-card { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
 .mover-card-name { font-weight: 700; font-size: var(--step-body); }
 .mover-card-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: var(--step-small); }
-.mover-card-meta span:last-child { color: var(--blue); font-weight: 500; }
+.mover-card-meta span:last-child { color: var(--blue); font-weight: 500; white-space: nowrap; }
 .big-switch {
   position: absolute; z-index: 4; right: var(--m); bottom: 48px;
   font-size: clamp(11px, 1.9vw, 30px);
@@ -489,7 +495,6 @@ details[open] .plus::after { transform: rotate(0deg); }
 .foot-meta { position: relative; display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 24px; font-size: var(--step-small); align-items: end; }
 .foot-meta p:first-child { display: flex; gap: 18px; }
 .foot-meta p:last-child { text-align: right; }
-.credits { line-height: 1.5; }
 
 /* Section entrances: parts arrive in reading order, once */
 .js .reveal { opacity: 0; transform: translateY(24px); transition: opacity var(--t-reveal) var(--ease-out), transform var(--t-reveal) var(--ease-out); transition-delay: calc(var(--d, 0) * 80ms); }
@@ -609,3 +614,9 @@ details[open] .plus::after { transform: rotate(0deg); }
   .foot-meta { grid-template-columns: 1fr; font-size: 13px; }
   .foot-meta p:last-child { text-align: left; }
 }
+
+/* Picture credits: one plate, the list the licences ask for */
+.credits-page { min-height: 100svh; padding: 40px var(--m) 96px; display: grid; align-content: start; gap: 40px; }
+.credits-logo { font-size: 26px; width: fit-content; }
+.credits-list { list-style: none; padding: 0; display: grid; gap: 14px; max-width: 70ch; }
+.btn.btn-blue { width: fit-content; }

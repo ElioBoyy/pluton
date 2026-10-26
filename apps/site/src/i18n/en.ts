@@ -1,7 +1,7 @@
 // English is the source; every other language has exactly these keys (see ./index.ts).
 export default {
   meta: {
-    title: "Pluton: find the people who just moved",
+    title: "Pluton: the right prospect, at the right time",
     description:
       "Pluton watches your market, spots the people whose company just started hiring, posting or raising, and writes to them in your voice. Nothing goes out until you say so.",
   },
@@ -15,7 +15,7 @@ export default {
     language: "Language",
   },
   hero: {
-    lines: ["Find the people", "who just moved"],
+    lines: ["The right prospect,", "at the right time."],
     sub: "Pluton watches your market, spots the people whose company just started hiring, posting or raising, and writes to them in your voice. Nothing goes out until you say so.",
     cta: "Start with your website",
     pause: "Stop blinking",
@@ -25,7 +25,7 @@ export default {
     caption: "The plates on which Clyde Tombaugh found Pluto, Lowell Observatory.",
   },
   intro: {
-    heading: ["Stars stay put.", "Watch what moves."],
+    heading: ["The market looks still.", "Your next clients aren't."],
     lines: ["Pluto was found in 1930", "by the one dot", "that moved between two plates.", "Pluton watches your market", "the same way."],
     note: "Clyde Tombaugh photographed the same patch of sky six days apart and flicked between the plates. Stars stay put. What moves is worth a look.",
     photoA: "The blink comparator Tombaugh used, Lowell Observatory.",
@@ -218,6 +218,8 @@ export default {
     display: "github.com/ElioBoyy/pluton",
     license: "License",
     picturesLabel: "Pictures",
+    creditsLink: "Picture credits",
+    creditsBack: "Back to Pluton",
     year: "2026",
   },
 };

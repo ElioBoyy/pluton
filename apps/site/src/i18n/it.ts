@@ -2,7 +2,7 @@ import type { Strings } from "./index.ts";
 
 export default {
   meta: {
-    title: "Pluton: trova le persone che si sono mosse",
+    title: "Pluton: il prospect giusto, al momento giusto",
     description:
       "Pluton osserva il tuo mercato, individua le persone la cui azienda ha appena iniziato ad assumere, a pubblicare o a raccogliere fondi, e scrive loro con la tua voce. Non parte nulla finché non lo dici tu.",
   },
@@ -16,7 +16,7 @@ export default {
     language: "Lingua",
   },
   hero: {
-    lines: ["Trova le persone", "che si sono mosse"],
+    lines: ["Il prospect giusto,", "al momento giusto."],
     sub: "Pluton osserva il tuo mercato, individua le persone la cui azienda ha appena iniziato ad assumere, a pubblicare o a raccogliere fondi, e scrive loro con la tua voce. Non parte nulla finché non lo dici tu.",
     cta: "Inizia dal tuo sito",
     pause: "Ferma il lampeggio",
@@ -26,7 +26,7 @@ export default {
     caption: "Le lastre su cui Clyde Tombaugh trovò Plutone, Lowell Observatory.",
   },
   intro: {
-    heading: ["Le stelle restano.", "Guarda cosa si muove."],
+    heading: ["Il mercato sembra fermo.", "I tuoi prossimi clienti no."],
     lines: ["Plutone fu scoperto nel 1930", "grazie all'unico punto", "che si muoveva tra due lastre.", "Pluton osserva il tuo mercato", "allo stesso modo."],
     note: "Clyde Tombaugh fotografava lo stesso tratto di cielo a sei giorni di distanza e passava da una lastra all'altra. Le stelle restano ferme. Ciò che si muove merita uno sguardo.",
     photoA: "Il comparatore a intermittenza usato da Tombaugh, Lowell Observatory.",
@@ -219,6 +219,8 @@ export default {
     display: "github.com/ElioBoyy/pluton",
     license: "Licenza",
     picturesLabel: "Immagini",
+    creditsLink: "Crediti immagini",
+    creditsBack: "Torna a Pluton",
     year: "2026",
   },
 } satisfies Strings;
