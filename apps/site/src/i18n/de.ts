@@ -266,6 +266,7 @@ export default {
     display: "github.com/ElioBoyy/pluton",
     license: "Lizenz",
     picturesLabel: "Bilder",
+    domain: "plut0n.com, mit einer Null",
     creditsLink: "Bildnachweise",
     creditsBack: "Zurück zu Pluton",
     year: "2026",

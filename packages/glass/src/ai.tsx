@@ -1,14 +1,14 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import { SYMBOL_BOTTOM, SYMBOL_TOP } from "./brand.tsx";
+import { SYMBOL_MOON, SYMBOL_PLANET } from "./brand.tsx";
 import { cx } from "./cx.ts";
 
-/** The AI is working: the logo's halves close and open, next to what it is doing. */
+/** The AI is working: the logo's moon swings along its orbit, next to what it is doing. */
 export function Thinking({ children, className }: { children?: ReactNode; className?: string }) {
   return (
     <span className={cx("gg-thinking", className)} role="status">
-      <svg viewBox="12 12 236 232" aria-hidden>
-        <path className="gg-thinking__a" d={SYMBOL_TOP} />
-        <path className="gg-thinking__b" d={SYMBOL_BOTTOM} />
+      <svg viewBox="8 8 240 240" aria-hidden>
+        <path className="gg-thinking__planet" d={SYMBOL_PLANET} />
+        <path className="gg-thinking__moon" d={SYMBOL_MOON} />
       </svg>
       {children}
     </span>
