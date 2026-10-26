@@ -468,7 +468,7 @@ const settingsRouter = router({
   /** Proves a saved key works with a cheap call to its service. */
   test: publicProcedure.input(z.object({ key: z.string() })).mutation(async ({ input }) => {
     try {
-      const message = ["agent_backend", "anthropic_api_key"].includes(input.key)
+      const message = ["agent_backend", "anthropic_api_key", "openai_api_key"].includes(input.key)
         ? await checkClaude()
         : await checkProviderKey(input.key);
       return { ok: true, message };
