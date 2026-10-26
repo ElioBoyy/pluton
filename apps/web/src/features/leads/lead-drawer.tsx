@@ -170,6 +170,11 @@ export function LeadDrawer({
 
             <ContactSection data={data} />
 
+            {/* What to do with them next: right after how to reach them, before the details. */}
+            <Section title={t("drawer.campaign")}>
+              <LeadCampaignBlock leadId={data.id} status={data.status} />
+            </Section>
+
             <Group>
               <Field label={t("drawer.seniority")}>{data.seniority ? t("drawer.seniorityFromTitle", { seniority: data.seniority }) : "—"}</Field>
               <Field label={t("column.company")}>
@@ -196,10 +201,6 @@ export function LeadDrawer({
                 <Meter value={data.warmness} tone="orange" />
               </Field>
             </Group>
-
-            <Section title={t("drawer.campaign")}>
-              <LeadCampaignBlock leadId={data.id} status={data.status} />
-            </Section>
 
             <CrmSection leadId={data.id} />
 
