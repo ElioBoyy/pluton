@@ -21,6 +21,7 @@ import { DataSourcesPage } from "./routes/data-sources.tsx";
 import { HomePage } from "./routes/home.tsx";
 import { AppearancePage } from "./routes/appearance.tsx";
 import { GeneralSettingsPage, SETTINGS_SECTIONS, SettingsShell } from "./routes/settings.tsx";
+import { ProfilePage } from "./routes/profile.tsx";
 import { useT } from "./i18n/index.ts";
 import { ResetPage, SignupPage, SubscribePage } from "./features/account/account-pages.tsx";
 import { authStateQuery } from "./features/account/auth-state.ts";
@@ -127,6 +128,7 @@ const workspaceIndexRoute = createRoute({
   },
 });
 const SETTINGS_PAGES: Record<(typeof SETTINGS_SECTIONS)[number]["slug"], () => React.ReactNode> = {
+  profile: ProfilePage,
   settings: GeneralSettingsPage,
   appearance: AppearancePage,
   "data-sources": DataSourcesPage,

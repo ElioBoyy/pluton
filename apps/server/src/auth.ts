@@ -97,8 +97,8 @@ async function upsertUser(db: Db, who: Identity): Promise<User> {
   return created!;
 }
 
-/** Where linking from Settings comes back to: the account's page. */
-const SETTINGS_URL = `${APP_URL}/workspace/billing`;
+/** Where linking from Settings comes back to: the profile. */
+const SETTINGS_URL = `${APP_URL}/workspace/profile`;
 
 /**
  * Signed in and asking to link (Settings → "Connect Google"): the provider's account joins this
@@ -282,6 +282,17 @@ export function mountAuth(app: Hono, db: Db) {
     const remaining = [user.googleSub, user.appleSub, user.passwordHash].filter(Boolean).length - (user[field] ? 1 : 0);
     if (remaining < 1) return c.json({ error: "last_method" }, 409);
     await db.update(users).set({ [field]: null }).where(eq(users.id, user.id));
+    return c.json({ ok: true });
+  });
+
+  /** Settings → Profile: the name the account goes by. */
+  app.post("/api/auth/profile", async (c) => {
+    const user = await currentUser(db, c);
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const { name } = (await c.req.json().catch(() => ({}))) as { name?: unknown };
+    const clean = typeof name === "string" ? name.trim().slice(0, 120) : "";
+    if (!clean) return c.json({ error: "invalid_name" }, 400);
+    await db.update(users).set({ name: clean }).where(eq(users.id, user.id));
     return c.json({ ok: true });
   });
 

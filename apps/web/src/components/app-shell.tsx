@@ -13,6 +13,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
+import { Avatar } from "@pluton/glass";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useT } from "../i18n/index.ts";
@@ -22,6 +23,7 @@ import { AppLink } from "./app-link.tsx";
 import { AppearanceControl } from "./appearance-control.tsx";
 import { CommandPalette } from "./command-palette.tsx";
 import { InspectorSlot } from "./inspector.tsx";
+import { useProfileName } from "../routes/profile.tsx";
 import { ConfirmHost, ContextMenuHost, contextMenu } from "./context-menu.tsx";
 import { usePlayMenu } from "../features/plays/play-menu.ts";
 import { PlutonLogo } from "./logo.tsx";
@@ -165,7 +167,8 @@ export function AppShell() {
           <div className="mt-auto flex flex-col gap-3 p-3">
             <GetStarted />
             <div className="flex items-center gap-2">
-              <Link to="/workspace/settings" className="gg-side-item min-h-8 flex-1 gap-2.5 text-sm font-medium">
+              <ProfileButton />
+              <Link to="/workspace/settings" className="gg-side-item min-h-8 min-w-0 flex-1 gap-2.5 text-sm font-medium">
                 <Gear size={16} />
                 {tc("settings")}
               </Link>
@@ -221,6 +224,22 @@ export function AppShell() {
         <ConfirmHost />
       </div>
     </InspectorSlot.Provider>
+  );
+}
+
+/** You, at the foot of the sidebar: your avatar opens your profile. */
+function ProfileButton() {
+  const t = useT("settings");
+  const name = useProfileName();
+  return (
+    <Link
+      to="/workspace/profile"
+      aria-label={t("section.profile")}
+      title={`${t("section.profile")} · ${name}`}
+      className="flex size-8 shrink-0 items-center justify-center rounded-full transition-[box-shadow] duration-150 hover:shadow-[0_0_0_2px_var(--gg-accent-soft)] focus-visible:focus-ring"
+    >
+      <Avatar name={name} className="size-7 text-[11px]" />
+    </Link>
   );
 }
 

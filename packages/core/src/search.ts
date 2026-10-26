@@ -87,6 +87,7 @@ const PAGES = [
   { ref: "new-play", href: "/plays/new", about: "Describe who you want to reach and create a Play. Nouvelle campagne, créer" },
   { ref: "leads", href: "/leads", about: "People found by your Plays, to review, approve or reject. Prospects, contacts à valider" },
   { ref: "onboarding", href: "/onboarding", about: "Research your website and build the Brain again. Recommencer, analyser mon site" },
+  { ref: "profile", href: "/workspace/profile", about: "Your name, email signature, language, sign-in methods, sign out. Profil, mon compte, se déconnecter, mot de passe, langue" },
   { ref: "settings", href: "/workspace/settings", about: "Workspace name, website, icon, timezone. Paramètres, réglages, fuseau horaire" },
   { ref: "appearance", href: "/workspace/appearance", about: "Light and dark mode, wallpaper, theme. Apparence, mode sombre, fond d'écran" },
   { ref: "notifications", href: "/workspace/notifications", about: "Notification bell, morning digest, email. Résumé du matin" },
