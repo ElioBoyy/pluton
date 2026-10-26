@@ -2,7 +2,7 @@ import type { Strings } from "./index.ts";
 
 export default {
   meta: {
-    title: "Pluton : trouvez ceux qui viennent de bouger",
+    title: "Pluton : le bon prospect, au bon moment",
     description:
       "Pluton surveille votre marché, repère les personnes dont l'entreprise vient de recruter, de publier ou de lever des fonds, et leur écrit avec votre voix. Rien ne part sans votre accord.",
   },
@@ -16,7 +16,7 @@ export default {
     language: "Langue",
   },
   hero: {
-    lines: ["Trouvez ceux qui", "viennent de bouger"],
+    lines: ["Le bon prospect,", "au bon moment."],
     sub: "Pluton surveille votre marché, repère les personnes dont l'entreprise vient de recruter, de publier ou de lever des fonds, et leur écrit avec votre voix. Rien ne part sans votre accord.",
     cta: "Commencer avec votre site",
     pause: "Arrêter le clignotement",
@@ -26,7 +26,7 @@ export default {
     caption: "Les plaques sur lesquelles Clyde Tombaugh a trouvé Pluton, observatoire Lowell.",
   },
   intro: {
-    heading: ["Les étoiles restent.", "Regardez ce qui bouge."],
+    heading: ["Le marché semble immobile.", "Pas vos prochains clients."],
     lines: ["Pluton a été trouvée en 1930", "grâce au seul point", "qui bougeait entre deux plaques.", "Pluton observe votre marché", "de la même façon."],
     note: "Clyde Tombaugh photographiait le même coin de ciel à six jours d'écart et passait d'une plaque à l'autre. Les étoiles restent en place. Ce qui bouge mérite un regard.",
     photoA: "Le comparateur à clignotement de Tombaugh, observatoire Lowell.",
@@ -101,7 +101,7 @@ export default {
   },
   blink: {
     heading: "Comparez un marché",
-    text: "Les mêmes soixante entreprises, lundi puis jeudi. Basculez la plaque : ce qui a bougé mérite un message.",
+    text: "Les mêmes soixante entreprises, lundi puis jeudi. Passez de lundi à jeudi : ceux qui ont bougé méritent un message.",
     monday: "Lundi",
     thursday: "Jeudi",
     switchLabel: "Afficher la plaque de jeudi",
