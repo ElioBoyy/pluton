@@ -183,7 +183,7 @@ const en: Record<LegalDocId, LegalDoc> = {
           {
             list: [
               "“Your own AI”: €39.99 per month. The Customer provides their own Claude or Codex subscription, or their API keys, at their own cost.",
-              "“All included”: €59.99 per month. Claude usage is included up to a monthly quota of [To fill in: included quota]. Beyond it, usage is billed on top at [To fill in: overage rate].",
+              "“All included”: €59.99 per month. Usage of Claude and of the data sources Pluton provides is included up to 2,090 credits a month, one credit being $0.01 of usage at the providers' public prices. A month's unused credits do not carry over. Once this quota is spent, the Service pauses until the next month, unless the Customer buys additional credits in the app, at the price shown at the time of purchase. Purchased credits remain valid from month to month until used.",
             ],
           },
           "Unless stated otherwise, the third-party services the Customer connects with their own keys (data providers, LinkedIn through Unipile, CRMs) are paid by the Customer directly to those services.",
@@ -205,7 +205,7 @@ const en: Record<LegalDocId, LegalDoc> = {
       {
         heading: "5. Payment",
         body: [
-          "The subscription is paid by card, in advance, every month, through Stripe. The Customer authorizes these recurring payments until cancellation. Overage on the “All included” plan is billed with the next payment.",
+          "The subscription is paid by card, in advance, every month, through Stripe. The Customer authorizes these recurring payments until cancellation. Additional credits are paid in advance, by card, when bought.",
           "Invoices are available in the app, under Settings → Budget → Manage subscription.",
           "If a payment fails, Stripe retries it. If it remains unpaid, access to the Service is suspended until payment is made. Under article L441-10 of the French Commercial Code, late payment incurs penalties of three times the legal interest rate and a fixed €40 collection fee.",
         ],

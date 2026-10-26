@@ -183,7 +183,7 @@ const fr: Record<LegalDocId, LegalDoc> = {
           {
             list: [
               "« Votre propre IA » : 39,99 € par mois. Le Client fournit son propre abonnement Claude ou Codex, ou ses clés d'API, dont le coût reste à sa charge.",
-              "« Tout compris » : 59,99 € par mois. L'usage de Claude est inclus jusqu'à un quota mensuel de [À compléter : quota inclus]. Au-delà, l'usage est facturé en plus, au tarif de [À compléter : tarif du dépassement].",
+              "« Tout compris » : 59,99 € par mois. L'usage de Claude et des sources de données fournies par Pluton est inclus jusqu'à 2 090 crédits par mois, un crédit correspondant à 0,01 $ d'usage au prix public des fournisseurs. Les crédits du mois non utilisés ne sont pas reportés. Une fois ce quota épuisé, le Service s'interrompt jusqu'au mois suivant, sauf si le Client achète des crédits supplémentaires depuis l'application, au prix affiché au moment de l'achat. Les crédits achetés restent valables d'un mois sur l'autre jusqu'à leur utilisation.",
             ],
           },
           "Sauf mention contraire, les services tiers que le Client connecte avec ses propres clés (fournisseurs de données, LinkedIn via Unipile, CRM) sont payés par lui directement à ces services.",
@@ -205,7 +205,7 @@ const fr: Record<LegalDocId, LegalDoc> = {
       {
         heading: "5. Paiement",
         body: [
-          "L'abonnement se paie par carte bancaire, d'avance, chaque mois, par l'intermédiaire de Stripe. Le Client autorise ces prélèvements récurrents jusqu'à la résiliation. Le dépassement de quota de l'offre « Tout compris » est facturé avec l'échéance suivante.",
+          "L'abonnement se paie par carte bancaire, d'avance, chaque mois, par l'intermédiaire de Stripe. Le Client autorise ces prélèvements récurrents jusqu'à la résiliation. Les crédits supplémentaires se paient d'avance, par carte, au moment de l'achat.",
           "Les factures sont disponibles depuis l'application, dans Réglages → Budget → Gérer l'abonnement.",
           "En cas d'échec de paiement, Stripe présente de nouveau le paiement. Si l'échéance reste impayée, l'accès au Service est suspendu jusqu'à régularisation. Conformément à l'article L441-10 du Code de commerce, tout retard de paiement entraîne des pénalités égales à trois fois le taux d'intérêt légal et une indemnité forfaitaire de 40 € pour frais de recouvrement.",
         ],
