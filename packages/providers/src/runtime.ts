@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { currentCostScope, eq, getSetting, HOSTED, providerCache, providerCalls, recordCost, type Db } from "@pluton/db";
+import { assertPlatformQuota, currentCostScope, eq, getSetting, HOSTED, providerCache, providerCalls, recordCost, settingSource, type Db } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import messages from "./messages/providers.ts";
 
@@ -125,10 +125,11 @@ export async function providerCall<T>(
   }
 }
 
-/** Reads a key saved in Settings → API keys. */
+/** Reads a key saved in Settings → API keys, or Pluton's own while the plan's quota lasts. */
 export function requireKey(provider: string, settingKey: string) {
   const value = getSetting(settingKey)?.trim();
   if (!value) throw new MissingKeyError(provider, settingKey);
+  assertPlatformQuota(settingKey);
   return value;
 }
 
@@ -158,6 +159,8 @@ export async function checkProviderKey(settingKey: string): Promise<string> {
     const accounts = await unipileAccounts();
     return t("check.unipile", { count: accounts.length });
   }
+  // Pluton's own key: a check would show its account with the provider to the workspace.
+  if (settingSource(settingKey) === "platform") return t("check.saved");
   const key = requireKey(settingKey, settingKey);
   switch (settingKey) {
     case "apify_token": {

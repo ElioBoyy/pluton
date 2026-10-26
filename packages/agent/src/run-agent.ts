@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { getSetting } from "@pluton/db";
+import { assertPlatformQuota, getSetting } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import messages from "./messages/copilot.ts";
 
@@ -96,12 +96,14 @@ export class AgentRefusalError extends Error {}
 export class AgentTurnLimitError extends Error {}
 
 /**
- * The workspace's own key, from Settings. Never one from the environment or a local config, which
- * the SDK would otherwise fall back to: without a saved key there is no client.
+ * The workspace's own key from Settings, or Pluton's own when its plan includes Claude. Never one
+ * from the environment or a local config, which the SDK would otherwise fall back to: without
+ * either there is no client.
  */
 export function anthropicClient() {
   const key = getSetting("anthropic_api_key");
   if (!key) throw new Anthropic.AnthropicError("No Anthropic API key: add one in Settings → API keys");
+  assertPlatformQuota("anthropic_api_key");
   return new Anthropic({ apiKey: key });
 }
 
@@ -109,6 +111,8 @@ export function anthropicClient() {
 let client: { key: string; instance: Anthropic } | undefined;
 const getClient = () => {
   const key = getSetting("anthropic_api_key");
+  // Checked every turn, not only when the client is made: a long run stops once the quota is spent.
+  assertPlatformQuota("anthropic_api_key");
   if (!client || client.key !== key) client = { key: key ?? "", instance: anthropicClient() };
   return client.instance;
 };

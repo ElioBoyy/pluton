@@ -852,6 +852,8 @@ export const creditEntries = sqliteTable(
     operation: text("operation").notNull(),
     costMicroUsd: integer("cost_micro_usd").notNull(),
     billed: integer("billed", { mode: "boolean" }).notNull().default(true),
+    /** Hosted: paid through Pluton's own key for the source, so it counts against the plan's quota. */
+    platform: integer("platform", { mode: "boolean" }).notNull().default(false),
     playId: text("play_id").references(() => plays.id, { onDelete: "set null" }),
     runId: text("run_id").references(() => leadFindingRuns.id, { onDelete: "set null" }),
     jobId: text("job_id"),

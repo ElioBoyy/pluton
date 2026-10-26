@@ -1,0 +1,1 @@
+ALTER TABLE "credit_entry" ADD COLUMN "platform" boolean DEFAULT false NOT NULL;

@@ -1,0 +1,1 @@
+ALTER TABLE `credit_entry` ADD `platform` integer DEFAULT false NOT NULL;

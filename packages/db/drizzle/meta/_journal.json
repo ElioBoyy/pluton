@@ -162,6 +162,13 @@
       "when": 1793032707240,
       "tag": "0022_password_sign_in",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1793036147658,
+      "tag": "0023_platform_keys",
+      "breakpoints": true
     }
   ]
 }

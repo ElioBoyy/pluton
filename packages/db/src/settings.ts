@@ -2,12 +2,13 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { localized } from "@pluton/i18n/server";
 import fs from "node:fs";
 import path from "node:path";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { currentCostScope } from "./costs.ts";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { currentCostScope, onCostRecorded } from "./costs.ts";
 import type { Db } from "./index.ts";
 import messages from "./messages/settings.ts";
 import { HOSTED, repoRoot } from "./paths.ts";
-import { workspaces, workspaceSettings } from "./tables.ts";
+import type { SubscriptionPlan } from "./schema.ts";
+import { creditEntries, users, workspaces, workspaceSettings } from "./tables.ts";
 
 export type SettingDef = {
   key: string;
@@ -155,6 +156,7 @@ export async function refreshSettings(db: Db) {
   }
   cache = next;
   activeWorkspaceId = active?.id;
+  if (HOSTED) await refreshPlans(db);
 }
 
 /** Keeps the cache fresh so a key saved in the web app reaches the worker within seconds. */
@@ -164,7 +166,121 @@ export function watchSettings(db: Db, intervalMs = 3000) {
   return refreshSettings(db);
 }
 
-export type SettingSource = "app" | "default" | "unset";
+// ── Platform keys ────────────────────────────────────────────────────────────
+
+/**
+ * Hosted: keys Pluton pays for, read from PLATFORM_<SETTING KEY> in the environment (e.g.
+ * PLATFORM_ANTHROPIC_API_KEY). A workspace whose plan includes one uses it until it saves its own,
+ * and what it spends through it counts against the plan's monthly quota. `source` is the cost
+ * ledger's name for what the key pays for. Unipile is left out: one shared Unipile account would
+ * show every workspace's LinkedIn accounts to all of them.
+ */
+export const PLATFORM_KEYS: Record<string, { source: string; plans: SubscriptionPlan[] }> = {
+  anthropic_api_key: { source: "claude", plans: ["all"] },
+  apify_token: { source: "apify", plans: ["byo", "all"] },
+  theirstack_api_key: { source: "theirstack", plans: ["byo", "all"] },
+  hunter_api_key: { source: "hunter", plans: ["byo", "all"] },
+};
+
+const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`]?.trim() || undefined;
+
+/** USD of platform spend each plan includes per billing period: PLATFORM_QUOTA_USD_ALL, PLATFORM_QUOTA_USD_BYO. */
+const DEFAULT_QUOTA_USD: Record<SubscriptionPlan, number> = { byo: 10, all: 50 };
+const quotaMicroUsd = (plan: SubscriptionPlan) => Math.round((Number(process.env[`PLATFORM_QUOTA_USD_${plan.toUpperCase()}`]) || DEFAULT_QUOTA_USD[plan]) * 1_000_000);
+
+type WorkspacePlan = { plan: SubscriptionPlan; periodStart: Date; periodEnd: Date; quotaMicroUsd: number; spentMicroUsd: number };
+
+/** Paying workspaces only: one whose account has no active subscription gets no platform key. */
+let plans = new Map<string, WorkspacePlan>();
+let plansCheckedAt = 0;
+/** The ledger is summed at most this often; spend recorded in this process is added as it lands. */
+const PLAN_SPEND_TTL_MS = 30_000;
+
+/** The subscription's current month, from Stripe's period end; the calendar month when it's unknown or past. */
+function billingPeriod(periodEnd: Date | null, now = new Date()) {
+  if (periodEnd && periodEnd > now) {
+    const start = new Date(periodEnd);
+    start.setUTCMonth(start.getUTCMonth() - 1);
+    return { start, end: periodEnd };
+  }
+  return { start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), end: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)) };
+}
+
+async function refreshPlans(db: Db) {
+  if (Date.now() - plansCheckedAt < PLAN_SPEND_TTL_MS) return;
+  plansCheckedAt = Date.now();
+  const rows = await db
+    .select({ workspaceId: workspaces.id, plan: users.plan, status: users.subscriptionStatus, periodEnd: users.currentPeriodEnd })
+    .from(workspaces)
+    .innerJoin(users, eq(users.id, workspaces.userId));
+  const paying = rows.filter((r) => r.plan && (r.status === "active" || r.status === "trialing"));
+  const next = new Map<string, WorkspacePlan>();
+  await Promise.all(
+    paying.map(async (r) => {
+      const period = billingPeriod(r.periodEnd);
+      const [row] = await db
+        .select({ n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
+        .from(creditEntries)
+        .where(and(eq(creditEntries.workspaceId, r.workspaceId), eq(creditEntries.platform, true), gte(creditEntries.createdAt, period.start)));
+      next.set(r.workspaceId, { plan: r.plan!, periodStart: period.start, periodEnd: period.end, quotaMicroUsd: quotaMicroUsd(r.plan!), spentMicroUsd: Number(row?.n ?? 0) });
+    }),
+  );
+  plans = next;
+}
+
+// The ledger total is up to 30 seconds old: what this process spends counts at once.
+onCostRecorded((entry) => {
+  const plan = entry.platform && entry.workspaceId ? plans.get(entry.workspaceId) : undefined;
+  if (plan) plan.spentMicroUsd += entry.costMicroUsd;
+});
+
+/** Pluton's own key for `key`, when the workspace's plan includes it. */
+function platformValue(key: string, workspaceId: string | undefined) {
+  if (!HOSTED || !workspaceId) return undefined;
+  const plan = plans.get(workspaceId);
+  if (!plan || !PLATFORM_KEYS[key]?.plans.includes(plan.plan)) return undefined;
+  return platformKey(key);
+}
+
+/** Whether a cost from `source` (the ledger's "claude", "hunter"…) is paid through a platform key. */
+export function paidByPlatform(source: string, workspaceId?: string | null) {
+  const key = Object.keys(PLATFORM_KEYS).find((k) => PLATFORM_KEYS[k]!.source === source);
+  return Boolean(key && workspaceId && resolve(key, workspaceId).source === "platform");
+}
+
+/** The plan's quota this period, for workspaces that have one. */
+export function platformQuota(workspaceId?: string | null) {
+  const ws = scopedWorkspace(workspaceId);
+  const plan = ws ? plans.get(ws) : undefined;
+  if (!plan) return null;
+  return {
+    plan: plan.plan,
+    periodStart: plan.periodStart,
+    periodEnd: plan.periodEnd,
+    quotaMicroUsd: plan.quotaMicroUsd,
+    spentMicroUsd: plan.spentMicroUsd,
+    leftMicroUsd: Math.max(plan.quotaMicroUsd - plan.spentMicroUsd, 0),
+  };
+}
+
+export class PlatformQuotaError extends Error {
+  constructor(readonly until: Date) {
+    super(t("error.platformQuota", { until: until.toISOString().slice(0, 10) }));
+  }
+}
+
+/**
+ * Throws PlatformQuotaError when `key` would be Pluton's own and the plan's quota is used up.
+ * Called right before a paid call; reading a setting never throws.
+ */
+export function assertPlatformQuota(key: string, workspaceId?: string) {
+  const ws = scopedWorkspace(workspaceId);
+  if (resolve(key, ws).source !== "platform") return;
+  const quota = platformQuota(ws);
+  if (quota && quota.leftMicroUsd <= 0) throw new PlatformQuotaError(quota.periodEnd);
+}
+
+export type SettingSource = "app" | "platform" | "default" | "unset";
 
 /**
  * Settings belong to a workspace: the one of the current job or request (its cost scope), else
@@ -180,9 +296,16 @@ export function getSetting(key: string, workspaceId?: string): string | undefine
   return resolve(key, scopedWorkspace(workspaceId)).value;
 }
 
+/** Where a setting's value comes from: saved by the workspace, Pluton's own, a default, or nowhere. */
+export function settingSource(key: string, workspaceId?: string): SettingSource {
+  return resolve(key, scopedWorkspace(workspaceId)).source;
+}
+
 function resolve(key: string, workspaceId: string | undefined): { value: string | undefined; source: SettingSource } {
   const saved = workspaceId ? cache.get(workspaceId)?.get(key) : undefined;
   if (saved !== undefined && saved !== "") return { value: saved, source: "app" };
+  const platform = platformValue(key, workspaceId);
+  if (platform) return { value: platform, source: "platform" };
   const def = SETTING_DEFS.find((d) => d.key === key);
   if (def?.defaultValue) return { value: def.defaultValue, source: "default" };
   return { value: undefined, source: "unset" };
@@ -226,7 +349,7 @@ type SettingMessage = keyof (typeof messages)["en"];
 /** A setting's words in the current language; a setting added without them keeps its English. */
 const word = (key: string, english: string) => (key in messages.en ? t(key as SettingMessage) : english);
 
-/** What the Settings page shows: never the secret itself, only whether it's set and its last 4 characters. */
+/** What the Settings page shows: never the secret itself, only whether it's set and its last 4 characters (none of Pluton's own). */
 export function describeSettings(workspaceId?: string) {
   const ws = scopedWorkspace(workspaceId);
   return SETTING_DEFS.filter(offered).map((def) => {
@@ -238,7 +361,7 @@ export function describeSettings(workspaceId?: string) {
       options: def.options?.map((o) => ({ ...o, label: word(`${def.key}.option.${o.value}`, o.label) })),
       source,
       value: def.secret ? undefined : value,
-      preview: def.secret && value ? `••••${value.slice(-4)}` : undefined,
+      preview: def.secret && value && source === "app" ? `••••${value.slice(-4)}` : undefined,
       configured: Boolean(value),
     };
   });

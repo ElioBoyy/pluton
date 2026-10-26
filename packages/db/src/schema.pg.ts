@@ -551,6 +551,8 @@ export const creditEntries = pgTable(
     operation: text("operation").notNull(),
     costMicroUsd: bigint("cost_micro_usd", { mode: "number" }).notNull(),
     billed: boolean("billed").notNull().default(true),
+    /** Hosted: paid through Pluton's own key for the source, so it counts against the plan's quota. */
+    platform: boolean("platform").notNull().default(false),
     playId: text("play_id").references(() => plays.id, { onDelete: "set null" }),
     runId: text("run_id").references(() => leadFindingRuns.id, { onDelete: "set null" }),
     jobId: text("job_id"),

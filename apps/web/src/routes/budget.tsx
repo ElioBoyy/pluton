@@ -60,6 +60,7 @@ export function BudgetPage() {
 
       <div className="flex flex-col gap-8">
         <Subscription />
+        {s.platform && <IncludedUsage quota={s.platform} />}
         <Section
           title={t("budget.period", { from: formatDate(s.period.start, { day: "numeric", month: "short" }), to: until })}
           actions={
@@ -198,6 +199,39 @@ function Money({ label, value, onChange, placeholder, min = 0, required }: { lab
 }
 
 /** Hosted only: the plan paid for, and Stripe's portal to change card or plan, or cancel. */
+type Quota = { quotaMicroUsd: number; spentMicroUsd: number; leftMicroUsd: number; periodEnd: Date };
+
+/** Hosted: what the plan includes through Pluton's own keys this billing period, drawn like the budget. */
+function IncludedUsage({ quota: q }: { quota: Quota }) {
+  const t = useT("usage");
+  const share = Math.min(q.spentMicroUsd / q.quotaMicroUsd, 1);
+  const until = formatDate(q.periodEnd, { day: "numeric", month: "long" });
+  return (
+    <Section title={t("quota.title")} footnote={t("quota.hint", { date: until })}>
+      <Group>
+        <div className="px-4 pt-3 pb-4">
+          <p className="text-xs text-muted">{t("spent")}</p>
+          <p className="mt-0.5 text-[22px] leading-7 font-semibold tracking-[-0.01em] tabular-nums">
+            {usd(q.spentMicroUsd)}
+            <span className="text-base font-normal tracking-normal text-muted"> {t("budget.of", { amount: usd(q.quotaMicroUsd) })}</span>
+          </p>
+          <div
+            className="mt-3 flex h-1.5 overflow-hidden bg-control"
+            role="meter"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(share * 100)}
+            aria-label={t("quota.used")}
+          >
+            <div className={cn("h-full", share >= 1 ? "bg-system-red" : share >= 0.8 ? "bg-system-orange" : "bg-accent")} style={{ width: `${share * 100}%` }} />
+          </div>
+        </div>
+        <Figure label={t("budget.available")} value={usd(q.leftMicroUsd)} />
+      </Group>
+    </Section>
+  );
+}
+
 function Subscription() {
   const t = useT("account");
   const user = useQuery(authStateQuery).data?.user;
