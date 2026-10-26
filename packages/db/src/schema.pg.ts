@@ -296,6 +296,10 @@ export const people = pgTable(
     emailSource: text("email_source"),
     /** Last email lookup, found or not: the UI says "No email found" instead of offering the same paid search again. */
     emailCheckedAt: timestamp("email_checked_at", { mode: "date", precision: 3, withTimezone: true }),
+    /** The business's phone, from its map listing (see findPlace): often the way to reach a small business. */
+    phone: text("phone"),
+    /** Last lookup of the business's map listing, found or not. */
+    placeCheckedAt: timestamp("place_checked_at", { mode: "date", precision: 3, withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

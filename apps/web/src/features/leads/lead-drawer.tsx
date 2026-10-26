@@ -9,6 +9,7 @@ import {
   CircleNotch,
   Envelope,
   LinkedinLogo,
+  Phone,
   Prohibit,
   Target,
   ThumbsDown,
@@ -399,12 +400,21 @@ function ContactSection({ data }: { data: Detail }) {
             missing(linkedinMiss)
           )}
         </Row>
+        <Row label={t("contacts.phone")} description={p.phone ? t("contacts.phoneFromMap") : undefined}>
+          {p.phone ? (
+            <a href={`tel:${p.phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline">
+              <Phone size={13} className="shrink-0" /> {p.phone}
+            </a>
+          ) : (
+            missing(p.placeCheckedAt)
+          )}
+        </Row>
       </Group>
     </Section>
   );
 }
 
-/** One button for every way to reach the lead: LinkedIn, then email (more networks later, server side). */
+/** One button for every way to reach the lead: LinkedIn, the map listing's phone, then email (more networks later, server side). */
 function CheckContactsButton({ data }: { data: Detail }) {
   const t = useT("leads");
   const trpc = useTRPC();
@@ -421,6 +431,10 @@ function CheckContactsButton({ data }: { data: Detail }) {
               ? `${c.channel}: ${c.detail ?? ""}`
               : c.channel === "linkedin"
                 ? t(c.outcome === "found" ? "contacts.linkedinFound" : "contacts.linkedinNone")
+                : c.channel === "phone"
+                  ? c.outcome === "found"
+                    ? t("contacts.phoneFound", { phone: c.value ?? "" })
+                    : t("contacts.phoneNone")
                 : c.outcome === "found"
                   ? t("contacts.emailFound", { email: c.value ?? "" })
                   : t("contacts.emailNone"),
@@ -431,7 +445,7 @@ function CheckContactsButton({ data }: { data: Detail }) {
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
   );
-  const allKnown = !!data.person.email && !!data.person.linkedinUrl;
+  const allKnown = !!data.person.email && !!data.person.linkedinUrl && !!data.person.phone;
   return (
     <Button
       variant="ghost"
@@ -482,7 +496,7 @@ function NoteInput({ leadId, autoFocus }: { leadId: string; autoFocus?: boolean 
 }
 
 type EmailStep = { source: "research" | "website" | "hunter"; outcome: string; detail?: string };
-const STEP_OUTCOMES = ["found", "guess", "inbox", "nothing", "no_website", "no_key", "no_company", "error"] as const;
+const STEP_OUTCOMES = ["found", "guess", "inbox", "nothing", "no_website", "no_siren", "no_key", "no_company", "error"] as const;
 
 /** Each source an email search tried, in order: "Research: nothing · Company website: nothing · Hunter: no key". */
 function emailSteps(p: Record<string, unknown>) {

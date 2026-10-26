@@ -462,6 +462,10 @@ export const people = sqliteTable(
     emailSource: text("email_source"),
     /** Last email lookup, found or not: the UI says "No email found" instead of offering the same paid search again. */
     emailCheckedAt: integer("email_checked_at", { mode: "timestamp_ms" }),
+    /** The business's phone, from its map listing (see findPlace): often the way to reach a small business. */
+    phone: text("phone"),
+    /** Last lookup of the business's map listing, found or not. */
+    placeCheckedAt: integer("place_checked_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

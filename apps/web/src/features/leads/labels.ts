@@ -55,7 +55,7 @@ export type RejectReason = (typeof REJECT_REASONS)[number];
 export const reasonLabel = (reason: string) =>
   REJECT_REASONS.includes(reason as RejectReason) ? translate("leads", `reason.${reason as RejectReason}`) : reason;
 
-const EMAIL_SOURCES = ["hunter", "public_text", "pattern", "company_inbox"] as const;
+const EMAIL_SOURCES = ["hunter", "public_text", "pattern", "company_inbox", "map_listing"] as const;
 export const emailSourceLabel = (source: string | null | undefined) =>
   EMAIL_SOURCES.includes(source as (typeof EMAIL_SOURCES)[number]) ? translate("leads", `emailSource.${source as (typeof EMAIL_SOURCES)[number]}`) : (source ?? "");
 

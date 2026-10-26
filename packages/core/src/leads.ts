@@ -239,17 +239,17 @@ export async function addLeadEvent(db: Db, leadId: string, kind: LeadEvent["kind
 }
 
 /**
- * After a lookup that found nothing: a lead still to review with no LinkedIn profile and no email is
- * set aside until one turns up (see setPersonEmail / setPersonLinkedin). A lead already approved
- * keeps the founder's verdict. Returns whether it was set aside.
+ * After a lookup that found nothing: a lead still to review with no LinkedIn profile, no email and no
+ * phone is set aside until one turns up (see setPersonEmail / setPersonLinkedin / setPersonPlace). A
+ * lead already approved keeps the founder's verdict. Returns whether it was set aside.
  */
 export async function markUnreachable(db: Db, leadId: string) {
   const [row] = await db
-    .select({ status: leads.status, linkedinUrl: people.linkedinUrl, email: people.email })
+    .select({ status: leads.status, linkedinUrl: people.linkedinUrl, email: people.email, phone: people.phone })
     .from(leads)
     .innerJoin(people, eq(people.id, leads.personId))
     .where(eq(leads.id, leadId));
-  if (!row || row.status !== "to_review" || row.linkedinUrl || row.email) return false;
+  if (!row || row.status !== "to_review" || row.linkedinUrl || row.email || row.phone) return false;
   await db.update(leads).set({ status: "unreachable" }).where(eq(leads.id, leadId));
   await addLeadEvent(db, leadId, "unreachable");
   return true;

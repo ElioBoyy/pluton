@@ -1,6 +1,7 @@
 import { addLeadEvent, getLeadWithPerson, leadsText, markUnreachable, setPersonLinkedin } from "@pluton/core";
 import type { Db, LeadStatus } from "@pluton/db";
 import { findLeadEmail } from "./lead-email.ts";
+import { lookupPlace } from "./lead-place.ts";
 import { findLinkedinProfiles } from "./linkedin-lookup.ts";
 
 /** One way to reach a lead and what the check came to: already known, found now, or nothing. */
@@ -25,6 +26,16 @@ const FINDERS = [
       if (url) await setPersonLinkedin(db, person.id, url);
       await addLeadEvent(db, leadId, url ? "linkedin_found" : "linkedin_not_found", url ? { url } : {});
       return { outcome: url ? "found" : "nothing", value: url };
+    },
+  },
+  {
+    // The business's map listing: its phone, and its website for the email step that follows.
+    channel: "phone",
+    async check(db: Db, leadId: string): Promise<Omit<ContactCheck, "channel">> {
+      const { lead, person } = (await getLeadWithPerson(db, leadId))!;
+      if (person.phone) return { outcome: "known", value: person.phone };
+      const place = await lookupPlace(db, lead, person);
+      return { outcome: place?.phone ? "found" : "nothing", value: place?.phone ?? null, detail: place === undefined ? "no_siren" : undefined };
     },
   },
   {
