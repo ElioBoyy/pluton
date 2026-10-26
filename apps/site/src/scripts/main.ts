@@ -118,6 +118,13 @@ if (market && toggle) {
   }
   document.addEventListener("click", close);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  // Flip from the switch without letting the browser scroll to the hidden checkbox.
+  document.querySelector<HTMLLabelElement>(".big-switch")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggle.checked = !toggle.checked;
+    toggle.focus({ preventScroll: true });
+    toggle.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   toggle.addEventListener("change", () => {
     if (!toggle.checked) close();
     dispatchEvent(new Event("scroll"));

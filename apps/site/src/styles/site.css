@@ -275,6 +275,8 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: 0.
   transition: background-color 300ms ease, color 300ms ease;
 }
 .blink:has(.blink-input:checked) { background: var(--print); }
+/* The real checkbox sits under the switch, so focusing it never scrolls the page away. */
+.blink .blink-input { top: auto; left: auto; right: calc(var(--m) + 7em); bottom: 96px; }
 .blink-head { position: relative; z-index: 2; padding: 88px var(--m) 0; max-width: 520px; }
 .blink-head .h-lead { font-weight: 700; text-transform: uppercase; letter-spacing: -0.02em; line-height: 1; }
 .blink-head p { margin-top: 16px; }
@@ -286,7 +288,7 @@ a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: 0.
   width: calc(var(--r) * 7px); aspect-ratio: 1; border-radius: 50%; background: currentColor;
   transform: translate(-50%, -50%);
 }
-.mover { position: absolute; left: var(--x); top: var(--y); z-index: 3; transition: transform 0ms; }
+.mover { position: absolute; left: var(--x); top: var(--y); z-index: 3; transition: transform 520ms var(--ease-in-out); }
 .blink:has(.blink-input:checked) .mover { transform: translate(calc(var(--dx) * 1cqw), calc(var(--dy) * 1cqh)); }
 .mover-dot { position: relative; display: block; width: 44px; height: 44px; transform: translate(-50%, -50%); pointer-events: none; }
 .mover-dot::before { content: ""; left: 50%; top: 50%; --r: 1.4; }
