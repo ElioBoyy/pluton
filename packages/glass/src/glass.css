@@ -736,7 +736,23 @@
   }
 }
 
-/* When the work ends (`aiSettle()` in ./behaviors.ts), the light leaves a few soft sparks where its head was. */
+/*
+ * When the work ends (`aiSettle()` in ./behaviors.ts), the light's head breaks off like a shooting
+ * star: a bright point with a fading tail races on along the edge, shedding soft sparks.
+ */
+.gg-meteor {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgb(91 107 255 / 0), rgb(91 107 255 / 0.55) 55%, var(--gg-accent) 85%, #ffffff);
+  box-shadow: 0 0 8px 1px rgb(91 107 255 / 0.45);
+  transform-origin: right center;
+  pointer-events: none;
+  opacity: 0;
+}
 .gg-spark {
   position: absolute;
   z-index: 3;
