@@ -577,7 +577,7 @@ export async function advance(db: Db, e: Enrollment, campaign: Campaign, patch: 
   if (i >= steps.length) {
     const [row] = await db
       .update(enrollments)
-      .set({ ...patch, stepIndex: i, status: patch.status ?? "completed", nextActionAt: null, endedAt: now })
+      .set({ note: null, ...patch, stepIndex: i, status: patch.status ?? "completed", nextActionAt: null, endedAt: now })
       .where(eq(enrollments.id, e.id))
       .returning();
     return row!;
@@ -585,9 +585,10 @@ export async function advance(db: Db, e: Enrollment, campaign: Campaign, patch: 
   const next = steps[i]!;
   // The first message waits on the connection; its delay runs from acceptance (the engine checks it).
   const at = new Date(now.getTime() + next.delayHours * HOUR + jitterMs());
+  // A step that went through clears the problem the last attempt left on the card.
   const [row] = await db
     .update(enrollments)
-    .set({ ...patch, stepIndex: i, nextActionAt: at })
+    .set({ note: null, ...patch, stepIndex: i, nextActionAt: at })
     .where(eq(enrollments.id, e.id))
     .returning();
   return row!;

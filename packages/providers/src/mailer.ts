@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { lookup } from "node:dns/promises";
+import net from "node:net";
 import nodemailer from "nodemailer";
 import { getSetting } from "@pluton/db";
 import { ProviderError } from "./runtime.ts";
@@ -23,13 +25,28 @@ export const appMailConfigured = () => resendConfigured() || mailerConfigured();
 /** The mailbox outreach emails leave from. */
 export const fromAddress = () => getSetting("smtp_from") || getSetting("smtp_user")!;
 
-function transport() {
+/**
+ * The server's IPv4 address, as the system resolves it (like a browser does), when it has one.
+ * A Mac always has IPv6 interfaces, so nodemailer also tries IPv6 addresses, even where no IPv6
+ * route leads anywhere: the send then fails with EHOSTUNREACH. Its name stays the TLS server name.
+ */
+async function reachableHost(host: string) {
+  if (net.isIP(host)) return host;
+  return lookup(host, { family: 4 }).then(
+    (found) => found.address,
+    () => host,
+  );
+}
+
+async function transport() {
   if (!mailerConfigured()) throw new ProviderError("smtp", t("error.smtpMissing"));
+  const host = getSetting("smtp_host")!;
   const port = Number(getSetting("smtp_port") ?? 465);
   return nodemailer.createTransport({
-    host: getSetting("smtp_host"),
+    host: await reachableHost(host),
     port,
     secure: port === 465,
+    tls: { servername: host },
     auth: { user: getSetting("smtp_user"), pass: getSetting("smtp_password") },
     connectionTimeout: 15_000,
   });
@@ -58,7 +75,7 @@ export async function sendMail(mail: { to: string; subject: string; html: string
   if (resendConfigured()) return sendWithResend(mail);
   const from = fromAddress();
   try {
-    await transport().sendMail({ from: `Pluton <${from}>`, ...mail });
+    await (await transport()).sendMail({ from: `Pluton <${from}>`, ...mail });
   } catch (error) {
     if (error instanceof ProviderError) throw error;
     throw new ProviderError("smtp", (error as Error).message);
@@ -73,7 +90,7 @@ export async function sendOutreachEmail(mail: { to: string; subject: string; tex
   const from = fromAddress();
   const messageId = `<${randomUUID()}@${from.split("@")[1] ?? "pluton.local"}>`;
   try {
-    await transport().sendMail({
+    await (await transport()).sendMail({
       from: { name: getSetting("smtp_from_name") || from, address: from },
       to: mail.to,
       subject: mail.subject,
@@ -93,7 +110,7 @@ export async function sendOutreachEmail(mail: { to: string; subject: string; tex
 
 export async function verifyMailer() {
   try {
-    await transport().verify();
+    await (await transport()).verify();
   } catch (error) {
     if (error instanceof ProviderError) throw error;
     throw new ProviderError("smtp", (error as Error).message);

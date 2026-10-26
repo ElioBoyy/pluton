@@ -55,6 +55,7 @@ import {
   linkedinPublicId,
   mailerConfigured,
   readInbox,
+  isNetworkError,
   sendOutreachEmail,
   stripQuoted,
   unipileFindChat,
@@ -65,7 +66,7 @@ import {
   unipileProfile,
   unipileSendMessage,
 } from "@pluton/providers";
-import { localized } from "@pluton/i18n/server";
+import { currentLocale, localized, withLocale } from "@pluton/i18n/server";
 import { byEmail, campaignLanguage, classifyReply, writeAutoReply, writeDrafts, writeEmailSubject } from "./outreach-writer.ts";
 import messages from "./messages/sequence.ts";
 
@@ -86,11 +87,16 @@ type Ctx = { db: Db; now: Date; timeZone: string; busy: Set<string> };
  * and each account's daily limits.
  */
 export async function runSequenceTick(db: Db, now = new Date()) {
-  // One pass covers every workspace: each enrollment runs on its workspace's clock and keys.
-  const zones = new Map((await db.select({ id: workspaces.id, timezone: workspaces.timezone }).from(workspaces)).map((w) => [w.id, w.timezone]));
+  // One pass covers every workspace: each enrollment runs on its workspace's clock, keys and
+  // language (the notes it leaves on the card are read by that workspace's founder).
+  const rows = await db.select({ id: workspaces.id, timezone: workspaces.timezone, language: workspaces.language }).from(workspaces);
+  const zones = new Map(rows.map((w) => [w.id, w.timezone]));
+  const languages = new Map(rows.map((w) => [w.id, w.language]));
   const busy = new Set<string>();
   const inWorkspace = <T>(workspaceId: string, fn: (ctx: Ctx) => Promise<T>) =>
-    withinCostScope({ db, workspaceId }, () => fn({ db, now, timeZone: zones.get(workspaceId) ?? "Europe/Paris", busy }));
+    withLocale(languages.get(workspaceId) ?? "en", () =>
+      withinCostScope({ db, workspaceId }, () => fn({ db, now, timeZone: zones.get(workspaceId) ?? "Europe/Paris", busy })),
+    );
   let polled = 0;
   for (const { enrollment } of await enrollmentsToPoll(db, now)) {
     await inWorkspace(enrollment.workspaceId, () => pollReplies(db, enrollment)).catch((error) => console.error("[sequence] reply check failed", (error as Error).message));
@@ -670,10 +676,22 @@ async function onError(ctx: Ctx, e: Enrollment, campaign: Campaign, error: Error
       return;
     }
   }
-  const failures = await db
-    .select({ id: outreachActions.id })
+  const failed = await db
+    .select({ detail: outreachActions.detail, createdAt: outreachActions.createdAt })
     .from(outreachActions)
     .where(and(eq(outreachActions.enrollmentId, e.id), eq(outreachActions.status, "failed"), eq(outreachActions.stepId, step?.id ?? "")));
-  if (failures.length >= 3) await endEnrollment(db, e.id, "failed", error.message.slice(0, 300));
-  else await defer(db, e.id, new Date(now.getTime() + HOUR * failures.length + jitterMs()), error.message.slice(0, 200));
+  // The network down (offline, Wi-Fi switching) says nothing about this person: try again later,
+  // further apart each time (15 min, 30, 1 h, then every 2 h, counting the last 12 h), and never count
+  // it against the step.
+  if (isNetworkError(error)) {
+    const since = now.getTime() - 12 * HOUR;
+    const outages = failed.filter((f) => f.createdAt.getTime() > since && isNetworkError({ message: f.detail ?? "" })).length;
+    const at = new Date(now.getTime() + Math.min(15 * 60_000 * 2 ** Math.max(outages - 1, 0), 2 * HOUR) + jitterMs(1, 5));
+    const time = new Intl.DateTimeFormat(currentLocale(), { hour: "2-digit", minute: "2-digit", timeZone: ctx.timeZone }).format(at);
+    await defer(db, e.id, at, t("networkRetry", { reason: error.message.slice(0, 120), time }));
+    return;
+  }
+  const failures = failed.filter((f) => !isNetworkError({ message: f.detail ?? "" })).length;
+  if (failures >= 3) await endEnrollment(db, e.id, "failed", error.message.slice(0, 300));
+  else await defer(db, e.id, new Date(now.getTime() + HOUR * failures + jitterMs()), error.message.slice(0, 200));
 }
