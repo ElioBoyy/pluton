@@ -2,7 +2,7 @@ import react from "@astrojs/react";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
-  site: "https://pluton.app",
+  site: "https://plut0n.com",
   devToolbar: { enabled: false },
   integrations: [react()],
   i18n: {
