@@ -399,11 +399,14 @@ a {
 }
 .turn {
   display: grid;
+  /* As wide as the chat, never as wide as its longest line: on a phone that would spill past the edge. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   padding-block: 16px 8px;
 }
 .turn-ai {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   justify-items: start;
 }
@@ -626,6 +629,8 @@ a {
 /* Every stage sits in the same cell: the window keeps the tallest one's height and they crossfade. */
 .how-window .gg-window__body {
   display: grid;
+  /* One column as wide as the window: without it, the widest stage sets it and spills past the edge. */
+  grid-template-columns: minmax(0, 1fr);
 }
 .how-window .stage,
 .how-window .stage[hidden] {
