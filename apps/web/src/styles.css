@@ -51,6 +51,8 @@
   --color-canvas: #dedfda; /* plate grey: the field */
   --color-panel: #cdcfc7; /* plate step: grouped content, one tone down */
   --color-panel-hover: #c4c6be;
+  /* What floats over the page (menus, ⌘K, toasts, dialogs): always opaque, even over a wallpaper. */
+  --color-float: #cdcfc7;
   --color-field: #f3f3ef; /* paper: text fields, one tone up */
   --color-raised: rgb(16 16 24 / 0.06); /* fills: hover, wells */
   --color-selected: rgb(16 16 24 / 0.09);
@@ -125,6 +127,7 @@
   --color-canvas: #0e0e12;
   --color-panel: #1d1d24;
   --color-panel-hover: #25252e;
+  --color-float: #1d1d24;
   --color-field: #26262f;
   --color-raised: rgb(243 243 239 / 0.07);
   --color-selected: rgb(243 243 239 / 0.1);
@@ -178,6 +181,7 @@
   --color-canvas: #0e0e12;
   --color-panel: #1d1d24;
   --color-panel-hover: #25252e;
+  --color-float: #1d1d24;
   --color-field: #1d1d24;
   --color-raised: rgb(243 243 239 / 0.07);
   --color-selected: rgb(243 243 239 / 0.1);
@@ -200,7 +204,7 @@
  * the page with one hard shadow. No blur and no rim: nothing is see-through.
  */
 @utility glass {
-  background: var(--color-panel);
+  background: var(--color-float);
   box-shadow: var(--shadow-popover);
 
   &:not(.fixed, .absolute, .sticky) {
@@ -385,7 +389,7 @@ select {
  * Set the origin with `origin-top-right` and the like when it opens from a corner.
  */
 @utility popover {
-  background: var(--color-panel);
+  background: var(--color-float);
   box-shadow: var(--shadow-popover);
   @apply popover-motion;
 }

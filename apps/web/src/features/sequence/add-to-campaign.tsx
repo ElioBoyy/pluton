@@ -90,7 +90,7 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-label={title} className="modal-in flex max-h-[88vh] w-[min(960px,100%)] flex-col overflow-hidden bg-panel shadow-window">
+      <div role="dialog" aria-label={title} className="modal-in flex max-h-[88vh] w-[min(960px,100%)] flex-col overflow-hidden bg-float shadow-window">
         {result ? (
           <Result result={result} onClose={onClose} />
         ) : (

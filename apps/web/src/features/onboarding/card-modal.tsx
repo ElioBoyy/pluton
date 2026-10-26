@@ -43,7 +43,7 @@ function StatementCard({ card, pending, onAnswer }: { card: CardView; pending: b
 
   return (
     <>
-      <div className="modal-in w-full bg-panel p-6 shadow-window">
+      <div className="modal-in w-full bg-float p-6 shadow-window">
         <h2 className="text-lg font-semibold">{card.title}</h2>
         <p className="mt-5 text-sm font-semibold">{card.heading}</p>
         {editing ? (
@@ -127,7 +127,7 @@ function SelectCard({
 
   return (
     <>
-      <div className="modal-in w-full bg-panel p-6 shadow-window">
+      <div className="modal-in w-full bg-float p-6 shadow-window">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-lg font-semibold leading-snug">{card.title}</h2>
           {total > 1 && (
