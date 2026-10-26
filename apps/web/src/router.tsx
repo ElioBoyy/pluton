@@ -25,7 +25,16 @@ import { ProfilePage } from "./routes/profile.tsx";
 import { useT } from "./i18n/index.ts";
 import { ResetPage, SignupPage, SubscribePage } from "./features/account/account-pages.tsx";
 import { authStateQuery } from "./features/account/auth-state.ts";
-import { queryClient } from "./lib/trpc.ts";
+import { queryClient, trpcClient } from "./lib/trpc.ts";
+
+/**
+ * Where the app opens: Home, or the onboarding while the current workspace has no company yet. A
+ * new account coming back from Stripe lands here, so the first thing it sees is the business card.
+ */
+async function landing() {
+  const workspaces = await trpcClient.workspace.list.query();
+  return workspaces.find((ws) => ws.current)?.onboarded === false ? ({ to: "/onboarding", search: {} } as const) : ({ to: "/home" } as const);
+}
 
 /** Pages a hosted visitor reaches before they have paid. */
 const ACCOUNT_PATHS = ["/signup", "/subscribe"];
@@ -43,7 +52,8 @@ const rootRoute = createRootRoute({
     if (hosted && location.pathname === "/reset") return;
     const onAccountPage = ACCOUNT_PATHS.includes(location.pathname);
     if (!hosted || user?.paid) {
-      if (onAccountPage) throw redirect({ to: "/home" });
+      // Stripe's webhook often marks the account paid before the browser is back from Checkout.
+      if (onAccountPage) throw redirect(await landing());
       return;
     }
     const to = user ? "/subscribe" : "/signup";
@@ -113,8 +123,8 @@ const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", compo
 const indexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/",
-  beforeLoad: () => {
-    throw redirect({ to: "/home" });
+  beforeLoad: async () => {
+    throw redirect(await landing());
   },
 });
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/home", component: HomePage });
