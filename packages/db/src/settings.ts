@@ -47,6 +47,13 @@ export const SETTING_DEFS: SettingDef[] = [
     group: "claude",
   },
   { key: "anthropic_api_key", label: "Anthropic API key", description: "Used when the backend is set to API key.", secret: true, group: "claude" },
+  {
+    key: "openai_api_key",
+    label: "OpenAI API key",
+    description: "Instead of Anthropic: Pluton's research then runs on OpenAI's GPT models. An Anthropic key, if saved, comes first.",
+    secret: true,
+    group: "claude",
+  },
   { key: "apify_token", label: "Apify token", description: "LinkedIn posts, engagers and profile search.", secret: true, group: "data" },
   { key: "theirstack_api_key", label: "TheirStack API key", description: "Market-wide job posts and tech stacks.", secret: true, group: "data" },
   { key: "hunter_api_key", label: "Hunter API key", description: "Finds work emails (free plan: 25 searches/month).", secret: true, group: "data" },
