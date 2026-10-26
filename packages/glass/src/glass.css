@@ -692,44 +692,96 @@
   }
 }
 
-/* The AI at work: an ultramarine light runs round the edge of whatever it is working in. */
+/*
+ * The AI at work: an ultramarine light runs round the edge of whatever it is working in.
+ * When it finishes (`aiFinish()` in ./behaviors.ts, data-ai="finale"), the light speeds up,
+ * turns into a rainbow aura, goes once round, whitens and fades out. The colours and the extra
+ * spin are registered properties set on the element, so they interpolate and both layers share them.
+ */
 @property --gg-turn {
   syntax: "<angle>";
   inherits: false;
   initial-value: 0deg;
 }
+@property --gg-spin {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+@property --gg-edge-alpha {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+@property --gg-aura {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --gg-c0 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --gg-c1 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --gg-c2 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --gg-c3 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --gg-c4 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --gg-c5 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+
 .gg-ai-edge {
   position: relative;
+  /* The working comet: dark for most of the turn, ultramarine at its head. */
+  --gg-c0: rgb(43 59 255 / 0);
+  --gg-c1: rgb(43 59 255 / 0);
+  --gg-c2: rgb(43 59 255 / 0);
+  --gg-c3: rgb(110 122 255 / 0.55);
+  --gg-c4: var(--gg-accent);
+  --gg-c5: rgb(160 170 255 / 0.95);
 }
-.gg-ai-edge::after {
+.gg-ai-edge::after,
+.gg-ai-edge::before {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 2;
-  padding: 1.5px;
   border-radius: inherit;
   corner-shape: inherit;
   background: conic-gradient(
-    from var(--gg-turn),
-    transparent 0 55%,
-    rgb(110 122 255 / 0.9) 70%,
-    var(--gg-accent) 80%,
-    rgb(160 170 255 / 0.95) 86%,
-    transparent 95%
+    from calc(var(--gg-turn) + var(--gg-spin)),
+    var(--gg-c0) 0%,
+    var(--gg-c1) 17%,
+    var(--gg-c2) 33%,
+    var(--gg-c3) 50%,
+    var(--gg-c4) 67%,
+    var(--gg-c5) 83%,
+    var(--gg-c0) 100%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 400ms var(--gg-ease);
   animation: gg-turn 2.4s linear infinite;
-}
-.gg-ai-edge:not([data-ai="working"])::after {
   animation-play-state: paused;
 }
-.gg-ai-edge[data-ai="working"]::after {
-  opacity: 1;
+/* The light on the edge. */
+.gg-ai-edge::after {
+  z-index: 2;
+  padding: 1.5px;
+  transition: opacity 400ms var(--gg-ease);
+}
+/* The aura: the same light, wide and soft, glowing in from the edge. */
+.gg-ai-edge::before {
+  z-index: 1;
+  padding: 18px;
+  filter: blur(14px);
+  opacity: var(--gg-aura);
+}
+.gg-ai-edge[data-ai="working"]::after,
+.gg-ai-edge[data-ai="finale"]::after {
+  opacity: var(--gg-edge-alpha);
+}
+.gg-ai-edge[data-ai="working"]::after,
+.gg-ai-edge[data-ai="working"]::before,
+.gg-ai-edge[data-ai="finale"]::after,
+.gg-ai-edge[data-ai="finale"]::before {
+  animation-play-state: running;
 }
 @keyframes gg-turn {
   to {
@@ -980,7 +1032,8 @@
   .gg-thinking__b {
     animation: none;
   }
-  .gg-ai-edge::after {
+  .gg-ai-edge::after,
+  .gg-ai-edge::before {
     animation: none;
     --gg-turn: 120deg;
   }
