@@ -49,8 +49,8 @@ const euros = (locale: Locale, n: number) =>
 
 function Bar({ t, locale }: Props) {
   const links = [
-    ["#how", t.nav.how],
     ["#agent", t.nav.agent],
+    ["#how", t.nav.how],
     ["#ai", t.nav.ai],
     ["#pricing", t.nav.pricing],
     ["#faq", t.nav.faq],
