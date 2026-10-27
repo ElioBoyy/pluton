@@ -14,9 +14,9 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Button, Group, Input, PageHeader, Row, Section } from "../components/ui.tsx";
+import { Button, Group, Input, PageHeader, Row, Section, useStrip } from "../components/ui.tsx";
 import { Avatar } from "@pluton/glass";
 import { authStateQuery } from "../features/account/auth-state.ts";
 import { WorkspacesSection } from "../features/workspaces/workspaces-section.tsx";
@@ -63,10 +63,19 @@ const SECTION_ICONS: Record<Exclude<(typeof SETTINGS_SECTIONS)[number]["slug"], 
 
 export function SettingsShell() {
   const t = useT("settings");
+  // Narrow, the sections are a row that scrolls sideways: draggable, faded where more hide, the open one in view.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const strip = useStrip(pathname, '[data-status="active"]');
   return (
     <div className="mx-auto flex max-w-5xl gap-10 px-4 py-6 max-lg:flex-col max-lg:gap-6 sm:px-8 sm:py-10">
       {/* A column beside the page from lg up; narrower, a row of tabs that scrolls sideways. */}
-      <nav className="flex w-48 shrink-0 flex-col gap-px lg:sticky lg:top-10 lg:self-start max-lg:-mx-4 max-lg:w-auto max-lg:flex-row max-lg:overflow-x-auto max-lg:px-4 max-lg:[scrollbar-width:none] max-lg:sm:-mx-8 max-lg:sm:px-8">
+      <nav
+        {...strip}
+        className={cn(
+          strip.className,
+          "flex w-48 shrink-0 flex-col gap-px lg:sticky lg:top-10 lg:self-start lg:overflow-visible max-lg:-mx-4 max-lg:w-auto max-lg:flex-row max-lg:px-4 max-lg:sm:-mx-8 max-lg:sm:px-8",
+        )}
+      >
         <ProfileCard />
         <p className="mb-1 px-2 text-xs font-semibold text-muted max-lg:hidden">{t("workspace")}</p>
         {SETTINGS_SECTIONS.filter((s) => s.slug !== "profile").map((s) => {
