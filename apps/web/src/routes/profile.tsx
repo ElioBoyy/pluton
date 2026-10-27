@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Avatar } from "@pluton/glass";
 import { useEffect, useState } from "react";
 import { Button, Group, Input, PageHeader, Row, Section } from "../components/ui.tsx";
 import { authStateQuery, post, type AuthState } from "../features/account/auth-state.ts";
@@ -9,6 +8,7 @@ import { browserLocale } from "../i18n/locale.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { FIELD } from "./settings.tsx";
+import { Identicon } from "../components/identicon.tsx";
 
 type Account = NonNullable<AuthState["user"]>;
 
@@ -102,7 +102,7 @@ function Identity({ user }: { user: Account | null }) {
     <Section footnote={saved && <span role="status">{t("profile.saved")}</span>}>
       <Group>
         <div className="flex items-center gap-4 px-4 py-4">
-          <Avatar name={name} className="size-14 shrink-0 text-xl" />
+          <Identicon seed={name} className="size-14" />
           <div className="min-w-0">
             <p className="truncate text-lg font-semibold">{name}</p>
             <p className="truncate text-sm text-muted">{user ? (user.email ?? t("profile.account")) : t("profile.local")}</p>
