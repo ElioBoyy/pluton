@@ -117,7 +117,6 @@ export default defineMessages({
     "funnel.discovered": "Discovered",
     "funnel.kept": "Kept after checks",
     "funnel.linkedinFound": "LinkedIn found",
-    "funnel.unreachable": "Unreachable",
     "funnel.qualified": "Qualified",
     "funnel.toReview": "To review",
 
@@ -319,7 +318,6 @@ export default defineMessages({
     "funnel.discovered": "Découverts",
     "funnel.kept": "Retenus après vérification",
     "funnel.linkedinFound": "LinkedIn trouvé",
-    "funnel.unreachable": "Injoignables",
     "funnel.qualified": "Qualifiés",
     "funnel.toReview": "À examiner",
 
@@ -521,7 +519,6 @@ export default defineMessages({
     "funnel.discovered": "Trovati",
     "funnel.kept": "Tenuti dopo i controlli",
     "funnel.linkedinFound": "LinkedIn trovato",
-    "funnel.unreachable": "Irraggiungibili",
     "funnel.qualified": "Qualificati",
     "funnel.toReview": "Da rivedere",
 
@@ -723,7 +720,6 @@ export default defineMessages({
     "funnel.discovered": "Descubiertos",
     "funnel.kept": "Conservados tras revisar",
     "funnel.linkedinFound": "LinkedIn encontrado",
-    "funnel.unreachable": "Inalcanzables",
     "funnel.qualified": "Cualificados",
     "funnel.toReview": "Por revisar",
 
@@ -925,7 +921,6 @@ export default defineMessages({
     "funnel.discovered": "Entdeckt",
     "funnel.kept": "Nach Prüfung behalten",
     "funnel.linkedinFound": "LinkedIn gefunden",
-    "funnel.unreachable": "Nicht erreichbar",
     "funnel.qualified": "Qualifiziert",
     "funnel.toReview": "Zu prüfen",
 

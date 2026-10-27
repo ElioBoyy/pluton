@@ -24,7 +24,7 @@ import {
 } from "@pluton/core";
 import { checkContacts, findLeadEmail, findLinkedinProfiles } from "@pluton/agent";
 import { FEEDBACK_REASONS, PIPELINES, getSetting } from "@pluton/db";
-import { HUNTER_KEY, MissingKeyError, hunterQuota } from "@pluton/providers";
+import { HUNTER_KEY, MAP_LISTINGS, MissingKeyError, hunterQuota } from "@pluton/providers";
 import { publicProcedure, router } from "./trpc.ts";
 
 const filterInput = z.object({
@@ -51,7 +51,7 @@ export const leadsRouter = router({
   get: publicProcedure.input(z.object({ leadId: z.string() })).query(async ({ ctx, input }) => {
     const lead = await getLeadDetail(ctx.db, input.leadId);
     if (!lead) throw new TRPCError({ code: "NOT_FOUND", message: leadsText("notFound") });
-    return lead;
+    return { ...lead, mapListings: MAP_LISTINGS };
   }),
   markSeen: publicProcedure.input(idsInput).mutation(({ ctx, input }) => markLeadsSeen(ctx.db, input.leadIds)),
   /** Approve (up) or reject (down) one or many leads. Rejection reasons feed the Brain and later runs. */

@@ -1,6 +1,6 @@
 import { addLeadEvent, getLeadWithPerson, leadsText, markUnreachable, setPersonEmail } from "@pluton/core";
 import { getSetting, type Db } from "@pluton/db";
-import { emailFromWebsite, emailInText, findEmail, HUNTER_KEY, splitName, type EmailResult } from "@pluton/providers";
+import { emailFromWebsite, emailInText, findEmail, HUNTER_KEY, MAP_LISTINGS, splitName, type EmailResult } from "@pluton/providers";
 import { localized } from "@pluton/i18n/server";
 import { lookupPlace } from "./lead-place.ts";
 import messages from "./messages/lead-finding.ts";
@@ -35,8 +35,10 @@ export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult
       result?.email ? "email_found" : "email_not_found",
       result?.email ? { email: result.email, source: result.source, confidence: result.confidence, steps } : { steps },
     );
-    // Nothing found, and no LinkedIn profile or phone either: no way to contact them for now.
-    const unreachable = result?.email ? false : await markUnreachable(db, lead.id);
+    // Nothing found, and no LinkedIn profile or phone either: no way to contact them for now. A source
+    // that failed (a refused Hunter key, a site down) didn't say there's nothing: the lead stays.
+    const failed = steps.some((s) => s.outcome === "error");
+    const unreachable = result?.email || failed ? false : await markUnreachable(db, lead.id);
     return { leadId, email: result?.email ?? null, confidence: result?.confidence ?? null, source: result?.source ?? "none", steps, unreachable };
   };
 
@@ -45,9 +47,10 @@ export async function findLeadEmail(db: Db, leadId: string): Promise<EmailResult
   if (quoted) return done(quoted);
 
   // The registry gives no website: the business's map listing may (and a phone, and an address).
+  // Read again on every search (findPlace caches it), or the listing's email would only count once.
   let website = person.companyWebsite;
   let listed: EmailResult | null = null;
-  if (!person.placeCheckedAt) {
+  if (MAP_LISTINGS) {
     try {
       const place = await lookupPlace(db, lead, person);
       const detail = place ? [place.website, place.phone, place.email].filter(Boolean).join(" · ") : "";

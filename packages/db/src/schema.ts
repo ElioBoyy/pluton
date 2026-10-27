@@ -407,8 +407,6 @@ export type RunReport = {
   duplicates: number;
   /** LinkedIn profiles found by the lookup step (absent on older runs). */
   linkedinFound?: number;
-  /** Leads kept but set aside as unreachable: no LinkedIn profile and no email found (absent on older runs). */
-  unreachable?: number;
   /** For the Main Play: what each chained pipeline added. */
   stages?: Array<{ pipeline: string; qualified: number; discovered: number; skipped?: string }>;
   /** Why candidates were set aside, with a few examples each. */

@@ -386,7 +386,7 @@ export async function previewRecipients(db: Db, leadIds: string[]) {
       campaignId: campaign.id,
       steps: messageSteps.map((s) => ({ id: s.id, label: stepLabel(campaign.steps, s), mode: s.mode ?? "ai", delayHours: s.delayHours, channels: draftChannels(r.person, s) })),
       drafts,
-      conflict: live[0] ? t("inSequence", { play: live[0].playName }) : r.lead.status === "rejected" ? t("rejectedLead") : null,
+      conflict: live[0] ? t("inSequence", { play: live[0].playName }) : r.lead.status === "rejected" ? t("rejectedLead") : r.lead.status === "unreachable" ? t("unreachableLead") : null,
       review: draftState(drafts, draftSlots(r.person, messageSteps)),
     });
   }

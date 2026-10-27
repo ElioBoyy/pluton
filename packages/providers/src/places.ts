@@ -1,4 +1,4 @@
-import type { Db } from "@pluton/db";
+import { HOSTED, type Db } from "@pluton/db";
 import { httpJson, providerCall, toDomain } from "./runtime.ts";
 
 /**
@@ -12,6 +12,12 @@ const REGISTRY = "https://recherche-entreprises.api.gouv.fr/search";
 // Usage policy: at most one request a second, from an identified client (runtime's user-agent).
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
 const PROVIDER = "places";
+
+/**
+ * Self-hosted installs only, and opt-in (PLUTON_MAP_LISTINGS=1): the public Nominatim is a volunteer
+ * service, not meant for a hosted app's traffic from one address.
+ */
+export const MAP_LISTINGS = !HOSTED && process.env.PLUTON_MAP_LISTINGS === "1";
 
 export type Place = { name: string; website: string | null; phone: string | null; email: string | null; source: "osm" };
 

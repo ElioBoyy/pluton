@@ -1,5 +1,6 @@
 import { addLeadEvent, getLeadWithPerson, leadsText, markUnreachable, setPersonLinkedin } from "@pluton/core";
 import type { Db, LeadStatus } from "@pluton/db";
+import { MAP_LISTINGS } from "@pluton/providers";
 import { findLeadEmail } from "./lead-email.ts";
 import { lookupPlace } from "./lead-place.ts";
 import { findLinkedinProfiles } from "./linkedin-lookup.ts";
@@ -45,7 +46,8 @@ const FINDERS = [
       if (person.email) return { outcome: "known", value: person.email };
       // Free sources first, Hunter only with a key (see findLeadEmail).
       const result = await findLeadEmail(db, leadId);
-      return { outcome: result.email ? "found" : "nothing", value: result.email };
+      const failed = result.steps.find((s) => s.outcome === "error");
+      return { outcome: result.email ? "found" : failed ? "error" : "nothing", value: result.email, detail: result.email ? undefined : failed?.detail };
     },
   },
 ] as const;
@@ -53,13 +55,14 @@ const FINDERS = [
 export type ContactChannel = (typeof FINDERS)[number]["channel"];
 
 /**
- * Looks up every way to reach a lead it doesn't have yet. With none at the end, a lead still to
- * review is set aside as unreachable; finding one puts an unreachable lead back in review.
+ * Looks up every way to reach a lead it doesn't have yet. With none at the end and no lookup failing,
+ * a lead still to review is set aside as unreachable; finding one puts an unreachable lead back in review.
  */
 export async function checkContacts(db: Db, leadId: string): Promise<{ leadId: string; checks: ContactCheck[]; status: LeadStatus; unreachable: boolean }> {
   if (!(await getLeadWithPerson(db, leadId))) throw new Error(leadsText("notFound"));
   const checks: ContactCheck[] = [];
-  for (const finder of FINDERS) {
+  // The map listing only where it's turned on (see MAP_LISTINGS).
+  for (const finder of FINDERS.filter((f) => f.channel !== "phone" || MAP_LISTINGS)) {
     try {
       checks.push({ channel: finder.channel, ...(await finder.check(db, leadId)) });
     } catch (error) {
@@ -67,7 +70,8 @@ export async function checkContacts(db: Db, leadId: string): Promise<{ leadId: s
       checks.push({ channel: finder.channel, outcome: "error", value: null, detail: (error as Error).message });
     }
   }
-  await markUnreachable(db, leadId);
+  // A channel that failed didn't say there's nothing: too soon to set the lead aside.
+  if (!checks.some((c) => c.outcome === "error")) await markUnreachable(db, leadId);
   const { lead } = (await getLeadWithPerson(db, leadId))!;
   return { leadId, checks, status: lead.status, unreachable: lead.status === "unreachable" };
 }

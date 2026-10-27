@@ -400,15 +400,17 @@ function ContactSection({ data }: { data: Detail }) {
             missing(linkedinMiss)
           )}
         </Row>
-        <Row label={t("contacts.phone")} description={p.phone ? t("contacts.phoneFromMap") : undefined}>
-          {p.phone ? (
-            <a href={`tel:${p.phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline">
-              <Phone size={13} className="shrink-0" /> {p.phone}
-            </a>
-          ) : (
-            missing(p.placeCheckedAt)
-          )}
-        </Row>
+        {(p.phone || data.mapListings) && (
+          <Row label={t("contacts.phone")} description={p.phone ? t("contacts.phoneFromMap") : undefined}>
+            {p.phone ? (
+              <a href={`tel:${p.phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline">
+                <Phone size={13} className="shrink-0" /> {p.phone}
+              </a>
+            ) : (
+              missing(p.placeCheckedAt)
+            )}
+          </Row>
+        )}
       </Group>
     </Section>
   );
@@ -445,7 +447,7 @@ function CheckContactsButton({ data }: { data: Detail }) {
       onError: (e) => toast(e.message, { tone: "error" }),
     }),
   );
-  const allKnown = !!data.person.email && !!data.person.linkedinUrl && !!data.person.phone;
+  const allKnown = !!data.person.email && !!data.person.linkedinUrl && (!!data.person.phone || !data.mapListings);
   return (
     <Button
       variant="ghost"
