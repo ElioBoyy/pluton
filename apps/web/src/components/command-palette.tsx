@@ -242,7 +242,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             {highlight && (
               <span
                 aria-hidden
-                className="absolute inset-x-2 top-0 bg-accent transition-[translate,height] duration-150 ease-out motion-reduce:transition-none"
+                className="absolute inset-x-2 top-0 rounded-[var(--gg-r-row)] bg-accent [corner-shape:squircle] transition-[translate,height] duration-150 ease-out motion-reduce:transition-none"
                 style={{ height: highlight.height, translate: `0 ${highlight.top}px` }}
               />
             )}
