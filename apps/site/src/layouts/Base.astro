@@ -4,9 +4,12 @@ import "@pluton/glass/glass.css";
 import "../styles/landing.css";
 import { LOCALES, pathFor, type Locale, type Strings } from "../i18n/index.ts";
 
-/** `path` is the page's path after the language prefix ("legal/terms/"), empty for the landing page. */
-interface Props { locale: Locale; t: Strings; path?: string }
-const { locale, t, path = "" } = Astro.props;
+/**
+ * `path` is the page's path after the language prefix ("legal/terms/"), empty for the landing page.
+ * `home` marks the landing page, where the visitor's language is picked and remembered.
+ */
+interface Props { locale: Locale; t: Strings; path?: string; home?: boolean }
+const { locale, t, path = "", home = false } = Astro.props;
 const site = Astro.site ?? new URL("https://pluton.app");
 ---
 <!doctype html>
@@ -14,6 +17,39 @@ const site = Astro.site ?? new URL("https://pluton.app");
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    {home && (
+      <script is:inline define:vars={{ locale, locales: LOCALES }}>
+        // A language picked from the menu, or a language's own landing page, is remembered and wins.
+        // Arriving at the English root from elsewhere with nothing remembered, the browser's first language
+        // the site speaks decides, before anything is painted. Crawlers stay put: each language keeps its URL.
+        const KEY = "pluton.lang";
+        const remember = (l) => { try { localStorage.setItem(KEY, l); } catch {} };
+        document.addEventListener("click", (e) => {
+          const a = e.target instanceof Element && e.target.closest("a[hreflang]");
+          if (a && locales.includes(a.hreflang)) remember(a.hreflang);
+        });
+        if (locale !== "en") {
+          remember(locale);
+        } else {
+          let pick = null;
+          try { pick = localStorage.getItem(KEY); } catch {}
+          if (!locales.includes(pick)) {
+            pick = null;
+            const fromHere = document.referrer && new URL(document.referrer).origin === location.origin;
+            if (!fromHere && !/bot|crawl|spider/i.test(navigator.userAgent)) {
+              for (const tag of navigator.languages ?? [navigator.language]) {
+                const l = tag.split("-")[0].toLowerCase();
+                if (locales.includes(l)) { pick = l; break; }
+              }
+            }
+          }
+          if (pick && pick !== "en") {
+            document.documentElement.style.visibility = "hidden";
+            location.replace(`/${pick}/${location.search}${location.hash}`);
+          }
+        }
+      </script>
+    )}
     <title>{t.meta.title}</title>
     <meta name="description" content={t.meta.description} />
     <meta name="color-scheme" content="light dark" />
@@ -25,7 +61,15 @@ const site = Astro.site ?? new URL("https://pluton.app");
     <link rel="alternate" hreflang="x-default" href={new URL("/" + path, site)} />
     <meta property="og:title" content={t.meta.title} />
     <meta property="og:description" content={t.meta.description} />
-    <meta property="og:image" content={new URL("/img/wall-day.webp", site)} />
+    <meta property="og:image" content={new URL("/img/share-card.png", site)} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Pluton" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={t.meta.title} />
+    <meta name="twitter:description" content={t.meta.description} />
+    <meta name="twitter:image" content={new URL("/img/share-card.png", site)} />
     <link rel="preload" as="image" href="/img/wall-day.webp" media="(prefers-color-scheme: light)" />
     <link rel="preload" as="image" href="/img/wall-night.webp" media="(prefers-color-scheme: dark)" />
     <script is:inline>document.documentElement.classList.add("js")</script>
