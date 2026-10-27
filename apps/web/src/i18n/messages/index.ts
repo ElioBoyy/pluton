@@ -11,8 +11,9 @@ import plays from "./plays.ts";
 import sequence from "./sequence.ts";
 import settings from "./settings.ts";
 import shell from "./shell.ts";
+import tour from "./tour.ts";
 import usage from "./usage.ts";
 import workspaces from "./workspaces.ts";
 
 /** One namespace per area of the app; a component asks for its own with useT("leads"). */
-export const catalogs = { account, activity, agent, brain, common, home, integrations, leads, onboarding, plays, sequence, settings, shell, usage, workspaces };
+export const catalogs = { account, activity, agent, brain, common, home, integrations, leads, onboarding, plays, sequence, settings, shell, tour, usage, workspaces };

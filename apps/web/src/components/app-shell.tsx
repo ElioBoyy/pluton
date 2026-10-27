@@ -8,6 +8,7 @@ import {
   Lightning,
   List,
   MagnifyingGlass,
+  Question,
   Sparkle,
   UsersThree,
   type Icon,
@@ -33,6 +34,7 @@ import { Toaster } from "./toast.tsx";
 import { Wallpaper } from "./wallpaper.tsx";
 import { WorkspaceMenu } from "../features/workspaces/workspace-menu.tsx";
 import { authStateQuery } from "../features/account/auth-state.ts";
+import { ProductTour, startTour } from "../features/tour/product-tour.tsx";
 
 /** Each link's name is the shell namespace's `nav.<key>` string. */
 const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads"; icon: Icon }> = [
@@ -104,6 +106,7 @@ export function AppShell() {
           </Link>
           <div className="flex items-center gap-1.5 px-2.5 pb-4">
             <WorkspaceMenu />
+            <HelpButton />
             <NotificationBell />
           </div>
 
@@ -115,6 +118,8 @@ export function AppShell() {
                   // The kit's sidebar item; the current page is tinted ultramarine.
                   className="gg-side-item min-h-8 gap-2.5 text-sm font-medium"
                   activeOptions={{ exact: to === "/plays" }}
+                  // What the guided tour lights up.
+                  data-tour={key}
                 >
                   <IconCmp size={16} />
                   <span className="flex-1">{t(`nav.${key}`)}</span>
@@ -194,10 +199,12 @@ export function AppShell() {
             <button
               onClick={() => setPaletteOpen(true)}
               aria-label={t("askPluton")}
+              data-tour="ask"
               className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-raised hover:text-ink"
             >
               <MagnifyingGlass size={18} />
             </button>
+            <HelpButton />
             <NotificationBell />
           </header>
 
@@ -228,6 +235,7 @@ export function AppShell() {
         <Toaster />
         <ContextMenuHost />
         <ConfirmHost />
+        <ProductTour />
       </div>
     </InspectorSlot.Provider>
   );
@@ -249,13 +257,31 @@ function ProfileButton() {
   );
 }
 
+/** Replays the guided tour, beside the notifications so it is always in reach. */
+function HelpButton() {
+  const t = useT("tour");
+  return (
+    <button
+      onClick={startTour}
+      data-tour="help"
+      aria-label={t("replay")}
+      title={t("replay")}
+      className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90"
+    >
+      <Question size={16} />
+    </button>
+  );
+}
+
 /** The first things to try; each step ticks itself once the workspace shows it happened, and the card leaves when all are done. */
 function GetStarted() {
   const t = useT("shell");
   const trpc = useTRPC();
   const checklist = useQuery({ ...trpc.workspace.checklist.queryOptions(), refetchInterval: 60_000 });
+  // Home lists the same steps, each explained; the card would only repeat them beside it.
+  const onHome = useRouterState({ select: (s) => s.location.pathname === "/home" });
   const steps = checklist.data ?? [];
-  if (!steps.length || steps.every((s) => s.done)) return null;
+  if (onHome || !steps.length || steps.every((s) => s.done)) return null;
   return (
     <div className="rounded-xl bg-raised p-3">
       <p className="mb-2 flex items-center text-xs font-semibold text-muted">
@@ -341,6 +367,7 @@ function AskBar({ label, hidden, onOpen }: { label: string; hidden: boolean; onO
     <button
       ref={ref}
       onClick={onOpen}
+      data-tour="ask"
       style={{ left: left ?? "calc(50% + 124px - 160px)" }}
       // While ⌘K is open it slides below the window's edge.
       aria-hidden={hidden || undefined}
