@@ -186,11 +186,12 @@ export function AppShell() {
 
           <div className="mt-auto flex flex-col gap-3 p-3">
             <GetStarted />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <ProfileButton />
-              <Link to="/workspace/settings" className="gg-side-item min-h-8 min-w-0 flex-1 gap-2.5 text-sm font-medium">
-                <Gear size={16} />
-                {tc("settings")}
+              {/* Three things share 216px: the gear never gives way, a long label (de, it) ends in an ellipsis. */}
+              <Link to="/workspace/settings" title={tc("settings")} className="gg-side-item min-h-8 min-w-0 flex-1 gap-1.5 px-2 text-sm font-medium">
+                <Gear size={16} className="shrink-0" />
+                <span className="truncate">{tc("settings")}</span>
               </Link>
               <AppearanceControl />
             </div>
