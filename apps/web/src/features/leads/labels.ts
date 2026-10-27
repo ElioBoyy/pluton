@@ -9,6 +9,7 @@ export const LEAD_TABS = [
   { key: "in_campaign" },
   { key: "contacted" },
   { key: "rejected" },
+  { key: "unreachable" },
 ] as const;
 export type LeadTabKey = (typeof LEAD_TABS)[number]["key"];
 
@@ -32,6 +33,7 @@ export const STATUS: Record<string, { readonly label: string; className: string 
   in_campaign: status("in_campaign", "bg-system-purple/15 text-system-purple"),
   contacted: status("contacted", "bg-system-pink/15 text-system-pink"),
   rejected: status("rejected", "bg-control text-muted"),
+  unreachable: status("unreachable", "bg-system-orange/15 text-[color-mix(in_srgb,var(--color-system-orange),black_30%)] dark:text-system-orange"),
 };
 
 const STAGES = ["qualified", "needs_review", "disqualified"] as const;
@@ -53,7 +55,7 @@ export type RejectReason = (typeof REJECT_REASONS)[number];
 export const reasonLabel = (reason: string) =>
   REJECT_REASONS.includes(reason as RejectReason) ? translate("leads", `reason.${reason as RejectReason}`) : reason;
 
-const EMAIL_SOURCES = ["hunter", "public_text", "pattern"] as const;
+const EMAIL_SOURCES = ["hunter", "public_text", "pattern", "company_inbox", "map_listing"] as const;
 export const emailSourceLabel = (source: string | null | undefined) =>
   EMAIL_SOURCES.includes(source as (typeof EMAIL_SOURCES)[number]) ? translate("leads", `emailSource.${source as (typeof EMAIL_SOURCES)[number]}`) : (source ?? "");
 

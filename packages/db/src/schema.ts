@@ -456,10 +456,14 @@ export const people = sqliteTable(
     location: text("location"),
     email: text("email"),
     emailConfidence: integer("email_confidence"),
-    /** Where the email came from: hunter, public_text (found in a public page) or pattern (unverified guess). */
+    /** Where the email came from: hunter, public_text (found in a public page), pattern (unverified guess) or company_inbox (the company's general inbox). */
     emailSource: text("email_source"),
     /** Last email lookup, found or not: the UI says "No email found" instead of offering the same paid search again. */
     emailCheckedAt: integer("email_checked_at", { mode: "timestamp_ms" }),
+    /** The business's phone, from its map listing (see findPlace): often the way to reach a small business. */
+    phone: text("phone"),
+    /** Last lookup of the business's map listing, found or not. */
+    placeCheckedAt: integer("place_checked_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -470,8 +474,10 @@ export const LEAD_STAGES = ["qualified", "needs_review", "disqualified"] as cons
 /**
  * Where a lead is in the founder's review. Every lead starts in to_review; the "New" tab shows the
  * to_review leads nobody opened yet (seen_at null). `new` is a legacy value, migrated to to_review.
+ * `unreachable`: a fit, but no way to contact them (no LinkedIn profile, no email). Not a rejection:
+ * it teaches the judge nothing, and the lead goes back to to_review once a profile or email turns up.
  */
-export const LEAD_STATUSES = ["new", "to_review", "approved", "in_campaign", "contacted", "rejected"] as const;
+export const LEAD_STATUSES = ["new", "to_review", "approved", "in_campaign", "contacted", "rejected", "unreachable"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const leads = sqliteTable(
@@ -552,6 +558,7 @@ export const LEAD_EVENT_KINDS = [
   "email_not_found",
   "linkedin_found",
   "linkedin_not_found",
+  "unreachable",
   "exported",
   "campaign_added",
   "campaign_removed",

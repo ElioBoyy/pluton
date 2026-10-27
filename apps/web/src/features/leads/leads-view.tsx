@@ -396,7 +396,7 @@ function Row({
   const menu = useLeadMenu({
     open: () => onOpen(),
     reject: () => setRejecting(true),
-    addToCampaign: l.sequenceStatus || l.status === "rejected" ? undefined : () => setAdding(true),
+    addToCampaign: l.sequenceStatus || l.status === "rejected" || l.status === "unreachable" ? undefined : () => setAdding(true),
     addNote: () => onOpen(true),
   });
 
@@ -700,7 +700,7 @@ function BulkFindEmails({ resolveIds, count }: { resolveIds: () => Promise<strin
   const lastRefresh = useRef(0);
 
   useChannel(running ? `job:${running}` : null, (event) => {
-    const p = event.payload as { done?: number; total?: number; found?: number; checked?: number; errors?: string[] };
+    const p = event.payload as { done?: number; total?: number; found?: number; unreachable?: number; checked?: number; errors?: string[] };
     if (event.type === "lead") {
       setProgress({ done: p.done ?? 0, total: p.total ?? 0 });
       if (Date.now() - lastRefresh.current > 1500) {
@@ -712,7 +712,8 @@ function BulkFindEmails({ resolveIds, count }: { resolveIds: () => Promise<strin
       setJobId(null);
       setProgress(null);
       void refresh();
-      toast(`${translate("leads", "emails.done", { count: p.found ?? 0, checked: p.checked ?? 0 })}${p.errors?.length ? ` · ${p.errors[0]}` : ""}`, { tone: p.errors?.length ? "error" : undefined });
+      const setAside = p.unreachable ? ` · ${translate("leads", "emails.unreachable", { count: p.unreachable })}` : "";
+      toast(`${translate("leads", "emails.done", { count: p.found ?? 0, checked: p.checked ?? 0 })}${setAside}${p.errors?.length ? ` · ${p.errors[0]}` : ""}`, { tone: p.errors?.length ? "error" : undefined });
     }
   });
 

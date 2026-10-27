@@ -106,6 +106,7 @@ export function providerCatalog(): ProviderInfo[] {
 }
 export * from "./hunter.ts";
 export * from "./email.ts";
+export * from "./places.ts";
 export * from "./unipile.ts";
 export * from "./mailer.ts";
 export * from "./imap.ts";

@@ -464,6 +464,25 @@ export async function estimatePlay(db: Db, workspaceId: string, pipeline: Pipeli
 
 export async function setPersonLinkedin(db: Db, personId: string, linkedinUrl: string) {
   await db.update(people).set({ linkedinUrl }).where(eq(people.id, personId));
+  await reviveUnreachable(db, personId);
+}
+
+/**
+ * Records a map listing lookup (see findPlace), found or not: what it gave fills the gaps, never
+ * replaces what we had. A phone is a way to reach them, so an unreachable lead goes back to review.
+ */
+export async function setPersonPlace(db: Db, personId: string, found: { website?: string | null; phone?: string | null }) {
+  const [person] = await db.select({ companyWebsite: people.companyWebsite, phone: people.phone }).from(people).where(eq(people.id, personId));
+  if (!person) return;
+  await db
+    .update(people)
+    .set({
+      placeCheckedAt: new Date(),
+      ...(!person.companyWebsite && found.website ? { companyWebsite: found.website } : {}),
+      ...(!person.phone && found.phone ? { phone: found.phone } : {}),
+    })
+    .where(eq(people.id, personId));
+  if (!person.phone && found.phone) await reviveUnreachable(db, personId);
 }
 
 /** Records a lookup, found or not; a later miss never erases an address found before. */
@@ -472,6 +491,12 @@ export async function setPersonEmail(db: Db, personId: string, email: string | n
     .update(people)
     .set(email ? { email, emailConfidence: confidence, emailSource: source, emailCheckedAt: new Date() } : { emailCheckedAt: new Date() })
     .where(eq(people.id, personId));
+  if (email) await reviveUnreachable(db, personId);
+}
+
+/** A way to reach them turned up: their unreachable leads go back to review. */
+async function reviveUnreachable(db: Db, personId: string) {
+  await db.update(leads).set({ status: "to_review" }).where(and(eq(leads.personId, personId), eq(leads.status, "unreachable")));
 }
 
 export async function getLeadWithPerson(db: Db, leadId: string) {

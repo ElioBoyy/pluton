@@ -27,7 +27,7 @@ export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: 
   if (!d)
     return (
       <div className="flex px-1">
-        <Button variant="ghost" disabled={status === "rejected"} onClick={() => setAdding(true)}>
+        <Button variant="ghost" disabled={status === "rejected" || status === "unreachable"} onClick={() => setAdding(true)}>
           <PaperPlaneTilt size={13} /> {t("block.addToCampaign")}
         </Button>
         {adding && <AddToCampaignModal leadIds={[leadId]} onClose={() => setAdding(false)} />}

@@ -9,7 +9,7 @@
     "./agent-tools": "./src/agent-tools.ts"
   },
   "scripts": {
-    "dev": "tsx watch --env-file=../../.env src/main.ts",
+    "dev": "node --watch --import tsx --env-file=../../.env src/main.ts",
     "start": "tsx --env-file-if-exists=../../.env src/main.ts",
     "typecheck": "tsc"
   },

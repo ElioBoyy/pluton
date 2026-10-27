@@ -292,10 +292,14 @@ export const people = pgTable(
     location: text("location"),
     email: text("email"),
     emailConfidence: integer("email_confidence"),
-    /** Where the email came from: hunter, public_text (found in a public page) or pattern (unverified guess). */
+    /** Where the email came from: hunter, public_text (found in a public page), pattern (unverified guess) or company_inbox (the company's general inbox). */
     emailSource: text("email_source"),
     /** Last email lookup, found or not: the UI says "No email found" instead of offering the same paid search again. */
     emailCheckedAt: timestamp("email_checked_at", { mode: "date", precision: 3, withTimezone: true }),
+    /** The business's phone, from its map listing (see findPlace): often the way to reach a small business. */
+    phone: text("phone"),
+    /** Last lookup of the business's map listing, found or not. */
+    placeCheckedAt: timestamp("place_checked_at", { mode: "date", precision: 3, withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

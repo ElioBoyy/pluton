@@ -87,7 +87,7 @@ export function seniorityFromTitle(title?: string | null) {
 
 // ── Listing ──────────────────────────────────────────────────────────────────
 
-export const LEAD_TABS = ["all", "new", "to_review", "approved", "in_campaign", "contacted", "rejected"] as const;
+export const LEAD_TABS = ["all", "new", "to_review", "approved", "in_campaign", "contacted", "rejected", "unreachable"] as const;
 export type LeadTab = (typeof LEAD_TABS)[number];
 /** Every column the table sorts by; `newest` is the Found column. */
 export const LEAD_SORTS = ["newest", "fit", "warmness", "name", "position", "company", "location", "status", "why", "email", "play"] as const;
@@ -228,13 +228,31 @@ export async function leadCounts(db: Db, f: Omit<LeadFilter, "tab">) {
     if (r.status in counts) counts[r.status as LeadTab] += r.n;
     if (r.status === "to_review") counts.new += Number(r.unseen);
   }
-  return { counts, reviewed: counts.all - counts.to_review, total: counts.all };
+  // Unreachable leads wait for a way to contact them, not for a verdict: they count in neither.
+  return { counts, reviewed: counts.all - counts.to_review - counts.unreachable, total: counts.all - counts.unreachable };
 }
 
 // ── Detail & timeline ────────────────────────────────────────────────────────
 
 export async function addLeadEvent(db: Db, leadId: string, kind: LeadEvent["kind"], payload: Record<string, unknown> = {}) {
   await db.insert(leadEvents).values({ leadId, kind, payload });
+}
+
+/**
+ * After a lookup that found nothing: a lead still to review with no LinkedIn profile, no email and no
+ * phone is set aside until one turns up (see setPersonEmail / setPersonLinkedin / setPersonPlace). A
+ * lead already approved keeps the founder's verdict. Returns whether it was set aside.
+ */
+export async function markUnreachable(db: Db, leadId: string) {
+  const [row] = await db
+    .select({ status: leads.status, linkedinUrl: people.linkedinUrl, email: people.email, phone: people.phone })
+    .from(leads)
+    .innerJoin(people, eq(people.id, leads.personId))
+    .where(eq(leads.id, leadId));
+  if (!row || row.status !== "to_review" || row.linkedinUrl || row.email || row.phone) return false;
+  await db.update(leads).set({ status: "unreachable" }).where(eq(leads.id, leadId));
+  await addLeadEvent(db, leadId, "unreachable");
+  return true;
 }
 
 export async function getLeadDetail(db: Db, leadId: string) {
