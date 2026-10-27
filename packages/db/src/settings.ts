@@ -56,7 +56,7 @@ export const SETTING_DEFS: SettingDef[] = [
   },
   { key: "apify_token", label: "Apify token", description: "LinkedIn posts, engagers and profile search.", secret: true, group: "data" },
   { key: "theirstack_api_key", label: "TheirStack API key", description: "Market-wide job posts and tech stacks.", secret: true, group: "data" },
-  { key: "hunter_api_key", label: "Hunter API key", description: "Finds work emails (free plan: 25 searches/month).", secret: true, group: "data" },
+  { key: "hunter_api_key", label: "Hunter API key", description: "Finds work emails (free plan: 50 searches/month).", secret: true, group: "data" },
   {
     key: "unipile_api_key",
     label: "Unipile API key",
@@ -192,40 +192,53 @@ export function watchSettings(db: Db, intervalMs = 3000) {
  * Hosted: keys Pluton pays for, read from PLATFORM_<SETTING KEY> in the environment (e.g.
  * PLATFORM_ANTHROPIC_API_KEY). A workspace whose plan includes one uses it until it saves its own,
  * and what it spends through it counts against the plan's monthly quota. `source` is the cost
- * ledger's name for what the key pays for. Unipile is left out: one shared Unipile account would
- * show every workspace's LinkedIn accounts to all of them.
+ * ledger's name for what the key pays for. Unipile is the LinkedIn option, paid per account: the
+ * server ties each connected account to its workspace, which sees only its own.
  */
 export const PLATFORM_KEYS: Record<string, { source: string; plans: SubscriptionPlan[] }> = {
   anthropic_api_key: { source: "claude", plans: ["all"] },
   apify_token: { source: "apify", plans: ["byo", "all"] },
   theirstack_api_key: { source: "theirstack", plans: ["byo", "all"] },
   hunter_api_key: { source: "hunter", plans: ["byo", "all"] },
+  unipile_api_key: { source: "unipile", plans: ["byo", "all"] },
+  unipile_dsn: { source: "unipile", plans: ["byo", "all"] },
 };
 
 const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`]?.trim() || undefined;
 
 /**
  * Credits are what the plans count in: 1 $ of Pluton's own spend at API prices is 100 credits.
- * Each plan includes a round number of them a month, sized for using Pluton about three times a
- * week (PLATFORM_QUOTA_CREDITS_<PLAN> changes it); heavier use buys packs, which cost 2.5× the API
- * price, turned into euros at a fixed rate (PLUTON_USD_PER_EUR) rather than the day's.
+ * Each plan includes a round number of them a month (PLATFORM_QUOTA_CREDITS_<PLAN> changes it);
+ * heavier use buys packs at fixed prices. Customers see credits only: the dollar value and the
+ * margin stay on this side.
  */
 export const CREDITS_PER_USD = 100;
-export const INCLUDED_CREDITS: Record<SubscriptionPlan, number> = { byo: 1300, all: 3000 };
+export const INCLUDED_CREDITS: Record<SubscriptionPlan, number> = { byo: 600, all: 2000 };
 const envNumber = (name: string, fallback: number) => {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;
 };
+/** The fixed rate Pluton turns euro prices into dollars at, e.g. a Hunter plan's price per credit. */
 export const usdPerEur = () => envNumber("PLUTON_USD_PER_EUR", 1.12);
-const TOP_UP_MARKUP = 2.5;
-/** The packs a plan sells, in credits. */
-export const TOP_UP_PACKS = [1000, 2500, 5000] as const;
+/** The packs a plan sells, in credits, and their price in euro cents (about 2.5× their API cost). */
+const TOP_UP_PRICES = { 1000: 2200, 2500: 5500, 5000: 10900 } as const;
+export const TOP_UP_PACKS = [1000, 2500, 5000] as const satisfies ReadonlyArray<keyof typeof TOP_UP_PRICES>;
 
 const quotaMicroUsd = (plan: SubscriptionPlan) =>
   Math.round((envNumber(`PLATFORM_QUOTA_CREDITS_${plan.toUpperCase()}`, INCLUDED_CREDITS[plan]) / CREDITS_PER_USD) * 1_000_000);
 
-/** What a pack of `credits` costs, in euro cents: its API price, marked up, at the fixed rate. */
-export const topUpPriceCents = (credits: number) => Math.ceil(((credits / CREDITS_PER_USD) * TOP_UP_MARKUP * 100) / usdPerEur());
+/**
+ * Most a plan's month may draw from each data source on Pluton's own fixed-price accounts (Hunter
+ * and TheirStack plans are shared by every customer), in credits. Packs raise them in proportion:
+ * 1,000 credits on top of All included's 2,000 is half as much again of each.
+ */
+export const SOURCE_CAPS: Record<string, Record<SubscriptionPlan, number>> = {
+  hunter: { byo: 400, all: 550 },
+  theirstack: { byo: 200, all: 300 },
+};
+
+/** What a pack of `credits` costs, in euro cents. */
+export const topUpPriceCents = (credits: (typeof TOP_UP_PACKS)[number]) => TOP_UP_PRICES[credits];
 
 /**
  * One paying account's allowance this billing period, shared by all its workspaces (a second
@@ -239,6 +252,8 @@ type WorkspacePlan = {
   topUpMicroUsd: number;
   quotaMicroUsd: number;
   spentMicroUsd: number;
+  /** Spent this period per capped source ("hunter", "theirstack"). */
+  spentBySource: Record<string, number>;
 };
 
 /** Paying workspaces only: one whose account has no active subscription gets no platform key. */
@@ -253,9 +268,16 @@ const monthsBefore = (date: Date, months: number) => {
   return d;
 };
 
-/** The subscription's current month, from Stripe's period end; the calendar month when it's unknown or past. */
+/**
+ * The subscription's current month, from Stripe's period end; the calendar month when it's unknown
+ * or past. A yearly plan gets its credits month by month: the month of the year it is in.
+ */
 function billingPeriod(periodEnd: Date | null, now = new Date()) {
-  if (periodEnd && periodEnd > now) return { start: monthsBefore(periodEnd, 1), end: periodEnd };
+  if (periodEnd && periodEnd > now) {
+    let end = periodEnd;
+    while (monthsBefore(end, 1) > now) end = monthsBefore(end, 1);
+    return { start: monthsBefore(end, 1), end };
+  }
   return { start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)), end: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)) };
 }
 
@@ -305,11 +327,12 @@ async function refreshPlans(db: Db) {
     [...accounts].map(async ([userId, a]) => {
       const period = billingPeriod(a.periodEnd);
       const includedMicroUsd = quotaMicroUsd(a.plan);
-      const [[row], topUpMicroUsd] = await Promise.all([
+      const [bySource, topUpMicroUsd] = await Promise.all([
         db
-          .select({ n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
+          .select({ source: creditEntries.source, n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
           .from(creditEntries)
-          .where(and(inArray(creditEntries.workspaceId, a.workspaceIds), eq(creditEntries.platform, true), gte(creditEntries.createdAt, period.start))),
+          .where(and(inArray(creditEntries.workspaceId, a.workspaceIds), eq(creditEntries.platform, true), gte(creditEntries.createdAt, period.start)))
+          .groupBy(creditEntries.source),
         topUpLeft(db, userId, a.workspaceIds, period, includedMicroUsd),
       ]);
       // One object per account: what one workspace spends is gone for the others too.
@@ -320,7 +343,8 @@ async function refreshPlans(db: Db) {
         includedMicroUsd,
         topUpMicroUsd: Math.round(topUpMicroUsd),
         quotaMicroUsd: Math.round(includedMicroUsd + topUpMicroUsd),
-        spentMicroUsd: Number(row?.n ?? 0),
+        spentMicroUsd: bySource.reduce((sum, r) => sum + Number(r.n), 0),
+        spentBySource: Object.fromEntries(bySource.map((r) => [r.source, Number(r.n)])),
       };
       for (const id of a.workspaceIds) next.set(id, shared);
     }),
@@ -336,8 +360,18 @@ export function forgetPlans() {
 // The ledger total is up to 30 seconds old: what this process spends counts at once.
 onCostRecorded((entry) => {
   const plan = entry.platform && entry.workspaceId ? plans.get(entry.workspaceId) : undefined;
-  if (plan) plan.spentMicroUsd += entry.costMicroUsd;
+  if (!plan) return;
+  plan.spentMicroUsd += entry.costMicroUsd;
+  plan.spentBySource[entry.source] = (plan.spentBySource[entry.source] ?? 0) + entry.costMicroUsd;
 });
+
+/** A source's cap this period, in micro-USD: the plan's, raised by the packs in proportion. */
+function sourceCapMicroUsd(plan: WorkspacePlan, source: string) {
+  const credits = SOURCE_CAPS[source]?.[plan.plan];
+  if (credits === undefined) return undefined;
+  const base = (credits / CREDITS_PER_USD) * 1_000_000;
+  return plan.includedMicroUsd > 0 ? Math.round((base * plan.quotaMicroUsd) / plan.includedMicroUsd) : base;
+}
 
 /** Pluton's own key for `key`, when the workspace's plan includes it. */
 function platformValue(key: string, workspaceId: string | undefined) {
@@ -367,6 +401,10 @@ export function platformQuota(workspaceId?: string | null) {
     quotaMicroUsd: plan.quotaMicroUsd,
     spentMicroUsd: plan.spentMicroUsd,
     leftMicroUsd: Math.max(plan.quotaMicroUsd - plan.spentMicroUsd, 0),
+    /** Each capped source: spent and cap this period, in micro-USD. */
+    sources: Object.fromEntries(
+      Object.keys(SOURCE_CAPS).map((source) => [source, { spentMicroUsd: plan.spentBySource[source] ?? 0, capMicroUsd: sourceCapMicroUsd(plan, source) ?? 0 }]),
+    ),
   };
 }
 
@@ -385,6 +423,21 @@ export function assertPlatformQuota(key: string, workspaceId?: string) {
   if (resolve(key, ws).source !== "platform") return;
   const quota = platformQuota(ws);
   if (quota && quota.leftMicroUsd <= 0) throw new PlatformQuotaError(quota.periodEnd);
+  const plan = ws ? plans.get(ws) : undefined;
+  const source = PLATFORM_KEYS[key]?.source;
+  const cap = plan && source ? sourceCapMicroUsd(plan, source) : undefined;
+  if (plan && source && cap !== undefined && (plan.spentBySource[source] ?? 0) >= cap) throw new SourceCapError(source, plan.periodEnd);
+}
+
+/** A capped source (Hunter, TheirStack) is used up for this period, though credits may be left. */
+export class SourceCapError extends PlatformQuotaError {
+  constructor(
+    readonly source: string,
+    until: Date,
+  ) {
+    super(until);
+    this.message = t("error.sourceCap", { source: source === "hunter" ? "Hunter" : "TheirStack", until: until.toISOString().slice(0, 10) });
+  }
 }
 
 export type SettingSource = "app" | "platform" | "default" | "unset";

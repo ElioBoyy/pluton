@@ -165,7 +165,7 @@ Three actions show facts before you approve. The agent gets the same preview, so
 **Run a search** (plays_run):
 
 - "About $X in paid sources": an estimate equal to the average billed cost per lead of this Play's past searches (or of the whole workspace if the Play has none) times the Play's target. "No cost history yet" when nothing has been billed before.
-- "capped at $X": the most this search may spend: the Play's own cap if it has one, otherwise the per-search cap from Settings → Budget ($2 by default).
+- "capped at $X": the most this search may spend: the Play's own cap if it has one, otherwise the per-search cap from Settings → Budget ($5 by default).
 - "$X left this period": what the budget has left, when a monthly limit is set.
 - Claude through your subscription is not charged and not counted.
 

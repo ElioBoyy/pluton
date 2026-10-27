@@ -30,6 +30,13 @@ export const authStateQuery = queryOptions({
 });
 
 /** POSTs JSON to a billing or auth route and returns its answer, throwing on an error status. */
+export async function get<T>(path: string): Promise<T> {
+  const res = await fetch(path, { credentials: "same-origin" });
+  const json = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(json.error ?? String(res.status));
+  return json;
+}
+
 export async function post<T>(path: string, body: unknown = {}): Promise<T> {
   const res = await fetch(path, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const json = (await res.json().catch(() => ({}))) as T & { error?: string };

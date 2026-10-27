@@ -9,6 +9,9 @@ import { toast } from "../components/toast.tsx";
 import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
+import { post } from "../features/account/auth-state.ts";
+import { euros, PRICES, type BillingSummary } from "../lib/pricing.ts";
+import { billingQuery } from "./budget.tsx";
 
 type Sender = inferRouterOutputs<AppRouter>["linkedin"]["senders"]["senders"][number];
 
@@ -47,6 +50,25 @@ export function LinkedinPage() {
     }),
   );
   const senders = list.data?.senders ?? [];
+  const platform = Boolean(list.data?.platform);
+  const billing = useQuery({ ...billingQuery, enabled: platform });
+  const used = senders.filter((s) => s.provider === "unipile").length;
+  const seats = billing.data?.linkedinSeats ?? 0;
+  const interval = billing.data?.interval ?? "month";
+  // On Pluton's Unipile account each LinkedIn account is an option: one more is bought, pro rata, before connecting.
+  const addSeat = useMutation({
+    mutationFn: () => post<BillingSummary>("/api/billing/linkedin", { seats: seats + 1 }),
+    onSuccess: (next) => {
+      queryClient.setQueryData(billingQuery.queryKey, next);
+      connect.mutate({});
+    },
+    onError: () => toast(translate("settings", "linkedin.seatFailed"), { tone: "error" }),
+  });
+  const price = t(interval === "year" ? "linkedin.pricePerYear" : "linkedin.pricePerMonth", { price: euros(PRICES.linkedin[interval]) });
+  const startConnect = () => {
+    if (!platform || used < seats) return connect.mutate({});
+    if (window.confirm(t("linkedin.confirmSeat", { price }))) addSeat.mutate();
+  };
 
   return (
     <>
@@ -84,12 +106,15 @@ export function LinkedinPage() {
                 })}
               />
             ) : (
-              <Row label={t("linkedin.unipileExplainer")}>
+              <Row
+                label={t(platform ? "linkedin.platformExplainer" : "linkedin.unipileExplainer")}
+                description={platform ? t("linkedin.seats", { used, seats, price }) : undefined}
+              >
                 <div className="flex shrink-0 gap-2">
                   <Button variant="ghost" disabled={sync.isPending} onClick={() => sync.mutate()}>
                     {sync.isPending ? <CircleNotch size={13} className="animate-spin" /> : <ArrowsClockwise size={13} />} {t("linkedin.refresh")}
                   </Button>
-                  <Button disabled={connect.isPending} onClick={() => connect.mutate({})}>
+                  <Button disabled={connect.isPending || addSeat.isPending} onClick={startConnect}>
                     <LinkedinLogo size={14} weight="fill" /> {t("linkedin.connect")}
                   </Button>
                 </div>

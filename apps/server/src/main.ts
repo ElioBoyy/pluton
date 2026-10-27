@@ -12,6 +12,7 @@ import { handleMcp } from "./mcp.ts";
 import { ensureMcpToken, MCP_URL } from "./mcp-router.ts";
 import { currentUser, HOSTED, isPaid, mountAuth } from "./auth.ts";
 import { mountBilling } from "./billing.ts";
+import { mountUnipileHooks } from "./unipile-hooks.ts";
 import { mountPassword } from "./password.ts";
 
 const db = createDb();
@@ -63,6 +64,7 @@ app.get("/api/workspaces/:id/logo", async (c) => {
 mountAuth(app, db);
 mountPassword(app, db);
 mountBilling(app, db);
+mountUnipileHooks(app, db);
 // Hosted: the API answers only people signed in who have paid; self-hosted it answers this machine.
 app.use("/rpc/*", async (c, next) => {
   if (!HOSTED) return next();

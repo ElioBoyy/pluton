@@ -104,7 +104,8 @@ const fr: Record<LegalDocId, LegalDoc> = {
       {
         heading: "6. Services tiers",
         body: [
-          "Le Service peut se connecter, à la demande du Client, à des services tiers : LinkedIn (via Unipile), sa messagerie (SMTP et IMAP), Slack, HubSpot, Attio, Pipedrive, des fournisseurs de données (Hunter, Apify, TheirStack) et, pour l'offre « Votre propre IA », son abonnement Claude ou Codex ou ses clés d'API.",
+          "Le Service peut se connecter, à la demande du Client, à des services tiers : LinkedIn, sa messagerie (SMTP et IMAP), Slack, HubSpot, Attio, Pipedrive, des fournisseurs de données (Hunter, Apify, TheirStack) et, pour l'offre « Votre propre IA », sa clé d'API Anthropic ou OpenAI.",
+          "Sur le Service, LinkedIn est connecté via Unipile, avec l'option Compte LinkedIn d'envoi fournie par l'Éditeur. Une installation auto-hébergée de Pluton, que les présentes CGU ne couvrent pas, utilise le compte Unipile de son utilisateur.",
           "Ces services restent soumis à leurs propres conditions. L'Éditeur n'est pas responsable de leur disponibilité, de leurs tarifs ni des restrictions qu'ils appliquent au compte du Client, par exemple une limitation de son compte LinkedIn.",
         ],
       },
@@ -178,86 +179,105 @@ const fr: Record<LegalDocId, LegalDoc> = {
         ],
       },
       {
-        heading: "2. Offres",
+        heading: "2. Offres et options",
         body: [
           {
             list: [
-              "« Votre propre IA » : 39,99 € par mois. Le Client fournit sa propre clé d'API Anthropic, dont le coût reste à sa charge. Les sources de données fournies par Pluton sont incluses jusqu'à 1 300 crédits par mois, dans les conditions décrites ci-dessous pour l'offre « Tout compris ».",
-              "« Tout compris » : 59,99 € par mois. L'usage de Claude et des sources de données fournies par Pluton est inclus jusqu'à 3 000 crédits par mois, un crédit correspondant à 0,01 $ d'usage au prix public des fournisseurs. Les crédits du mois non utilisés ne sont pas reportés. Une fois ce quota épuisé, le Service s'interrompt jusqu'au mois suivant, sauf si le Client achète des crédits supplémentaires depuis l'application, au prix affiché au moment de l'achat. Les crédits achetés restent valables d'un mois sur l'autre jusqu'à leur utilisation.",
+              "« Votre propre IA » : 24,99 € par mois, ou 284,90 € par an. Le Client fournit sa propre clé d'API Anthropic ou OpenAI ; ce fournisseur lui facture directement l'intelligence artificielle. L'offre inclut 600 crédits par mois.",
+              "« Tout compris » : 59 € par mois, ou 672,60 € par an. L'intelligence artificielle est incluse. L'offre inclut 2 000 crédits par mois.",
             ],
           },
-          "Sauf mention contraire, les services tiers que le Client connecte avec ses propres clés (fournisseurs de données, LinkedIn via Unipile, CRM) sont payés par lui directement à ces services.",
+          "Les options suivantes peuvent être ajoutées à l'une ou l'autre offre, et retirées, à tout moment :",
+          {
+            list: [
+              "Compte LinkedIn d'envoi : 15 € par mois et par compte, ou 171 € par an et par compte sur une offre annuelle. L'Éditeur fournit la connexion à LinkedIn, via Unipile.",
+              "Packs de crédits, achetés à l'unité depuis l'application : 1 000 crédits pour 22 €, 2 500 crédits pour 55 €, 5 000 crédits pour 109 €.",
+            ],
+          },
+          "Sauf mention contraire, les services tiers que le Client connecte avec ses propres clés (fournisseurs de données, CRM) sont payés par lui directement à ces services.",
         ],
       },
       {
-        heading: "3. Prix",
+        heading: "3. Crédits",
+        body: [
+          "Le Service décompte son usage en crédits. Les crédits mesurent le travail que le Service effectue pour le Client, par exemple rechercher des entreprises, trouver et noter des personnes, rédiger des messages ou trouver des adresses email. Sur l'offre « Votre propre IA », les crédits couvrent les sources de données fournies par l'Éditeur ; l'intelligence artificielle, facturée par le fournisseur du Client, n'en consomme pas.",
+          "Le nombre de crédits consommés par une action dépend du travail qu'elle demande. Il est affiché dans l'application avant le lancement d'une recherche, sous forme d'estimation, et après, sous forme de montant consommé, avec les crédits restants. L'Éditeur peut modifier ces montants ; toute modification est notifiée au Client au moins 30 jours à l'avance et s'applique à partir du renouvellement suivant, comme un changement de prix.",
+          "Les crédits de l'offre sont attribués chaque mois, y compris sur une offre annuelle. Les crédits du mois non utilisés ne sont pas reportés. Les crédits des packs restent valables d'un mois sur l'autre jusqu'à leur utilisation.",
+          "Une fois les crédits du mois et ceux des packs épuisés, le Service s'interrompt jusqu'au mois suivant, sauf si le Client achète un pack de crédits.",
+        ],
+      },
+      {
+        heading: "4. Prix",
         body: [
           "Les prix sont indiqués en euros. TVA non applicable, article 293 B du Code général des impôts : les montants affichés sont les montants payés.",
           "L'Éditeur peut modifier ses prix. Le nouveau prix est notifié au Client au moins 30 jours à l'avance et s'applique à partir du renouvellement suivant ; le Client qui le refuse peut résilier avant cette date.",
         ],
       },
       {
-        heading: "4. Souscription",
+        heading: "5. Souscription",
         body: [
-          "Le Client se connecte avec Google ou Apple, choisit son offre puis paie sur la page de paiement sécurisée de Stripe. Le contrat est conclu dès la confirmation du paiement, et l'accès au Service est ouvert immédiatement.",
+          "Le Client se connecte avec Google ou Apple, choisit son offre et sa périodicité (mensuelle ou annuelle) puis paie sur la page de paiement sécurisée de Stripe. Le contrat est conclu dès la confirmation du paiement, et l'accès au Service est ouvert immédiatement.",
         ],
       },
       {
-        heading: "5. Paiement",
+        heading: "6. Paiement",
         body: [
-          "L'abonnement se paie par carte bancaire, d'avance, chaque mois, par l'intermédiaire de Stripe. Le Client autorise ces prélèvements récurrents jusqu'à la résiliation. Les crédits supplémentaires se paient d'avance, par carte, au moment de l'achat.",
+          "L'abonnement et ses options se paient par carte bancaire, d'avance, par l'intermédiaire de Stripe : chaque mois pour une offre mensuelle, chaque année pour une offre annuelle. Le Client autorise ces prélèvements récurrents jusqu'à la résiliation. Les packs de crédits se paient d'avance, par carte, au moment de l'achat.",
+          "Une option ajoutée en cours de période est facturée au prorata des jours restants sur cette période, puis renouvelée avec l'offre à son prix plein.",
           "Les factures sont disponibles depuis l'application, dans Réglages → Budget → Gérer l'abonnement.",
           "En cas d'échec de paiement, Stripe présente de nouveau le paiement. Si l'échéance reste impayée, l'accès au Service est suspendu jusqu'à régularisation. Conformément à l'article L441-10 du Code de commerce, tout retard de paiement entraîne des pénalités égales à trois fois le taux d'intérêt légal et une indemnité forfaitaire de 40 € pour frais de recouvrement.",
         ],
       },
       {
-        heading: "6. Durée et résiliation",
+        heading: "7. Durée, changements et résiliation",
         body: [
-          "L'abonnement est conclu pour un mois et se renouvelle automatiquement chaque mois.",
-          "Le Client peut résilier à tout moment depuis Réglages → Budget → Gérer l'abonnement. La résiliation prend effet à la fin de la période en cours, déjà payée ; aucun remboursement au prorata n'est dû.",
-          "Le Client peut changer d'offre de la même façon ; le changement prend effet dans les conditions affichées au moment de le confirmer.",
+          "L'abonnement mensuel est conclu pour un mois et se renouvelle automatiquement chaque mois. L'abonnement annuel est un engagement d'un an et se renouvelle automatiquement chaque année.",
+          "Le Client peut résilier à tout moment depuis Réglages → Budget → Gérer l'abonnement. La résiliation arrête le renouvellement et prend effet à la fin de la période en cours, déjà payée, pendant laquelle le Service reste accessible. Aucun remboursement au prorata n'est dû, y compris pour les mois restants d'un abonnement annuel.",
+          "Le Client peut, de la même façon et à tout moment, passer à une offre supérieure ou d'une facturation mensuelle à annuelle ; la différence de prix est facturée au prorata des jours restants sur la période en cours.",
+          "Un abonnement annuel ne peut pas passer en facturation mensuelle avant son renouvellement : le changement prend effet au renouvellement. Le passage à une offre inférieure pendant un abonnement annuel ne donne lieu à aucun remboursement ni avoir.",
+          "Un compte LinkedIn d'envoi peut être retiré à tout moment. Le retrait prend effet au renouvellement suivant, sans remboursement de la période en cours.",
           "En cas de manquement grave de l'une des parties, l'autre peut résilier après une mise en demeure restée sans effet pendant 15 jours.",
         ],
       },
       {
-        heading: "7. Absence de droit de rétractation",
+        heading: "8. Absence de droit de rétractation",
         body: [
           "Le Service étant réservé aux professionnels, le droit de rétractation prévu par le Code de la consommation ne s'applique pas.",
         ],
       },
       {
-        heading: "8. Récupération et suppression des données",
+        heading: "9. Récupération et suppression des données",
         body: [
           "Pendant l'abonnement, le Client peut exporter ses leads (CSV ou vers son CRM). Après la fin de l'abonnement, ses Contenus Client restent conservés 30 jours, pendant lesquels il peut se réabonner pour les retrouver, puis sont supprimés, à l'exception des données que l'Éditeur doit conserver en vertu de la loi (facturation).",
         ],
       },
       {
-        heading: "9. Garanties",
+        heading: "10. Garanties",
         body: [
           "L'Éditeur s'engage à fournir le Service avec soin, dans le cadre d'une obligation de moyens. Il ne garantit ni un nombre de leads, ni des réponses, ni un résultat commercial, ni l'exactitude des contenus produits par l'intelligence artificielle ou des données issues de sources tierces.",
         ],
       },
       {
-        heading: "10. Responsabilité",
+        heading: "11. Responsabilité",
         body: [
           "L'Éditeur n'est responsable que des dommages directs et prouvés qui résultent d'un manquement à ses obligations. Il n'est pas responsable des dommages indirects, tels que la perte de chiffre d'affaires, de clientèle ou d'opportunités, ni des conséquences de l'usage que le Client fait des messages, des leads ou des services tiers.",
           "Sauf faute lourde ou dolosive, la responsabilité totale de l'Éditeur est limitée aux sommes payées par le Client au cours des 12 mois précédant le fait générateur.",
         ],
       },
       {
-        heading: "11. Force majeure",
+        heading: "12. Force majeure",
         body: [
           "Aucune partie n'est responsable d'un manquement causé par un cas de force majeure au sens de l'article 1218 du Code civil, y compris une panne générale d'un hébergeur ou d'un fournisseur essentiel.",
         ],
       },
       {
-        heading: "12. Données personnelles",
+        heading: "13. Données personnelles",
         body: [
           "Les traitements de données personnelles sont décrits dans la politique de confidentialité. Les engagements de l'Éditeur en tant que sous-traitant figurent à l'article 8 des CGU.",
         ],
       },
       {
-        heading: "13. Droit applicable et litiges",
+        heading: "14. Droit applicable et litiges",
         body: [
           "Les présentes CGV sont soumises au droit français. En cas de litige, les parties recherchent d'abord une solution amiable pendant 30 jours à compter de la réclamation écrite de l'une d'elles. À défaut, le litige est porté devant les juridictions françaises compétentes.",
         ],
@@ -326,16 +346,18 @@ const fr: Record<LegalDocId, LegalDoc> = {
               "Hetzner Online GmbH (Allemagne) : hébergement du site, de l'application et de la base de données ;",
               "Stripe Payments Europe, Ltd. (Irlande) : paiement et facturation ;",
               "Google et Apple : connexion, si vous choisissez ce moyen de vous connecter ;",
-              "Anthropic (États-Unis) : l'intelligence artificielle Claude, y compris sa recherche web, pour l'offre « Tout compris ». Avec l'offre « Votre propre IA », ce traitement passe par votre propre compte.",
+              "Anthropic (États-Unis) : l'intelligence artificielle Claude, y compris sa recherche web, pour l'offre « Tout compris ». Avec l'offre « Votre propre IA » et une clé Anthropic, ce traitement passe par votre propre compte.",
+              "OpenAI (États-Unis) : l'intelligence artificielle, si vous apportez une clé d'API OpenAI avec l'offre « Votre propre IA » ; ce traitement passe par votre propre compte.",
+              "Unipile ([À compléter : pays]) : la connexion à LinkedIn, si vous ajoutez un compte LinkedIn d'envoi.",
             ],
           },
-          "Les services que vous connectez vous-même (Unipile pour LinkedIn, votre messagerie, Hunter, Apify, TheirStack, Slack, HubSpot, Attio, Pipedrive) ne reçoivent que les données nécessaires à l'action que vous lancez, selon leurs propres conditions.",
+          "Les services que vous connectez vous-même (votre messagerie, Hunter, Apify, TheirStack, Slack, HubSpot, Attio, Pipedrive) ne reçoivent que les données nécessaires à l'action que vous lancez, selon leurs propres conditions.",
         ],
       },
       {
         heading: "6. Transferts hors de l'Union européenne",
         body: [
-          "Vos données sont hébergées dans l'Union européenne. Certains prestataires (Anthropic, et le cas échéant Stripe, Google ou Apple) peuvent les traiter aux États-Unis. Ces transferts sont encadrés par le Data Privacy Framework UE–États-Unis ou par les clauses contractuelles types de la Commission européenne.",
+          "Vos données sont hébergées dans l'Union européenne. Certains prestataires (Anthropic, et le cas échéant OpenAI, Stripe, Google ou Apple) peuvent les traiter aux États-Unis. Ces transferts sont encadrés par le Data Privacy Framework UE–États-Unis ou par les clauses contractuelles types de la Commission européenne.",
         ],
       },
       {

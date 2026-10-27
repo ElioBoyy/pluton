@@ -107,7 +107,7 @@ function Turn({ t, prompt }: { t: T; prompt: Prompt }) {
               <span>{t.agent.spend.meter}</span>
               <strong>{t.agent.spend.spent}</strong>
             </div>
-            <Meter value={14.2 / 60} label={t.agent.spend.meter} />
+            <Meter value={710 / 2000} label={t.agent.spend.meter} />
           </Card>
         )}
       </div>

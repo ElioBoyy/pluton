@@ -28,7 +28,7 @@ Optional keys unlock more sources and automation. They are all added inside the 
 
 - **TheirStack**: market-wide job post and tech stack search.
 - **Apify**: LinkedIn posts, people engaging with posts, and profile lookups.
-- **Hunter**: work email finding (its free plan gives 25 searches a month).
+- **Hunter**: work email finding (its free plan gives 50 searches a month).
 - **Unipile**: automated LinkedIn sending. Without it, sequences run in manual mode (Pluton prepares the steps and you send them by hand).
 - **SMTP** (your own mail server): only needed if you want the morning digest by email.
 

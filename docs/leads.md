@@ -102,7 +102,7 @@ Where you see the result:
 - The Play's funnel: **Qualified** (strong) and **To review** (worth a look).
 - The CSV's "Judge verdict" column: qualified or needs_review.
 
-Only strong matches count toward a search's target. Both kinds wait for your verdict in **To review**: the judge's stage says how sure it is, you decide.
+A strong match counts as one toward a search's target, a worth-a-look lead as half of one. Both kinds wait for your verdict in **To review**: the judge's stage says how sure it is, you decide.
 
 ## Warmness
 
@@ -476,9 +476,9 @@ Results: the address appears in the drawer and the Email column; the timeline ad
 **Free sources** (steps 1, 2 and 4 of the lookup) cost nothing and need no key.
 
 **Hunter**:
-- Add a Hunter API key in Settings → API keys. Hunter's free plan includes 25 searches a month.
+- Add a Hunter API key in Settings → API keys. Hunter's free plan includes 50 searches a month.
 - Pluton only calls Hunter when the free sources found the person's own address nowhere, and only once per lead lookup.
-- Hunter counts a search only when it returns an email. Pluton records about **$0.049** per email found on paid plans and $0 on the free plan (logged under "Email finding" on Usage); a search that finds nothing costs nothing.
+- Hunter counts a search only when it returns an email. Pluton records what a credit costs on your Hunter plan (about **$0.027** per email found on Starter, less on larger plans) and $0 on the free plan (logged under "Email finding" on Usage); a search that finds nothing costs nothing.
 - The remaining searches for the month are shown in the drawer and in the bulk Find emails hint.
 - Hunter answers are cached 30 days, so searching again for the same person within a month doesn't spend a search.
 
@@ -608,7 +608,7 @@ No. Approving only records your verdict. Outreach starts when you add the lead t
 It is a guess built from the company's address pattern, never verified (25–35% confidence). Check it before using it.
 
 **How much does finding an email cost?**
-The free sources cost nothing. With a Hunter key, Hunter is used only when the free sources didn't find the person's own address; Hunter's free plan includes 25 searches a month, and Pluton logs about $0.049 per email Hunter finds on paid plans.
+The free sources cost nothing. With a Hunter key, Hunter is used only when the free sources didn't find the person's own address; Hunter's free plan includes 50 searches a month, and Pluton logs about $0.027 per email Hunter finds on its Starter plan, less on larger ones.
 
 **Why does "Find LinkedIn" keep saying none found?**
 A miss is remembered for 3 days per person, so retrying within 3 days gives the same answer. The lookup only accepts a profile whose address contains part of the person's name.

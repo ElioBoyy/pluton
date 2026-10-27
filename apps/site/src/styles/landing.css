@@ -988,13 +988,32 @@ a {
   justify-content: space-between;
   gap: 20px;
 }
-.price-main {
+.price-switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.price-save {
+  margin-left: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--gg-fill);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.price-plan {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: 24px 40px;
+  grid-template-areas:
+    "price lines"
+    "credits lines"
+    "key key";
+  gap: 14px 40px;
   align-items: start;
+  animation: frag-in 420ms var(--gg-ease);
 }
 .price {
+  grid-area: price;
   display: grid;
   font-size: clamp(3.25rem, 1.6rem + 4.4vw, 6rem);
   font-weight: 700;
@@ -1009,7 +1028,47 @@ a {
   letter-spacing: 0;
   color: var(--gg-ink-2);
 }
+.price-credits {
+  grid-area: credits;
+  justify-self: start;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--gg-fill);
+  box-shadow: inset 0 0 0 1px var(--gg-rim-low);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+/* The one sentence that matters for each plan and option: set apart by weight and a short rule, in ink. */
+.price-key {
+  padding-left: 12px;
+  border-left: 3px solid currentColor;
+  color: var(--gg-ink);
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+.price-plan > .price-key {
+  grid-area: key;
+  font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem);
+}
+.price-saved {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+.price-footnote {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--gg-ink-3);
+}
+.price-footnote a {
+  color: var(--gg-ink-2);
+}
 .price-lines {
+  grid-area: lines;
   display: grid;
   gap: 12px;
   font-size: 16px;
@@ -1025,12 +1084,72 @@ a {
   color: var(--gg-accent-text);
 }
 .price-panel[data-plan="own"] .plan-all,
-.price-panel[data-plan="all"] .plan-own {
+.price-panel[data-plan="all"] .plan-own,
+.price-panel[data-billing="month"] .bill-year,
+.price-panel[data-billing="year"] .bill-month {
   display: none;
 }
-.price .plan-own,
-.price .plan-all {
+.price .bill-month,
+.price .bill-year {
   animation: frag-in 420ms var(--gg-ease);
+}
+/* Options, credits and billing: three wells under the price, read after it. */
+.price-more {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.price-note {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--gg-ink-2);
+}
+.price-note-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--gg-ink);
+}
+.price-option {
+  display: grid;
+  gap: 6px;
+}
+.price-option + .price-option {
+  margin-top: 6px;
+}
+.price-option-head {
+  display: grid;
+  color: var(--gg-ink);
+}
+.price-option-head strong {
+  font-weight: 500;
+}
+.price-option-head span {
+  font-variant-numeric: tabular-nums;
+}
+.price-packs > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  color: var(--gg-ink);
+  font-variant-numeric: tabular-nums;
+}
+.price-packs dd {
+  margin: 0;
+  font-weight: 500;
+}
+.price-billing {
+  display: grid;
+  gap: 8px;
+}
+.price-vat {
+  font-size: 13px;
+  color: var(--gg-ink-3);
 }
 .price-actions .gg-button {
   width: 100%;
@@ -1287,8 +1406,9 @@ a {
   .js .is-blinking .ring-a,
   .js .is-blinking .date-a,
   .turn .gg-bubble,
-  .price .plan-own,
-  .price .plan-all {
+  .price-plan,
+  .price .bill-month,
+  .price .bill-year {
     animation: none;
   }
 }
@@ -1415,7 +1535,11 @@ a {
   .trust-stack .gg-note:nth-child(n) {
     margin-left: 0;
   }
-  .price-main {
+  .price-plan {
+    grid-template-columns: 1fr;
+    grid-template-areas: "price" "credits" "key" "lines";
+  }
+  .price-more {
     grid-template-columns: 1fr;
   }
   .foot-up {

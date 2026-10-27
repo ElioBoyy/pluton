@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "node --watch --import tsx --env-file=../../.env src/main.ts",
     "start": "tsx --env-file-if-exists=../../.env src/main.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "stripe:setup": "node scripts/stripe-setup.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",

@@ -6,6 +6,13 @@ import type { JobRecord } from "./types.ts";
 const PROVIDER = "theirstack";
 export const THEIRSTACK_KEY = "theirstack_api_key";
 
+/**
+ * What one credit costs on TheirStack's smallest paid plan ($49 for 1,500 credits, theirstack.com/en/pricing,
+ * October 2026). The API doesn't say which plan a key is on, so every job is counted at this price, the
+ * highest per credit: spend is never under-counted, larger plans are over-counted.
+ */
+const CREDIT_MICRO_USD = Math.round((49 / 1500) * 1_000_000);
+
 export type TheirStackSearch = {
   titles?: string[];
   countries?: string[];
@@ -58,8 +65,9 @@ export async function searchJobs(db: Db, search: TheirStackSearch) {
         technologies: j.technology_slugs,
         source: PROVIDER,
       }));
-      return { value: { jobs }, items: jobs.length };
+      return { value: { jobs }, items: jobs.length, costMicroUsd: jobs.length * CREDIT_MICRO_USD };
     },
-    { ttlMs: 6 * 3600_000 },
+    // The cache is shared by every workspace: a search another client already paid for today costs nothing.
+    { ttlMs: 24 * 3600_000 },
   );
 }

@@ -1,4 +1,4 @@
-import { getSetting } from "@pluton/db";
+import { getSetting, settingSource } from "@pluton/db";
 import { http, ProviderError, requireKey } from "./runtime.ts";
 import { localized } from "@pluton/i18n/server";
 import messages from "./messages/providers.ts";
@@ -15,6 +15,11 @@ export const UNIPILE_KEY = "unipile_api_key";
 export const UNIPILE_DSN = "unipile_dsn";
 
 export const unipileConfigured = () => Boolean(getSetting(UNIPILE_KEY)?.trim() && getSetting(UNIPILE_DSN)?.trim());
+/**
+ * Hosted, on Pluton's own Unipile account (the LinkedIn option): one account serves every
+ * workspace, so a workspace only ever sees the LinkedIn accounts it connected itself.
+ */
+export const unipileOnPlatform = () => settingSource(UNIPILE_KEY) === "platform";
 
 function baseUrl() {
   const dsn = getSetting(UNIPILE_DSN)?.trim();
@@ -60,24 +65,48 @@ async function call<T>(method: string, path: string, opts: { query?: Record<stri
 }
 
 /** A one-time link to Unipile's hosted page where you log in to LinkedIn. */
-export async function unipileConnectLink(opts: { name: string; reconnectAccountId?: string }) {
+/** `notifyUrl`: where Unipile says which account was just connected (with `name` echoed back). */
+export async function unipileConnectLink(opts: { name: string; reconnectAccountId?: string; notifyUrl?: string }) {
   const expiresOn = new Date(Date.now() + 60 * 60_000).toISOString();
   const body = opts.reconnectAccountId
-    ? { type: "reconnect", reconnect_account: opts.reconnectAccountId, api_url: baseUrl(), expiresOn }
-    : { type: "create", providers: ["LINKEDIN"], api_url: baseUrl(), expiresOn, name: opts.name };
+    ? { type: "reconnect", reconnect_account: opts.reconnectAccountId, api_url: baseUrl(), expiresOn, notify_url: opts.notifyUrl }
+    : { type: "create", providers: ["LINKEDIN"], api_url: baseUrl(), expiresOn, name: opts.name, notify_url: opts.notifyUrl };
   const res = await call<{ url: string }>("POST", "/hosted/accounts/link", { json: body });
   return res.url;
 }
 
 export type UnipileAccount = { id: string; name: string; status: string; publicIdentifier?: string };
 
+type ApiAccount = { id: string; name: string; type: string; sources?: Array<{ status: string }>; connection_params?: { im?: { publicIdentifier?: string } } };
+const toAccount = (a: ApiAccount): UnipileAccount => ({
+  id: a.id,
+  name: a.name,
+  status: a.sources?.[0]?.status ?? "OK",
+  publicIdentifier: a.connection_params?.im?.publicIdentifier,
+});
+
 export async function unipileAccounts(): Promise<UnipileAccount[]> {
-  const res = await call<{
-    items: Array<{ id: string; name: string; type: string; sources?: Array<{ status: string }>; connection_params?: { im?: { publicIdentifier?: string } } }>;
-  }>("GET", "/accounts", { query: { limit: 100 } });
-  return res.items
-    .filter((a) => a.type === "LINKEDIN")
-    .map((a) => ({ id: a.id, name: a.name, status: a.sources?.[0]?.status ?? "OK", publicIdentifier: a.connection_params?.im?.publicIdentifier }));
+  const res = await call<{ items: ApiAccount[] }>("GET", "/accounts", { query: { limit: 100 } });
+  return res.items.filter((a) => a.type === "LINKEDIN").map(toAccount);
+}
+
+/** One account, or null when Unipile doesn't know it (deleted, or never connected). */
+export async function unipileAccount(id: string): Promise<UnipileAccount | null> {
+  try {
+    const a = await call<ApiAccount>("GET", `/accounts/${encodeURIComponent(id)}`);
+    return a.type === "LINKEDIN" ? toAccount(a) : null;
+  } catch (error) {
+    if (error instanceof ProviderError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+/**
+ * Unlinks an account from Unipile and signs it out of LinkedIn. Unipile bills the month's peak of
+ * connected accounts, so this lowers next month's bill, not this one's.
+ */
+export async function deleteUnipileAccount(id: string) {
+  await call("DELETE", `/accounts/${encodeURIComponent(id)}`);
 }
 
 /** "https://www.linkedin.com/in/jane-doe-123/?x" → "jane-doe-123". */
@@ -149,4 +178,24 @@ export async function unipileMessages(chatId: string, after?: Date): Promise<Uni
 export async function unipileFindChat(accountId: string, providerId: string) {
   const res = await call<{ items: Array<{ id: string; attendee_provider_id?: string }> }>("GET", "/chats", { query: { account_id: accountId, limit: 100 } });
   return res.items.find((c) => c.attendee_provider_id === providerId)?.id ?? null;
+}
+
+/**
+ * Unlinks an account from Pluton's own Unipile account, with the platform key itself: when a
+ * subscription has ended, the workspace no longer resolves to it. Unipile bills every account it
+ * holds, connected or not, so a customer who left must not stay there. False when no platform
+ * Unipile is configured; an account Unipile no longer knows counts as gone.
+ */
+export async function deletePlatformUnipileAccount(id: string) {
+  const key = process.env.PLATFORM_UNIPILE_API_KEY?.trim();
+  const dsn = process.env.PLATFORM_UNIPILE_DSN?.trim();
+  if (!key || !dsn) return false;
+  const base = dsn.startsWith("http") ? dsn.replace(/\/$/, "") : `https://${dsn}`;
+  const res = await http(PROVIDER, `${base}/api/v1/accounts/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { "X-API-KEY": key, accept: "application/json" },
+    retries: 1,
+  });
+  if (!res.ok && res.status !== 404) throw new UnipileError(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`, res.status);
+  return true;
 }

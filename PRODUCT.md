@@ -26,10 +26,15 @@ Founders who do their own sales, small B2B teams, agencies and GTM engineers, of
 - Works with the user's own AI: local MCP server for Claude Code, Claude Desktop and Codex.
 - Runs hosted, or self-hosted from the GitHub repository (local SQLite, data stays on the user's machine).
 
-## Offer (confirmed by the founder, 2026-10-26)
+## Offer (confirmed by the founder, 2026-10-27)
 
-- Hosted, bring your own AI: 19.99 € (per month, assumed) with the user's own Claude / Codex subscription token or API keys.
-- Hosted, all included: 49.99 € (per month, assumed), API usage over the included quota billed on top.
+Prices in euros, VAT not applicable (article 293 B CGI). Monthly, or yearly with a 1-year commitment at −5 %.
+
+- Hosted, bring your own AI: 24.99 € a month (284.90 € a year), 600 credits a month for the data sources Pluton provides. The AI runs on the customer's own Anthropic or OpenAI API key (never a Claude or Codex subscription token: Anthropic doesn't allow it for third-party products).
+- Hosted, all included: 59 € a month (672.60 € a year), 2,000 credits a month covering the AI and the data sources.
+- Options on both, any time: LinkedIn sending account 15 € per account per month (171 € a year), through Pluton's own Unipile account; added mid-period pro rata, removed at the next renewal. Credit packs 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
+- Plan and interval changes apply at once, settled pro rata for the days left in the period.
+- Credits are shown to customers as a unit of work, never as a dollar amount.
 - Self-host: free for noncommercial use from GitHub (PolyForm Noncommercial); commercial use needs written permission.
 
 ## Evidence

@@ -34,6 +34,8 @@ export default defineMessages({
     unipileFirst: "Add your Unipile API key and DSN in Settings → API keys first",
     unipileStatus: "Unipile status {status}",
     goneFromUnipile: "No longer on Unipile",
+    seatNeeded: "Each LinkedIn account connected through Pluton is an option on your plan. Add one to connect another account.",
+    connectingLinkedin: "LinkedIn account being connected",
   },
   fr: {
     "step.visit_profile": "Visiter son profil",
@@ -68,6 +70,8 @@ export default defineMessages({
     unipileFirst: "Ajoutez d’abord votre clé d’API et votre DSN Unipile dans Réglages → Clés d’API",
     unipileStatus: "Statut Unipile : {status}",
     goneFromUnipile: "N’est plus sur Unipile",
+    seatNeeded: "Chaque compte LinkedIn connecté via Pluton est une option de votre offre. Ajoutez-en une pour connecter un autre compte.",
+    connectingLinkedin: "Compte LinkedIn en cours de connexion",
   },
   it: {
     "step.visit_profile": "Visita il suo profilo",
@@ -102,6 +106,8 @@ export default defineMessages({
     unipileFirst: "Aggiungi prima la chiave API e il DSN di Unipile in Impostazioni → Chiavi API",
     unipileStatus: "Stato Unipile: {status}",
     goneFromUnipile: "Non più su Unipile",
+    seatNeeded: "Ogni account LinkedIn collegato tramite Pluton è un'opzione del tuo piano. Aggiungine una per collegare un altro account.",
+    connectingLinkedin: "Account LinkedIn in fase di collegamento",
   },
   es: {
     "step.visit_profile": "Visitar su perfil",
@@ -136,6 +142,8 @@ export default defineMessages({
     unipileFirst: "Añade primero tu clave de API y tu DSN de Unipile en Ajustes → Claves de API",
     unipileStatus: "Estado en Unipile: {status}",
     goneFromUnipile: "Ya no está en Unipile",
+    seatNeeded: "Cada cuenta de LinkedIn conectada a través de Pluton es una opción de tu plan. Añade una para conectar otra cuenta.",
+    connectingLinkedin: "Cuenta de LinkedIn conectándose",
   },
   de: {
     "step.visit_profile": "Profil besuchen",
@@ -170,5 +178,7 @@ export default defineMessages({
     unipileFirst: "Fügen Sie zuerst Ihren Unipile-API-Schlüssel und DSN unter Einstellungen → API-Schlüssel hinzu",
     unipileStatus: "Unipile-Status {status}",
     goneFromUnipile: "Nicht mehr bei Unipile",
+    seatNeeded: "Jedes über Pluton verbundene LinkedIn-Konto ist eine Option Ihres Tarifs. Fügen Sie eine hinzu, um ein weiteres Konto zu verbinden.",
+    connectingLinkedin: "LinkedIn-Konto wird verbunden",
   },
 });

@@ -148,7 +148,7 @@ The **Data sources** group: "Optional paid sources. Free sources work without an
 
 - **Apify token**: "LinkedIn posts, engagers and profile search." Unlocks the two LinkedIn engagement Play types (engagement on tracked profiles, people posting about keywords) and lets message writing read a lead's recent posts. Uses no LinkedIn cookies of yours. Link: **Create an Apify token** (Apify console → Settings → Integrations). **Test** shows "Apify token works (account {name})".
 - **TheirStack API key**: "Market-wide job posts and tech stacks." Lets hiring and stack searches look across the whole market instead of company by company. Link: **Create a TheirStack key (Settings → API Keys)**. No Test button: TheirStack has no free check, so the key is checked on first use.
-- **Hunter API key**: "Finds work emails (free plan: 25 searches/month)." Used by Find email after the free sources. Link: **Create a Hunter key**. **Test** shows "Hunter key works ({count} searches left this month)".
+- **Hunter API key**: "Finds work emails (free plan: 50 searches/month)." Used by Find email after the free sources. Link: **Create a Hunter key**. **Test** shows "Hunter key works ({count} searches left this month)".
 
 Without these keys Pluton still works on free sources (French company registry, careers pages, website tech detection, company website emails, and web search through Claude). Each source's status is on Settings → Data sources. How each one is charged is in "Costs and budget".
 
