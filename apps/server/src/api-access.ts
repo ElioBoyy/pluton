@@ -85,6 +85,10 @@ export type ProcedurePath = Paths<AppRouter["_def"]["record"]>;
  */
 export const PROCEDURE_PERMISSIONS: Record<ProcedurePath, ApiPermission | "app"> = {
   "system.health": "workspace:read",
+  // Updating the install runs git and pnpm on this machine: the app's own button only.
+  "system.update": "app",
+  "system.updateProgress": "app",
+  "system.runUpdate": "app",
   "workspace.current": "workspace:read",
   "workspace.list": "workspace:read",
   "workspace.checklist": "workspace:read",
