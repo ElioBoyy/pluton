@@ -1039,14 +1039,13 @@ a {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
-/* The one sentence that matters for each plan and option: set apart by weight and a short rule, in ink. */
+/* The one sentence that matters for each plan: set apart by size and weight alone, in ink. */
 .price-key {
-  padding-left: 12px;
-  border-left: 3px solid currentColor;
   color: var(--gg-ink);
   font-weight: 600;
-  line-height: 1.35;
-  text-wrap: pretty;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 .price-plan > .price-key {
   grid-area: key;
@@ -1058,14 +1057,6 @@ a {
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.3;
-}
-.price-footnote {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--gg-ink-3);
-}
-.price-footnote a {
-  color: var(--gg-ink-2);
 }
 .price-lines {
   grid-area: lines;
@@ -1093,63 +1084,143 @@ a {
 .price .bill-year {
   animation: frag-in 420ms var(--gg-ease);
 }
-/* Options, credits and billing: three wells under the price, read after it. */
+/*
+ * Under the price: the two things one can add (each its own well, the amount set large), then the
+ * terms as short facts with their point first, then the source and the VAT line.
+ */
 .price-more {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  align-items: start;
+  gap: 18px;
+  margin-top: 8px;
 }
-.price-note {
-  display: grid;
-  gap: 10px;
-  padding: 18px 20px;
-  font-size: 15px;
-  line-height: 1.45;
-  color: var(--gg-ink-2);
-}
-.price-note-title {
-  font-size: 17px;
+.price-more-title {
+  margin-top: 14px;
+  font-size: clamp(1.1875rem, 1.05rem + 0.4vw, 1.4375rem);
   font-weight: 600;
-  line-height: 1.25;
-  color: var(--gg-ink);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+.price-more-title:first-child {
+  margin-top: 0;
+}
+.price-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
 }
 .price-option {
   display: grid;
-  gap: 6px;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 14px;
+  padding: clamp(20px, 2.4vw, 28px);
 }
-.price-option + .price-option {
-  margin-top: 6px;
-}
-.price-option-head {
-  display: grid;
-  color: var(--gg-ink);
-}
-.price-option-head strong {
-  font-weight: 500;
-}
-.price-option-head span {
-  font-variant-numeric: tabular-nums;
-}
-.price-packs > div {
+.price-option-name {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 3px 0;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--gg-ink-2);
+}
+.price-option-name svg {
+  width: 18px;
+  height: 18px;
   color: var(--gg-ink);
+}
+.price-option-price > span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.price-option-price strong {
+  font-size: clamp(2.25rem, 1.15rem + 2.9vw, 4rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
-.price-packs dd {
-  margin: 0;
-  font-weight: 500;
+.price-option-price small {
+  font-size: 15px;
+  color: var(--gg-ink-2);
 }
-.price-billing {
+.price-option-key {
+  align-self: end;
+  font-size: clamp(1.1875rem, 1.05rem + 0.4vw, 1.4375rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.price-option-note {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--gg-ink-2);
+  text-wrap: pretty;
+}
+/* Three packs as three small wells side by side: the size large, the price under it. */
+.price-packs {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
-.price-vat {
+.price-packs li {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--gg-r-row);
+  background: var(--gg-fill);
+}
+.price-pack-size {
+  display: grid;
   font-size: 13px;
+  line-height: 1.2;
+  color: var(--gg-ink-2);
+}
+.price-pack-size strong {
+  font-size: clamp(1.1875rem, 1.05rem + 0.4vw, 1.4375rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--gg-ink);
+  font-variant-numeric: tabular-nums;
+}
+.price-pack-price {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.price-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px 28px;
+}
+.price-facts dt {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--gg-ink);
+  text-wrap: balance;
+}
+.price-facts dd {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--gg-ink-2);
+  text-wrap: pretty;
+}
+.price-small {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  max-width: 78ch;
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--gg-ink-3);
+}
+.price-small a {
+  color: var(--gg-ink-2);
+  text-underline-offset: 2px;
 }
 .price-actions .gg-button {
   width: 100%;
@@ -1461,6 +1532,9 @@ a {
   .self-host {
     grid-column: 1 / -1;
   }
+  .price-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .price-planet {
     width: 70vw;
     right: -20vw;
@@ -1539,8 +1613,12 @@ a {
     grid-template-columns: 1fr;
     grid-template-areas: "price" "credits" "key" "lines";
   }
-  .price-more {
+  .price-options,
+  .price-facts {
     grid-template-columns: 1fr;
+  }
+  .price-facts {
+    gap: 18px;
   }
   .foot-up {
     margin-left: 0;
