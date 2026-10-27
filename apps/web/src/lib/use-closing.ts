@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** How long a panel or dialog takes to leave; the out styles in styles.css run this long. */
-export const EXIT_MS = 200;
+export const EXIT_MS = 220;
 /** Menus and popovers leave quicker (popover-out). */
-export const POPOVER_EXIT_MS = 140;
+export const POPOVER_EXIT_MS = 160;
 
 /**
  * Closing that plays its exit first: `close()` marks the element as closing (its out styles take

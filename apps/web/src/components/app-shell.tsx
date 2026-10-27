@@ -241,8 +241,8 @@ export function AppShell() {
             "xl:transition-[translate,opacity] xl:duration-250 xl:ease-out xl:starting:translate-x-4 xl:starting:opacity-0 motion-reduce:xl:starting:translate-x-0",
             // Over the page, it keeps the sidebar's distance from the screen's edges: the window's margin plus its own.
             "max-xl:drawer max-xl:fixed max-xl:inset-y-4 max-xl:right-4 max-md:inset-y-2 max-md:right-2 max-xl:z-40 max-xl:bg-(--gg-material-thick) max-xl:shadow-window max-xl:backdrop-blur-2xl",
-            "xl:has-[[data-closing]]:translate-x-4 xl:has-[[data-closing]]:opacity-0 xl:has-[[data-closing]]:duration-200",
-            "max-xl:has-[[data-closing]]:translate-x-[calc(100%+16px)] max-xl:has-[[data-closing]]:duration-200 motion-reduce:has-[[data-closing]]:translate-x-0 motion-reduce:has-[[data-closing]]:opacity-0",
+            "xl:has-[[data-closing]]:translate-x-4 xl:has-[[data-closing]]:opacity-0 has-[[data-closing]]:duration-220 has-[[data-closing]]:ease-(--ease-exit)",
+            "max-xl:has-[[data-closing]]:translate-x-[calc(100%+16px)] motion-reduce:has-[[data-closing]]:translate-x-0 motion-reduce:has-[[data-closing]]:opacity-0",
           )}
         />
         </div>
