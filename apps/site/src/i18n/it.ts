@@ -96,7 +96,7 @@ export default {
       {
         name: "Message",
         clause: "Scrive al posto tuo",
-        text: "Fino a tre messaggi per persona, scritti a partire dal suo segnale e con il tuo tono. Approvi con un clic, e una risposta ferma la sequenza da sola.",
+        text: "Fino a tre messaggi per persona, scritti a partire da ciò che l'ha fatta notare e con il tuo tono. Approvi con un clic, e appena risponde Pluton smette di ricontattarla.",
       },
     ],
     brain: {
@@ -143,11 +143,11 @@ export default {
   },
   trust: {
     heading: "Fa lui il lavoro, l'ultima parola è tua.",
-    text: "Pluton prepara tutto, tu devi solo dire sì. Le ricerche mostrano prima il loro costo, i messaggi aspettano il tuo clic e una risposta ferma la sequenza da sola.",
+    text: "Pluton prepara tutto, tu devi solo dire sì. Prima di cercare, ti dice quanto costerà. Prima di inviare un messaggio, aspetta il tuo via libera. E appena qualcuno risponde, smette di ricontattarlo.",
     points: [
-      ["Un clic per approvare", "Niente viene inviato, speso o esportato senza la tua approvazione, e ciò che approvi si può annullare per dieci minuti."],
-      ["Un budget che rispetta da solo", "Imposta una volta un budget mensile e un tetto per ricerca. Pluton si ferma al suo tetto e restituisce ciò che non ha usato."],
-      ["Ogni passo alla luce del sole", "Ogni ricerca mostra quanto ha usato, in crediti, e quanto resta, e tutto ciò che fa l'agente compare in Attività."],
+      ["Un clic per approvare", "Pluton non invia messaggi, non spende nulla e non manda nulla ai tuoi strumenti senza il tuo via libera. Se cambi idea, hai dieci minuti per annullare."],
+      ["Un budget che rispetta", "Decidi una volta quanto Pluton può spendere al mese e per ricerca. Non supera mai questa cifra, e quello che non usa resta tuo."],
+      ["Niente di nascosto", "Vedi quanto è costata ogni ricerca, quanto ti resta e la cronologia di tutto ciò che Pluton ha fatto per te."],
     ],
     search: { time: "07:00", title: "Ricerca pronta da avviare", body: "Studi che assumono: circa 15 persone, fino a 300 crediti. Restano 1.290 crediti questo mese.", run: "Avvia la ricerca", later: "Non ora" },
     cap: { time: "07:04", title: "Ricerca finita sotto il tetto", body: "230 crediti usati su 300. Gli altri 70 restano nel tuo mese." },
@@ -173,7 +173,7 @@ export default {
       },
       {
         title: "Nella loro lingua",
-        text: "Pluton scrive in cinque lingue: quella del tuo Brain, o un'altra per ogni sequenza.",
+        text: "Pluton scrive in italiano, inglese, francese, spagnolo o tedesco, a seconda delle persone che vuoi raggiungere.",
       },
       {
         title: "Invia lui per te",
@@ -181,7 +181,7 @@ export default {
       },
       {
         title: "Niente parte senza di te",
-        text: "Ogni messaggio aspetta il tuo clic. Una risposta ferma la sequenza da sola.",
+        text: "Ogni messaggio aspetta il tuo clic. Appena qualcuno risponde, Pluton smette di ricontattarlo.",
       },
     ],
     channelLabel: "Canale",
@@ -215,12 +215,12 @@ export default {
     saved: "{amount} risparmiati all'anno",
     ownLines: [
       "Usa la tua chiave API Anthropic o OpenAI: l'IA te la fattura direttamente quel fornitore",
-      "Brain, Plays, leads, sequenze LinkedIn ed email",
+      "Prospect trovati e valutati per te, messaggi LinkedIn ed email scritti per te",
       "Slack, HubSpot, Attio, Pipedrive e MCP per la tua IA",
     ],
     allLines: [
       "L'IA è inclusa, scalata dai tuoi crediti",
-      "Brain, Plays, leads, sequenze LinkedIn ed email",
+      "Prospect trovati e valutati per te, messaggi LinkedIn ed email scritti per te",
       "Slack, HubSpot, Attio, Pipedrive e MCP per la tua IA",
     ],
     cta: "Inizia",

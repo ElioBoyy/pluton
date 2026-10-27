@@ -95,7 +95,7 @@ export default {
       {
         name: "Message",
         clause: "It writes for you",
-        text: "Up to three messages per person, written from their signal in your tone. You approve in one click, and a reply stops the sequence on its own.",
+        text: "Up to three messages per person, written from what made them stand out, in your tone. You approve in one click, and as soon as they reply, Pluton stops following up.",
       },
     ],
     brain: {
@@ -142,11 +142,11 @@ export default {
   },
   trust: {
     heading: "It does the work. You have the last word.",
-    text: "Pluton prepares everything; all you do is say yes. Searches show their cost first, messages wait for your click, and a reply stops the sequence on its own.",
+    text: "Pluton prepares everything; all you do is say yes. Before it searches, it tells you what it will cost. Before it sends a message, it waits for your go-ahead. And as soon as someone replies, it stops following up.",
     points: [
-      ["One click to approve", "Nothing is sent, spent or exported until you approve it, and anything approved can be undone for ten minutes."],
-      ["A budget it keeps by itself", "Set a monthly budget and a cap per search once. Pluton stops at its cap and gives back what it did not use."],
-      ["Every step in the open", "Every search shows what it used, in credits, and what is left, and everything the agent does shows up in Activity."],
+      ["One click to approve", "Pluton sends no message, spends nothing and pushes nothing into your tools without your go-ahead. Change your mind, and you have ten minutes to undo it."],
+      ["A budget it keeps to", "You decide once how much Pluton may spend per month and per search. It never goes over, and whatever it does not use stays yours."],
+      ["Nothing hidden", "You see what each search cost, what you have left, and a history of everything Pluton has done for you."],
     ],
     search: { time: "07:00", title: "Search ready to run", body: "Studios that are hiring: about 15 people, up to 300 credits. 1,290 credits left this month.", run: "Run search", later: "Not now" },
     cap: { time: "07:04", title: "Search finished under its cap", body: "230 of 300 credits used. The other 70 stay in your month." },
@@ -172,7 +172,7 @@ export default {
       },
       {
         title: "In their language",
-        text: "Pluton writes in five languages: your Brain's, or another one for each sequence.",
+        text: "Pluton writes in English, French, Italian, Spanish or German, depending on who you are reaching.",
       },
       {
         title: "It sends for you",
@@ -180,7 +180,7 @@ export default {
       },
       {
         title: "Nothing goes out without you",
-        text: "Every message waits for your click. A reply stops the sequence on its own.",
+        text: "Every message waits for your click. As soon as someone replies, Pluton stops following up.",
       },
     ],
     channelLabel: "Channel",
@@ -214,12 +214,12 @@ export default {
     saved: "{amount} saved a year",
     ownLines: [
       "Bring your own Anthropic or OpenAI API key; that provider bills you for the AI directly",
-      "Brain, Plays, leads, LinkedIn and email sequences",
+      "Prospects found and scored for you, LinkedIn and email messages written for you",
       "Slack, HubSpot, Attio, Pipedrive and MCP for your AI",
     ],
     allLines: [
       "The AI is included, counted in your credits",
-      "Brain, Plays, leads, LinkedIn and email sequences",
+      "Prospects found and scored for you, LinkedIn and email messages written for you",
       "Slack, HubSpot, Attio, Pipedrive and MCP for your AI",
     ],
     cta: "Start",

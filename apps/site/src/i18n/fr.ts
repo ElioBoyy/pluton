@@ -96,7 +96,7 @@ export default {
       {
         name: "Message",
         clause: "Il écrit à votre place",
-        text: "Jusqu'à trois messages par personne, écrits à partir de son signal et avec votre ton. Vous validez d'un clic, et une réponse arrête la séquence d'elle-même.",
+        text: "Jusqu'à trois messages par personne, écrits à partir de ce qui l'a fait repérer et avec votre ton. Vous validez d'un clic, et dès qu'elle répond, Pluton arrête de la relancer.",
       },
     ],
     brain: {
@@ -143,11 +143,11 @@ export default {
   },
   trust: {
     heading: "Il fait le travail, vous gardez le dernier mot.",
-    text: "Pluton prépare tout, vous n'avez qu'à dire oui. Les recherches annoncent leur coût, les messages attendent votre clic, et une réponse arrête la séquence d'elle-même.",
+    text: "Pluton prépare tout, vous n'avez qu'à dire oui. Avant de chercher, il vous dit ce que ça va coûter. Avant d'envoyer un message, il attend votre accord. Et dès qu'une personne répond, il arrête de la relancer.",
     points: [
-      ["Un clic pour valider", "Rien n'est envoyé, dépensé ni exporté sans votre accord, et ce que vous validez reste annulable pendant dix minutes."],
-      ["Un budget qu'il tient seul", "Fixez une fois un budget mensuel et un plafond par recherche. Pluton s'arrête à son plafond et rend ce qu'il n'a pas utilisé."],
-      ["Chaque étape au grand jour", "Chaque recherche montre ce qu'elle a consommé, en crédits, et ce qu'il reste, et tout ce que fait l'agent apparaît dans l'Activité."],
+      ["Un clic pour valider", "Pluton n'envoie aucun message, ne dépense rien et n'envoie rien vers vos outils sans votre accord. Si vous changez d'avis, vous avez dix minutes pour annuler."],
+      ["Un budget qu'il respecte", "Vous décidez une fois combien Pluton peut dépenser par mois et par recherche. Il ne dépasse jamais ce montant, et ce qu'il n'a pas utilisé vous reste."],
+      ["Rien de caché", "Vous voyez ce que chaque recherche a coûté, ce qu'il vous reste, et l'historique de tout ce que Pluton a fait pour vous."],
     ],
     search: { time: "07:00", title: "Recherche prête à lancer", body: "Agences qui recrutent : environ 15 personnes, jusqu'à 300 crédits. Il reste 1\u00a0290 crédits ce mois-ci.", run: "Lancer la recherche", later: "Pas maintenant" },
     cap: { time: "07:04", title: "Recherche terminée sous son plafond", body: "230 crédits utilisés sur 300. Les 70 restants retournent à votre mois." },
@@ -173,7 +173,7 @@ export default {
       },
       {
         title: "Dans leur langue",
-        text: "Pluton écrit en cinq langues : celle de votre Brain, ou une autre pour chaque séquence.",
+        text: "Pluton écrit en français, anglais, italien, espagnol ou allemand, selon les personnes que vous visez.",
       },
       {
         title: "Il envoie pour vous",
@@ -181,7 +181,7 @@ export default {
       },
       {
         title: "Rien ne part sans vous",
-        text: "Chaque message attend votre clic. Une réponse arrête la séquence toute seule.",
+        text: "Chaque message attend votre clic. Dès qu'une personne répond, Pluton arrête de la relancer.",
       },
     ],
     channelLabel: "Canal",
@@ -215,12 +215,12 @@ export default {
     saved: "{amount} d'économie par an",
     ownLines: [
       "Votre propre clé API Anthropic ou OpenAI ; ce fournisseur vous facture l'IA directement",
-      "Brain, Plays, leads, séquences LinkedIn et email",
+      "Prospects trouvés et notés pour vous, messages LinkedIn et email écrits pour vous",
       "Slack, HubSpot, Attio, Pipedrive et MCP pour votre IA",
     ],
     allLines: [
       "L'IA est incluse, décomptée de vos crédits",
-      "Brain, Plays, leads, séquences LinkedIn et email",
+      "Prospects trouvés et notés pour vous, messages LinkedIn et email écrits pour vous",
       "Slack, HubSpot, Attio, Pipedrive et MCP pour votre IA",
     ],
     cta: "Commencer",

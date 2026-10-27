@@ -96,7 +96,7 @@ export default {
       {
         name: "Message",
         clause: "Er schreibt für Sie",
-        text: "Bis zu drei Nachrichten pro Person, geschrieben aus ihrem Signal und in Ihrem Ton. Sie geben mit einem Klick frei, und eine Antwort stoppt die Sequenz von selbst.",
+        text: "Bis zu drei Nachrichten pro Person, geschrieben aus dem, was sie auffallen ließ, und in Ihrem Ton. Sie geben mit einem Klick frei, und sobald die Person antwortet, hakt Pluton nicht mehr nach.",
       },
     ],
     brain: {
@@ -143,11 +143,11 @@ export default {
   },
   trust: {
     heading: "Er arbeitet, Sie entscheiden.",
-    text: "Pluton bereitet alles vor, Sie sagen nur noch Ja. Suchen zeigen zuerst ihre Kosten, Nachrichten warten auf Ihren Klick, und eine Antwort stoppt die Sequenz von selbst.",
+    text: "Pluton bereitet alles vor, Sie sagen nur noch Ja. Bevor er sucht, sagt er Ihnen, was es kostet. Bevor er eine Nachricht sendet, wartet er auf Ihre Freigabe. Und sobald jemand antwortet, hakt er nicht mehr nach.",
     points: [
-      ["Ein Klick zum Freigeben", "Nichts wird gesendet, ausgegeben oder exportiert, bevor Sie es freigeben, und alles Freigegebene lässt sich zehn Minuten lang rückgängig machen."],
-      ["Ein Budget, das er selbst einhält", "Legen Sie einmal ein Monatsbudget und eine Grenze pro Suche fest. Pluton stoppt an seiner Grenze und gibt zurück, was er nicht gebraucht hat."],
-      ["Jeder Schritt offen", "Jede Suche zeigt, was sie verbraucht hat, in Credits, und was übrig ist, und alles, was der Agent tut, erscheint unter Aktivität."],
+      ["Ein Klick zum Freigeben", "Pluton sendet keine Nachricht, gibt nichts aus und überträgt nichts in Ihre Tools ohne Ihre Freigabe. Überlegen Sie es sich anders, haben Sie zehn Minuten zum Rückgängigmachen."],
+      ["Ein Budget, das er einhält", "Sie legen einmal fest, wie viel Pluton pro Monat und pro Suche ausgeben darf. Er überschreitet es nie, und was er nicht braucht, bleibt Ihnen."],
+      ["Nichts versteckt", "Sie sehen, was jede Suche gekostet hat, was Ihnen bleibt, und den Verlauf von allem, was Pluton für Sie getan hat."],
     ],
     search: { time: "07:00", title: "Suche bereit zum Start", body: "Büros, die einstellen: etwa 15 Personen, bis zu 300 Credits. Diesen Monat bleiben 1.290 Credits.", run: "Suche starten", later: "Nicht jetzt" },
     cap: { time: "07:04", title: "Suche unter ihrer Grenze beendet", body: "230 von 300 Credits genutzt. Die übrigen 70 bleiben in Ihrem Monat." },
@@ -173,7 +173,7 @@ export default {
       },
       {
         title: "In ihrer Sprache",
-        text: "Pluton schreibt in fünf Sprachen: der Ihres Brains oder einer anderen pro Sequenz.",
+        text: "Pluton schreibt auf Deutsch, Englisch, Französisch, Italienisch oder Spanisch, je nachdem, wen Sie erreichen wollen.",
       },
       {
         title: "Er sendet für Sie",
@@ -181,7 +181,7 @@ export default {
       },
       {
         title: "Nichts geht ohne Sie raus",
-        text: "Jede Nachricht wartet auf Ihren Klick. Eine Antwort stoppt die Sequenz von selbst.",
+        text: "Jede Nachricht wartet auf Ihren Klick. Sobald jemand antwortet, hakt Pluton nicht mehr nach.",
       },
     ],
     channelLabel: "Kanal",
@@ -215,12 +215,12 @@ export default {
     saved: "{amount} gespart pro Jahr",
     ownLines: [
       "Ihr eigener API-Schlüssel von Anthropic oder OpenAI; die KI rechnet dieser Anbieter direkt mit Ihnen ab",
-      "Brain, Plays, Leads, LinkedIn- und E-Mail-Sequenzen",
+      "Interessenten für Sie gefunden und bewertet, LinkedIn- und E-Mail-Nachrichten für Sie geschrieben",
       "Slack, HubSpot, Attio, Pipedrive und MCP für Ihre KI",
     ],
     allLines: [
       "KI inklusive, mit Ihren Credits verrechnet",
-      "Brain, Plays, Leads, LinkedIn- und E-Mail-Sequenzen",
+      "Interessenten für Sie gefunden und bewertet, LinkedIn- und E-Mail-Nachrichten für Sie geschrieben",
       "Slack, HubSpot, Attio, Pipedrive und MCP für Ihre KI",
     ],
     cta: "Starten",
