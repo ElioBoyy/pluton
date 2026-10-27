@@ -69,7 +69,6 @@ export function NotificationsPage() {
             <Row label={t("digest.frequency")}>
               <Segmented
                 label={t("digest.frequency")}
-                size="sm"
                 options={FREQUENCIES.map((value) => ({ value, label: t(`digest.${value}`) }))}
                 value={form.digest}
                 onChange={(digest) => setForm({ ...form, digest })}

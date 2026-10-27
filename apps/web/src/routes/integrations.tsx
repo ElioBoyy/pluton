@@ -38,7 +38,7 @@ function Logo({ provider, large }: { provider: Provider; large?: boolean }) {
   );
 }
 
-const PILL = "inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-xs font-medium whitespace-nowrap";
+const PILL = "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-medium whitespace-nowrap";
 
 function StatusPill({ status, enabled }: { status?: string; enabled?: boolean }) {
   const t = useT("integrations");
@@ -251,7 +251,6 @@ function SlackConfigSection({ detail }: { detail: Detail }) {
         <Row label={t("slack.eachSearchPosts")} description={t(`delivery.${form.delivery}.hint`)}>
           <Segmented
             label={t("slack.eachSearchPosts")}
-            size="sm"
             options={DELIVERY.map((value) => ({ value, label: t(`delivery.${value}`) }))}
             value={form.delivery}
             onChange={(delivery) => setForm({ ...form, delivery })}

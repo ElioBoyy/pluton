@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader, Row, Section } from "../components/ui.tsx";
 import { toast } from "../components/toast.tsx";
+import { askConfirm } from "../components/context-menu.tsx";
 import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -15,11 +16,12 @@ import { billingQuery } from "./budget.tsx";
 
 type Sender = inferRouterOutputs<AppRouter>["linkedin"]["senders"]["senders"][number];
 
+// The app's status capsule (as on a campaign): a dot in the text's colour, darkened on light grounds.
 const STATUS = {
-  connected: "bg-system-green/15 text-system-green",
-  connecting: "bg-system-blue/15 text-system-blue",
-  disconnected: "bg-system-orange/15 text-system-orange",
-  error: "bg-system-red/15 text-system-red",
+  connected: "bg-system-green/15 text-[color-mix(in_srgb,var(--color-system-green),black_30%)] dark:text-system-green",
+  connecting: "bg-system-blue/15 text-[color-mix(in_srgb,var(--color-system-blue),black_20%)] dark:text-system-blue",
+  disconnected: "bg-system-orange/15 text-[color-mix(in_srgb,var(--color-system-orange),black_20%)] dark:text-system-orange",
+  error: "bg-system-red/15 text-[color-mix(in_srgb,var(--color-system-red),black_20%)] dark:text-system-red",
 } as const;
 type Status = keyof typeof STATUS;
 const isStatus = (s: string): s is Status => Object.hasOwn(STATUS, s);
@@ -207,7 +209,8 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
             <LinkedinLogo size={18} weight="fill" />
           </span>
           <div className="flex shrink-0 items-center gap-2">
-            <span className={cn("px-2 py-0.5 text-xs font-medium", isStatus(s.status) && STATUS[s.status])}>
+            <span className={cn("inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium whitespace-nowrap", isStatus(s.status) ? STATUS[s.status] : "bg-control text-muted")}>
+              <span className="size-1.5 rounded-full bg-current" aria-hidden />
               {isStatus(s.status) ? t(`linkedin.status.${s.status}`) : s.status}
             </span>
             {s.provider === "unipile" && s.status !== "connected" && (
@@ -217,7 +220,9 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
             )}
             <button
               type="button"
-              onClick={() => window.confirm(t("linkedin.confirmRemove", { name: s.name })) && remove.mutate({ id: s.id })}
+              onClick={async () => {
+                if (await askConfirm({ title: t("linkedin.confirmRemove", { name: s.name }), confirmLabel: t("linkedin.removeAccount"), destructive: true })) remove.mutate({ id: s.id });
+              }}
               aria-label={t("linkedin.removeAccount")}
               title={t("linkedin.removeAccount")}
               className="flex rounded-full size-7 items-center justify-center text-muted transition-colors duration-150 hover:bg-raised hover:text-system-red"
