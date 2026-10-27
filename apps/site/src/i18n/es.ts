@@ -215,12 +215,12 @@ export default {
     saved: "{amount} de ahorro al año",
     ownLines: [
       "Usa tu propia clave API de Anthropic u OpenAI; ese proveedor te factura la IA directamente",
-      "Prospectos encontrados y puntuados por ti, mensajes de LinkedIn y email escritos por ti",
+      "Prospectos encontrados y puntuados para ti, mensajes de LinkedIn y email escritos para ti",
       "Slack, HubSpot, Attio, Pipedrive y MCP para tu IA",
     ],
     allLines: [
       "La IA está incluida y se descuenta de tus créditos",
-      "Prospectos encontrados y puntuados por ti, mensajes de LinkedIn y email escritos por ti",
+      "Prospectos encontrados y puntuados para ti, mensajes de LinkedIn y email escritos para ti",
       "Slack, HubSpot, Attio, Pipedrive y MCP para tu IA",
     ],
     cta: "Empezar",
