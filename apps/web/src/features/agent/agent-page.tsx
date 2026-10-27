@@ -39,7 +39,8 @@ type Action = Conversation["actions"][number];
 
 export function AgentPage({ conversationId }: { conversationId?: string }) {
   return (
-    <div className="flex h-full gap-2 p-3 max-md:p-2">
+    // The sidebar's margins (8px from the window, 8px beside it), so the two panes line up.
+    <div className="flex h-full gap-2 p-2">
       {/* Beside the window only from lg up: narrower, it would leave the conversation a third of the room. */}
       <ConversationList activeId={conversationId} className={cn("max-lg:hidden")} />
       {conversationId ? <Chat key={conversationId} conversationId={conversationId} /> : <NewConversation />}
@@ -64,7 +65,7 @@ function AgentWindow({ title, tools, working, children }: { title: ReactNode; to
   }, [working]);
   return (
     <div ref={box} className="flex min-w-0 flex-1">
-      <Window className="min-w-0 flex-1" icon={<Logo symbolOnly className="size-5" />} title={title} tools={tools}>
+      <Window className="min-w-0 flex-1 !rounded-[calc(var(--gg-r-window)-8px)] [corner-shape:squircle]" icon={<Logo symbolOnly className="size-5" />} title={title} tools={tools}>
         <div className="absolute inset-0 flex flex-col">{children}</div>
       </Window>
     </div>
