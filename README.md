@@ -54,6 +54,18 @@ The database is created in `data/` on first start, along with `data/secret.key`,
 
 Want to try the interface without spending Claude credits? Set `PLUTON_SIMULATE_AGENT=1` in `.env` to replay a sample Brain.
 
+## Update
+
+When `main` has moved on, the sidebar says so, with the number of changes. To install them:
+
+```bash
+git pull && pnpm install
+```
+
+Then restart `pnpm dev`. The database migrates itself on start, and Settings → What's new lists what changed.
+
+To check, the server asks GitHub's public API how far your commit is behind `main`, at most every six hours: GitHub sees the request and your commit's id, nothing from your workspace. Set `PLUTON_UPDATE_CHECK=off` in `.env` to turn it off.
+
 ## How it works
 
 ### Layout
