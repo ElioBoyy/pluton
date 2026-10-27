@@ -527,14 +527,18 @@ function Pricing({ t, locale }: Props) {
   const p = t.pricing;
   return (
     <section className="pricing section" id="pricing" aria-labelledby="pricing-heading">
-      <img
-        className="price-planet"
-        src="/img/pluto-disc.webp"
-        width="846"
-        height="846"
-        alt="Pluto photographed by New Horizons, July 2015"
-        loading="lazy"
-      />
+      <div className="price-planet">
+        <img
+          className="price-planet-photo"
+          src="/img/pluto-disc.webp"
+          width="846"
+          height="846"
+          alt="Pluto photographed by New Horizons, July 2015"
+          loading="lazy"
+        />
+        {/* Lit by scripts/pluto-light.ts; the photo shows until the canvas has drawn. */}
+        <canvas className="price-planet-light" aria-hidden />
+      </div>
         <Glass weight="thick" className="price-panel reveal" data-plan="own">
           <div className="price-top">
             <h2 id="pricing-heading" className="headline">
