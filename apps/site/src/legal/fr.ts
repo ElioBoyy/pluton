@@ -183,14 +183,14 @@ const fr: Record<LegalDocId, LegalDoc> = {
         body: [
           {
             list: [
-              "« Votre propre IA » : 24,99 € par mois, ou 284,90 € par an. Le Client fournit sa propre clé d'API Anthropic ou OpenAI ; ce fournisseur lui facture directement l'intelligence artificielle. L'offre inclut 600 crédits par mois.",
-              "« Tout compris » : 59 € par mois, ou 672,60 € par an. L'intelligence artificielle est incluse. L'offre inclut 2 000 crédits par mois.",
+              "« Votre propre IA » : 24,99 € par mois, ou 274,89 € par an. Le Client fournit sa propre clé d'API Anthropic ou OpenAI ; ce fournisseur lui facture directement l'intelligence artificielle. L'offre inclut 600 crédits par mois.",
+              "« Tout compris » : 59 € par mois, ou 649 € par an. L'intelligence artificielle est incluse. L'offre inclut 2 000 crédits par mois.",
             ],
           },
           "Les options suivantes peuvent être ajoutées à l'une ou l'autre offre, et retirées, à tout moment :",
           {
             list: [
-              "Compte LinkedIn d'envoi : 15 € par mois et par compte, ou 171 € par an et par compte sur une offre annuelle. L'Éditeur fournit la connexion à LinkedIn, via Unipile.",
+              "Compte LinkedIn d'envoi : 15 € par mois et par compte, ou 165 € par an et par compte sur une offre annuelle. L'Éditeur fournit la connexion à LinkedIn, via Unipile.",
               "Packs de crédits, achetés à l'unité depuis l'application : 1 000 crédits pour 22 €, 2 500 crédits pour 55 €, 5 000 crédits pour 109 €.",
             ],
           },

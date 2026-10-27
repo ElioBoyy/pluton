@@ -10,6 +10,7 @@ import {
   Lightning,
   LinkedinLogo,
   PaperPlaneTilt,
+  Stack,
   TerminalWindow,
   UsersThree,
 } from "@phosphor-icons/react/ssr";
@@ -525,12 +526,12 @@ function Mcp({ t }: Props) {
 
 /* ------------------------------------------------------------------ pricing */
 
-/** The grid in euros, amounts paid. Yearly is twelve months less 5 %, paid once. */
+/** The grid in euros, amounts paid. Yearly is eleven months, paid once: one month free. */
 const PLANS = {
-  own: { month: 24.99, year: 284.9, credits: 600 },
-  all: { month: 59, year: 672.6, credits: 2000 },
+  own: { month: 24.99, year: 274.89, credits: 600 },
+  all: { month: 59, year: 649, credits: 2000 },
 } as const;
-const LINKEDIN = { month: 15, year: 171 };
+const LINKEDIN = { month: 15, year: 165 };
 const PACKS = [
   [1000, 22],
   [2500, 55],
@@ -613,7 +614,7 @@ function Pricing({ t, locale }: Props) {
                     {p.perYear.replace("{month}", euros(locale, Math.round((PLANS[plan].year / 12) * 100) / 100))}
                   </small>
                   <strong className="price-saved bill-year">
-                    {p.saved.replace("{amount}", euros(locale, Math.round(PLANS[plan].month * 12 - PLANS[plan].year)))}
+                    {p.saved.replace("{amount}", euros(locale, Math.round((PLANS[plan].month * 12 - PLANS[plan].year) * 100) / 100))}
                   </strong>
                 </p>
                 <p className="price-credits">{p.credits.replace("{n}", count(locale, PLANS[plan].credits))}</p>
@@ -638,59 +639,67 @@ function Pricing({ t, locale }: Props) {
             </LinkButton>
           </div>
           <div className="price-more">
-            <Card className="price-note">
-              <h3 className="price-note-title">{p.options}</h3>
-              <div className="price-option">
-                <p className="price-option-head">
-                  <strong>{p.linkedin}</strong>
-                  <span className="bill-month">{p.linkedinMonth.replace("{price}", euros(locale, LINKEDIN.month))}</span>
-                  <span className="bill-year">{p.linkedinYear.replace("{price}", euros(locale, LINKEDIN.year))}</span>
+            <h3 className="price-more-title">{p.options}</h3>
+            <div className="price-options">
+              <Card className="price-option">
+                <p className="price-option-name">
+                  <LinkedinLogo weight="fill" aria-hidden />
+                  {p.linkedin}
                 </p>
-                <p className="price-key">{p.linkedinKey}</p>
-                <p>{p.linkedinNote}</p>
-              </div>
-              <div className="price-option">
-                <p className="price-option-head">
-                  <strong>{p.packs}</strong>
+                <p className="price-option-price">
+                  <PriceAmount text={p.linkedinMonth} amount={euros(locale, LINKEDIN.month)} className="bill-month" />
+                  <PriceAmount text={p.linkedinYear} amount={euros(locale, LINKEDIN.year)} className="bill-year" />
                 </p>
-                <dl className="price-packs">
-                  {PACKS.map(([n, price]) => (
-                    <div key={n}>
-                      <dt>{p.pack.replace("{n}", count(locale, n))}</dt>
-                      <dd>{euros(locale, price)}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="price-key">
+                <p className="price-option-key">{p.linkedinKey}</p>
+                <p className="price-option-note">{p.linkedinNote}</p>
+              </Card>
+              <Card className="price-option">
+                <p className="price-option-name">
+                  <Stack weight="fill" aria-hidden />
+                  {p.packs}
+                </p>
+                <ul className="price-packs">
+                  {PACKS.map(([n, price]) => {
+                    const [unitBefore, unitAfter] = p.pack.split("{n}");
+                    return (
+                      <li key={n}>
+                        <span className="price-pack-size">
+                          {unitBefore}
+                          <strong>{count(locale, n)}</strong>
+                          {unitAfter}
+                        </span>
+                        <span className="price-pack-price">{euros(locale, price)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="price-option-key">
                   {fill(p.packsKey, {
                     n: count(locale, 1000),
                     min: count(locale, LEADS.min / 2),
                     max: count(locale, LEADS.max / 2),
                   })}
                 </p>
-                <p>{p.packsNote}</p>
-              </div>
-              <p className="price-footnote">
+                <p className="price-option-note">{p.packsNote}</p>
+              </Card>
+            </div>
+            <h3 className="price-more-title">{p.factsTitle}</h3>
+            <dl className="price-facts">
+              {p.facts.map(([term, text]) => (
+                <div key={term}>
+                  <dt>{term}</dt>
+                  <dd>{text}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="price-small">
+              <p>
                 {before}
                 <a href={LINKEDIN_SOURCE}>{p.linkedinSource}</a>
                 {after}
               </p>
-            </Card>
-            <Card className="price-note">
-              <h3 className="price-note-title">{p.creditsTitle}</h3>
-              {p.creditsText.map((l) => (
-                <p key={l}>{l}</p>
-              ))}
-            </Card>
-            <Card className="price-note">
-              <h3 className="price-note-title">{p.billingTitle}</h3>
-              <ul className="price-billing">
-                {p.billingLines.map((l) => (
-                  <li key={l}>{l}</li>
-                ))}
-              </ul>
-              <p className="price-vat">{p.vat}</p>
-            </Card>
+              <p>{p.vat}</p>
+            </div>
           </div>
         </Glass>
         <p className="self-host reveal">
@@ -701,6 +710,18 @@ function Pricing({ t, locale }: Props) {
           </a>
         </p>
     </section>
+  );
+}
+
+/** "{price} a month per account" with the amount set large and the rest of the sentence beside it. */
+function PriceAmount({ text, amount, className }: { text: string; amount: string; className: string }) {
+  const [before, after] = text.split("{price}");
+  return (
+    <span className={className}>
+      {before && <small>{before}</small>}
+      <strong>{amount}</strong>
+      {after && <small>{after}</small>}
+    </span>
   );
 }
 
