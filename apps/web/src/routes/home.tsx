@@ -1,10 +1,11 @@
 import { CaretRight, CheckCircle, Circle, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { AppLink } from "../components/app-link.tsx";
-import { Group, PageHeader, Progress, Section } from "../components/ui.tsx";
+import { Group, PageHeader, Progress, Section, Segmented } from "../components/ui.tsx";
 import { ActivityFeed } from "../features/activity/activity-feed.tsx";
+import { AllWorkspaces } from "../features/workspaces/all-workspaces.tsx";
 import { LeadsChart } from "../features/plays/leads-chart.tsx";
 import { PILL, PILL_BASE, SCHEDULE_LABELS } from "../features/plays/labels.ts";
 import { useT } from "../i18n/index.ts";
@@ -19,9 +20,25 @@ const NAV_ROW =
 /** A text link at the end of a section's title line. */
 const SECTION_LINK = "inline-flex items-center gap-1 text-sm text-accent hover:underline hover:underline-offset-2";
 
+/** Which Home this device last showed: one workspace, or all of them side by side. */
+const SCOPE_KEY = "pluton.home.scope";
+type Scope = "this" | "all";
+
+function readScope(): Scope {
+  try {
+    return localStorage.getItem(SCOPE_KEY) === "all" ? "all" : "this";
+  } catch {
+    return "this";
+  }
+}
+
 /**
- * The whole account at a glance. The main column reads in the order of the work: what needs you,
- * where the leads stand, what each Play is doing, then the trend. The side column is the account itself: spend, the
+ * The whole account at a glance. With more than one workspace, a switch at the top shows either
+ * this workspace's Home or all of them side by side (their shared credits, what each spent, what
+ * waits in each), in the same window.
+ *
+ * This workspace's view reads in the order of the work: what needs you, where the leads stand,
+ * what each Play is doing, then the trend. The side column is the workspace itself: spend, the
  * LinkedIn accounts sequences send from, and what just happened.
  */
 export function HomePage() {
@@ -29,25 +46,60 @@ export function HomePage() {
   const trpc = useTRPC();
   const navigate = useNavigate();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
+  const count = useQuery(trpc.workspace.list.queryOptions()).data?.length ?? 0;
+  const [picked, setPicked] = useState<Scope>(readScope);
+  const pick = (next: Scope) => {
+    setPicked(next);
+    try {
+      localStorage.setItem(SCOPE_KEY, next);
+    } catch {
+      // Nowhere to remember it: this visit keeps it all the same.
+    }
+  };
+  // One workspace has nothing to compare: its own Home, and no switch.
+  const scope: Scope = count > 1 ? picked : "this";
+  // The same query the view itself reads: only a plan's pot of credits makes them "shared".
+  const pot = useQuery({ ...trpc.workspace.overview.queryOptions(), enabled: scope === "all" }).data?.pot;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10">
-      <PageHeader title={workspace.data?.name ?? t("title")} description={t("description")} />
+      <PageHeader
+        title={scope === "all" ? t("all.title") : (workspace.data?.name ?? t("title"))}
+        // Without a plan's pot (self-hosted), workspaces share no credits: the line says only what the view holds.
+        description={scope === "all" ? t(pot ? "all.description" : "all.descriptionLocal", { count }) : t("description")}
+      />
+      {count > 1 && (
+        <div className="-mt-3 mb-8 max-sm:-mt-1 max-sm:mb-6">
+          <Segmented
+            label={t("scope.label")}
+            options={[
+              { value: "this", label: t("scope.this") },
+              { value: "all", label: t("scope.all") },
+            ]}
+            value={scope}
+            onChange={(v) => pick(v as Scope)}
+          />
+        </div>
+      )}
 
-      <div className="grid items-start gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex min-w-0 flex-col gap-8">
-          <StartHere />
-          <Waiting />
-          <Pipeline />
-          <PlaysStatus />
-          <LeadsChart onView={() => void navigate({ to: "/leads", search: { tab: "all" } })} />
+      {scope === "all" ? (
+        <AllWorkspaces onStay={() => pick("this")} />
+      ) : (
+        <div className="grid items-start gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="flex min-w-0 flex-col gap-8">
+            <StartHere />
+            <Waiting />
+            <Pipeline />
+            <PlaysStatus />
+            <LeadsChart onView={() => void navigate({ to: "/leads", search: { tab: "all" } })} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-8">
+            <SpendCard />
+            <LinkedinCard />
+            <RecentActivity />
+          </div>
         </div>
-        <div className="flex min-w-0 flex-col gap-8">
-          <SpendCard />
-          <LinkedinCard />
-          <RecentActivity />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
