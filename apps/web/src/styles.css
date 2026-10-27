@@ -455,6 +455,27 @@ select {
 }
 
 /*
+ * Leaving: the entrance played back, a little faster. Put on an element while it is closing
+ * (useClosing), before it is removed. Movement is dropped with reduced motion; the fade stays.
+ */
+@utility modal-out {
+  opacity: 0;
+  translate: 0 8px;
+  transition:
+    opacity 200ms var(--ease-out),
+    translate 200ms var(--ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    translate: 0;
+  }
+}
+
+@utility fade-out {
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+}
+
+/*
  * The desktop: Pluto behind the app, New Horizons' dunes by day and its icy mountains at sunset by
  * night, as on the landing page. A wallpaper chosen in Settings → Appearance takes its place, with
  * the blur, colour and veil tuned there.

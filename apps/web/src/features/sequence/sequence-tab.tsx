@@ -33,6 +33,7 @@ import { ConfigurePanel, PanelHeader } from "./configure-panel.tsx";
 import { ENROLLMENT, REPLY_LABEL, REVIEW, delayLabel, when } from "./labels.ts";
 import { StepPanel, type Step } from "./step-panel.tsx";
 import { NeedsYou, Tasks } from "./inbox.tsx";
+import { useClosing } from "../../lib/use-closing.ts";
 
 type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 type ReviewState = "missing" | "being_written" | "not_reviewed" | "reviewed" | "failed";
@@ -300,12 +301,13 @@ function Node({ step, count, selected, onClick, expiry }: { step: Step; count: n
 
 function EnrolledPanel({ data, onClose }: { data: Data; onClose: () => void }) {
   const t = useT("sequence");
+  const [closing, close] = useClosing(onClose);
   const trpc = useTRPC();
   const list = useQuery(trpc.campaigns.enrollments.list.queryOptions({ campaignId: data.campaign.id }, { refetchInterval: 15_000 }));
   return (
-    <Inspector>
+    <Inspector closing={closing}>
       <section className="flex h-full w-full flex-col" aria-label={t("enrolled.title")}>
-        <PanelHeader title={list.data ? t("enrolled.titleCount", { count: list.data.length }) : t("enrolled.title")} onClose={onClose} />
+        <PanelHeader title={list.data ? t("enrolled.titleCount", { count: list.data.length }) : t("enrolled.title")} onClose={close} />
         <div className="flex-1 overflow-y-auto px-4 pt-1 pb-6">
           {list.data?.length === 0 && <p className="py-8 text-center text-sm text-muted">{t("enrolled.empty")}</p>}
           <ul className="flex flex-col gap-2">

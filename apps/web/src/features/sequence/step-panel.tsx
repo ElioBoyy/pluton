@@ -11,6 +11,7 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { PanelHeader } from "./configure-panel.tsx";
 import { ENROLLMENT, REVIEW, languageName } from "./labels.ts";
+import { useClosing } from "../../lib/use-closing.ts";
 
 type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 export type Step = Data["campaign"]["steps"][number];
@@ -21,11 +22,12 @@ const textarea =
 /** Side panel for one step: what it does (Configure) and who is at it (Leads). */
 export function StepPanel({ data, step, onClose, onSaved, onEditTone }: { data: Data; step: Step; onClose: () => void; onSaved: () => void; onEditTone: () => void }) {
   const t = useT("sequence");
+  const [closing, close] = useClosing(onClose);
   const [tab, setTab] = useState<"configure" | "leads">("configure");
   return (
-    <Inspector>
+    <Inspector closing={closing}>
       <section className="flex h-full w-full flex-col" aria-label={step.label}>
-        <PanelHeader eyebrow={step.kind === "message" ? t("step.eyebrowMessage") : t("step.eyebrowStep")} title={step.label} onClose={onClose} />
+        <PanelHeader eyebrow={step.kind === "message" ? t("step.eyebrowMessage") : t("step.eyebrowStep")} title={step.label} onClose={close} />
         <div className="flex shrink-0 justify-center px-5 pb-2">
           <Segmented
             label={t("step.view")}

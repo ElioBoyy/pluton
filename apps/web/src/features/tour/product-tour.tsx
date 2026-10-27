@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { Button } from "../../components/ui.tsx";
 import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
+import { useClosing } from "../../lib/use-closing.ts";
 
 /*
  * The guided tour: a few cards that walk a newcomer through the app, each one lighting up the part
@@ -92,8 +93,10 @@ const MARGIN = 12;
 /** The light around the element a card talks about. */
 const HALO = 6;
 
-function Tour({ onClose }: { onClose: () => void }) {
+function Tour({ onClose: done }: { onClose: () => void }) {
   const t = useT("tour");
+  // Skip, Escape and the last step all fade the tour out before it goes.
+  const [closing, onClose] = useClosing(done);
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const step = STEPS[index]!;
@@ -130,7 +133,7 @@ function Tour({ onClose }: { onClose: () => void }) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] motion-safe:animate-[fadeIn_200ms_ease-out]"
+      className={cn("fixed inset-0 z-[60] motion-safe:animate-[fadeIn_200ms_ease-out]", closing && "fade-out")}
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();
         else if (e.key === "ArrowRight") next();

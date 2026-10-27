@@ -9,6 +9,7 @@ import { Button, Input } from "../../components/ui.tsx";
 import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
+import { useClosing } from "../../lib/use-closing.ts";
 
 export type WorkspaceItem = inferRouterOutputs<AppRouter>["workspace"]["list"][number];
 
@@ -194,7 +195,8 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
 }
 
 /** Name the new workspace and choose what it starts with; then its onboarding begins. */
-export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceItem | undefined; onClose: () => void }) {
+export function NewWorkspaceDialog({ current, onClose: done }: { current: WorkspaceItem | undefined; onClose: () => void }) {
+  const [closing, onClose] = useClosing(done);
   const t = useT("workspaces");
   const tc = useT("common");
   const { create } = useOpenWorkspace();
@@ -208,11 +210,14 @@ export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceIte
   }, [onClose]);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 motion-safe:animate-[fadeIn_160ms_ease-out]", closing && "fade-out")}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
       <form
         role="dialog"
         aria-label={t("newWorkspace")}
-        className="glass w-[min(420px,100%)] p-5"
+        className={cn("glass modal-in w-[min(420px,100%)] p-5", closing && "modal-out")}
         onSubmit={(e) => {
           e.preventDefault();
           create.mutate({ name: name.trim(), copyFrom: settings === "copy" ? (current?.id ?? null) : null }, { onSuccess: onClose });

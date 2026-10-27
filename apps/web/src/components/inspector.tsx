@@ -8,9 +8,20 @@ import { createPortal } from "react-dom";
  */
 export const InspectorSlot = createContext<HTMLElement | null>(null);
 
-export function Inspector({ children }: { children: ReactNode }) {
+/**
+ * `closing` (from useClosing) lets the pane slide out before the page removes it: the shell reads it
+ * from this wrapper, which takes no box of its own.
+ */
+export function Inspector({ children, closing }: { children: ReactNode; closing?: boolean }) {
   const slot = useContext(InspectorSlot);
-  return slot ? createPortal(children, slot) : null;
+  return slot
+    ? createPortal(
+        <div className="contents" data-closing={closing || undefined}>
+          {children}
+        </div>,
+        slot,
+      )
+    : null;
 }
 
 /** Wide enough for the pane to sit beside the content (Tailwind's xl); narrower, it opens over it. */

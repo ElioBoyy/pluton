@@ -237,7 +237,11 @@ export function AppShell() {
             // One width for every inspector, wider than the sidebar it mirrors so a lead's evidence reads in full; pages fill it.
             "w-96 2xl:w-[28rem] max-xl:w-[min(28rem,calc(100vw-16px))]",
             "xl:relative xl:m-2 xl:ml-0 xl:bg-control xl:shadow-[inset_0_0_0_1px_var(--gg-rim-low)]",
+            // Beside the content, it slides a little and fades in as it appears, and back out as it closes.
+            "xl:transition-[translate,opacity] xl:duration-250 xl:ease-out xl:starting:translate-x-4 xl:starting:opacity-0 motion-reduce:xl:starting:translate-x-0",
             "max-xl:drawer max-xl:fixed max-xl:inset-y-2 max-xl:right-2 max-xl:z-40 max-xl:bg-(--gg-material-thick) max-xl:shadow-window max-xl:backdrop-blur-2xl",
+            "xl:has-[[data-closing]]:translate-x-4 xl:has-[[data-closing]]:opacity-0 xl:has-[[data-closing]]:duration-200",
+            "max-xl:has-[[data-closing]]:translate-x-[calc(100%+16px)] max-xl:has-[[data-closing]]:duration-200 motion-reduce:has-[[data-closing]]:translate-x-0 motion-reduce:has-[[data-closing]]:opacity-0",
           )}
         />
         </div>
