@@ -177,31 +177,32 @@ export function LeadDrawer({
               <LeadCampaignBlock leadId={data.id} status={data.status} />
             </Section>
 
+            {/* The two scores first, side by side and large: they are what the verdict weighs. */}
+            <Group className="grid grid-cols-2">
+              <Score label={t("column.fit")} value={data.fit} tone="green" />
+              <Score label={t("column.warmness")} value={data.warmness} tone="orange" />
+            </Group>
+
+            {/* The facts as a two-column list: labels share one edge, values another, whatever their length. */}
             <Group>
-              <Field label={t("drawer.seniority")}>{data.seniority ? t("drawer.seniorityFromTitle", { seniority: data.seniority }) : "—"}</Field>
-              <Field label={t("column.company")}>
-                <span className="flex flex-col items-end">
-                  <span>{data.person.company ?? "—"}</span>
+              <dl className="grid grid-cols-[minmax(6.5rem,auto)_minmax(0,1fr)] gap-x-4 px-4 py-1.5 text-sm">
+                <Fact label={t("drawer.seniority")}>{data.seniority ? t("drawer.seniorityFromTitle", { seniority: data.seniority }) : "—"}</Fact>
+                <Fact label={t("column.company")}>
+                  <span className="block">{data.person.company ?? "—"}</span>
                   {data.person.companyWebsite && (
-                    <a href={withProtocol(data.person.companyWebsite)} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 text-xs text-accent hover:underline">
+                    <a href={withProtocol(data.person.companyWebsite)} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex max-w-full items-center gap-1 text-xs text-accent hover:underline">
                       <span className="truncate">{data.person.companyWebsite.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</span>
                       <ArrowSquareOut size={11} className="shrink-0" />
                     </a>
                   )}
-                </span>
-              </Field>
-              <Field label={t("column.location")}>{data.person.location ?? "—"}</Field>
-              <Field label={t("column.play")}>
-                <Link to="/plays/$playId" params={{ playId: data.playId }} search={{ tab: "leads" }} className="text-accent hover:underline">
-                  {data.playName}
-                </Link>
-              </Field>
-              <Field label={t("column.fit")}>
-                <Meter value={data.fit} tone="green" />
-              </Field>
-              <Field label={t("column.warmness")}>
-                <Meter value={data.warmness} tone="orange" />
-              </Field>
+                </Fact>
+                <Fact label={t("column.location")}>{data.person.location ?? "—"}</Fact>
+                <Fact label={t("column.play")}>
+                  <Link to="/plays/$playId" params={{ playId: data.playId }} search={{ tab: "leads" }} className="text-accent hover:underline">
+                    {data.playName}
+                  </Link>
+                </Fact>
+              </dl>
             </Group>
 
             <CrmSection leadId={data.id} />
@@ -561,11 +562,13 @@ function TimelineItem({ event }: { event: TimelineEvent }) {
 }
 
 /** An inspector row: the label leading, its value trailing and right-aligned. */
-function Field({ label, children }: { label: string; children: ReactNode }) {
+/** One line of the facts list: the label in the first column, the value (any length) in the second. */
+function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Row label={<span className="whitespace-nowrap">{label}</span>} className="[&>div:first-child]:flex-none">
-      <div className="ml-auto flex min-w-0 justify-end text-right text-sm break-words text-muted">{children}</div>
-    </Row>
+    <>
+      <dt className="py-2 text-muted">{label}</dt>
+      <dd className="min-w-0 py-2 break-words">{children}</dd>
+    </>
   );
 }
 
@@ -589,12 +592,17 @@ const Pill = ({ className, children }: { className?: string; children: ReactNode
   <span className={cn("inline-flex rounded-full h-5 shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap", className)}>{children}</span>
 );
 
-function Meter({ value, tone }: { value: number; tone: "green" | "orange" }) {
+/** A score out of 100: the figure large, its bar under it in the score's colour. */
+function Score({ label, value, tone }: { label: string; value: number; tone: "green" | "orange" }) {
   return (
-    <span className="flex items-center gap-2.5">
-      <Progress value={value / 100} tone={tone} className="w-24" />
-      <span className="w-12 text-right text-sm tabular-nums">{value}/100</span>
-    </span>
+    <div className="px-4 pt-3 pb-3.5">
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-1 text-[26px] leading-7 font-bold tracking-[-0.03em] tabular-nums">
+        {value}
+        <span className="ml-0.5 text-sm font-normal tracking-normal text-muted">/100</span>
+      </p>
+      <Progress className="mt-2" value={value / 100} tone={tone} />
+    </div>
   );
 }
 

@@ -16,13 +16,14 @@ import { cn } from "../../lib/cn.ts";
 
 const DONE_KEY = "pluton.tour.done";
 
-type StepKey = "welcome" | "loop" | "brain" | "plays" | "leads" | "agent" | "help";
+type StepKey = "welcome" | "loop" | "brain" | "plays" | "leads" | "messages" | "agent" | "help";
 const STEPS: Array<{ key: StepKey; target?: string }> = [
   { key: "welcome" },
   { key: "loop" },
   { key: "brain", target: "brain" },
   { key: "plays", target: "plays" },
   { key: "leads", target: "leads" },
+  { key: "messages", target: "messages" },
   { key: "agent", target: "ask" },
   { key: "help", target: "help" },
 ];
@@ -100,8 +101,25 @@ function Tour({ onClose }: { onClose: () => void }) {
   const target = useTargetRect(step.target);
   const card = useRef<HTMLDivElement>(null);
   const [cardHeight, setCardHeight] = useState(0);
+  // The card stays mounted from step to step and glides to its next place with the light; only its
+  // words change. It glides only once it has been placed, so it doesn't fly in from the corner.
+  const [placed, setPlaced] = useState(false);
 
-  useLayoutEffect(() => setCardHeight(card.current?.offsetHeight ?? 0), [index]);
+  useLayoutEffect(() => {
+    const el = card.current;
+    if (!el) return;
+    const measure = () => setCardHeight(el.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    const frame = requestAnimationFrame(() => setPlaced(true));
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+  // Each step hands the focus to its main button, so Enter keeps going.
+  useEffect(() => card.current?.querySelector<HTMLElement>("[data-tour-next]")?.focus(), [index]);
 
   const next = () => {
     if (!last) return setIndex(index + 1);
@@ -139,13 +157,17 @@ function Tour({ onClose }: { onClose: () => void }) {
 
       <div
         ref={card}
-        key={index}
         role="dialog"
         aria-modal="true"
         aria-labelledby="tour-title"
-        className="glass modal-in fixed flex w-[22rem] max-w-[calc(100vw-2rem)] flex-col p-5"
+        className={cn(
+          "glass fixed flex w-[22rem] max-w-[calc(100vw-2rem)] flex-col p-5",
+          placed && "transition-[top,left] duration-300 ease-out motion-reduce:transition-none",
+        )}
         style={placeCard(target, cardHeight)}
       >
+        {/* Keyed by step: the words fade in place while the card moves. */}
+        <div key={index} className="motion-safe:animate-[fadeIn_200ms_ease-out]">
         {step.key === "welcome" && <AppIcon className="mb-4 size-12 rounded-[calc(13px*var(--gg-k))]" />}
         <p className="text-xs text-muted">
           {t("label")} · {t("step", { current: index + 1, total: STEPS.length })}
@@ -171,6 +193,7 @@ function Tour({ onClose }: { onClose: () => void }) {
         ) : (
           <p className="mt-2 text-sm text-muted text-pretty">{t(`${step.key}.body`)}</p>
         )}
+        </div>
 
         <div className="mt-5 flex items-center gap-2">
           {last ? (
@@ -185,8 +208,7 @@ function Tour({ onClose }: { onClose: () => void }) {
               {t("back")}
             </Button>
           )}
-          {/* The card mounts again at each step, so the main button takes the focus every time. */}
-          <Button type="button" onClick={next} autoFocus>
+          <Button type="button" onClick={next} data-tour-next>
             {step.key === "welcome" ? t("welcome.start") : last ? t("finish") : t("next")}
           </Button>
         </div>
@@ -216,7 +238,8 @@ function Dots({ index }: { index: number }) {
  */
 function placeCard(target: DOMRect | null, height: number): React.CSSProperties {
   const width = Math.min(352, window.innerWidth - 32);
-  if (!target) return { top: "50%", left: "50%", translate: "-50% -50%" };
+  // Centred in pixels rather than with a translate, so a move to or from the middle glides too.
+  if (!target) return { top: Math.max(MARGIN, (window.innerHeight - height) / 2), left: (window.innerWidth - width) / 2 };
   const clampTop = (top: number) => Math.max(MARGIN, Math.min(top, window.innerHeight - height - MARGIN));
   const clampLeft = (left: number) => Math.max(MARGIN, Math.min(left, window.innerWidth - width - MARGIN));
   if (target.left < window.innerWidth * 0.4 && target.right + GAP + width + MARGIN <= window.innerWidth) {
