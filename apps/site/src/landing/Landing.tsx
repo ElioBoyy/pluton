@@ -463,7 +463,8 @@ function Compose({ t, locale }: Props) {
 
 /* ------------------------------------------------------------------ your AI */
 
-const MCP_URL = "http://localhost:8787/api/mcp";
+/** The hosted app's MCP server; self-hosted, the app shows its own address (localhost) in Settings → MCP. */
+const MCP_URL = "https://app.plut0n.com/api/mcp";
 const TOKEN = "pluton_…";
 const CLIENTS = {
   code: `claude mcp add --transport http pluton ${MCP_URL} --header "Authorization: Bearer ${TOKEN}"`,
