@@ -15,7 +15,7 @@ type TryInput = inferRouterInputs<AppRouter>["providers"]["try"];
 type TryOutput = inferRouterOutputs<AppRouter>["providers"]["try"];
 
 /** Tinted status pills; the light appearance darkens the text so it stays readable on its tint. */
-const PILL = "inline-flex h-[18px] shrink-0 items-center gap-1 px-2 text-xs font-medium whitespace-nowrap";
+const PILL = "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap";
 const ACCESS = {
   free: { className: "bg-system-green/15 text-[color-mix(in_srgb,var(--color-system-green)_75%,black)] dark:text-system-green" },
   subscription: { className: "bg-system-purple/15 text-system-purple" },
@@ -94,7 +94,7 @@ function ProviderRow({
           {p.powers.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-1">
               {p.powers.map((s) => (
-                <li key={s} className="bg-control px-2 py-px text-xs text-muted">
+                <li key={s} className="inline-flex h-5 items-center rounded-full bg-control px-2 text-xs text-muted">
                   {s}
                 </li>
               ))}
