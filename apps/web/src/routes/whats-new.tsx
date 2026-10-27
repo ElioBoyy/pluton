@@ -60,7 +60,7 @@ export function WhatsNewPage() {
           <section key={release.title} className="[&+&]:mt-10">
             <h2 className="flex items-center gap-2 text-lg font-semibold tracking-[-0.01em]">
               {t(release.title)}
-              {i === 0 && <span className="bg-accent/15 px-2 py-0.5 text-xs font-medium tracking-normal text-accent">{t("whatsNew.latest")}</span>}
+              {i === 0 && <span className="inline-flex h-5 items-center rounded-full bg-accent/15 px-2 text-xs font-medium tracking-normal text-accent">{t("whatsNew.latest")}</span>}
             </h2>
             <ul className="mt-3 flex flex-col gap-2.5 text-base text-pretty">
               {release.items.map((item) => (

@@ -72,7 +72,7 @@ export function LeadCrmBlock({ leadId }: { leadId: string }) {
           <span className="font-medium">{NAMES[e.provider]}</span>
           <span
             className={cn(
-              "shrink-0 px-2 py-0.5 text-xs font-medium",
+              "inline-flex h-5 shrink-0 items-center rounded-full px-2 text-xs font-medium",
               e.status === "created" ? "bg-system-green/15 text-system-green" : e.status === "exists" ? "bg-control text-muted" : "bg-system-orange/15 text-system-orange",
             )}
           >
