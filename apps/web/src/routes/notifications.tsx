@@ -11,6 +11,7 @@ import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { useChannel } from "../lib/use-job-events.ts";
+import { TimePicker } from "../components/time-picker.tsx";
 
 type Settings = inferRouterOutputs<AppRouter>["notifications"]["settings"]["settings"];
 
@@ -75,9 +76,8 @@ export function NotificationsPage() {
               />
             </Row>
             <Row label={<label htmlFor="digest-time">{t("digest.at")}</label>} description={t("digest.atHint")} className={cn(off && "opacity-50")}>
-              {/* Input is w-full: the wrapper sets its width. */}
               <div className="w-28 shrink-0">
-                <Input id="digest-time" type="time" value={form.digestTime} onChange={(e) => setForm({ ...form, digestTime: e.target.value })} disabled={off} />
+                <TimePicker id="digest-time" value={form.digestTime} onChange={(digestTime) => setForm({ ...form, digestTime })} disabled={off} />
               </div>
             </Row>
             <Row
