@@ -136,6 +136,7 @@ export function LeadsView({
   }, [searchInput]);
 
   const filter = { playId, tab, search: search || undefined, pipeline: (pipeline || undefined) as LeadRow["pipeline"] & {} | undefined };
+  const pinActions = tab === "to_review" || tab === "new";
   // A new filter starts a new page and a new selection.
   const filterKey = JSON.stringify(filter);
   useEffect(() => {
@@ -287,6 +288,7 @@ export function LeadsView({
       ) : (
         <Group className="overflow-x-auto">
           {/* NSTableView: small secondary headers that never wrap, zebra rows instead of separators. */}
+          {/* Where a verdict is the job, the buttons for it are always in view, not only on hover. */}
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs whitespace-nowrap text-muted">
@@ -297,7 +299,7 @@ export function LeadsView({
                 {COLUMNS.filter((c) => has(c)).map((c) => (
                   <SortHeader key={c} label={t(`column.${c}`)} sortKey={COLUMN_SORT[c]} sort={sort} onSort={sortBy} alignRight={c === "fit" || c === "warmness"} />
                 ))}
-                <th className="w-0 p-0 [@media(hover:none)]:w-auto">
+                <th className={pinActions ? "w-auto" : "w-0 p-0 [@media(hover:none)]:w-auto"}>
                   <span className="sr-only">{t("table.actions")}</span>
                 </th>
               </tr>
@@ -308,6 +310,7 @@ export function LeadsView({
                   key={l.id}
                   lead={l}
                   has={has}
+                  pinActions={pinActions}
                   selected={allMatching || selected.has(l.id)}
                   open={l.id === openLeadId}
                   onToggle={() => toggle(l.id)}
@@ -369,6 +372,7 @@ function SortHeader({
 function Row({
   lead: l,
   has,
+  pinActions,
   selected,
   open,
   onToggle,
@@ -376,6 +380,7 @@ function Row({
 }: {
   lead: LeadRow;
   has: (c: ColumnKey) => boolean;
+  pinActions: boolean;
   selected: boolean;
   open: boolean;
   onToggle: () => void;
@@ -505,12 +510,21 @@ function Row({
         * With a pointer, the actions float over the row's trailing edge in a small block, on hover or
         * keyboard focus, as in Mail, so they take no column. On touch screens they sit in their own column.
         */}
-      <td className="sticky right-0 w-0 p-0 [@media(hover:none)]:static [@media(hover:none)]:w-auto [@media(hover:none)]:py-1.5 [@media(hover:none)]:pr-3" onClick={stop}>
+      <td
+        className={
+          pinActions
+            ? "w-auto py-1.5 pr-3"
+            : "sticky right-0 w-0 p-0 [@media(hover:none)]:static [@media(hover:none)]:w-auto [@media(hover:none)]:py-1.5 [@media(hover:none)]:pr-3"
+        }
+        onClick={stop}
+      >
         <div
           className={cn(
             "flex justify-end gap-0.5 transition-opacity duration-150",
-            "[@media(hover:hover)]:absolute [@media(hover:hover)]:rounded-full [@media(hover:hover)]:bg-float [@media(hover:hover)]:shadow-control [@media(hover:hover)]:backdrop-blur-xl [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
-            !rejecting &&
+            !pinActions &&
+              "[@media(hover:hover)]:absolute [@media(hover:hover)]:rounded-full [@media(hover:hover)]:bg-float [@media(hover:hover)]:shadow-control [@media(hover:hover)]:backdrop-blur-xl [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
+            !pinActions &&
+              !rejecting &&
               "[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:pointer-events-auto [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
           )}
         >
@@ -526,14 +540,17 @@ function Row({
           <RowAction ref={rejectRef} label={t("action.notFit")} active={l.status === "rejected"} onClick={() => setRejecting(true)} disabled={review.isPending}>
             <ThumbsDown size={15} weight={l.status === "rejected" ? "fill" : "regular"} />
           </RowAction>
-          {!l.sequenceStatus && l.status !== "rejected" && (
+          {/* Pinned, the row keeps only the verdict; the rest is in the lead's drawer and its menu. */}
+          {!pinActions && !l.sequenceStatus && l.status !== "rejected" && (
             <RowAction label={t("action.addToCampaign")} onClick={() => setAdding(true)}>
               <PaperPlaneTilt size={15} />
             </RowAction>
           )}
-          <RowAction label={t("action.addNote")} onClick={() => onOpen(true)}>
-            <ChatCircle size={15} />
-          </RowAction>
+          {!pinActions && (
+            <RowAction label={t("action.addNote")} onClick={() => onOpen(true)}>
+              <ChatCircle size={15} />
+            </RowAction>
+          )}
           {adding && <AddToCampaignModal leadIds={[l.id]} onClose={() => setAdding(false)} />}
           {rejecting && (
             <RejectPopover
