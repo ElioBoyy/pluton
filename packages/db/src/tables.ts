@@ -42,6 +42,7 @@ export const integrations = active.integrations;
 export const crmExports = active.crmExports;
 export const slackPosts = active.slackPosts;
 export const mcpClients = active.mcpClients;
+export const apiKeys = active.apiKeys;
 export const copilotConversations = active.copilotConversations;
 export const copilotMessages = active.copilotMessages;
 export const copilotActions = active.copilotActions;

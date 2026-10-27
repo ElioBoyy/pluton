@@ -16,3 +16,4 @@ export * from "./outreach-writer.ts";
 export * from "./sequence-engine.ts";
 export * from "./copilot.ts";
 export * from "./claude-access.ts";
+export * from "./ai-errors.ts";

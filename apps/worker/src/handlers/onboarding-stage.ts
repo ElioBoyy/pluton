@@ -1,5 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { runOnboardingStage, runSimulatedOnboardingStage } from "@pluton/agent";
+import { aiFailure, runOnboardingStage, runSimulatedOnboardingStage } from "@pluton/agent";
 import {
   RESEARCH_STEPS,
   getSession,
@@ -41,14 +40,8 @@ export const onboardingStage: JobHandler = async ({ db, job, signal }) => {
 };
 
 function describeFailure(error: unknown) {
-  if (error instanceof Anthropic.AuthenticationError) {
-    return t("invalidKey");
-  }
-  if (error instanceof Anthropic.RateLimitError) return t("rateLimited");
-  if (error instanceof Anthropic.APIError) return t("apiError", { status: String(error.status) });
-  // Raised by the SDK before any request, e.g. when no credentials are configured.
-  if (error instanceof Anthropic.AnthropicError) {
-    return t("noKey");
-  }
-  return t("failed", { error: error instanceof Error ? error.message : String(error) });
+  const failure = aiFailure(error);
+  if (!failure) return t("failed", { error: error instanceof Error ? error.message : String(error) });
+  if (failure.kind === "apiError") return t("apiError", { provider: failure.provider, status: failure.status });
+  return t(failure.kind, { provider: failure.provider });
 }

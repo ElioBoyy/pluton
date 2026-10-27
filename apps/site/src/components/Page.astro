@@ -7,7 +7,7 @@ interface Props { locale: Locale }
 const { locale } = Astro.props;
 const t = strings(locale);
 ---
-<Base locale={locale} t={t}>
+<Base locale={locale} t={t} home>
   <Landing t={t} locale={locale} />
   <script src="../scripts/landing.ts"></script>
 </Base>

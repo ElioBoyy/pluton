@@ -693,6 +693,29 @@ export const mcpClients = pgTable(
   (t) => [uniqueIndex("mcp_client_name_idx").on(t.workspaceId, t.name)],
 );
 
+/**
+ * Keys for Pluton's own API (/api/v1) and its MCP server, as many as a workspace wants, each with
+ * the permissions it was given. Only a hash of the key is kept: it is shown once, when created.
+ */
+export const apiKeys = pgTable(
+  "api_key",
+  {
+    id: id(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** The key's first characters, so the list can tell keys apart without holding them. */
+    prefix: text("prefix").notNull(),
+    /** sha256 of the whole key, hex. */
+    hash: text("hash").notNull(),
+    permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
+    lastUsedAt: timestamp("last_used_at", { mode: "date", precision: 3, withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("api_key_hash_idx").on(t.hash), index("api_key_workspace_idx").on(t.workspaceId)],
+);
+
 /** A conversation with the Pluton agent (/agent and ⌘K). */
 export const copilotConversations = pgTable(
   "copilot_conversation",
