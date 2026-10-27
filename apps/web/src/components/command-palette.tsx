@@ -2,6 +2,7 @@ import {
   ArrowSquareOut,
   Brain,
   ChatCircle,
+  ChatCircleText,
   CircleNotch,
   Lightning,
   MagnifyingGlass,
@@ -26,6 +27,7 @@ const KINDS: Record<SearchHit["kind"], Icon> = {
   play: Lightning,
   brain: Brain,
   conversation: ChatCircle,
+  message: ChatCircleText,
 };
 
 type Result = { ask: true; label: string } | ({ ask: false } & SearchHit);
@@ -34,10 +36,11 @@ type Result = { ask: true; label: string } | ({ ask: false } & SearchHit);
 const DEBOUNCE_MS = 120;
 
 /** The round buttons beside the field, like Spotlight's Applications / Files / Shortcuts. */
-const QUICK: Array<{ label: "nav.brain" | "nav.plays" | "nav.leads" | "palette.newPlay"; to: string; icon: Icon }> = [
+const QUICK: Array<{ label: "nav.brain" | "nav.plays" | "nav.leads" | "nav.messages" | "palette.newPlay"; to: string; icon: Icon }> = [
   { label: "nav.brain", to: "/brain", icon: Brain },
   { label: "nav.plays", to: "/plays", icon: Lightning },
   { label: "nav.leads", to: "/leads", icon: UsersThree },
+  { label: "nav.messages", to: "/messages", icon: ChatCircleText },
   { label: "palette.newPlay", to: "/plays/new", icon: Plus },
 ];
 
