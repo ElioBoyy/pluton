@@ -9,6 +9,7 @@ import { LEAD_TABS, type LeadTabKey } from "./features/leads/labels.ts";
 import { LeadsPage } from "./features/leads/leads-page.tsx";
 import { PlaysPage } from "./features/plays/plays-page.tsx";
 import { ActivityPage } from "./routes/activity.tsx";
+import { ApiAccessPage } from "./routes/api.tsx";
 import { ApiKeysPage } from "./routes/api-keys.tsx";
 import { BudgetPage } from "./routes/budget.tsx";
 import { NotificationsPage } from "./routes/notifications.tsx";
@@ -143,6 +144,7 @@ const SETTINGS_PAGES: Record<(typeof SETTINGS_SECTIONS)[number]["slug"], () => R
   appearance: AppearancePage,
   "data-sources": DataSourcesPage,
   "api-keys": ApiKeysPage,
+  api: ApiAccessPage,
   linkedin: LinkedinPage,
   notifications: NotificationsPage,
   usage: UsagePage,

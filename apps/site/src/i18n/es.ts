@@ -205,7 +205,7 @@ export default {
     all: "Todo incluido",
     perMonth: "al mes",
     ownLines: [
-      "Usa tu propia clave API de Anthropic, facturada por Anthropic al coste real",
+      "Usa tu propia clave API de Anthropic u OpenAI, facturada por ese proveedor al coste real",
       "Brain, Plays, leads, secuencias de LinkedIn y email",
       "Slack, HubSpot, Attio, Pipedrive y MCP para tu IA",
       "Sigue funcionando con el portátil cerrado",
@@ -236,8 +236,8 @@ export default {
         "Solo actúa dentro de una franja de envío entre semana, con límites diarios por cuenta (80 visitas, 20 invitaciones, 50 mensajes por defecto) y con pausas aleatorias entre acciones. Puedes cambiarlo todo, o enviarlo todo a mano.",
       ],
       [
-        "¿Necesito mi propia cuenta de Claude?",
-        "Con el plan de 39,99 €, sí: aportas una clave API de Anthropic, y Anthropic te factura lo que Pluton consume, al coste real. Con el plan de 59,99 €, Claude está incluido hasta una cuota mensual.",
+        "¿Necesito mi propia cuenta de Claude u OpenAI?",
+        "Con el plan de 39,99 €, sí: aportas una clave API de Anthropic u OpenAI, y ese proveedor te factura lo que Pluton consume, al coste real. Con el plan de 59,99 €, Claude está incluido hasta una cuota mensual.",
       ],
       [
         "¿Puedo usarlo desde Claude Code o Codex?",

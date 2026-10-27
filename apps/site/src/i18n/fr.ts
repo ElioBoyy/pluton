@@ -205,7 +205,7 @@ export default {
     all: "Tout compris",
     perMonth: "par mois",
     ownLines: [
-      "Votre propre clé API Anthropic, facturée par Anthropic au coût réel",
+      "Votre propre clé API Anthropic ou OpenAI, facturée par ce fournisseur au coût réel",
       "Brain, Plays, leads, séquences LinkedIn et email",
       "Slack, HubSpot, Attio, Pipedrive et MCP pour votre IA",
       "Tourne même ordinateur fermé",
@@ -236,8 +236,8 @@ export default {
         "Il n'agit que dans une plage d'envoi en semaine, sous des limites quotidiennes par compte (80 visites, 20 invitations, 50 messages par défaut) et avec des pauses aléatoires entre les actions. Tout se règle, et vous pouvez tout envoyer à la main.",
       ],
       [
-        "Ai-je besoin de mon propre compte Claude ?",
-        "Avec la formule à 39,99 €, oui : vous apportez une clé API Anthropic, et Anthropic vous facture ce que Pluton consomme, au coût réel. Avec la formule à 59,99 €, Claude est inclus jusqu'à un quota mensuel.",
+        "Ai-je besoin de mon propre compte Claude ou OpenAI ?",
+        "Avec la formule à 39,99 €, oui : vous apportez une clé API Anthropic ou OpenAI, et ce fournisseur vous facture ce que Pluton consomme, au coût réel. Avec la formule à 59,99 €, Claude est inclus jusqu'à un quota mensuel.",
       ],
       [
         "Puis-je l'utiliser depuis Claude Code ou Codex ?",

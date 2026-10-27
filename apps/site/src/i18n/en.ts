@@ -204,7 +204,7 @@ export default {
     all: "All included",
     perMonth: "per month",
     ownLines: [
-      "Bring your own Anthropic API key, billed by Anthropic at cost",
+      "Bring your own Anthropic or OpenAI API key, billed by that provider at cost",
       "Brain, Plays, leads, LinkedIn and email sequences",
       "Slack, HubSpot, Attio, Pipedrive and MCP for your AI",
       "Keeps running while your laptop is closed",
@@ -235,8 +235,8 @@ export default {
         "It acts only inside a weekday sending window, within daily limits per account (80 visits, 20 invitations, 50 messages by default) and with random gaps between actions. You can change all of it, or send everything by hand.",
       ],
       [
-        "Do I need my own Claude account?",
-        "On the 39.99 € plan, yes: you bring an Anthropic API key, and Anthropic bills you for what Pluton uses, at cost. On the 59.99 € plan Claude is included up to a monthly quota.",
+        "Do I need my own Claude or OpenAI account?",
+        "On the 39.99 € plan, yes: you bring an Anthropic or OpenAI API key, and that provider bills you for what Pluton uses, at cost. On the 59.99 € plan Claude is included up to a monthly quota.",
       ],
       [
         "Can I use it from Claude Code or Codex?",
