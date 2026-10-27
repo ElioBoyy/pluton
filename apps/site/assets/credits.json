@@ -110,5 +110,57 @@
   "credit": "\"Pluto - A world in the Kuiper Belt - NASA's New Horizons - 2015 (53388250354)\" by Andrea Luck, CC BY 2.0, via Wikimedia Commons",
   "notes": [],
   "saved": "2026-10-26T12:27:45.000Z"
+ },
+ {
+  "file": "public/img/pluto-map.webp",
+  "media": "image",
+  "ref": "nasa:PIA11707",
+  "title": "Pluto Color Map (PIA11707)",
+  "creator": "NASA/JHUAPL/SwRI",
+  "creatorUrl": null,
+  "date": "2017-01-19",
+  "license": "public domain",
+  "licenseCode": "pd",
+  "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+  "creditRequired": false,
+  "page": "https://www.jpl.nasa.gov/images/pia11707-pluto-color-map/",
+  "via": "NASA/JPL Photojournal",
+  "image": "https://photojournal.jpl.nasa.gov/jpeg/PIA11707.jpg",
+  "width": 5926,
+  "height": 2963,
+  "bytes": 1423389,
+  "credit": "\"Pluto Color Map\" (PIA11707) by NASA/JHUAPL/SwRI, public domain, via NASA/JPL",
+  "notes": [
+   "Colour and tone of the globe behind the price, with the USGS mosaic's detail laid over it; 4096 wide.",
+   "On the far side, seen only at ~30 km/px, the fine relief is reconstructed from well-imaged terrain and is not real.",
+   "The south, in polar night in 2015, is filled from the mirrored north and is not real."
+  ],
+  "saved": "2026-10-27T02:15:00.000Z"
+ },
+ {
+  "file": "public/img/pluto-map.webp",
+  "media": "image",
+  "ref": "usgs:pluto-global-mosaic-300m",
+  "title": "Pluto New Horizons LORRI-MVIC Global Mosaic 300m",
+  "creator": "USGS Astrogeology Science Center, NASA New Horizons",
+  "creatorUrl": null,
+  "date": "2017-07",
+  "license": "public domain",
+  "licenseCode": "pd",
+  "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+  "creditRequired": false,
+  "page": "https://astrogeology.usgs.gov/search/map/pluto_new_horizons_lorri_mvic_global_mosaic_300m",
+  "via": "USGS Astrogeology",
+  "image": "https://planetarymaps.usgs.gov/mosaic/Pluto_NewHorizons_Global_Mosaic_300m_Jul2017_8bit.tif",
+  "width": 24888,
+  "height": 12444,
+  "bytes": 309806463,
+  "credit": "\"Pluto New Horizons LORRI-MVIC Global Mosaic 300m\" by USGS Astrogeology / NASA New Horizons, public domain",
+  "notes": [
+   "Scaled down and laid over NASA's colour map (PIA11707) for the detail of the globe behind the price.",
+   "On the far side, seen only at ~30 km/px, the fine relief is reconstructed from well-imaged terrain and is not real.",
+   "The south, in polar night in 2015, is filled from the mirrored north and is not real."
+  ],
+  "saved": "2026-10-27T02:20:00.000Z"
  }
 ]

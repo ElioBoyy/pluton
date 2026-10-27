@@ -7,7 +7,7 @@ related_targets: []
 
 # Landing page (apps/site)
 
-Mode: Persuade. Audience: B2B founders who do their own sales, small sales teams, GTM engineers. Action: start the hosted plan (19.99 € own AI / 49.99 € all included) or self-host from GitHub. Proof: the product's own interface and mechanism, plus the real 1930 discovery plates of Pluto. No invented customers, quotes or numbers. Languages: en, fr, it, es, de.
+Mode: Persuade. Audience: B2B founders who do their own sales, small sales teams, GTM engineers. Action: start the hosted plan (39.99 € own AI / 59.99 € all included) or self-host from GitHub. Proof: the product's own interface and mechanism, plus the real 1930 discovery plates of Pluto. No invented customers, quotes or numbers. Languages: en, fr, it, es, de.
 
 ## Direction contract
 

@@ -1,5 +1,6 @@
 // Behaviour for the landing page. Everything here enhances markup that already reads and works without it.
 import { aiSettle, aiStart, wireGlass } from "@pluton/glass/behaviors";
+import { lightPluto } from "./pluto-light.ts";
 
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, reduced ? Math.min(ms, 60) : ms));
@@ -383,6 +384,11 @@ if (flyover) {
     } else flyover.pause();
   }).observe(flyover);
 }
+
+/* ------------------------------------------------------------------ Pluto behind the price catches the light */
+
+const planet = $(".price-planet");
+if (planet) lightPluto(planet, reduced);
 
 /* ------------------------------------------------------------------ the desktop steps back once the hero is behind you */
 

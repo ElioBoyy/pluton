@@ -7,17 +7,21 @@ import { useTRPC } from "../../lib/trpc.ts";
 import { authStateQuery, post } from "../account/auth-state.ts";
 import { useResetOnReturn } from "../../lib/redirect.ts";
 
-const CONSOLE_KEYS = "https://console.anthropic.com/settings/keys";
-const CONSOLE_BILLING = "https://console.anthropic.com/settings/billing";
+/** Where each provider makes keys and takes credits, and what its keys look like. */
+const PROVIDERS = {
+  anthropic: { setting: "anthropic_api_key", keys: "https://console.anthropic.com/settings/keys", billing: "https://console.anthropic.com/settings/billing", placeholder: "sk-ant-…" },
+  openai: { setting: "openai_api_key", keys: "https://platform.openai.com/api-keys", billing: "https://platform.openai.com/settings/organization/billing/overview", placeholder: "sk-…" },
+} as const;
+type Provider = keyof typeof PROVIDERS;
 const INSTALL_CLAUDE_CODE = "curl -fsSL https://claude.ai/install.sh | bash";
 
 type Way = "subscription" | "api_key";
 
 /**
  * Nothing runs before Pluton can reach Claude, so the onboarding opens on this when it can't.
- * Hosted, on the Bring your own AI plan: the workspace's Anthropic API key. On your own computer:
- * your Claude subscription through Claude Code, or an API key. A key is saved, then proven with a
- * real call; one Anthropic refuses is removed again, so a saved key always works.
+ * Hosted, on the Bring your own AI plan: the workspace's API key, Anthropic's or OpenAI's. On your
+ * own computer: your Claude subscription through Claude Code, or an API key. A key is saved, then
+ * proven with a real call; one the provider refuses is removed again, so a saved key always works.
  */
 export function ConnectAiModal() {
   const t = useT("onboarding");
@@ -26,6 +30,7 @@ export function ConnectAiModal() {
   // Checked again when you come back from the terminal or the console.
   const access = useQuery({ ...trpc.settings.ai.queryOptions(), refetchOnWindowFocus: true });
   const [way, setWay] = useState<Way | null>(null);
+  const [provider, setProvider] = useState<Provider>("anthropic");
 
   if (!auth || !access.data || access.data.ready) return null;
   const hosted = auth.hosted;
@@ -58,7 +63,25 @@ export function ConnectAiModal() {
             </div>
           )}
 
-          {chosen === "subscription" ? <ClaudeCodeSteps installed={access.data.claudeCodeInstalled} /> : <ApiKeyForm switchBackend={!hosted && access.data.backend !== "api_key"} />}
+          {chosen === "subscription" ? (
+            <ClaudeCodeSteps installed={access.data.claudeCodeInstalled} />
+          ) : (
+            <>
+              <div className="mt-5">
+                <Segmented
+                  label={t("ai.provider")}
+                  options={[
+                    { value: "anthropic", label: t("ai.provider.anthropic") },
+                    { value: "openai", label: t("ai.provider.openai") },
+                  ]}
+                  value={provider}
+                  onChange={(v) => setProvider(v as Provider)}
+                />
+              </div>
+              {/* Keyed by provider: a key typed for one isn't sent to the other. */}
+              <ApiKeyForm key={provider} provider={provider} switchBackend={!hosted && access.data.backend !== "api_key"} />
+            </>
+          )}
 
           {hosted && <SwitchPlan />}
         </div>
@@ -125,8 +148,10 @@ function Command({ text }: { text: string }) {
   );
 }
 
-/** Where to make an Anthropic API key, then the key, saved and proven. */
-function ApiKeyForm({ switchBackend }: { switchBackend: boolean }) {
+/** Where to make the provider's API key, then the key, saved and proven. */
+function ApiKeyForm({ provider, switchBackend }: { provider: Provider; switchBackend: boolean }) {
+  const p = PROVIDERS[provider];
+  const openai = provider === "openai";
   const t = useT("onboarding");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -138,10 +163,10 @@ function ApiKeyForm({ switchBackend }: { switchBackend: boolean }) {
     mutationFn: async () => {
       // On your own computer the default is the subscription: an API key means switching to it.
       if (switchBackend) await save.mutateAsync({ key: "agent_backend", value: "api_key" });
-      await save.mutateAsync({ key: "anthropic_api_key", value: key.trim() });
-      const result = await test.mutateAsync({ key: "anthropic_api_key" });
+      await save.mutateAsync({ key: p.setting, value: key.trim() });
+      const result = await test.mutateAsync({ key: p.setting });
       if (!result.ok) {
-        await save.mutateAsync({ key: "anthropic_api_key", value: null });
+        await save.mutateAsync({ key: p.setting, value: null });
         throw new Error(result.message);
       }
     },
@@ -156,11 +181,11 @@ function ApiKeyForm({ switchBackend }: { switchBackend: boolean }) {
     <>
       <ol className="mt-5 flex flex-col gap-3 text-sm">
         <Step n={1}>
-          {t("ai.step1")} <ExternalLink href={CONSOLE_KEYS}>{t("ai.console")}</ExternalLink>
+          {t(openai ? "ai.openai.step1" : "ai.step1")} <ExternalLink href={p.keys}>{t(openai ? "ai.openai.console" : "ai.console")}</ExternalLink>
         </Step>
-        <Step n={2}>{t("ai.step2")}</Step>
+        <Step n={2}>{t(openai ? "ai.openai.step2" : "ai.step2")}</Step>
         <Step n={3}>
-          {t("ai.step3")} <ExternalLink href={CONSOLE_BILLING}>{t("ai.billing")}</ExternalLink>
+          {t(openai ? "ai.openai.step3" : "ai.step3")} <ExternalLink href={p.billing}>{t("ai.billing")}</ExternalLink>
         </Step>
       </ol>
 
@@ -171,16 +196,16 @@ function ApiKeyForm({ switchBackend }: { switchBackend: boolean }) {
           connect.mutate();
         }}
       >
-        <label htmlFor="anthropic-key" className="text-sm font-medium">
+        <label htmlFor="ai-key" className="text-sm font-medium">
           {t("ai.label")}
         </label>
         <Input
-          id="anthropic-key"
+          id="ai-key"
           type="password"
           autoComplete="off"
           spellCheck={false}
           required
-          placeholder="sk-ant-…"
+          placeholder={p.placeholder}
           value={key}
           onChange={(e) => {
             setKey(e.target.value);
@@ -190,7 +215,7 @@ function ApiKeyForm({ switchBackend }: { switchBackend: boolean }) {
         />
         {connect.isError && (
           <p role="alert" className="text-sm text-system-orange">
-            {t("ai.invalid")}
+            {t(openai ? "ai.openai.invalid" : "ai.invalid")}
           </p>
         )}
         <Button type="submit" disabled={connect.isPending || !key.trim()} className="mt-1 h-9 w-full">

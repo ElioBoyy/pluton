@@ -270,7 +270,7 @@ function IncludedUsage({ quota: q }: { quota: Quota }) {
         <Figure label={t("budget.available")} value={credits(q.leftMicroUsd)} />
         <Figure label={t("quota.month")} value={credits(q.includedMicroUsd)} />
         {q.topUpMicroUsd > 0 && <Figure label={t("quota.topUp")} value={credits(q.topUpMicroUsd)} />}
-        <Row label={t("quota.buy")} description={t("quota.buyHint")}>
+        <Row label={t("quota.buy")}>
           <div className="flex flex-wrap justify-end gap-2">
             {q.packs.map((pack) => (
               <Button key={pack.credits} type="button" variant="ghost" disabled={buy.isPending} onClick={() => buy.mutate(pack.credits)}>

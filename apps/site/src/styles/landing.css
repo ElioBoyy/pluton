@@ -944,10 +944,31 @@ a {
   top: calc(var(--section) - 4%);
   right: max(-2vw, -24px);
   width: min(54vw, 760px);
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+.price-planet-photo {
+  display: block;
+  width: 100%;
   /* Its height attribute would otherwise hold at 846px while the width shrinks, stretching the disc. */
   height: auto;
   clip-path: circle(47.5% at 53% 51%);
-  pointer-events: none;
+}
+/* The lit sphere overhangs the photo so Pluto's haze has room round the limb (SPAN in pluto-light.ts). */
+.price-planet-light {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  opacity: 0;
+  transition: opacity 900ms var(--gg-ease);
+}
+.price-planet.is-lit .price-planet-light {
+  opacity: 1;
+}
+.price-planet.is-lit .price-planet-photo {
+  opacity: 0;
+  transition: opacity 900ms var(--gg-ease);
 }
 .price-panel {
   grid-column: 1 / span 9;
