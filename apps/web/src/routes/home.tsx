@@ -1,16 +1,14 @@
-import { CaretRight, CheckCircle, CircleNotch, Play, WarningCircle } from "@phosphor-icons/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useSubscription } from "@trpc/tanstack-react-query";
-import { useState, type ReactNode } from "react";
+import { CaretRight, CheckCircle, Circle } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
+import { type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { AppLink } from "../components/app-link.tsx";
-import { Button, Group, PageHeader, Progress, Row, Section } from "../components/ui.tsx";
+import { Group, PageHeader, Progress, Section } from "../components/ui.tsx";
 import { ActivityFeed } from "../features/activity/activity-feed.tsx";
 import { useT } from "../i18n/index.ts";
+import { cn } from "../lib/cn.ts";
 import { formatDate, usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
-
-type PingEvent = { id: number; type: string; payload: unknown };
 
 /** Navigation rows (a line that opens a page) end in a chevron, as in System Settings; spacing alone sets them apart. */
 const NAV_ROW =
@@ -20,7 +18,6 @@ export function HomePage() {
   const t = useT("home");
   const trpc = useTRPC();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
-  const health = useQuery({ ...trpc.system.health.queryOptions(), refetchInterval: 3000 });
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
@@ -28,41 +25,64 @@ export function HomePage() {
 
       <div className="mb-8 grid items-start gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-8">
+          <StartHere />
           <Today />
           <RecentActivity />
         </div>
         <SpendCard />
       </div>
-
-      <Section title={t("system.title")}>
-        <div className="grid items-start gap-4 md:grid-cols-2">
-          <Group>
-            <Row label={t("system.apiServer")}>
-              {health.isError ? (
-                <span className="flex items-center gap-1.5 text-sm text-system-orange">
-                  <WarningCircle size={15} weight="fill" /> {t("system.unreachable")}
-                </span>
-              ) : health.data ? (
-                <span className="flex items-center gap-1.5 text-sm text-system-green">
-                  <CheckCircle size={15} weight="fill" /> {t("system.online")}
-                </span>
-              ) : (
-                <span className="text-sm text-muted">{t("system.checking")}</span>
-              )}
-            </Row>
-            {(["queued", "running", "completed", "failed"] as const).map((status) => (
-              <Row key={status} label={t(`jobs.${status}`)}>
-                <span className="text-sm text-muted tabular-nums">{health.data?.jobs[status] ?? 0}</span>
-              </Row>
-            ))}
-          </Group>
-
-          <PingCard />
-        </div>
-      </Section>
     </div>
   );
 }
+
+/**
+ * The first things to do, each with one line on what it is and why; it ticks itself off as the
+ * workspace shows each one happened (the sidebar's "Get started" card, explained) and leaves once all are done.
+ */
+function StartHere() {
+  const t = useT("home");
+  const ts = useT("shell");
+  const trpc = useTRPC();
+  const checklist = useQuery({ ...trpc.workspace.checklist.queryOptions(), refetchInterval: 60_000 });
+  const steps = (checklist.data ?? []).filter((s) => CHECKLIST_KEYS.includes(s.key as ChecklistKey));
+  if (!steps.length || steps.every((s) => s.done)) return null;
+  return (
+    <Section
+      title={ts("getStarted")}
+      description={t("start.description")}
+      actions={
+        <span className="text-sm text-muted tabular-nums">
+          {steps.filter((s) => s.done).length}/{steps.length}
+        </span>
+      }
+    >
+      <Group>
+        {steps.map((step) => {
+          const key = step.key as ChecklistKey;
+          return (
+            // A navigation row whose label runs on two lines: the check and chevron sit by its first.
+            <AppLink key={key} href={step.to} className="relative flex min-h-11 items-start gap-3 px-4 py-2.5 text-sm transition-colors duration-150 hover:bg-raised">
+              {step.done ? (
+                <CheckCircle size={18} weight="fill" className="mt-px shrink-0 text-system-green" />
+              ) : (
+                <Circle size={18} className="mt-px shrink-0 text-faint" />
+              )}
+              <span className="min-w-0 flex-1">
+                <span className={cn("block font-medium", step.done && "text-muted line-through")}>{ts(`getStarted.${key}`)}</span>
+                {!step.done && <span className="mt-0.5 block text-xs text-muted">{t(`start.${key}`)}</span>}
+              </span>
+              <CaretRight size={12} weight="bold" className="mt-1 shrink-0 text-muted" />
+            </AppLink>
+          );
+        })}
+      </Group>
+    </Section>
+  );
+}
+
+/** The checklist steps we have words for; a step the server adds later shows up once it gets some. */
+const CHECKLIST_KEYS = ["brain", "review", "play", "agent", "mcp"] as const;
+type ChecklistKey = (typeof CHECKLIST_KEYS)[number];
 
 /** The digest the email sends, one titled box per part; each linked line opens what it counts. */
 function Today() {
@@ -160,62 +180,5 @@ function SpendLink({ to, children }: { to: "/workspace/usage" | "/workspace/bill
       <span className="flex-1">{children}</span>
       <CaretRight size={12} weight="bold" className="text-muted" />
     </Link>
-  );
-}
-
-/** Proves the whole loop: RPC enqueue → worker picks it up → events stream back over SSE. */
-function PingCard() {
-  const t = useT("home");
-  const trpc = useTRPC();
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [events, setEvents] = useState<PingEvent[]>([]);
-  const enqueue = useMutation(
-    trpc.jobs.enqueue.mutationOptions({
-      onSuccess: (job) => {
-        setEvents([]);
-        setJobId(job.id);
-      },
-    }),
-  );
-
-  useSubscription(
-    trpc.events.watch.subscriptionOptions(
-      { channel: `job:${jobId}` },
-      {
-        enabled: jobId !== null,
-        onData: ({ data }) => setEvents((prev) => [...prev, data]),
-      },
-    ),
-  );
-
-  const last = events.at(-1);
-  const running = jobId !== null && last?.type !== "done" && last?.type !== "error";
-
-  return (
-    <Group>
-      <Row label={t("ping.label")} description={t("ping.description")}>
-        <Button
-          variant="ghost"
-          className="shrink-0"
-          disabled={enqueue.isPending || running}
-          onClick={() => enqueue.mutate({ type: "system.ping", payload: { steps: 5, delayMs: 600 } })}
-        >
-          {running ? <CircleNotch size={14} className="animate-spin" /> : <Play size={14} />}
-          {t("ping.run")}
-        </Button>
-      </Row>
-      {enqueue.error && <p className="px-4 pb-3 text-sm text-system-orange">{enqueue.error.message}</p>}
-      {jobId !== null && (
-        <ol className="flex flex-col gap-1.5 px-4 pt-1 pb-3 font-mono text-xs">
-          {events.length === 0 && <li className="text-muted">{t("ping.waiting")}</li>}
-          {events.map((e) => (
-            <li key={e.id} className="flex min-w-0 gap-2">
-              <span className="w-16 shrink-0 text-muted">{e.type}</span>
-              <span className="min-w-0 truncate text-muted">{JSON.stringify(e.payload)}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </Group>
   );
 }

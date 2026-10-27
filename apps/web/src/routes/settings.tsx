@@ -22,6 +22,8 @@ import { Avatar } from "@pluton/glass";
 import { authStateQuery } from "../features/account/auth-state.ts";
 import { WorkspacesSection } from "../features/workspaces/workspaces-section.tsx";
 import { useProfileName } from "./profile.tsx";
+import { SystemSection } from "./system-status.tsx";
+import { startTour } from "../features/tour/product-tour.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -208,6 +210,14 @@ export function GeneralSettingsPage() {
         </div>
       </form>
       <WorkspacesSection />
+      <Group className="mt-8">
+        <Row label={t("general.tour")} description={t("general.tourHint")}>
+          <Button type="button" variant="ghost" onClick={startTour}>
+            {t("general.tourReplay")}
+          </Button>
+        </Row>
+      </Group>
+      <SystemSection />
     </>
   );
 }
