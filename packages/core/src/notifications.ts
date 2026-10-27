@@ -134,7 +134,7 @@ const DESCRIBE: Record<string, (p: P) => Wording | null> = {
     has(p, "spentMicroUsd", "limitMicroUsd")
       ? { title: t("budgetWarning.title"), body: t("budgetWarning.body", { spent: fmtUsd(Number(p.spentMicroUsd)), limit: fmtUsd(Number(p.limitMicroUsd)) }) }
       : null,
-  "quota.warning": (p) => (has(p, "until") ? { title: t("quotaWarning.title"), body: t("quotaWarning.body", { date: dayMonth(String(p.until)) }) } : null),
+  "quota.warning": (p) => (has(p, "until") ? { title: t("quotaWarning.title", { percent: Number(p.percent ?? 80) }), body: t("quotaWarning.body", { date: dayMonth(String(p.until)) }) } : null),
   "quota.exhausted": (p) => (has(p, "until") ? { title: t("quotaExhausted.title"), body: t("quotaExhausted.body", { date: dayMonth(String(p.until)) }) } : null),
   "crm.failed": (p) =>
     has(p, "failed", "provider")

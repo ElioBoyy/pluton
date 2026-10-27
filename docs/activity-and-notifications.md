@@ -123,6 +123,8 @@ Notifications are per workspace: switching workspace shows that workspace's bell
 | "The Brain has N suggestions": "Accept or reject them on the Brain page." | A Brain review left at least one suggestion. | Brain suggestions | Brain |
 | "80% of the monthly budget spent": "$X of $Y spent this period." | Spend reached 80% of the monthly budget. Once per budget period. | Budget | Budget |
 | "Monthly budget used up": "New searches won't start until the next period or until you raise the budget." (or "Tracking only: searches keep running.") | Spend reached 100%. Once per period. | Budget | Budget |
+| Hosted plans: "80% of your monthly credits used", then "90% of your monthly credits used": "They renew on {date}. To keep going until then without a pause, add credits in Billing." | The plan's credits (this month's plus packs left) reached 80%, then 90%. Each once per billing month. | Budget | Billing |
+| Hosted plans: "Your monthly credits are used up": "Searches pause until {date}. Add credits in Billing to pick up now." | The plan's credits reached 100%. Once per billing month. | Budget | Billing |
 | "Your morning digest" / "Your digest" + what waits for you | The digest was sent. | Morning digest | Home |
 
 Budget alerts only exist when a monthly budget is set (Settings → Budget).
@@ -136,7 +138,7 @@ Settings → **Notifications** ("What reaches the bell in the sidebar, and the m
 - **Replies**: Someone answered your LinkedIn sequence.
 - **LinkedIn accounts**: An account disconnected and sending paused.
 - **Brain suggestions**: The Brain review left suggestions to accept or reject.
-- **Budget**: Spend reached 80% and 100% of the monthly budget.
+- **Budget**: Spend reached 80% and 100% of the monthly budget; on a hosted plan, its credits reached 80%, 90% and 100%.
 
 Change the switches, then click **Save** at the bottom of the page (enabled once something changed; "Saved" appears after). The same Save button saves the digest settings.
 

@@ -279,21 +279,21 @@ export async function settleOrphanHolds(db: Db) {
 }
 
 /**
- * Hosted: says once per billing period when the plan's credits reach 80%, then when they run out,
- * with the way to more, so nobody finds their searches stopped without warning.
+ * Hosted: says once per billing period when the plan's credits reach 80%, then 90%, then when they
+ * run out, with the way to more, so nobody finds their searches stopped without warning.
  */
 async function checkQuotaThresholds(db: Db, workspaceId: string) {
   const quota = platformQuota(workspaceId);
   if (!quota || quota.quotaMicroUsd <= 0) return;
   const share = quota.spentMicroUsd / quota.quotaMicroUsd;
   const key = quota.periodStart.toISOString().slice(0, 10);
-  for (const threshold of [1, 0.8]) {
+  for (const threshold of [1, 0.9, 0.8]) {
     if (share < threshold) continue;
     await notifyDescribed(db, workspaceId, {
       category: "budget",
       kind: threshold === 1 ? "quota.exhausted" : "quota.warning",
       tone: "warning",
-      payload: { until: quota.periodEnd.toISOString() },
+      payload: { until: quota.periodEnd.toISOString(), percent: Math.round(threshold * 100) },
       link: "/workspace/billing",
       dedupeKey: `quota${threshold * 100}:${workspaceId}:${key}`,
     });
