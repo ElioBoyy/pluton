@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Context, Hono } from "hono";
-import { creditPacks, eq, forgetPlans, TOP_UP_PACKS, topUpPriceCents, users, type Db, type SubscriptionPlan } from "@pluton/db";
+import { removeSender } from "@pluton/core";
+import { and, creditPacks, eq, forgetPlans, inArray, senders, TOP_UP_PACKS, topUpPriceCents, users, workspaces, type Db, type SubscriptionPlan } from "@pluton/db";
+import { deletePlatformUnipileAccount } from "@pluton/providers";
 import { APP_URL, currentUser, HOSTED, isPaid, type User } from "./auth.ts";
 
 /**
@@ -8,22 +10,32 @@ import { APP_URL, currentUser, HOSTED, isPaid, type User } from "./auth.ts";
  * twice: the webhook, and the app confirming the Checkout session it comes back from (so a missing
  * or late webhook never leaves someone who paid in front of the paywall).
  */
+export type BillingInterval = "month" | "year";
+const INTERVALS: BillingInterval[] = ["month", "year"];
+/** What a subscription can hold: a plan, plus LinkedIn sending accounts billed per account. */
+type Product = SubscriptionPlan | "linkedin";
+
+/** One Stripe price per product and interval: STRIPE_PRICE_<PRODUCT>, and _YEAR for the yearly one. */
+const priceEnv = (product: Product, interval: BillingInterval) =>
+  process.env[`STRIPE_PRICE_${product.toUpperCase()}${interval === "year" ? "_YEAR" : ""}`] ?? "";
+
 const stripe = {
   secretKey: process.env.STRIPE_SECRET_KEY ?? "",
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
-  prices: { byo: process.env.STRIPE_PRICE_BYO ?? "", all: process.env.STRIPE_PRICE_ALL ?? "" } satisfies Record<SubscriptionPlan, string>,
+  price: priceEnv,
 };
 
 const WEBHOOK_TOLERANCE_S = 300;
 /** Software as a service for business use: Stripe's Managed Payments needs a tax code on every product sold. */
 const SAAS_TAX_CODE = "txcd_10103001";
 
+type StripeSubscriptionItem = { id: string; quantity?: number; price: { id: string }; current_period_end?: number };
 type StripeSubscription = {
   id: string;
   customer: string;
   status: string;
   current_period_end?: number;
-  items: { data: Array<{ price: { id: string }; current_period_end?: number }> };
+  items: { data: StripeSubscriptionItem[] };
   metadata?: Record<string, string>;
 };
 
@@ -38,9 +50,9 @@ function encode(params: Record<string, unknown>, prefix = "", out = new URLSearc
   return out;
 }
 
-async function call<T>(method: "GET" | "POST", path: string, params: Record<string, unknown> = {}): Promise<T> {
+async function call<T>(method: "GET" | "POST" | "DELETE", path: string, params: Record<string, unknown> = {}): Promise<T> {
   const body = encode(params);
-  const url = `https://api.stripe.com/v1/${path}${method === "GET" && body.size ? `?${body}` : ""}`;
+  const url = `https://api.stripe.com/v1/${path}${method !== "POST" && body.size ? `?${body}` : ""}`;
   const res = await fetch(url, {
     method,
     headers: { Authorization: `Bearer ${stripe.secretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
@@ -51,12 +63,19 @@ async function call<T>(method: "GET" | "POST", path: string, params: Record<stri
   return json;
 }
 
-const planFor = (priceId: string | undefined): SubscriptionPlan | null =>
-  priceId === stripe.prices.byo ? "byo" : priceId === stripe.prices.all ? "all" : null;
+/** Which product and interval a Stripe price is, among the ones configured. */
+function productOf(priceId: string | undefined): { product: Product; interval: BillingInterval } | null {
+  for (const product of ["byo", "all", "linkedin"] as const) {
+    for (const interval of INTERVALS) if (priceId && stripe.price(product, interval) === priceId) return { product, interval };
+  }
+  return null;
+}
+const planItem = (sub: StripeSubscription) => sub.items.data.find((i) => productOf(i.price.id)?.product !== "linkedin" && productOf(i.price.id));
+const linkedinItem = (sub: StripeSubscription) => sub.items.data.find((i) => productOf(i.price.id)?.product === "linkedin");
 
 /** Copies what Stripe says about a subscription onto the user who owns its customer. */
 async function syncSubscription(db: Db, sub: StripeSubscription) {
-  const item = sub.items.data[0];
+  const item = planItem(sub);
   // Recent API versions moved the period end from the subscription onto its items.
   const periodEnd = item?.current_period_end ?? sub.current_period_end;
   await db
@@ -64,10 +83,97 @@ async function syncSubscription(db: Db, sub: StripeSubscription) {
     .set({
       stripeSubscriptionId: sub.id,
       subscriptionStatus: sub.status,
-      plan: planFor(item?.price.id),
+      plan: (productOf(item?.price.id)?.product as SubscriptionPlan | undefined) ?? null,
       currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
     })
     .where(eq(users.stripeCustomerId, sub.customer));
+}
+
+/** The account's subscription as the app shows it: plan, interval and LinkedIn accounts paid for. */
+export type BillingSummary = { plan: SubscriptionPlan | null; interval: BillingInterval; linkedinSeats: number; periodEnd: string | null };
+
+const seatsCache = new Map<string, { at: number; value: BillingSummary }>();
+
+async function subscriptionOf(user: User) {
+  if (!user.stripeSubscriptionId) return null;
+  return call<StripeSubscription>("GET", `subscriptions/${encodeURIComponent(user.stripeSubscriptionId)}`);
+}
+
+function summarize(sub: StripeSubscription | null): BillingSummary {
+  const item = sub && planItem(sub);
+  const kind = productOf(item?.price.id);
+  const end = item?.current_period_end ?? sub?.current_period_end;
+  return {
+    plan: (kind?.product as SubscriptionPlan | undefined) ?? null,
+    interval: kind?.interval ?? "month",
+    linkedinSeats: (sub && linkedinItem(sub)?.quantity) || 0,
+    periodEnd: end ? new Date(end * 1000).toISOString() : null,
+  };
+}
+
+/** The account's subscription, asked of Stripe at most once a minute (the LinkedIn page asks often). */
+export async function billingSummary(user: User, fresh = false): Promise<BillingSummary> {
+  const cached = seatsCache.get(user.id);
+  if (!fresh && cached && Date.now() - cached.at < 60_000) return cached.value;
+  const value = summarize(await subscriptionOf(user));
+  seatsCache.set(user.id, { at: Date.now(), value });
+  return value;
+}
+
+export const MAX_LINKEDIN_SEATS = 20;
+
+/**
+ * Sets how many LinkedIn accounts the subscription pays for. More is charged now, pro rata for the
+ * days left in the period; fewer stops at the next renewal, without a refund. Null without a plan.
+ */
+export async function setLinkedinSeats(user: User, seats: number): Promise<BillingSummary | null> {
+  const sub = await subscriptionOf(user);
+  const item = sub && planItem(sub);
+  if (!sub || !item) return null;
+  const interval = productOf(item.price.id)!.interval;
+  const current = linkedinItem(sub);
+  const proration_behavior = seats > (current?.quantity ?? 0) ? "always_invoice" : "none";
+  if (!current && seats > 0) {
+    await call("POST", "subscription_items", { subscription: sub.id, price: stripe.price("linkedin", interval), quantity: seats, proration_behavior });
+  } else if (current && seats === 0) {
+    await call("DELETE", `subscription_items/${current.id}`, { proration_behavior });
+  } else if (current && seats !== current.quantity) {
+    await call("POST", `subscription_items/${current.id}`, { quantity: seats, proration_behavior });
+  }
+  seatsCache.delete(user.id);
+  return billingSummary(user, true);
+}
+
+/**
+ * A subscription that ended (cancelled at the end of its period, or unpaid): its LinkedIn accounts
+ * on Pluton's Unipile account are unlinked there and removed from its workspaces, their sequences
+ * stopped. The customer's own Unipile accounts (their key) are left alone. Returns how many went.
+ */
+export async function endLinkedinAccounts(db: Db, customerId: string) {
+  const user = await db.query.users.findFirst({ where: eq(users.stripeCustomerId, customerId) });
+  if (!user) return 0;
+  const owned = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.userId, user.id));
+  if (!owned.length) return 0;
+  const accounts = await db
+    .select()
+    .from(senders)
+    .where(and(inArray(senders.workspaceId, owned.map((w) => w.id)), eq(senders.provider, "unipile")));
+  let removed = 0;
+  for (const sender of accounts) {
+    // Own key: the account is the customer's, on their Unipile; only Pluton's own are unlinked.
+    const own = await db.query.workspaceSettings.findFirst({
+      where: (s, { and: all, eq: is }) => all(is(s.workspaceId, sender.workspaceId), is(s.key, "unipile_api_key")),
+    });
+    if (own?.value) continue;
+    try {
+      if (sender.externalId && !sender.externalId.startsWith("pending:")) await deletePlatformUnipileAccount(sender.externalId);
+      await removeSender(db, sender.id);
+      removed++;
+    } catch (error) {
+      console.error(`[billing] couldn't unlink LinkedIn account ${sender.id}`, error);
+    }
+  }
+  return removed;
 }
 
 type StripeCheckoutSession = {
@@ -139,14 +245,15 @@ export function mountBilling(app: Hono, db: Db) {
     const user = HOSTED ? await currentUser(db, c) : null;
     if (!user) return c.json({ error: "signed_out" }, 401);
     if (isPaid(user)) return c.json({ error: "already_paid" }, 409);
-    const { plan } = await c.req.json<{ plan?: string }>();
-    const price = plan === "byo" || plan === "all" ? stripe.prices[plan] : "";
-    if (!price) return c.json({ error: "unknown_plan" }, 400);
+    const { plan, interval = "month", linkedin = 0 } = await c.req.json<{ plan?: string; interval?: BillingInterval; linkedin?: number }>();
+    if (!INTERVALS.includes(interval) || !Number.isInteger(linkedin) || linkedin < 0 || linkedin > MAX_LINKEDIN_SEATS) return c.json({ error: "unknown_plan" }, 400);
+    const price = plan === "byo" || plan === "all" ? stripe.price(plan, interval) : "";
+    if (!price || (linkedin > 0 && !stripe.price("linkedin", interval))) return c.json({ error: "unknown_plan" }, 400);
     const session = await call<{ url: string }>("POST", "checkout/sessions", {
       mode: "subscription",
       customer: await ensureCustomer(db, user),
       client_reference_id: user.id,
-      line_items: [{ price, quantity: 1 }],
+      line_items: [{ price, quantity: 1 }, ...(linkedin > 0 ? [{ price: stripe.price("linkedin", interval), quantity: linkedin }] : [])],
       allow_promotion_codes: true,
       subscription_data: { metadata: { user_id: user.id } },
       success_url: `${APP_URL}/subscribe?session_id={CHECKOUT_SESSION_ID}`,
@@ -177,8 +284,8 @@ export function mountBilling(app: Hono, db: Db) {
     const user = HOSTED ? await currentUser(db, c) : null;
     if (!user) return c.json({ error: "signed_out" }, 401);
     if (!isPaid(user)) return c.json({ error: "not_paid" }, 402);
-    const { credits } = await c.req.json<{ credits?: number }>();
-    if (!TOP_UP_PACKS.includes(credits as (typeof TOP_UP_PACKS)[number])) return c.json({ error: "unknown_pack" }, 400);
+    const { credits } = await c.req.json<{ credits?: (typeof TOP_UP_PACKS)[number] }>();
+    if (!credits || !TOP_UP_PACKS.includes(credits)) return c.json({ error: "unknown_pack" }, 400);
     const session = await call<{ url: string }>("POST", "checkout/sessions", {
       mode: "payment",
       customer: await ensureCustomer(db, user),
@@ -186,7 +293,7 @@ export function mountBilling(app: Hono, db: Db) {
       line_items: [
         {
           quantity: 1,
-          price_data: { currency: "eur", unit_amount: topUpPriceCents(credits!), product_data: { name: `Pluton · ${credits} credits`, tax_code: SAAS_TAX_CODE } },
+          price_data: { currency: "eur", unit_amount: topUpPriceCents(credits), product_data: { name: `Pluton · ${credits} credits`, tax_code: SAAS_TAX_CODE } },
         },
       ],
       metadata: { user_id: user.id, credits: String(credits) },
@@ -206,12 +313,67 @@ export function mountBilling(app: Hono, db: Db) {
     return c.json({ added: await recordPack(db, session) });
   }));
 
+  app.get("/api/billing/subscription", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    return c.json(await billingSummary(user, c.req.query("fresh") === "1"));
+  }));
+
+  /**
+   * Switches plan or interval at once. Stripe settles the difference pro rata for the days left in
+   * the period on an invoice paid now; the LinkedIn accounts follow the new interval.
+   */
+  app.post("/api/billing/plan", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const { plan, interval } = await c.req.json<{ plan?: SubscriptionPlan; interval?: BillingInterval }>();
+    if ((plan !== "byo" && plan !== "all") || !interval || !INTERVALS.includes(interval) || !stripe.price(plan, interval)) {
+      return c.json({ error: "unknown_plan" }, 400);
+    }
+    const sub = await subscriptionOf(user);
+    const item = sub && planItem(sub);
+    if (!sub || !item) return c.json({ error: "not_paid" }, 402);
+    const now = productOf(item.price.id)!;
+    // A yearly plan is a 1-year commitment: it goes monthly only at its renewal (in Stripe's portal),
+    // and a cheaper plan during the year gives nothing back. Paying more is charged pro rata at once.
+    if (now.interval === "year" && interval === "month") return c.json({ error: "yearly_commitment" }, 409);
+    const upgrade = (now.product === "byo" && plan === "all") || (now.interval === "month" && interval === "year");
+    const seats = linkedinItem(sub);
+    const updated = await call<StripeSubscription>("POST", `subscriptions/${sub.id}`, {
+      items: [
+        { id: item.id, price: stripe.price(plan, interval) },
+        ...(seats ? [{ id: seats.id, price: stripe.price("linkedin", interval), quantity: seats.quantity ?? 1 }] : []),
+      ],
+      proration_behavior: upgrade || now.interval === "month" ? "always_invoice" : "none",
+    });
+    await syncSubscription(db, updated);
+    forgetPlans();
+    seatsCache.delete(user.id);
+    return c.json(summarize(updated));
+  }));
+
+  /**
+   * How many LinkedIn sending accounts the subscription pays for. Adding one is charged now, pro
+   * rata for the days left in the period, then renews with the plan; removing one stops at the next
+   * renewal, without a refund for the current period.
+   */
+  app.post("/api/billing/linkedin", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const { seats } = await c.req.json<{ seats?: number }>();
+    if (!Number.isInteger(seats) || seats! < 0 || seats! > MAX_LINKEDIN_SEATS) return c.json({ error: "unknown_quantity" }, 400);
+    const summary = await setLinkedinSeats(user, seats!);
+    return summary ? c.json(summary) : c.json({ error: "not_paid" }, 402);
+  }));
+
   /** Stripe's own page to change card, switch plan or cancel. */
   app.post("/api/billing/portal", guarded(async (c) => {
     const user = HOSTED ? await currentUser(db, c) : null;
     if (!user?.stripeCustomerId) return c.json({ error: "no_customer" }, 400);
     const portal = await call<{ url: string }>("POST", "billing_portal/sessions", {
       customer: user.stripeCustomerId,
+      // Card, invoices and cancelling only (scripts/stripe-setup.mjs); plan changes are in the app.
+      configuration: process.env.STRIPE_PORTAL_CONFIGURATION || undefined,
       return_url: `${APP_URL}/workspace/billing`,
     });
     return c.json({ url: portal.url });
@@ -230,6 +392,7 @@ export function mountBilling(app: Hono, db: Db) {
       await syncSubscription(db, await call<StripeSubscription>("GET", `subscriptions/${object.subscription}`));
     } else if (event.type.startsWith("customer.subscription.")) {
       await syncSubscription(db, object as unknown as StripeSubscription);
+      if (event.type === "customer.subscription.deleted") await endLinkedinAccounts(db, (object as unknown as StripeSubscription).customer);
     }
     return c.json({ received: true });
   });

@@ -8,7 +8,9 @@ import { cn } from "../lib/cn.ts";
 import { credits, CREDITS_PER_USD, formatDate, moneyUnit, usd } from "../lib/format.ts";
 import { getLocale } from "../i18n/locale.ts";
 import { useTRPC } from "../lib/trpc.ts";
-import { authStateQuery, post } from "../features/account/auth-state.ts";
+import { authStateQuery, get, post } from "../features/account/auth-state.ts";
+import { Stepper } from "../features/account/account-pages.tsx";
+import { euros, PRICES, type BillingSummary, type Interval, type PlanId } from "../lib/pricing.ts";
 import { useResetOnReturn } from "../lib/redirect.ts";
 
 /** Each mode's label and hint are the usage namespace's `mode.<value>` and `mode.<value>.hint`. */
@@ -213,7 +215,6 @@ type Quota = {
   packs: Array<{ credits: number; priceCents: number }>;
 };
 
-const euros = (cents: number) => new Intl.NumberFormat(getLocale(), { style: "currency", currency: "EUR" }).format(cents / 100);
 
 /**
  * Hosted: what the plan includes through Pluton's own keys this billing period, in credits, drawn
@@ -275,7 +276,7 @@ function IncludedUsage({ quota: q }: { quota: Quota }) {
             {q.packs.map((pack) => (
               <Button key={pack.credits} type="button" variant="ghost" disabled={buy.isPending} onClick={() => buy.mutate(pack.credits)}>
                 <span className="tabular-nums">{credits((pack.credits / CREDITS_PER_USD) * 1_000_000)}</span>
-                <span className="text-muted tabular-nums">{euros(pack.priceCents)}</span>
+                <span className="text-muted tabular-nums">{euros(pack.priceCents / 100)}</span>
               </Button>
             ))}
           </div>
@@ -287,24 +288,68 @@ function IncludedUsage({ quota: q }: { quota: Quota }) {
   );
 }
 
+export const billingQuery = { queryKey: ["billing"], queryFn: () => get<BillingSummary>("/api/billing/subscription") };
+
+/**
+ * Hosted only: the plan and its options, changed here at once (Stripe settles the difference pro
+ * rata), and Stripe's portal for the card, invoices and cancelling.
+ */
 function Subscription() {
   const t = useT("account");
+  const queryClient = useQueryClient();
   const user = useQuery(authStateQuery).data?.user;
+  const billing = useQuery({ ...billingQuery, enabled: Boolean(user?.plan) });
   const portal = useMutation({
     mutationFn: () => post<{ url: string }>("/api/billing/portal"),
     onSuccess: ({ url }) => window.location.assign(url),
   });
   useResetOnReturn(portal.reset);
+  const settled = async (next: BillingSummary) => {
+    queryClient.setQueryData(billingQuery.queryKey, next);
+    await queryClient.invalidateQueries(authStateQuery);
+  };
+  const change = useMutation({
+    mutationFn: (to: { plan: PlanId; interval: Interval }) => post<BillingSummary>("/api/billing/plan", to),
+    onSuccess: settled,
+  });
+  const seats = useMutation({ mutationFn: (n: number) => post<BillingSummary>("/api/billing/linkedin", { seats: n }), onSuccess: settled });
+  const b = billing.data;
   if (!user?.plan) return null;
+  const plan = b?.plan ?? user.plan;
+  const interval = b?.interval ?? "month";
+  const other: PlanId = plan === "byo" ? "all" : "byo";
+  const switchTo = (to: { plan: PlanId; interval: Interval }) => window.confirm(t("manage.confirmSwitch")) && change.mutate(to);
+  const per = (amount: number, i: Interval) => t(i === "year" ? "plan.perYear" : "plan.perMonth", { price: euros(amount) });
+  const renews = b?.periodEnd ? formatDate(b.periodEnd, { day: "numeric", month: "long", year: "numeric" }) : "";
+
   return (
-    <Section title={t("manage.title")}>
+    <Section title={t("manage.title")} footnote={t("manage.prorata")}>
       <Group>
-        <Row label={t(`plan.${user.plan}.name`)} description={t("manage.hint")}>
+        <Row
+          label={`${t(`plan.${plan}.name`)} · ${per(PRICES[plan][interval], interval)}`}
+          description={renews && t(interval === "year" ? "manage.billedYearly" : "manage.billedMonthly", { date: renews })}
+        >
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="ghost" disabled={change.isPending} onClick={() => switchTo({ plan: other, interval })}>
+              {t("manage.switchTo", { plan: t(`plan.${other}.name`) })}
+            </Button>
+            {interval === "month" && (
+              <Button type="button" variant="ghost" disabled={change.isPending} onClick={() => switchTo({ plan, interval: "year" })}>
+                {t("manage.payYearly")}
+              </Button>
+            )}
+          </div>
+        </Row>
+        <Row label={t("manage.linkedin")} description={t("manage.linkedinHint", { price: per(PRICES.linkedin[interval], interval) })}>
+          <Stepper value={b?.linkedinSeats ?? 0} onChange={(n) => seats.mutate(n)} max={20} label={t("manage.linkedin")} />
+        </Row>
+        <Row label={t("manage.open")} description={t("manage.hint")}>
           <Button type="button" variant="ghost" onClick={() => portal.mutate()} disabled={portal.isPending}>
             {t("manage.open")}
           </Button>
         </Row>
       </Group>
+      {(change.isError || seats.isError) && <p className="mt-2 text-sm text-system-orange">{t("manage.failed")}</p>}
     </Section>
   );
 }

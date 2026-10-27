@@ -273,6 +273,7 @@ const panel = $(".price-panel");
 document.addEventListener("gg-change", (e) => {
   const { name, value } = (e as CustomEvent<{ name?: string; value: string }>).detail;
   if (name === "plan" && panel) panel.dataset.plan = value;
+  if (name === "billing" && panel) panel.dataset.billing = value;
 });
 
 /* ------------------------------------------------------------------ language menu closes on outside click */

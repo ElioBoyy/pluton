@@ -104,7 +104,8 @@ const en: Record<LegalDocId, LegalDoc> = {
       {
         heading: "6. Third-party services",
         body: [
-          "At the Customer's request, the Service can connect to third-party services: LinkedIn (through Unipile), their mailbox (SMTP and IMAP), Slack, HubSpot, Attio, Pipedrive, data providers (Hunter, Apify, TheirStack) and, on the “Your own AI” plan, their Claude or Codex subscription or API keys.",
+          "At the Customer's request, the Service can connect to third-party services: LinkedIn, their mailbox (SMTP and IMAP), Slack, HubSpot, Attio, Pipedrive, data providers (Hunter, Apify, TheirStack) and, on the “Your own AI” plan, their Anthropic or OpenAI API key.",
+          "On the Service, LinkedIn is connected through Unipile with the LinkedIn sending account option provided by the Publisher. A self-hosted installation of Pluton, which these terms do not cover, uses its user's own Unipile account.",
           "These services remain subject to their own terms. The Publisher is not responsible for their availability, their prices, or restrictions they apply to the Customer's account, such as a limit placed on their LinkedIn account.",
         ],
       },
@@ -178,86 +179,105 @@ const en: Record<LegalDocId, LegalDoc> = {
         ],
       },
       {
-        heading: "2. Plans",
+        heading: "2. Plans and options",
         body: [
           {
             list: [
-              "“Your own AI”: €39.99 per month. The Customer provides their own Anthropic API key, at their own cost. The data sources Pluton provides are included up to 1,300 credits a month, on the terms described below for the “All included” plan.",
-              "“All included”: €59.99 per month. Usage of Claude and of the data sources Pluton provides is included up to 3,000 credits a month, one credit being $0.01 of usage at the providers' public prices. A month's unused credits do not carry over. Once this quota is spent, the Service pauses until the next month, unless the Customer buys additional credits in the app, at the price shown at the time of purchase. Purchased credits remain valid from month to month until used.",
+              "“Your own AI”: €24.99 per month, or €284.90 per year. The Customer provides their own Anthropic or OpenAI API key; that provider bills the Customer directly for the artificial intelligence. The plan includes 600 credits a month.",
+              "“All included”: €59 per month, or €672.60 per year. Artificial intelligence is included. The plan includes 2,000 credits a month.",
             ],
           },
-          "Unless stated otherwise, the third-party services the Customer connects with their own keys (data providers, LinkedIn through Unipile, CRMs) are paid by the Customer directly to those services.",
+          "The following options can be added to either plan, and removed, at any time:",
+          {
+            list: [
+              "LinkedIn sending account: €15 per month per account, or €171 per year per account on a yearly plan. The Publisher provides the connection to LinkedIn, through Unipile.",
+              "Credit packs, bought one-off in the app: 1,000 credits for €22, 2,500 credits for €55, 5,000 credits for €109.",
+            ],
+          },
+          "Unless stated otherwise, the third-party services the Customer connects with their own keys (data providers, CRMs) are paid by the Customer directly to those services.",
         ],
       },
       {
-        heading: "3. Prices",
+        heading: "3. Credits",
+        body: [
+          "The Service counts its usage in credits. Credits measure the work the Service performs for the Customer, such as researching companies, finding and scoring people, writing messages or finding email addresses. On the “Your own AI” plan, credits cover the data sources the Publisher provides; the artificial intelligence, billed by the Customer's provider, does not use them.",
+          "The number of credits an action uses depends on the work it requires. It is shown in the app before a search runs, as an estimate, and after it runs, as the amount used, together with the credits left. The Publisher may change these amounts; any change is notified to the Customer at least 30 days in advance and applies from the next renewal, as for a price change.",
+          "The plan's credits are granted each month, including on a yearly plan. A month's unused credits do not carry over. Credits from packs remain valid from month to month until used.",
+          "Once the month's credits and any pack credits are spent, the Service pauses until the next month, unless the Customer buys a credit pack.",
+        ],
+      },
+      {
+        heading: "4. Prices",
         body: [
           "Prices are in euros. VAT not applicable, article 293 B of the French General Tax Code: the amounts shown are the amounts paid.",
           "The Publisher may change its prices. The new price is notified to the Customer at least 30 days in advance and applies from the next renewal; a Customer who refuses it can cancel before that date.",
         ],
       },
       {
-        heading: "4. Subscribing",
+        heading: "5. Subscribing",
         body: [
-          "The Customer signs in with Google or Apple, chooses a plan, then pays on Stripe's secure payment page. The contract is formed once payment is confirmed, and access to the Service opens immediately.",
+          "The Customer signs in with Google or Apple, chooses a plan and a billing period (monthly or yearly), then pays on Stripe's secure payment page. The contract is formed once payment is confirmed, and access to the Service opens immediately.",
         ],
       },
       {
-        heading: "5. Payment",
+        heading: "6. Payment",
         body: [
-          "The subscription is paid by card, in advance, every month, through Stripe. The Customer authorizes these recurring payments until cancellation. Additional credits are paid in advance, by card, when bought.",
+          "The subscription and its options are paid by card, in advance, through Stripe: every month on a monthly plan, every year on a yearly plan. The Customer authorizes these recurring payments until cancellation. Credit packs are paid in advance, by card, when bought.",
+          "An option added during a period is charged pro rata for the days left in that period, then renewed with the plan at its full price.",
           "Invoices are available in the app, under Settings → Budget → Manage subscription.",
           "If a payment fails, Stripe retries it. If it remains unpaid, access to the Service is suspended until payment is made. Under article L441-10 of the French Commercial Code, late payment incurs penalties of three times the legal interest rate and a fixed €40 collection fee.",
         ],
       },
       {
-        heading: "6. Term and cancellation",
+        heading: "7. Term, changes and cancellation",
         body: [
-          "The subscription runs for one month and renews automatically every month.",
-          "The Customer can cancel at any time from Settings → Budget → Manage subscription. Cancellation takes effect at the end of the current period, already paid; no prorated refund is due.",
-          "The Customer can change plans the same way; the change takes effect on the terms shown when confirming it.",
+          "A monthly subscription runs for one month and renews automatically every month. A yearly subscription is a commitment for one year and renews automatically every year.",
+          "The Customer can cancel at any time from Settings → Budget → Manage subscription. Cancellation stops the renewal and takes effect at the end of the current period, already paid, during which the Service remains available. No prorated refund is due, including for the remaining months of a yearly subscription.",
+          "The Customer can, in the same way and at any time, move to a higher plan or from monthly to yearly billing; the price difference is charged pro rata for the days left in the current period.",
+          "A yearly subscription cannot be switched to monthly billing before its renewal: the switch takes effect at the renewal. Moving to a lower plan during a yearly subscription gives rise to no refund or credit.",
+          "A LinkedIn sending account can be removed at any time. The removal takes effect at the next renewal, with no refund for the current period.",
           "If either party seriously breaches its obligations, the other may terminate after a formal notice left unanswered for 15 days.",
         ],
       },
       {
-        heading: "7. No right of withdrawal",
+        heading: "8. No right of withdrawal",
         body: [
           "As the Service is reserved for professionals, the right of withdrawal under the French Consumer Code does not apply.",
         ],
       },
       {
-        heading: "8. Getting data back and deletion",
+        heading: "9. Getting data back and deletion",
         body: [
           "During the subscription, the Customer can export their leads (CSV or to their CRM). After the subscription ends, their Customer Content is kept for 30 days, during which they can resubscribe to recover it, then deleted, except data the Publisher must keep by law (invoicing).",
         ],
       },
       {
-        heading: "9. Warranties",
+        heading: "10. Warranties",
         body: [
           "The Publisher undertakes to provide the Service with care, as an obligation of means. It does not guarantee a number of leads, replies or any business result, nor the accuracy of content produced by artificial intelligence or of data from third-party sources.",
         ],
       },
       {
-        heading: "10. Liability",
+        heading: "11. Liability",
         body: [
           "The Publisher is liable only for proven direct damage resulting from a breach of its obligations. It is not liable for indirect damage, such as loss of revenue, customers or opportunities, nor for the consequences of how the Customer uses messages, leads or third-party services.",
           "Except in case of gross negligence or willful misconduct, the Publisher's total liability is limited to the amounts paid by the Customer in the 12 months before the event giving rise to the claim.",
         ],
       },
       {
-        heading: "11. Force majeure",
+        heading: "12. Force majeure",
         body: [
           "Neither party is liable for a failure caused by force majeure within the meaning of article 1218 of the French Civil Code, including a general outage of a host or an essential supplier.",
         ],
       },
       {
-        heading: "12. Personal data",
+        heading: "13. Personal data",
         body: [
           "Personal data processing is described in the privacy policy. The Publisher's commitments as processor are in article 8 of the terms of use.",
         ],
       },
       {
-        heading: "13. Governing law and disputes",
+        heading: "14. Governing law and disputes",
         body: [
           "These terms are governed by French law. In case of dispute, the parties first seek an amicable solution for 30 days from either party's written complaint. Failing that, the dispute is brought before the competent French courts.",
         ],
@@ -325,16 +345,18 @@ const en: Record<LegalDocId, LegalDoc> = {
               "Hetzner Online GmbH (Germany): hosting of the website, app and database;",
               "Stripe Payments Europe, Ltd. (Ireland): payment and invoicing;",
               "Google and Apple: sign-in, if you choose to sign in that way;",
-              "Anthropic (United States): the Claude AI, including its web search, on the “All included” plan. On the “Your own AI” plan, this processing goes through your own account.",
+              "Anthropic (United States): the Claude AI, including its web search, on the “All included” plan. On the “Your own AI” plan with an Anthropic key, this processing goes through your own account.",
+              "OpenAI (United States): the AI, if you bring an OpenAI API key on the “Your own AI” plan; this processing goes through your own account.",
+              "Unipile ([To fill in: country]): the connection to LinkedIn, if you add a LinkedIn sending account.",
             ],
           },
-          "The services you connect yourself (Unipile for LinkedIn, your mailbox, Hunter, Apify, TheirStack, Slack, HubSpot, Attio, Pipedrive) receive only the data needed for the action you start, under their own terms.",
+          "The services you connect yourself (your mailbox, Hunter, Apify, TheirStack, Slack, HubSpot, Attio, Pipedrive) receive only the data needed for the action you start, under their own terms.",
         ],
       },
       {
         heading: "6. Transfers outside the European Union",
         body: [
-          "Your data is hosted in the European Union. Some providers (Anthropic, and where applicable Stripe, Google or Apple) may process it in the United States. These transfers rely on the EU–US Data Privacy Framework or on the European Commission's standard contractual clauses.",
+          "Your data is hosted in the European Union. Some providers (Anthropic, and where applicable OpenAI, Stripe, Google or Apple) may process it in the United States. These transfers rely on the EU–US Data Privacy Framework or on the European Commission's standard contractual clauses.",
         ],
       },
       {

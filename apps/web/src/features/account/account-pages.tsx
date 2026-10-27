@@ -1,22 +1,19 @@
-import { AppleLogo, CheckCircle, CircleNotch } from "@phosphor-icons/react";
+import { AppleLogo, CheckCircle, CircleNotch, Minus, Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { LinkButton } from "@pluton/glass";
 import { useEffect, useState, type ReactNode } from "react";
 import { PlutonLogo } from "../../components/logo.tsx";
-import { Button, Input } from "../../components/ui.tsx";
+import { Button, Input, Segmented } from "../../components/ui.tsx";
 import { Wallpaper } from "../../components/wallpaper.tsx";
 import { useLocale, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
+import { euros, LEADS_A_MONTH, PRICES, yearlySaving, type Interval, type PlanId } from "../../lib/pricing.ts";
 import { authStateQuery, post } from "./auth-state.ts";
 import { useResetOnReturn } from "../../lib/redirect.ts";
 
-/** The hosted offer, in euros a month (PRODUCT.md); Stripe holds the prices actually charged. */
-const PLANS = [
-  { id: "byo", price: 39.99 },
-  { id: "all", price: 59.99 },
-] as const;
-type PlanId = (typeof PLANS)[number]["id"];
+/** The hosted plans, cheapest first; their prices are in lib/pricing.ts. */
+const PLANS: PlanId[] = ["byo", "all"];
 
 const ERRORS = ["cancelled", "expired", "provider", "link"] as const;
 
@@ -326,12 +323,14 @@ export function SubscribePage({ sessionId }: { sessionId?: string }) {
 
 function PlanPicker() {
   const t = useT("account");
-  const locale = useLocale();
   const [plan, setPlan] = useState<PlanId>("byo");
-  const price = (amount: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(amount);
+  const [interval, setInterval] = useState<Interval>("month");
+  const [linkedin, setLinkedin] = useState(0);
+  const per = (amount: number) => t(interval === "year" ? "plan.perYear" : "plan.perMonth", { price: euros(amount) });
+  const total = PRICES[plan][interval] + linkedin * PRICES.linkedin[interval];
 
   const checkout = useMutation({
-    mutationFn: () => post<{ url: string }>("/api/billing/checkout", { plan }),
+    mutationFn: () => post<{ url: string }>("/api/billing/checkout", { plan, interval, linkedin }),
     onSuccess: ({ url }) => window.location.assign(url),
   });
   useResetOnReturn(checkout.reset);
@@ -341,16 +340,29 @@ function PlanPicker() {
       <h1 className="text-[28px] leading-[30px] font-bold tracking-[-0.03em] text-balance">{t("subscribe.title")}</h1>
       <p className="mt-3 text-sm text-muted">{t("subscribe.description")}</p>
 
-      <div role="radiogroup" aria-label={t("subscribe.plans")} className="mt-8 flex flex-col gap-2.5">
-        {PLANS.map((p) => {
-          const selected = p.id === plan;
+      <div className="mt-8">
+        <Segmented
+          label={t("subscribe.interval")}
+          value={interval}
+          onChange={setInterval}
+          options={[
+            { value: "month", label: t("interval.month") },
+            { value: "year", label: t("interval.year") },
+          ]}
+        />
+      </div>
+      {interval === "year" && <p className="mt-2 text-xs text-muted">{t("subscribe.yearHint")}</p>}
+
+      <div role="radiogroup" aria-label={t("subscribe.plans")} className="mt-4 flex flex-col gap-2.5">
+        {PLANS.map((id) => {
+          const selected = id === plan;
           return (
             <button
-              key={p.id}
+              key={id}
               type="button"
               role="radio"
               aria-checked={selected}
-              onClick={() => setPlan(p.id)}
+              onClick={() => setPlan(id)}
               className={cn(
                 "gg-card flex items-start gap-3 p-4 text-left transition-[box-shadow] duration-150",
                 selected && "shadow-[inset_0_0_0_1.5px_var(--color-accent)]",
@@ -358,10 +370,14 @@ function PlanPicker() {
             >
               <span className="flex-1">
                 <span className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-semibold">{t(`plan.${p.id}.name`)}</span>
-                  <span className="text-sm tabular-nums">{t("plan.perMonth", { price: price(p.price) })}</span>
+                  <span className="text-sm font-semibold">{t(`plan.${id}.name`)}</span>
+                  <span className="text-sm tabular-nums">{per(PRICES[id][interval])}</span>
                 </span>
-                <span className="mt-1 block text-xs text-muted">{t(`plan.${p.id}.detail`)}</span>
+                <span className="mt-1.5 block text-xs font-semibold text-accent">{t(`plan.${id}.highlight`, LEADS_A_MONTH)}</span>
+                <span className="mt-1 block text-xs text-muted">
+                  {t(`plan.${id}.detail`)} {t("plan.credits", { count: PRICES[id].credits })}
+                  {interval === "year" && <> {t("plan.saving", { amount: euros(yearlySaving(id)) })}</>}
+                </span>
               </span>
               <CheckCircle
                 size={18}
@@ -374,7 +390,21 @@ function PlanPicker() {
         })}
       </div>
 
-      <Button type="button" onClick={() => checkout.mutate()} disabled={checkout.isPending || checkout.isSuccess} className="mt-8 h-9 w-full">
+      <div className="gg-card mt-2.5 flex items-center gap-3 p-4">
+        <span className="flex-1">
+          <span className="block text-sm font-semibold">{t("linkedin.label")}</span>
+          <span className="mt-1.5 block text-xs font-semibold text-accent">{t("linkedin.highlight")}</span>
+          <span className="mt-1 block text-xs text-muted">{t(interval === "year" ? "linkedin.hintYear" : "linkedin.hint", { price: euros(PRICES.linkedin[interval]) })}</span>
+        </span>
+        <Stepper value={linkedin} onChange={setLinkedin} max={10} label={t("linkedin.label")} />
+      </div>
+
+      <p className="mt-6 flex items-baseline justify-between text-sm">
+        <span className="text-muted">{t("subscribe.total")}</span>
+        <span className="font-semibold tabular-nums">{per(total)}</span>
+      </p>
+
+      <Button type="button" onClick={() => checkout.mutate()} disabled={checkout.isPending || checkout.isSuccess} className="mt-4 h-9 w-full">
         {(checkout.isPending || checkout.isSuccess) && <CircleNotch size={14} className="animate-spin" />}
         {t("subscribe.pay")}
       </Button>
@@ -384,7 +414,33 @@ function PlanPicker() {
         </p>
       )}
       <p className="mt-4 text-xs text-muted">{t("subscribe.stripe")}</p>
+      <p className="mt-2 text-[11px] text-muted">
+        {t.rich("linkedin.source", {
+          link: (
+            <a href="https://www.pin.com/blog/recruiting-outreach-benchmark-report/" target="_blank" rel="noopener noreferrer" className="underline">
+              Pin, Recruiting Outreach Benchmarks 2026
+            </a>
+          ),
+        })}
+      </p>
     </>
+  );
+}
+
+/** − n + for a small count, e.g. LinkedIn accounts. */
+export function Stepper({ value, onChange, max, label }: { value: number; onChange: (n: number) => void; max: number; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2" role="group" aria-label={label}>
+      <Button type="button" variant="ghost" className="h-7 w-7 px-0" disabled={value <= 0} onClick={() => onChange(value - 1)} aria-label="−">
+        <Minus size={12} weight="bold" />
+      </Button>
+      <span className="w-5 text-center text-sm tabular-nums" aria-live="polite">
+        {value}
+      </span>
+      <Button type="button" variant="ghost" className="h-7 w-7 px-0" disabled={value >= max} onClick={() => onChange(value + 1)} aria-label="+">
+        <Plus size={12} weight="bold" />
+      </Button>
+    </span>
   );
 }
 

@@ -10,9 +10,9 @@ const t = localized(messages);
 export const MODEL = "claude-sonnet-5-5";
 export const DEEP_MODEL = "claude-opus-5-5";
 export const agentModel = () => (getSetting("agent_model") === "opus" ? DEEP_MODEL : MODEL);
-/** Writing outreach and judging fit. */
+/** Writing outreach. */
 export const WRITER_MODEL = "claude-sonnet-5-5";
-/** Small classification tasks. */
+/** Small structured tasks: classifying replies, scoring leads against the ICP. */
 export const FAST_MODEL = "claude-haiku-5-5";
 
 export type LocalTool = {
@@ -78,6 +78,11 @@ const PRICES: Record<string, { input: number; output: number; cacheRead: number 
 };
 /** Web search is billed per search; web fetch only through the tokens it adds. */
 const WEB_SEARCH_USD = 10 / 1000;
+/**
+ * Most of one fetched page the agent reads, in tokens. Every page stays in the conversation and is
+ * read again on each later turn, so long pages were most of a search's cost.
+ */
+const WEB_FETCH_MAX_TOKENS = 10_000;
 
 function meterUsage(meter: AgentMeter, model: string, usage: Anthropic.Beta.BetaUsage) {
   const p = PRICES[model] ?? PRICES[MODEL]!;
@@ -136,7 +141,7 @@ export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMete
     ? []
     : [
         { type: "web_search_20260209", name: "web_search", max_uses: opts.webSearchUses ?? 6 },
-        { type: "web_fetch_20260209", name: "web_fetch", max_uses: opts.webFetchUses ?? 6 },
+        { type: "web_fetch_20260209", name: "web_fetch", max_uses: opts.webFetchUses ?? 6, max_content_tokens: WEB_FETCH_MAX_TOKENS },
       ];
   const tools: Anthropic.Beta.BetaToolUnion[] = [
     ...webTools,

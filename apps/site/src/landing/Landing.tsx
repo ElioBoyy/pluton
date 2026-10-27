@@ -41,9 +41,10 @@ import { Agent } from "./Agent.tsx";
 type T = Strings;
 type Props = { t: T; locale: Locale };
 
-/** Prices read "39.99 €" in English as in the copy, with each language's own decimal mark. */
+/** Prices read "24.99 €" in English as in the copy, with each language's own decimal mark; whole amounts drop the cents. */
 const euros = (locale: Locale, n: number) =>
-  `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2 }).format(n)}\u00a0€`;
+  `${new Intl.NumberFormat(locale, { minimumFractionDigits: Number.isInteger(n) ? 0 : 2 }).format(n)}\u00a0€`;
+const count = (locale: Locale, n: number) => new Intl.NumberFormat(locale).format(n);
 
 /* ------------------------------------------------------------------ menu bar */
 
@@ -462,7 +463,8 @@ function Compose({ t, locale }: Props) {
 
 /* ------------------------------------------------------------------ your AI */
 
-const MCP_URL = "http://localhost:8787/api/mcp";
+/** The hosted app's MCP server; self-hosted, the app shows its own address (localhost) in Settings → MCP. */
+const MCP_URL = "https://app.plut0n.com/api/mcp";
 const TOKEN = "pluton_…";
 const CLIENTS = {
   code: `claude mcp add --transport http pluton ${MCP_URL} --header "Authorization: Bearer ${TOKEN}"`,
@@ -523,8 +525,36 @@ function Mcp({ t }: Props) {
 
 /* ------------------------------------------------------------------ pricing */
 
+/** The grid in euros, amounts paid. Yearly is twelve months less 5 %, paid once. */
+const PLANS = {
+  own: { month: 24.99, year: 284.9, credits: 600 },
+  all: { month: 59, year: 672.6, credits: 2000 },
+} as const;
+const LINKEDIN = { month: 15, year: 171 };
+const PACKS = [
+  [1000, 22],
+  [2500, 55],
+  [5000, 109],
+] as const;
+/**
+ * Leads ready to contact a month on All included (2,000 credits), from a measurement still running:
+ * change them here and every language follows, packs included (half the range per 1,000 credits).
+ */
+const LEADS = { min: 100, max: 200 };
+/** Email addresses found a month on Your own AI's 600 credits. */
+const EMAILS = 200;
+const LINKEDIN_SOURCE = "https://www.pin.com/blog/recruiting-outreach-benchmark-report/";
+
+/** Fills {name} slots in a sentence. */
+const fill = (s: string, values: Record<string, string>) => s.replace(/\{(\w+)\}/g, (m, k: string) => values[k] ?? m);
+
 function Pricing({ t, locale }: Props) {
   const p = t.pricing;
+  const plans = [
+    ["own", p.ownLines, fill(p.ownKey, { emails: count(locale, EMAILS) })],
+    ["all", p.allLines, fill(p.allKey, { min: count(locale, LEADS.min), max: count(locale, LEADS.max) })],
+  ] as const;
+  const [before, after] = p.linkedinFootnote.split("{source}");
   return (
     <section className="pricing section" id="pricing" aria-labelledby="pricing-heading">
       <div className="price-planet">
@@ -539,43 +569,65 @@ function Pricing({ t, locale }: Props) {
         {/* Lit by scripts/pluto-light.ts; the photo shows until the canvas has drawn. */}
         <canvas className="price-planet-light" aria-hidden />
       </div>
-        <Glass weight="thick" className="price-panel reveal" data-plan="own">
+        <Glass weight="thick" className="price-panel reveal" data-plan="own" data-billing="month">
           <div className="price-top">
             <h2 id="pricing-heading" className="headline">
               {p.heading}
             </h2>
-            <Segmented
-              name="plan"
-              label={p.planLabel}
-              value="own"
-              options={[
-                { value: "own", label: p.own },
-                { value: "all", label: p.all },
-              ]}
-            />
+            <div className="price-switches">
+              <Segmented
+                name="plan"
+                label={p.planLabel}
+                value="own"
+                options={[
+                  { value: "own", label: p.own },
+                  { value: "all", label: p.all },
+                ]}
+              />
+              <Segmented
+                name="billing"
+                label={p.billingLabel}
+                value="month"
+                options={[
+                  { value: "month", label: p.monthly },
+                  {
+                    value: "year",
+                    label: (
+                      <>
+                        {p.yearly} <span className="price-save">{p.save}</span>
+                      </>
+                    ),
+                  },
+                ]}
+              />
+            </div>
           </div>
           <div className="price-main">
-            <p className="price">
-              <span className="plan-own">{euros(locale, 39.99)}</span>
-              <span className="plan-all">{euros(locale, 59.99)}</span>
-              <small>{p.perMonth}</small>
-            </p>
-            <ul className="price-lines plan-own">
-              {p.ownLines.map((l) => (
-                <li key={l}>
-                  <Check weight="bold" aria-hidden />
-                  {l}
-                </li>
-              ))}
-            </ul>
-            <ul className="price-lines plan-all">
-              {p.allLines.map((l) => (
-                <li key={l}>
-                  <Check weight="bold" aria-hidden />
-                  {l}
-                </li>
-              ))}
-            </ul>
+            {plans.map(([plan, lines, key]) => (
+              <div key={plan} className={`price-plan plan-${plan}`}>
+                <p className="price">
+                  <span className="bill-month">{euros(locale, PLANS[plan].month)}</span>
+                  <span className="bill-year">{euros(locale, PLANS[plan].year)}</span>
+                  <small className="bill-month">{p.perMonth}</small>
+                  <small className="bill-year">
+                    {p.perYear.replace("{month}", euros(locale, Math.round((PLANS[plan].year / 12) * 100) / 100))}
+                  </small>
+                  <strong className="price-saved bill-year">
+                    {p.saved.replace("{amount}", euros(locale, Math.round(PLANS[plan].month * 12 - PLANS[plan].year)))}
+                  </strong>
+                </p>
+                <p className="price-credits">{p.credits.replace("{n}", count(locale, PLANS[plan].credits))}</p>
+                <p className="price-key">{key}</p>
+                <ul className="price-lines">
+                  {lines.map((l) => (
+                    <li key={l}>
+                      <Check weight="bold" aria-hidden />
+                      {l}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
           <div className="price-actions">
             <LinkButton variant="accent" size="lg" href={APP_URL} className="plan-own">
@@ -584,6 +636,61 @@ function Pricing({ t, locale }: Props) {
             <LinkButton variant="accent" size="lg" href={APP_URL} className="plan-all">
               {p.cta} · {p.all}
             </LinkButton>
+          </div>
+          <div className="price-more">
+            <Card className="price-note">
+              <h3 className="price-note-title">{p.options}</h3>
+              <div className="price-option">
+                <p className="price-option-head">
+                  <strong>{p.linkedin}</strong>
+                  <span className="bill-month">{p.linkedinMonth.replace("{price}", euros(locale, LINKEDIN.month))}</span>
+                  <span className="bill-year">{p.linkedinYear.replace("{price}", euros(locale, LINKEDIN.year))}</span>
+                </p>
+                <p className="price-key">{p.linkedinKey}</p>
+                <p>{p.linkedinNote}</p>
+              </div>
+              <div className="price-option">
+                <p className="price-option-head">
+                  <strong>{p.packs}</strong>
+                </p>
+                <dl className="price-packs">
+                  {PACKS.map(([n, price]) => (
+                    <div key={n}>
+                      <dt>{p.pack.replace("{n}", count(locale, n))}</dt>
+                      <dd>{euros(locale, price)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="price-key">
+                  {fill(p.packsKey, {
+                    n: count(locale, 1000),
+                    min: count(locale, LEADS.min / 2),
+                    max: count(locale, LEADS.max / 2),
+                  })}
+                </p>
+                <p>{p.packsNote}</p>
+              </div>
+              <p className="price-footnote">
+                {before}
+                <a href={LINKEDIN_SOURCE}>{p.linkedinSource}</a>
+                {after}
+              </p>
+            </Card>
+            <Card className="price-note">
+              <h3 className="price-note-title">{p.creditsTitle}</h3>
+              {p.creditsText.map((l) => (
+                <p key={l}>{l}</p>
+              ))}
+            </Card>
+            <Card className="price-note">
+              <h3 className="price-note-title">{p.billingTitle}</h3>
+              <ul className="price-billing">
+                {p.billingLines.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+              <p className="price-vat">{p.vat}</p>
+            </Card>
           </div>
         </Glass>
         <p className="self-host reveal">

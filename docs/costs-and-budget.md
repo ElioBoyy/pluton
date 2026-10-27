@@ -11,7 +11,7 @@ Two kinds of line exist:
 
 Calls that cost nothing are never in the ledger: free sources (French company registry, careers pages, website tech detection, company website emails) and any answer Pluton reuses from its local cache.
 
-Some costs are invisible to Pluton because the provider charges a plan rather than per call (TheirStack credits, Unipile's subscription, a Hunter plan). You can add those by hand on the Usage page so the budget reflects them.
+Some costs are invisible to Pluton because the provider charges a subscription rather than per call (Unipile's subscription, the part of a Hunter or Apify plan you don't use). You can add those by hand on the Usage page so the budget reflects them.
 
 Where to look:
 - **Home**: the "Spend this period" card (spent, of your monthly budget, what's left until the period ends, and the subscription equivalent), with links to **Usage** and **Budget**.
@@ -25,9 +25,9 @@ Amounts are shown in US dollars, formatted for your language. Totals use two dec
 
 Pluton uses three Claude models, all with medium effort:
 
-- **Claude Opus 5.5** for most work: onboarding research, Brain reviews, Play planning, lead research during searches, scoring leads against your ideal customer (the judge), LinkedIn profile lookup, the "Web search (Claude)" source, the Agent (Agent page, ⌘K), and the Claude check behind the Test button.
+- **The research model**, Claude Sonnet 5.5 unless you chose Claude Opus 5.5 in Settings → API keys (**Research model**): onboarding research, Brain reviews, Play planning, lead research during searches, LinkedIn profile lookup, the "Web search (Claude)" source, the Agent (Agent page, ⌘K), and the Claude check behind the Test button.
 - **Claude Sonnet 5.5** for writing: each lead's LinkedIn messages, the **✦ Sharpen** button on message guidelines, and the automatic answer to a positive reply.
-- **Claude Haiku 5.5** for classifying replies (positive, in your hands, not interested).
+- **Claude Haiku 5.5** for small structured tasks: scoring leads against your ideal customer (the judge) and classifying replies (positive, in your hands, not interested).
 
 **With an Anthropic API key**, Pluton computes each call's cost from the tokens Anthropic reports and these list prices, in dollars per million tokens:
 
@@ -62,8 +62,8 @@ You can switch at any time; lines already recorded keep how they were billed. Us
 ## Data providers: how each one is charged
 
 - **Apify** (LinkedIn engagement and posts): each Apify actor run reports its total cost to Pluton (platform usage plus pay-per-event charges), read back once the run has settled, and that exact amount is recorded. Operations appear in the ledger as "Apify profile posts" (recent posts of tracked profiles), "Apify post engagers" (people who reacted to and commented on a post; two actor runs added together) and "Apify keyword posts" (posts matching keywords). Results are reused for 6 hours (posts) or 24 hours (engagers), with no new charge.
-- **Hunter** (email finding): Pluton records **$0.049** for each Hunter search that returns an email, and nothing when Hunter finds none. This is Hunter's paid-plan price per search. On Hunter's free plan (25 searches a month) Pluton records $0: it checks your Hunter plan (a free call, at most every 6 hours). If Hunter can't be reached for that check, the search is recorded at $0.049, so spend is never under-counted. A person's result is reused for 30 days.
-- **TheirStack** (market-wide job posts): TheirStack takes credits from your TheirStack plan (1 credit per job returned); Pluton records **$0** because it can't see what a credit costs you. Results are reused for 6 hours. Add your TheirStack plan by hand if you want it in the budget.
+- **Hunter** (email finding): Hunter takes one credit for each search that returns an email, and nothing when it finds none. Pluton records what a credit costs on your Hunter plan, from Hunter's monthly prices in euros turned into dollars at the fixed rate (1.12 $ per €): Starter (49 € for 2,000) about **$0.027**, Growth (149 € for 10,000) about $0.017, Scale (299 € for 25,000) about $0.013. A plan it doesn't recognise, an annual plan included, counts at Starter's price. On Hunter's free plan (50 searches a month) Pluton records $0. It checks your plan with a free call, at most every 6 hours; if Hunter can't be reached for that check, the search is recorded at Starter's price, so spend is never under-counted. A person's result is reused for 30 days.
+- **TheirStack** (market-wide job posts): TheirStack takes 1 credit per job returned, and nothing for a search that returns none. Pluton records **$0.0327** per job, a credit's price on TheirStack's smallest paid plan ($49 for 1,500 credits), because TheirStack doesn't say which plan a key is on. On a larger plan or the free credits this counts more than you pay; correct it with a negative expense if you want. Companies hiring and Tech stack searches call it once per search for up to 20 job posts (about $0.65 at most) when a key is set; see the Plays documentation. Results are reused for 24 hours, by every workspace on the same Pluton: the same search made again within a day costs nothing.
 - **Unipile** (LinkedIn sending): billed by Unipile per connected account on your Unipile plan; Pluton records nothing per action. Add it by hand (the expense box even suggests "Unipile account, October").
 - **Free sources**: the French company registry, careers boards (Greenhouse, Lever, Ashby, Recruitee), website tech detection and company website emails cost nothing.
 - **Web search (Claude)** and **LinkedIn profile lookup (Claude)** cost whatever Claude costs (see above). Web search answers are reused for a day.
@@ -124,7 +124,7 @@ The **Limits** section:
 - **Monthly budget (USD)**: "Leave empty for no limit. Spend is still tracked." Empty or 0 means no limit. Up to 100,000.
 - **Period starts on day**: 1 to 28, default **1**. "In your workspace timezone." A period runs from local midnight on that day to the same day next month.
 - **Daily cap (USD)**: "Optional. Stops a busy day from eating the month." Placeholder "None"; up to 10,000. A day starts at local midnight in the workspace timezone.
-- **Most one search may spend (USD)**: "Set aside when a search starts; what it doesn't use goes back. A Play can set its own." Required, more than 0, up to 1,000. Default **$2**. A Play's own cap, when it has one in its definition (for example set through the agent or an AI client), replaces this for that Play; the Play screens have no field for it.
+- **Most one search may spend (USD)**: "Set aside when a search starts; what it doesn't use goes back. A Play can set its own." Required, more than 0, up to 1,000. Default **$5**. A Play's own cap, when it has one in its definition (for example set through the agent or an AI client), replaces this for that Play; the Play screens have no field for it.
 - **At the limit**: **Stop** (default; "New searches don't start, and a search stops at its cap. What it already found is still scored.") or **Only track** ("Searches keep running; you get the 80% and 100% alerts.").
 
 Click **Save** (active once something changed and the values are valid). Errors: "The period must start between day 1 and 28", "Amounts must be positive". Each change is recorded in Activity.
@@ -148,7 +148,7 @@ The Home page's "Spend this period" card shows the same figures in short: "{amou
 
 Only **searches** (lead-finding runs of a Play, started by you, by a schedule, by the agent or by an AI client) are held to the budget in advance. Everything else (agent conversations, message writing, email finding, onboarding, Brain reviews) is never blocked, but its billed cost still counts in the totals and the alerts.
 
-1. **Before it starts**, Pluton works out the search's cap: the Play's own cap, else **Most one search may spend** ($2 by default).
+1. **Before it starts**, Pluton works out the search's cap: the Play's own cap, else **Most one search may spend** ($5 by default).
 2. In **Stop** mode with a limit set, it compares with **Available**. If less than **$0.01** is left, the search is **refused**: "The monthly budget is used up until {date}. Raise it in Settings → Budget." or "The daily budget is used up for today. Raise it in Settings → Budget." A notification "Search for {play} not started" (category Searches that fail) and an Activity entry follow. A refused scheduled search is tried again the next day, not every minute.
 3. Otherwise the search **holds** its cap, trimmed to what is available. With **Only track** or no limit, it holds its full cap.
 4. **While it runs** in Stop mode, as soon as its billed spend reaches the hold, research stops ("This search reached its spend cap; scoring what it found so far."). The candidates already found are still checked and scored, so the final spend can go slightly over the hold. The search ends with "Spend cap reached", and the Play shows "The last search hit its spend cap" with "Raise the cap per search or the monthly budget, then run it again." This also applies with no monthly limit. In Only track mode the cap does not stop the search.
@@ -193,10 +193,10 @@ Money set aside by searches in progress, minus what they already spent. It goes 
 **How do I make one Play spend more per search?**
 Raise "Most one search may spend" on the Budget page (applies to every Play without its own cap), or ask the agent to set a cap for that Play.
 
-**Hunter is on the free plan but Usage shows $0.049 per email. Is that real?**
-It shouldn't any more: Pluton checks your Hunter plan and records $0 on the free plan. Entries from before that check, or from a moment Hunter couldn't be reached, can be cancelled with a negative expense.
+**Hunter is on the free plan but Usage shows a cost per email. Is that real?**
+It shouldn't any more: Pluton checks your Hunter plan and records $0 on the free plan. Entries from before that check (older ones at $0.049), or from a moment Hunter couldn't be reached, can be cancelled with a negative expense.
 
-**How do I count my Unipile or TheirStack plan?**
+**How do I count my Unipile plan?**
 Usage → "Add an expense Pluton can't see", enter the amount and a note.
 
 **When does a budget period start?**

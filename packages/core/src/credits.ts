@@ -43,7 +43,7 @@ const t = localized(messages);
 export const MICRO = 1_000_000;
 const toMicro = (usd: number) => Math.round(usd * MICRO);
 
-export const DEFAULT_BUDGET: BudgetSettings = { monthlyUsd: 0, periodStartDay: 1, dailyUsd: 0, mode: "enforce", runCapUsd: 2 };
+export const DEFAULT_BUDGET: BudgetSettings = { monthlyUsd: 0, periodStartDay: 1, dailyUsd: 0, mode: "enforce", runCapUsd: 5 };
 
 /** Shown when an expense of 0 is added (checked by the router's input schema). */
 export const amountNotZeroMessage = () => t("amountNotZero");

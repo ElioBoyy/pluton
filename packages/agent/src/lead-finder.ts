@@ -29,7 +29,7 @@ import {
   type BrainItemView,
   type CandidatePerson,
 } from "@pluton/core";
-import type { Db, Evidence, Pipeline, Play, RunReport } from "@pluton/db";
+import { getSetting, type Db, type Evidence, type Pipeline, type Play, type RunReport } from "@pluton/db";
 import {
   companyJobs,
   detectStack,
@@ -38,11 +38,13 @@ import {
   postEngagers,
   profilePosts,
   registryLookalikes,
+  searchJobs,
   searchRegistry,
+  THEIRSTACK_KEY,
 } from "@pluton/providers";
 import { runAgent } from "./backend.ts";
 import { findLinkedinProfiles } from "./linkedin-lookup.ts";
-import { AgentTurnLimitError, localTool } from "./run-agent.ts";
+import { AgentTurnLimitError, FAST_MODEL, localTool } from "./run-agent.ts";
 import { SERVICES_JUDGE, SERVICES_LEADS } from "./offer.ts";
 import { languageInstruction, localized } from "@pluton/i18n/server";
 import messages from "./messages/lead-finding.ts";
@@ -78,7 +80,7 @@ const researchSystem = () =>
 const brainOf = (play: Play) => play.brainSnapshot as BrainItemView[];
 const section = <T>(play: Play, s: string) => brainOf(play).filter((i) => i.section === s).map((i) => i.data as T);
 
-function researchBrief(play: Play, pipeline: Pipeline) {
+function researchBrief(play: Play, pipeline: Pipeline, seeds: Seed[]) {
   const a = play.definition.audience;
   const fresh = play.definition.policy?.freshnessDays ?? 60;
   const company = section<{ name: string }>(play, "company")[0];
@@ -111,7 +113,76 @@ ${who}
 How:
 ${how[pipeline]}
 
-Keywords that may help: ${a.keywords.join(" · ") || "none"}`;
+Keywords that may help: ${a.keywords.join(" · ") || "none"}${
+    seeds.length
+      ? `
+
+Organizations already found in job posts, each with its signal and source (verified, no need to search for them again):
+${seeds.map((o) => `- ${o.company}${o.domain ? ` (${o.domain})` : ""}: ${o.signal} ${o.url}`).join("\n")}
+Start with these: find the persona at each and use the job post as evidence. Look for other organizations only once these are used up.`
+      : ""
+  }`;
+}
+
+/** An organization a structured source already shows with the Play's signal. */
+type Seed = { company: string; domain?: string; signal: string; url: string };
+
+/** Codes Intl still names but TheirStack doesn't take: retired countries (DD, the old Germany), reserved ones (UK, FX) and groups (EU, UN). */
+const RETIRED_CODES = new Set(["AN", "BU", "CS", "DD", "EU", "EZ", "FX", "NT", "QO", "SU", "TP", "UK", "UN", "YU", "ZR"]);
+
+/** Country names in the app's languages ("France", "Allemagne", "Spain"…) to ISO codes, built once from Intl. */
+let countryNames: Map<string, string> | undefined;
+function countryCodes(geographies: string[]) {
+  if (!countryNames) {
+    countryNames = new Map();
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    for (const lang of ["en", "fr", "de", "it", "es"]) {
+      const names = new Intl.DisplayNames([lang], { type: "region", fallback: "none" });
+      for (const a of letters) for (const b of letters) {
+        const name = !RETIRED_CODES.has(a + b) && names.of(a + b)?.toLowerCase();
+        if (name && !countryNames.has(name)) countryNames.set(name, a + b);
+      }
+    }
+  }
+  const codes = geographies.flatMap((g) => g.split(/[,;/]/)).map((g) => countryNames!.get(g.trim().toLowerCase()));
+  return [...new Set(codes.filter((c): c is string => Boolean(c)))];
+}
+
+/**
+ * Hiring and stack Plays start from TheirStack's market-wide job posts when a key is there: a list of
+ * organizations with the signal and its source costs about $0.03 a job, where finding them on the open
+ * web takes the agent many searches and pages. Needs a country TheirStack can filter on; anything
+ * missing or failing leaves the research to the agent as before.
+ */
+async function seedOrganizations(ctx: Ctx, pipeline: Pipeline): Promise<Seed[]> {
+  if (pipeline !== "company_hiring" && pipeline !== "company_stack") return [];
+  const a = ctx.play.definition.audience;
+  const countries = countryCodes(a.geographies);
+  const titles = pipeline === "company_hiring" ? (a.hiringRoles.length ? a.hiringRoles : a.personas) : undefined;
+  const technologies =
+    pipeline === "company_stack" ? a.technologies.map((x) => x.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")).filter(Boolean) : undefined;
+  if (!getSetting(THEIRSTACK_KEY) || countries.length === 0 || !(titles?.length || technologies?.length)) return [];
+  try {
+    const { jobs } = await searchJobs(ctx.db, {
+      titles,
+      technologies,
+      countries,
+      maxAgeDays: ctx.play.definition.policy?.freshnessDays ?? 60,
+      limit: 20,
+    });
+    const seeds = new Map<string, Seed>();
+    for (const j of jobs) {
+      const key = (j.companyDomain ?? j.company).toLowerCase();
+      if (!j.company || seeds.has(key)) continue;
+      const signal = pipeline === "company_hiring" ? `Hiring a ${j.title}` : `Uses ${(j.technologies ?? []).filter((x) => technologies!.includes(x)).join(", ") || technologies!.join(", ")}`;
+      seeds.set(key, { company: j.company, domain: j.companyDomain, signal, url: j.url });
+    }
+    if (seeds.size) await ctx.say(t("seededFromJobs", { count: seeds.size }));
+    return [...seeds.values()];
+  } catch (error) {
+    console.warn("[lead-finder] TheirStack seeding skipped:", (error as Error).message);
+    return [];
+  }
 }
 
 /** Parses "Responsable plaidoyer chez Oxfam France" / "CEO at Acme" / "Head of X @ Y" into title and company. */
@@ -136,6 +207,8 @@ type Ctx = {
   feedback: string;
   /** People the founder already rejected: not brought back. */
   rejectedPeople: Set<string>;
+  /** Leads kept by the judge with no LinkedIn URL yet, looked up together once the search is done. */
+  toLookUp: Kept[];
   signal: AbortSignal;
   say: (text: string) => Promise<void>;
 };
@@ -190,18 +263,28 @@ async function collectFromLinkedin(ctx: Ctx, pipeline: Pipeline, wanted: number)
 }
 
 /** Research-agent pipelines; candidates go through `submit` as they're found. */
-async function collectByResearch(ctx: Ctx, pipeline: Pipeline, wanted: number, submit: (c: Candidate[]) => Promise<number>, signal: AbortSignal) {
+async function collectByResearch(
+  ctx: Ctx,
+  pipeline: Pipeline,
+  wanted: number,
+  submit: (c: Candidate[]) => Promise<number>,
+  signal: AbortSignal,
+  stage: boolean,
+) {
   const { db } = ctx;
   let accepted = 0;
+  const seeds = await seedOrganizations(ctx, pipeline);
+  // Every turn re-reads the whole conversation, so turns, pages and second wind are what a search costs.
+  // A Main Play stage gets a smaller budget and no second wind: the next stage is the new angle.
   await runAgent({
     system: researchSystem(),
-    prompt: researchBrief(ctx.play, pipeline),
+    prompt: researchBrief(ctx.play, pipeline, seeds),
     required: ["submit_candidates"],
-    webSearchUses: 15,
-    webFetchUses: 10,
-    maxTurns: 45,
+    webSearchUses: stage ? (seeds.length >= 5 ? 5 : 8) : seeds.length >= 5 ? 8 : 15,
+    webFetchUses: 5,
+    maxTurns: stage ? 20 : 30,
     signal,
-    maxContinuations: 2,
+    maxContinuations: stage ? 0 : 1,
     continueWhile: () => {
       const short = wanted - accepted;
       if (short <= 0) return null;
@@ -309,7 +392,11 @@ function makeGate(ctx: Ctx, kept: Kept[]) {
   };
 }
 
-/** LinkedIn profile URLs for kept candidates that don't have one yet (needed for outreach). */
+/**
+ * LinkedIn profile URLs for leads the judge kept that don't have one yet (needed for outreach). Run
+ * once at the end of a search: people the judge set aside are never looked up, and a Main Play pays
+ * for one lookup instead of one per stage.
+ */
 async function enrichLinkedin(ctx: Ctx, kept: Kept[]) {
   const missing = kept.filter((k) => !k.linkedinUrl);
   if (missing.length === 0) return;
@@ -324,8 +411,8 @@ async function enrichLinkedin(ctx: Ctx, kept: Kept[]) {
   }
 }
 
-/** Collects, checks, enriches and scores one pipeline's candidates. Returns how many it qualified. */
-async function runPipeline(ctx: Ctx, pipeline: Pipeline, wanted: number, deadline: AbortSignal) {
+/** Collects, checks and scores one pipeline's candidates. Returns how many it qualified. */
+async function runPipeline(ctx: Ctx, pipeline: Pipeline, wanted: number, deadline: AbortSignal, stage = false) {
   const before = ctx.report.qualified;
   const kept: Kept[] = [];
   const gate = makeGate(ctx, kept);
@@ -335,7 +422,7 @@ async function runPipeline(ctx: Ctx, pipeline: Pipeline, wanted: number, deadlin
     await gate((await collectFromLinkedin(ctx, pipeline, wanted)).slice(0, wanted * 3));
   } else {
     try {
-      await collectByResearch(ctx, pipeline, wanted, gate, research);
+      await collectByResearch(ctx, pipeline, wanted, gate, research, stage);
     } catch (error) {
       // Out of turns or out of time: keep what was found and score it rather than fail the run.
       const outOfBudget = deadline.aborted || error instanceof AgentTurnLimitError;
@@ -344,12 +431,18 @@ async function runPipeline(ctx: Ctx, pipeline: Pipeline, wanted: number, deadlin
   }
 
   if (kept.length) {
-    await enrichLinkedin(ctx, kept);
     await ctx.say(t("scoring", { count: kept.length }));
     for (let i = 0; i < kept.length; i += 10) await judgeBatch(ctx, kept.slice(i, i + 10), pipeline);
   }
   return ctx.report.qualified - before;
 }
+
+/**
+ * What counts toward a search's target: each strong match, and each "worth a look" lead as half of
+ * one. Both reach the founder's review; counting only strong matches sent a Main Play through every
+ * stage whenever the judge was cautious.
+ */
+const towardTarget = (report: RunReport) => report.qualified + Math.floor(report.needsReview / 2);
 
 /** Runs one lead-finding search end to end and records the report. */
 export async function runLeadFinding(opts: { db: Db; runId: string; signal: AbortSignal }) {
@@ -368,6 +461,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
     qualifiedExamples: [],
     feedback: describeFeedback(await feedbackDigest(db, play.workspaceId, { limit: 30 }), 10),
     rejectedPeople: await rejectedPersonIds(db, play.workspaceId),
+    toLookUp: [],
     signal: opts.signal,
     say: (text) => emit(db, runId, "message", { text }),
   };
@@ -400,7 +494,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
       const available = new Set(pipelineCapabilities().filter((c) => c.available).map((c) => c.pipeline));
       report.stages = [];
       for (const pipeline of WATERFALL_ORDER) {
-        const remaining = target - report.qualified;
+        const remaining = target - towardTarget(report);
         if (remaining <= 0) {
           report.stages.push({ pipeline, qualified: 0, discovered: 0, skipped: "target_met" });
           continue;
@@ -411,7 +505,7 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
         }
         const discoveredBefore = report.discovered;
         await ctx.say(t("mainStage", { pipeline: pipelineLabel(pipeline), count: remaining }));
-        const qualified = await runPipeline(ctx, pipeline, Math.min(remaining * 2, 30), deadline);
+        const qualified = await runPipeline(ctx, pipeline, Math.min(remaining * 2, 30), deadline, true);
         report.stages.push({ pipeline, qualified, discovered: report.discovered - discoveredBefore });
         await emit(db, runId, "report", report);
       }
@@ -419,7 +513,8 @@ export async function runLeadFinding(opts: { db: Db; runId: string; signal: Abor
       await runPipeline(ctx, play.pipeline, Math.min(target * 2, 40), deadline);
     }
 
-    const stopReason = report.qualified >= target ? "target_met" : deadline.aborted ? limitReason() : "sources_dry";
+    await enrichLinkedin(ctx, ctx.toLookUp);
+    const stopReason = towardTarget(report) >= target ? "target_met" : deadline.aborted ? limitReason() : "sources_dry";
     await updateRun(db, runId, { status: "completed", stopReason, report, finishedAt: new Date() });
     await recordActivity(db, play.workspaceId, "leads", "lead_finding.completed", { runId, playId: play.id, ...report });
     await emit(db, runId, "done", { stopReason, report });
@@ -459,8 +554,10 @@ const judgeSystem = () => `${JUDGE_SYSTEM}\nThe reason is for the founder: ${lan
 async function judgeBatch(ctx: Ctx, batch: Kept[], pipeline: Pipeline) {
   const { db, play, report, runId } = ctx;
   const verdicts = new Map<number, { fit: number; stage: "qualified" | "needs_review" | "disqualified"; reason: string; rejection?: string }>();
+  // Scoring a short list against the ICP is a small structured task: Haiku does it at a fraction of the price.
   await runAgent({
     system: judgeSystem(),
+    model: FAST_MODEL,
     noWeb: true,
     maxTurns: 4,
     required: ["record_verdicts"],
@@ -522,6 +619,7 @@ ${batch.map((c, i) => `${i}. ${JSON.stringify({ name: c.name, title: c.title, co
       report.duplicates++;
       continue;
     }
+    if (v.stage !== "disqualified" && !c.linkedinUrl) ctx.toLookUp.push(c);
     if (v.stage === "qualified") {
       report.qualified++;
       ctx.qualifiedExamples.push(`${c.name} (${c.title} @ ${c.company})`);

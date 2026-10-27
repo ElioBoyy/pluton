@@ -87,14 +87,14 @@ The Main Play works like a waterfall. It runs these stages in this fixed order, 
 
 Web evidence and Lookalikes are not part of the waterfall (they need inputs the Brain doesn't hold); create a separate Play for them.
 
-Before each stage, Pluton checks how many qualified leads are still missing to reach the target (10 by default):
+Before each stage, Pluton checks how many leads are still missing to reach the target (10 by default; a worth-a-look lead counts as half):
 
 - **Target already met**: the stage is skipped and shown as **not needed**.
 - **Stage not available** (the two LinkedIn stages without an Apify token): skipped and shown as **needs a key**.
 - **Time limit or spend cap already reached**: the stage is skipped.
 - Otherwise the stage runs, asking its source for about twice the number of leads still missing, at most 30 candidates per stage. The live narration says, for example, "Main Play: Tech stack (7 still to find)".
 
-Only judge-qualified leads ("Strong match") count toward the target. "Worth a look" leads are kept for your review but don't stop the waterfall.
+Each strong match counts as one toward the target, and each "Worth a look" lead as half of one (two make one, rounded down): both reach your review, so a cautious judge no longer sends the Main Play through every stage. A Main Play stage also gets a smaller research budget than a single-pipeline Play (at most 8 web searches and 20 steps, and no nudge to try new angles: the next stage is the new angle).
 
 After a run, the Sourcing tab's **Main Play, latest run** section lists each stage with its outcome: "needs a key", "not needed", "out of time" (shown when the spend cap stopped the run before that stage), or "N found · M qualified" (stages skipped because the time limit was reached also appear here, with 0 found).
 
@@ -112,9 +112,9 @@ Plays only use free sources unless you add keys. Every source call is cached so 
 
 **Claude (your Claude access)**
 
-- **Web search (Claude)**: Claude searches the web and reads pages to find companies, people, public evidence and funding news. Each research stage may use up to 15 web searches and 10 page reads.
+- **Web search (Claude)**: Claude searches the web and reads pages to find companies, people, public evidence and funding news. Each research stage may use up to 15 web searches (8 when TheirStack already listed at least 5 organizations) and 5 page reads, each page cut to about 10,000 tokens, over at most 30 turns.
 - **LinkedIn profile lookup (Claude)**: finds each kept person's LinkedIn profile URL through web search.
-- **The judge**: Claude scores every candidate against your ICP (no web access).
+- **The judge**: Claude Haiku 5.5 scores every candidate against your ICP (no web access).
 - **The planner**: Claude asks questions and proposes Plays (no web access).
 
 With your Claude subscription (the default), these calls are recorded at API prices as "not billed": they show on Usage but never count against your budget or a search's cap. With an Anthropic API key, they are billed from tokens and list prices.
@@ -123,7 +123,7 @@ With your Claude subscription (the default), these calls are recorded at API pri
 
 - **Apify (LinkedIn)**: recent posts of tracked profiles, the people who react to or comment on them, and posts matching keywords. No LinkedIn cookies are used, so your own LinkedIn account is never used for scraping. Billed by Apify at each actor run's real cost, which Pluton reads back and records. Posts are cached 6 hours, engagers 24 hours. Required for the two LinkedIn pipelines and the first two Main Play stages.
 - **Hunter**: used to find emails on leads, not by searches (see the Leads documentation).
-- **TheirStack**: market-wide job and stack search. It can be configured and tried in Settings → Data sources, but Play runs do not currently call it; Companies hiring and Tech stack use the free sources and Claude web search.
+- **TheirStack**: market-wide job and stack search. With a key, a Companies hiring or Tech stack search first asks it for up to 20 recent job posts in the Play's countries (the hiring roles, or the personas when none are set; or the technologies), and hands the organizations it finds to the research agent, which then only has to find the right person at each. This needs at least one geography that is a country ("France", "Allemagne", "Spain"…); cities and regions alone skip it. Billed per job returned (see Costs and budget). Without a key, or if TheirStack fails, the agent searches the open web as before.
 
 The "What to expect" box on a new proposal lists the paid sources a Play will use: "Uses your Claude access, plus Apify actor runs (billed by Apify)." for the LinkedIn pipelines and the Main Play, otherwise "Uses your Claude access, no paid data source." Settings → Data sources shows each source's status and a "Try it" box.
 
@@ -362,11 +362,11 @@ The judge-disqualified people listed here never appear in the Leads tabs: the So
 A run is one search of one Play. Step by step:
 
 1. **Start**: a run is created with the Play's target, a budget hold is set aside, and a background job is queued. Activity: "You started a search for {play}" (or "A scheduled search started for {play}"). Only one run per Play can be queued or running; asking again returns the one already in flight.
-2. **Collect**: depending on the pipeline, either the Claude research agent searches (web search, the French registry, careers boards, tech detection) and submits candidates in batches, or Apify reads LinkedIn posts and their engagers. The agent is told how many more it needs after each batch. If it stops short, it is nudged up to twice to try new angles (adjacent titles, other sources, older signals within the freshness window).
+2. **Collect**: depending on the pipeline, either the Claude research agent searches (web search, the French registry, careers boards, tech detection) and submits candidates in batches, or Apify reads LinkedIn posts and their engagers. The agent is told how many more it needs after each batch. For Companies hiring and Tech stack, TheirStack's job posts give it a starting list of organizations when a key is set ("Found {count} organizations in recent job posts; looking for the right person at each…"). If it stops short, a single-pipeline Play nudges it once to try new angles (adjacent titles, other sources, older signals within the freshness window); a Main Play stage just hands over to the next stage.
 3. **Check** (code, no AI): each candidate is dropped if the title is missing (or both company and LinkedIn are missing), if they work at your company or a competitor, if they match an exclusion, or if you rejected them before. People already in this Play are skipped as duplicates.
-4. **LinkedIn lookup**: kept people without a LinkedIn URL get one looked up through Claude web search.
-5. **Score**: the judge scores candidates in batches of 10 against your company, ICP and personas (from the Play's Brain snapshot) and your recent verdicts: Strong match (fit 70+), Worth a look (45–69), set aside (below 45).
-6. **Save**: strong matches and worth-a-look leads are added with status To review. Set-aside people go to the Sourcing report only.
+4. **Score**: the judge scores candidates in batches of 10 against your company, ICP and personas (from the Play's Brain snapshot) and your recent verdicts: Strong match (fit 70+), Worth a look (45–69), set aside (below 45).
+5. **Save**: strong matches and worth-a-look leads are added with status To review. Set-aside people go to the Sourcing report only.
+6. **LinkedIn lookup**: once collecting and scoring are done, the leads the judge kept that have no LinkedIn URL get one looked up through Claude web search, all together (people set aside are never looked up).
 7. **Finish**: the run gets its stop reason, Activity records the result ("Pluton found {count} leads for {play}" or "A search for {play} found no new leads"), the hold is settled and unused budget goes back.
 
 Afterwards, Slack posting (if set up) and notifications ("{count} new leads for {play}") follow; those are covered with integrations and settings.
@@ -377,9 +377,9 @@ The **time limit** and the **spend cap** only stop the research steps: what was 
 
 Three numbers shape every run of a Play.
 
-**Target** ("How many"): qualified leads wanted per run, 1 to 50, default 10. A run stops collecting once it has this many strong matches ("Target reached"). To have enough material, a single-pipeline Play asks its source for twice the target, at most 40 candidates; each Main Play stage asks for twice what is still missing, at most 30. LinkedIn pipelines keep at most three times the wanted number of raw candidates for checking. Worth-a-look leads don't count toward the target. The target is set when the Play is proposed; ask the planner to change it before creating.
+**Target** ("How many"): qualified leads wanted per run, 1 to 50, default 10. A run stops collecting once it has this many strong matches, a worth-a-look lead counting as half of one ("Target reached"). To have enough material, a single-pipeline Play asks its source for twice the target, at most 40 candidates; each Main Play stage asks for twice what is still missing, at most 30. LinkedIn pipelines keep at most three times the wanted number of raw candidates for checking. The target is set when the Play is proposed; ask the planner to change it before creating.
 
-**Research time** ("min of research"): 3 to 60 minutes, default 15. When it runs out, research stops ("Time limit reached") and what was found is still scored. Each research stage also has a ceiling of 45 agent steps, 15 web searches and 10 page reads; running out of steps is treated like running out of time (keep and score).
+**Research time** ("min of research"): 3 to 60 minutes, default 15. When it runs out, research stops ("Time limit reached") and what was found is still scored. Each research stage also has a ceiling of 30 agent steps, 15 web searches (8 when TheirStack listed at least 5 organizations) and 5 page reads; running out of steps is treated like running out of time (keep and score).
 
 **Freshness** ("days freshness"): 1 to 365 days, default 60. Only signals newer than this count: job posts for Companies hiring and Tech stack, funding news for Recently funded, LinkedIn posts for the LinkedIn pipelines. For LinkedIn, the window is rounded to Apify's filters: 1 day or less = last 24 hours, up to 7 days = last week, up to 31 days = last month, longer = last 3 months (tracked profiles' posts are capped at the last month).
 
@@ -396,7 +396,7 @@ Every search sets money aside before it starts, so several searches can't oversp
 
 When a search starts:
 
-- Its **cap** is the Play's own cap if it has one, otherwise **Most one search may spend (USD)** from Settings → Budget (default **$2**).
+- Its **cap** is the Play's own cap if it has one, otherwise **Most one search may spend (USD)** from Settings → Budget (default **$5**).
 - If you set a monthly budget or a daily cap and the mode is **Stop** (the default mode), the hold is the cap trimmed to what is left this period. "Left" means budget minus billed spend minus what other running searches still hold.
 - If less than **$0.01** is left, the search is **refused**: "The monthly budget is used up until {date}. Raise it in Settings → Budget." or "The daily budget is used up for today. Raise it in Settings → Budget." Activity says "A search for {play} was not started: the monthly budget is used up" (or daily), and a notification "Search for {play} not started" links to Settings → Budget (at most one per Play per day).
 - With no monthly or daily limit, or in **Only track** mode, the hold is simply the cap and nothing is refused.
@@ -441,7 +441,7 @@ A run has a **status**:
 
 And, once finished, a **stop reason** (shown next to the date):
 
-- **Target reached**: it found as many strong matches as the target.
+- **Target reached**: it found as many strong matches as the target, a worth-a-look lead counting as half of one.
 - **Time limit reached**: the research minutes ran out before the target.
 - **Spend cap reached**: billed spend reached the search's hold (cap or what was left of the budget).
 - **Sources ran dry before the target**: the sources had nothing more to give before the target and before any limit.
@@ -588,7 +588,7 @@ It is the Play that uses every signal in your Brain and is created by onboarding
 Open the Sourcing tab: "Set aside in the latest completed run" shows why candidates were dropped. If the stop reason is "Sources ran dry before the target", the audience is probably too narrow; create a new Play with more titles, sizes or regions, or a longer freshness window. If most were "Wrong role" or "Organization outside the ICP", your description and your ICP disagree.
 
 **Does running a search cost money?**
-With your Claude subscription and no Apify, searches usually cost nothing billed (shown as "Past runs cost nothing billed"). Apify runs and Claude via an API key are billed and capped per search (default $2).
+With your Claude subscription and no Apify, searches usually cost nothing billed (shown as "Past runs cost nothing billed"). Apify runs and Claude via an API key are billed and capped per search (default $5).
 
 **I ran a Play by hand this morning. Will its daily schedule still run today?**
 No. A scheduled Play runs once per local day; any search that day counts.
@@ -618,7 +618,7 @@ No. One search per Play at a time; a second request returns the one already runn
 On its Overview tab, under Activity ("Spent $X this period, $Y in all · $Z per lead"), and on Settings → Usage per Play.
 
 **Does TheirStack make my "Companies hiring" Play better?**
-Not currently: Play runs use the free careers-board reader and Claude web search. TheirStack can be tested in Settings → Data sources.
+It makes it cheaper and more direct: with a key and a country in the Play's geographies, the search starts from organizations TheirStack found in recent job posts, each with its job post as evidence, instead of looking for them on the open web. The careers-board reader and Claude web search still find the people there, and take over when TheirStack has nothing.
 
 **Can I create Plays from the Agent or Claude Code?**
 Yes: the Agent and connected AI clients can plan and create Plays and start searches, asking your approval before anything that spends or changes data. See the Agent and MCP documentation.

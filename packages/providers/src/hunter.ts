@@ -1,7 +1,7 @@
-import type { Db } from "@pluton/db";
+import { usdPerEur, type Db } from "@pluton/db";
 import { httpJson, providerCall, requireKey, toDomain } from "./runtime.ts";
 
-/** Hunter email finder: a work email from first name, last name and company domain. Free plan: 25/month. */
+/** Hunter email finder: a work email from first name, last name and company domain. Free plan: 50 credits a month. */
 const PROVIDER = "hunter";
 export const HUNTER_KEY = "hunter_api_key";
 
@@ -31,9 +31,8 @@ export async function findEmail(db: Db, person: { firstName: string; lastName: s
         { retries: 1 },
       );
       const value: EmailResult = { email: res.data.email, confidence: res.data.score, source: PROVIDER };
-      // Paid plans cost about $0.049 a search; the free plan costs nothing until its 25 run out.
-      const paid = value.email ? !(await onFreePlan(key)) : false;
-      return { value, items: value.email ? 1 : 0, costMicroUsd: paid ? 49_000 : 0, ttlMs: 30 * 24 * 3600_000 };
+      const costMicroUsd = value.email ? await emailCostMicroUsd(key) : 0;
+      return { value, items: value.email ? 1 : 0, costMicroUsd, ttlMs: 30 * 24 * 3600_000 };
     },
   );
 }
@@ -42,26 +41,44 @@ export type HunterQuota = { used: number; available: number; resetDate: string |
 
 const PLAN_TTL_MS = 6 * 3600_000;
 const FAILED_TTL_MS = 5 * 60_000;
-const planCache = new Map<string, { free: Promise<boolean>; until: number }>();
+const planCache = new Map<string, { cost: Promise<number>; until: number }>();
 
 /**
- * Whether the key is on Hunter's free plan, asked at most every 6 hours; lookups running at once
- * share one question. When Hunter can't be reached the search is counted as paid, so spend is never
- * under-reported, and the plan is asked again a few minutes later rather than in 6 hours.
+ * Hunter's paid plans billed monthly, in euros a month and credits a month (hunter.io/pricing,
+ * October 2026). One email found is one credit.
  */
-function onFreePlan(key: string) {
+const PAID_PLANS: Array<{ name: RegExp; eur: number; credits: number }> = [
+  { name: /starter/i, eur: 49, credits: 2_000 },
+  { name: /growth/i, eur: 149, credits: 10_000 },
+  { name: /scale/i, eur: 299, credits: 25_000 },
+];
+const STARTER = PAID_PLANS[0]!;
+
+/** What one credit costs on a plan: an unknown paid plan counts at Starter's price, the highest per credit. */
+function creditMicroUsd(plan: string | null) {
+  const p = PAID_PLANS.find((x) => x.name.test(plan ?? "")) ?? STARTER;
+  return Math.round(((p.eur * usdPerEur()) / p.credits) * 1_000_000);
+}
+
+/**
+ * What one email found costs this key: nothing on the free plan, else its plan's price per credit.
+ * The plan is asked at most every 6 hours; lookups running at once share one question. When Hunter
+ * can't be reached the search is counted at Starter's price, so spend is never under-reported, and
+ * the plan is asked again a few minutes later rather than in 6 hours.
+ */
+function emailCostMicroUsd(key: string) {
   const cached = planCache.get(key);
-  if (cached && Date.now() < cached.until) return cached.free;
-  const entry = { free: Promise.resolve(false), until: Date.now() + PLAN_TTL_MS };
-  entry.free = hunterQuota().then(
-    (q) => q.free,
+  if (cached && Date.now() < cached.until) return cached.cost;
+  const entry = { cost: Promise.resolve(creditMicroUsd(null)), until: Date.now() + PLAN_TTL_MS };
+  entry.cost = hunterQuota().then(
+    (q) => (q.free ? 0 : creditMicroUsd(q.plan)),
     () => {
       entry.until = Date.now() + FAILED_TTL_MS;
-      return false;
+      return creditMicroUsd(null);
     },
   );
   planCache.set(key, entry);
-  return entry.free;
+  return entry.cost;
 }
 
 /** Searches left this month. Account calls are free on Hunter. */
