@@ -2,9 +2,9 @@ import type { Strings } from "./index.ts";
 
 export default {
   meta: {
-    title: "Pluton: Ihre nächsten Kunden, von KI gefunden",
+    title: "Pluton: Ihre nächsten Kunden, wir finden sie für Sie",
     description:
-      "Pluton beobachtet Ihren Markt, erkennt die Menschen, deren Unternehmen gerade begonnen hat einzustellen, zu posten oder Kapital aufzunehmen, und schreibt ihnen in Ihrem Ton. Nichts geht raus, bevor Sie es freigeben.",
+      "Pluton findet Ihre nächsten Kunden für Sie: Er beobachtet Ihren Markt, erkennt die Firmen, die einstellen, posten oder Kapital aufnehmen, und schreibt ihnen in Ihrem Ton. Sie geben nur noch frei.",
   },
   nav: {
     how: "So funktioniert es",
@@ -16,8 +16,8 @@ export default {
     language: "Sprache",
   },
   hero: {
-    title: "Ihre nächsten Kunden, von KI gefunden.",
-    sub: "Pluton ist ein KI-Agent für Gründer, die selbst verkaufen. Er liest Ihre Website, beobachtet die Firmen Ihres Markts, die gerade einstellen, posten oder Kapital aufnehmen, und schreibt ihnen in Ihrem Ton. Nichts geht raus, bevor Sie es freigeben.",
+    title: "Ihre nächsten Kunden finden wir für Sie.",
+    sub: "Pluton liest Ihre Website, erkennt die Firmen Ihres Markts, die einstellen, posten oder Kapital aufnehmen, und schreibt ihnen in Ihrem Ton. Sie geben nur noch frei.",
     cta: "Mit Ihrer Website starten",
     code: "Selbst hosten",
     price: "Ab 24,99\u00a0€ im Monat. Kostenlos auf Ihrem eigenen Rechner.",
@@ -75,28 +75,28 @@ export default {
     caption: "Die Platten, auf denen Clyde Tombaugh Pluto fand, Lowell Observatory.",
   },
   how: {
-    heading: "So funktioniert Pluton",
+    heading: "Was Pluton für Sie tut",
     stagesLabel: "Schritt",
     stages: [
       {
         name: "Brain",
-        clause: "Zuerst liest es Ihre Website",
-        text: "Geben Sie ihm Ihre Website oder zwei Sätze. Pluton recherchiert Ihr Unternehmen, Ihren Markt, Ihre idealen Kunden, Personas, Wettbewerber und Ihren Ton und legt alles zur Bearbeitung vor.",
+        clause: "Er lernt Ihr Unternehmen",
+        text: "Geben Sie ihm Ihre Website oder zwei Sätze: Mehr braucht er nicht. Pluton leitet daraus Ihren Markt, Ihre Idealkunden, Personas, Wettbewerber und Ihren Ton ab. Korrigieren Sie, wo nötig.",
       },
       {
         name: "Play",
-        clause: "Dann sagen Sie, wen es sucht",
-        text: "Beschreiben Sie sie in einfachen Worten. Pluton fragt nach, was es braucht, und schlägt dann einen Play vor: wer, wie man sie findet, wie viele und wie oft.",
+        clause: "Er plant die Suche",
+        text: "Sagen Sie in einem Satz, wen Sie erreichen wollen. Pluton stellt seine Fragen und richtet dann alles ein: wen er sucht, wo, wie viele und in welchem Takt.",
       },
       {
         name: "Leads",
-        clause: "Es bewertet jede Person",
-        text: "Zuerst kostenlose Quellen: Handelsregister, Karriereseiten, Technologie-Erkennung, Websuche. Jeder Score von 0 bis 100 kommt mit den Belegen dahinter.",
+        clause: "Er findet Ihre Leads",
+        text: "Pluton durchsucht selbstständig Handelsregister, Karriereseiten, die Technik von Websites und das Web, und bewertet jede Person von 0 bis 100, mit Belegen. Sie suchen nicht mehr.",
       },
       {
         name: "Message",
-        clause: "Zuletzt schreibt es wie Sie",
-        text: "Bis zu drei Nachrichten pro Person, geschrieben aus ihrem Signal und dem Ton Ihres Brain. Sie lesen jede einzelne, und eine Antwort stoppt die Sequenz.",
+        clause: "Er schreibt für Sie",
+        text: "Bis zu drei Nachrichten pro Person, geschrieben aus dem, was sie auffallen ließ, und in Ihrem Ton. Sie geben mit einem Klick frei, und sobald die Person antwortet, hakt Pluton nicht mehr nach.",
       },
     ],
     brain: {
@@ -142,12 +142,12 @@ export default {
     sample: "Beispiel-Workspace. Die Namen sind erfunden.",
   },
   trust: {
-    heading: "Er fragt, bevor er handelt.",
-    text: "Der Agent bereitet vor, Sie entscheiden. Suchen zeigen zuerst ihre Kosten, Nachrichten warten auf Ihre Prüfung, und eine Antwort stoppt die Sequenz von selbst.",
+    heading: "Er arbeitet, Sie entscheiden.",
+    text: "Pluton bereitet alles vor, Sie sagen nur noch Ja. Bevor er sucht, sagt er Ihnen, was es kostet. Bevor er eine Nachricht sendet, wartet er auf Ihre Freigabe. Und sobald jemand antwortet, hakt er nicht mehr nach.",
     points: [
-      ["Freigaben", "Nichts wird gesendet, ausgegeben oder exportiert, bevor Sie es freigeben, und alles Freigegebene lässt sich zehn Minuten lang rückgängig machen."],
-      ["Budgetgrenzen", "Legen Sie ein Monatsbudget und eine Grenze pro Suche fest. Eine Suche stoppt an ihrer Grenze und gibt zurück, was sie nicht gebraucht hat."],
-      ["Jeder Schritt offen", "Jede Suche zeigt, was sie verbraucht hat, in Credits, und was übrig ist, und alles, was der Agent tut, erscheint unter Aktivität."],
+      ["Ein Klick zum Freigeben", "Pluton sendet keine Nachricht, gibt nichts aus und überträgt nichts in Ihre Tools ohne Ihre Freigabe. Überlegen Sie es sich anders, haben Sie zehn Minuten zum Rückgängigmachen."],
+      ["Ein Budget, das er einhält", "Sie legen einmal fest, wie viel Pluton pro Monat und pro Suche ausgeben darf. Er überschreitet es nie, und was er nicht braucht, bleibt Ihnen."],
+      ["Nichts versteckt", "Sie sehen, was jede Suche gekostet hat, was Ihnen bleibt, und den Verlauf von allem, was Pluton für Sie getan hat."],
     ],
     search: { time: "07:00", title: "Suche bereit zum Start", body: "Büros, die einstellen: etwa 15 Personen, bis zu 300 Credits. Diesen Monat bleiben 1.290 Credits.", run: "Suche starten", later: "Nicht jetzt" },
     cap: { time: "07:04", title: "Suche unter ihrer Grenze beendet", body: "230 von 300 Credits genutzt. Die übrigen 70 bleiben in Ihrem Monat." },
@@ -165,23 +165,23 @@ export default {
     token: "Serveradresse und Token sind unter Einstellungen → KI verbinden schon eingetragen.",
   },
   compose: {
-    heading: "Jedes Wort prüfen Sie selbst",
+    heading: "Er schreibt, Sie geben frei",
     blocks: [
       {
         title: "LinkedIn oder E-Mail",
-        text: "Pluton schreibt beide Versionen jeder Nachricht und wechselt zur E-Mail, wenn eine Einladung unbeantwortet bleibt.",
+        text: "Pluton schreibt beide Fassungen jeder Nachricht und wechselt von selbst zur E-Mail, wenn eine Einladung unbeantwortet bleibt.",
       },
       {
         title: "In ihrer Sprache",
-        text: "Fünf Sprachen, nach Ihrem Brain oder für jede Sequenz festgelegt.",
+        text: "Pluton schreibt auf Deutsch, Englisch, Französisch, Italienisch oder Spanisch, je nachdem, wen Sie erreichen wollen.",
       },
       {
-        title: "Sie wählen, wer sendet",
-        text: "Versand aus Ihrem verbundenen Konto in einem Zeitfenster an Werktagen, oder eine To-do-Liste mit dem Text zum Kopieren.",
+        title: "Er sendet für Sie",
+        text: "Von Ihrem verbundenen Konto, an Werktagen, zu den Zeiten, die Sie wählen. Oder, wenn Sie möchten, eine Aufgabenliste mit dem Text zum Kopieren.",
       },
       {
-        title: "Nichts geht ungesehen raus",
-        text: "Jede Nachricht wartet auf Ihre Prüfung. Eine Antwort stoppt die Sequenz von selbst.",
+        title: "Nichts geht ohne Sie raus",
+        text: "Jede Nachricht wartet auf Ihren Klick. Sobald jemand antwortet, hakt Pluton nicht mehr nach.",
       },
     ],
     channelLabel: "Kanal",
@@ -215,12 +215,12 @@ export default {
     saved: "{amount} gespart pro Jahr",
     ownLines: [
       "Ihr eigener API-Schlüssel von Anthropic oder OpenAI; die KI rechnet dieser Anbieter direkt mit Ihnen ab",
-      "Brain, Plays, Leads, LinkedIn- und E-Mail-Sequenzen",
+      "Interessenten für Sie gefunden und bewertet, LinkedIn- und E-Mail-Nachrichten für Sie geschrieben",
       "Slack, HubSpot, Attio, Pipedrive und MCP für Ihre KI",
     ],
     allLines: [
       "KI inklusive, mit Ihren Credits verrechnet",
-      "Brain, Plays, Leads, LinkedIn- und E-Mail-Sequenzen",
+      "Interessenten für Sie gefunden und bewertet, LinkedIn- und E-Mail-Nachrichten für Sie geschrieben",
       "Slack, HubSpot, Attio, Pipedrive und MCP für Ihre KI",
     ],
     cta: "Starten",
@@ -252,6 +252,10 @@ export default {
   faq: {
     heading: "Bevor Sie starten",
     items: [
+      [
+        "Was muss ich selbst tun?",
+        "Fast nichts. Geben Sie Pluton Ihre Website, sagen Sie, wen Sie erreichen wollen, und geben Sie die Nachrichten frei, die er vorbereitet. Suchen, Bewerten, Schreiben und Nachfassen sind seine Arbeit.",
+      ],
       [
         "Wird etwas ohne mich verschickt?",
         "Nein. Jede Nachricht wartet auf Ihre Prüfung, und alles, was Sie freigeben, lässt sich noch zehn Minuten lang rückgängig machen. Eine Antwort der Person stoppt ihre Sequenz.",

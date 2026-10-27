@@ -1,9 +1,9 @@
 // English is the source; every other language has exactly these keys (see ./index.ts).
 export default {
   meta: {
-    title: "Pluton: your next clients, found by AI",
+    title: "Pluton: your next clients, found for you",
     description:
-      "Pluton watches your market, spots the people whose company just started hiring, posting or raising, and writes to them in your voice. Nothing goes out until you say so.",
+      "Pluton finds your next clients for you: it watches your market, spots the companies that are hiring, posting or raising, and writes to them in your voice. All you do is approve.",
   },
   nav: {
     how: "How it works",
@@ -15,8 +15,8 @@ export default {
     language: "Language",
   },
   hero: {
-    title: "Your next clients, found by AI.",
-    sub: "Pluton is an AI agent for founders who sell. It reads your website, watches your market for companies that just started hiring, posting or raising, and writes to them in your voice. Nothing goes out until you say so.",
+    title: "Your next clients, found for you.",
+    sub: "Pluton reads your website, spots the companies in your market that are hiring, posting or raising, and writes to them in your voice. All you do is approve.",
     cta: "Start with your website",
     code: "Run it yourself",
     price: "From 24.99\u00a0€ a month. Free on your own machine.",
@@ -74,28 +74,28 @@ export default {
     caption: "The plates on which Clyde Tombaugh found Pluto, Lowell Observatory.",
   },
   how: {
-    heading: "How Pluton works",
+    heading: "What Pluton does for you",
     stagesLabel: "Stage",
     stages: [
       {
         name: "Brain",
-        clause: "First, it reads your website",
-        text: "Give it your site, or two sentences. Pluton researches your company, market, ideal customers, personas, competitors and voice, and lays it all out for you to edit.",
+        clause: "It learns your business",
+        text: "Give it your website, or two sentences: that is all it needs. Pluton works out your market, ideal clients, personas, competitors and tone. Correct anything you like.",
       },
       {
         name: "Play",
-        clause: "Then you say who to reach",
-        text: "Describe them in plain words. Pluton asks what it needs, then proposes a Play: who, how to find them, how many and how often.",
+        clause: "It plans the hunt",
+        text: "Say in one sentence who you want to reach. Pluton asks what it needs, then sets everything up: who to look for, where, how many and how often.",
       },
       {
         name: "Leads",
-        clause: "It scores every person",
-        text: "Free sources first: company registries, careers pages, tech detection, web search. Each score from 0 to 100 comes with the evidence behind it.",
+        clause: "It finds your leads",
+        text: "Pluton searches company registers, careers pages, website technologies and the web by itself, and scores each person from 0 to 100, with the evidence. You stop searching.",
       },
       {
         name: "Message",
-        clause: "Last, it writes in your voice",
-        text: "Up to three messages per person, written from their signal and your Brain's voice. You read every one, and a reply stops the sequence.",
+        clause: "It writes for you",
+        text: "Up to three messages per person, written from what made them stand out, in your tone. You approve in one click, and as soon as they reply, Pluton stops following up.",
       },
     ],
     brain: {
@@ -141,12 +141,12 @@ export default {
     sample: "Sample workspace. Names are made up.",
   },
   trust: {
-    heading: "It asks before it acts.",
-    text: "The agent prepares, you decide. Searches show their cost first, messages wait for your review, and a reply stops a sequence on its own.",
+    heading: "It does the work. You have the last word.",
+    text: "Pluton prepares everything; all you do is say yes. Before it searches, it tells you what it will cost. Before it sends a message, it waits for your go-ahead. And as soon as someone replies, it stops following up.",
     points: [
-      ["Approvals", "Nothing is sent, spent or exported until you approve it, and anything approved can be undone for ten minutes."],
-      ["Budget caps", "Set a monthly budget and a cap per search. A search stops at its cap and gives back what it did not use."],
-      ["Every step in the open", "Every search shows what it used, in credits, and what is left, and everything the agent does shows up in Activity."],
+      ["One click to approve", "Pluton sends no message, spends nothing and pushes nothing into your tools without your go-ahead. Change your mind, and you have ten minutes to undo it."],
+      ["A budget it keeps to", "You decide once how much Pluton may spend per month and per search. It never goes over, and whatever it does not use stays yours."],
+      ["Nothing hidden", "You see what each search cost, what you have left, and a history of everything Pluton has done for you."],
     ],
     search: { time: "07:00", title: "Search ready to run", body: "Studios that are hiring: about 15 people, up to 300 credits. 1,290 credits left this month.", run: "Run search", later: "Not now" },
     cap: { time: "07:04", title: "Search finished under its cap", body: "230 of 300 credits used. The other 70 stay in your month." },
@@ -164,23 +164,23 @@ export default {
     token: "Your server address and token are filled in on Settings → Connect your AI.",
   },
   compose: {
-    heading: "Every word is yours to check",
+    heading: "It writes, you approve",
     blocks: [
       {
         title: "LinkedIn or email",
-        text: "Pluton writes both versions of every message and moves to email when an invitation goes unanswered.",
+        text: "Pluton writes both versions of every message, and switches to email by itself when an invitation goes unanswered.",
       },
       {
         title: "In their language",
-        text: "Five languages, following your Brain or set for each sequence.",
+        text: "Pluton writes in English, French, Italian, Spanish or German, depending on who you are reaching.",
       },
       {
-        title: "You choose who presses send",
-        text: "Send from your connected account inside a weekday window, or get a to-do list with the text ready to copy.",
+        title: "It sends for you",
+        text: "From your connected account, on weekdays, in the hours you choose. Or, if you prefer, a task list with the text ready to copy.",
       },
       {
-        title: "Nothing leaves unseen",
-        text: "Every message waits for your review. A reply stops the sequence on its own.",
+        title: "Nothing goes out without you",
+        text: "Every message waits for your click. As soon as someone replies, Pluton stops following up.",
       },
     ],
     channelLabel: "Channel",
@@ -214,12 +214,12 @@ export default {
     saved: "{amount} saved a year",
     ownLines: [
       "Bring your own Anthropic or OpenAI API key; that provider bills you for the AI directly",
-      "Brain, Plays, leads, LinkedIn and email sequences",
+      "Prospects found and scored for you, LinkedIn and email messages written for you",
       "Slack, HubSpot, Attio, Pipedrive and MCP for your AI",
     ],
     allLines: [
       "The AI is included, counted in your credits",
-      "Brain, Plays, leads, LinkedIn and email sequences",
+      "Prospects found and scored for you, LinkedIn and email messages written for you",
       "Slack, HubSpot, Attio, Pipedrive and MCP for your AI",
     ],
     cta: "Start",
@@ -251,6 +251,10 @@ export default {
   faq: {
     heading: "Before you start",
     items: [
+      [
+        "What do I have to do?",
+        "Almost nothing. Give Pluton your website, say who you want to reach, then approve the messages it prepares. Searching, scoring, writing and following up are its job.",
+      ],
       [
         "Does anything get sent without me?",
         "No. Every message waits for your review, and anything you approve can still be undone for ten minutes. A reply from the person stops their sequence.",
