@@ -2,6 +2,7 @@ import {
   ArrowSquareOut,
   Brain,
   ChatCircle,
+  ChatCircleText,
   CircleNotch,
   Lightning,
   MagnifyingGlass,
@@ -26,6 +27,7 @@ const KINDS: Record<SearchHit["kind"], Icon> = {
   play: Lightning,
   brain: Brain,
   conversation: ChatCircle,
+  message: ChatCircleText,
 };
 
 type Result = { ask: true; label: string } | ({ ask: false } & SearchHit);
@@ -34,10 +36,11 @@ type Result = { ask: true; label: string } | ({ ask: false } & SearchHit);
 const DEBOUNCE_MS = 120;
 
 /** The round buttons beside the field, like Spotlight's Applications / Files / Shortcuts. */
-const QUICK: Array<{ label: "nav.brain" | "nav.plays" | "nav.leads" | "palette.newPlay"; to: string; icon: Icon }> = [
+const QUICK: Array<{ label: "nav.brain" | "nav.plays" | "nav.leads" | "nav.messages" | "palette.newPlay"; to: string; icon: Icon }> = [
   { label: "nav.brain", to: "/brain", icon: Brain },
   { label: "nav.plays", to: "/plays", icon: Lightning },
   { label: "nav.leads", to: "/leads", icon: UsersThree },
+  { label: "nav.messages", to: "/messages", icon: ChatCircleText },
   { label: "palette.newPlay", to: "/plays/new", icon: Plus },
 ];
 
@@ -169,9 +172,17 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       className="group fixed inset-0 z-50 flex items-start justify-center px-4 pt-[18vh] data-[state=closed]:pointer-events-none"
       onMouseDown={onClose}
     >
-      <div className="w-full max-w-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-center">
-          <div className={cn("glass flex h-14 flex-1 items-center gap-3 px-5", POP)}>
+      {/* Results read in 560px; idle, the window widens so the shortcuts sit beside the field, and folds back as you type. */}
+      <div
+        className={cn(
+          "w-full transition-[max-width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+          typing ? "max-w-[35rem]" : "max-w-[50rem]",
+        )}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {/* The field is never narrower than its full prompt (28rem); where the shortcuts can't fit beside it, they go under it. */}
+        <div className="flex flex-wrap items-center justify-center gap-y-2.5">
+          <div className={cn("glass flex h-14 min-w-[min(100%,28rem)] flex-1 items-center gap-3 px-5", POP)}>
             {ask.isPending ? (
               <CircleNotch size={22} className="shrink-0 animate-spin text-muted" />
             ) : (
@@ -191,37 +202,40 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 if (e.key === "Enter") run(active);
               }}
               placeholder={t("askAnything")}
-              className="h-full min-w-0 flex-1 bg-transparent text-xl text-ink caret-accent outline-none placeholder:text-muted"
+              className="h-full min-w-0 flex-1 bg-transparent text-xl! text-ink caret-accent outline-none placeholder:text-muted"
             />
           </div>
-          {QUICK.map(({ label, to, icon: IconCmp }, i) => (
-            // Once you type, the shortcuts fold away (the last one first) and the field takes their room.
-            <div
-              key={to}
-              aria-hidden={typing || undefined}
-              style={{ transitionDelay: `${(typing ? QUICK.length - 1 - i : i) * 30}ms` }}
-              className={cn(
-                "shrink-0 transition-[width,margin,opacity,scale] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-sm:hidden motion-reduce:transition-none",
-                typing ? "pointer-events-none ml-0 w-0 scale-75 opacity-0" : "ml-2.5 w-14",
-              )}
-            >
-              <button
-                onClick={() => go(to)}
-                tabIndex={typing ? -1 : undefined}
-                aria-label={t(label)}
-                title={t(label)}
-                // The shortcuts follow the field in, 25ms apart.
-                style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
+          {/* One block: the shortcuts sit beside the field or all together under it, never split. */}
+          <div className="flex shrink-0">
+            {QUICK.map(({ label, to, icon: IconCmp }, i) => (
+              // Once you type, the shortcuts fold away (the last one first) and the field takes their room.
+              <div
+                key={to}
+                aria-hidden={typing || undefined}
+                style={{ transitionDelay: `${(typing ? QUICK.length - 1 - i : i) * 30}ms` }}
                 className={cn(
-                  "glass flex rounded-full size-14 items-center justify-center text-muted hover:text-ink",
-                  POP,
-                  "transition-[opacity,scale,color] motion-safe:hover:scale-105 motion-safe:active:scale-95",
+                  "shrink-0 transition-[width,margin,opacity,scale] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-sm:hidden motion-reduce:transition-none",
+                  typing ? "pointer-events-none ml-0 w-0 scale-75 opacity-0" : "ml-2.5 w-14",
                 )}
               >
-                <IconCmp size={22} />
-              </button>
-            </div>
-          ))}
+                <button
+                  onClick={() => go(to)}
+                  tabIndex={typing ? -1 : undefined}
+                  aria-label={t(label)}
+                  title={t(label)}
+                  // The shortcuts follow the field in, 25ms apart.
+                  style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
+                  className={cn(
+                    "glass flex rounded-full size-14 items-center justify-center text-muted hover:text-ink",
+                    POP,
+                    "transition-[opacity,scale,color] motion-safe:hover:scale-105 motion-safe:active:scale-95",
+                  )}
+                >
+                  <IconCmp size={22} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         {typing && (
@@ -235,7 +249,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             {highlight && (
               <span
                 aria-hidden
-                className="absolute inset-x-2 top-0 bg-accent transition-[translate,height] duration-150 ease-out motion-reduce:transition-none"
+                className="absolute inset-x-2 top-0 rounded-[var(--gg-r-row)] bg-accent [corner-shape:squircle] transition-[translate,height] duration-150 ease-out motion-reduce:transition-none"
                 style={{ height: highlight.height, translate: `0 ${highlight.top}px` }}
               />
             )}

@@ -87,9 +87,9 @@ function waitingLines(f: DigestFacts): DigestLine[] {
   const lines: DigestLine[] = f.toReview.map((p) => ({ text: t("toReview", { count: p.n, play: p.name }), link: `/plays/${p.playId}?tab=leads&status=to_review` }));
   if (f.replies.count) {
     const names = f.replies.names.join(", ") + (f.replies.count > f.replies.names.length ? "…" : "");
-    lines.push({ text: t("replies", { count: f.replies.count, names }), link: f.replies.playId ? `/plays/${f.replies.playId}?tab=sequence` : undefined });
+    lines.push({ text: t("replies", { count: f.replies.count, names }), link: "/messages" });
   }
-  if (f.manualSteps) lines.push({ text: t("manualSteps", { count: f.manualSteps }), link: "/workspace/linkedin" });
+  if (f.manualSteps) lines.push({ text: t("manualSteps", { count: f.manualSteps }), link: "/messages" });
   if (f.proposals) lines.push({ text: t("proposals", { count: f.proposals }), link: "/brain" });
   return lines;
 }

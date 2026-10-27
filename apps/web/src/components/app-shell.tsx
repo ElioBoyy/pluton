@@ -1,6 +1,7 @@
 import {
   Brain,
   CaretRight,
+  ChatCircleText,
   CheckCircle,
   Circle,
   Gear,
@@ -8,12 +9,12 @@ import {
   Lightning,
   List,
   MagnifyingGlass,
+  Question,
   Sparkle,
   UsersThree,
   type Icon,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar } from "@pluton/glass";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useT } from "../i18n/index.ts";
@@ -33,14 +34,18 @@ import { Toaster } from "./toast.tsx";
 import { Wallpaper } from "./wallpaper.tsx";
 import { WorkspaceMenu } from "../features/workspaces/workspace-menu.tsx";
 import { authStateQuery } from "../features/account/auth-state.ts";
+import { ProductTour, startTour } from "../features/tour/product-tour.tsx";
+import { Identicon } from "./identicon.tsx";
+import { UpdateNotice, WhatsNewNotice } from "./release-notices.tsx";
 
 /** Each link's name is the shell namespace's `nav.<key>` string. */
-const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads"; icon: Icon }> = [
+const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads" | "messages"; icon: Icon }> = [
   { to: "/home", key: "home", icon: House },
   { to: "/brain", key: "brain", icon: Brain },
   { to: "/agent", key: "agent", icon: Sparkle },
   { to: "/plays", key: "plays", icon: Lightning },
   { to: "/leads", key: "leads", icon: UsersThree },
+  { to: "/messages", key: "messages", icon: ChatCircleText },
 ];
 
 export function AppShell() {
@@ -53,6 +58,10 @@ export function AppShell() {
   const plays = useQuery(trpc.plays.list.queryOptions());
   const leadCounts = useQuery(trpc.leads.counts.queryOptions({}));
   const toReview = leadCounts.data?.counts.to_review ?? 0;
+  // What the sequences wait on you for: replies to answer, LinkedIn steps by hand, invitations to confirm.
+  const replies = useQuery({ ...trpc.campaigns.replies.needingYou.queryOptions({}), refetchInterval: 60_000 });
+  const tasks = useQuery({ ...trpc.campaigns.tasks.list.queryOptions(), refetchInterval: 60_000 });
+  const waitingOnYou = (replies.data?.length ?? 0) + (tasks.data?.tasks.length ?? 0) + (tasks.data?.waiting.length ?? 0);
   const [paletteOpen, setPaletteOpen] = useState(false);
   // Below md the sidebar is a drawer, closed whenever the page changes.
   const [navOpen, setNavOpen] = useState(false);
@@ -104,6 +113,7 @@ export function AppShell() {
           </Link>
           <div className="flex items-center gap-1.5 px-2.5 pb-4">
             <WorkspaceMenu />
+            <HelpButton />
             <NotificationBell />
           </div>
 
@@ -115,6 +125,8 @@ export function AppShell() {
                   // The kit's sidebar item; the current page is tinted ultramarine.
                   className="gg-side-item min-h-8 gap-2.5 text-sm font-medium"
                   activeOptions={{ exact: to === "/plays" }}
+                  // What the guided tour lights up.
+                  data-tour={key}
                 >
                   <IconCmp size={16} />
                   <span className="flex-1">{t(`nav.${key}`)}</span>
@@ -123,6 +135,11 @@ export function AppShell() {
                   {to === "/leads" && toReview > 0 && (
                     <span className="text-xs tabular-nums opacity-70" title={t("nav.toReview", { count: toReview })}>
                       {toReview}
+                    </span>
+                  )}
+                  {to === "/messages" && waitingOnYou > 0 && (
+                    <span className="text-xs tabular-nums opacity-70" title={t("nav.waiting", { count: waitingOnYou })}>
+                      {waitingOnYou}
                     </span>
                   )}
                 </Link>
@@ -169,12 +186,15 @@ export function AppShell() {
           </nav>
 
           <div className="mt-auto flex flex-col gap-3 p-3">
+            <UpdateNotice compact />
+            <WhatsNewNotice />
             <GetStarted />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <ProfileButton />
-              <Link to="/workspace/settings" className="gg-side-item min-h-8 min-w-0 flex-1 gap-2.5 text-sm font-medium">
-                <Gear size={16} />
-                {tc("settings")}
+              {/* Three things share 216px: the gear never gives way, a long label (de, it) ends in an ellipsis. */}
+              <Link to="/workspace/settings" title={tc("settings")} className="gg-side-item min-h-8 min-w-0 flex-1 gap-1.5 px-2 text-sm font-medium">
+                <Gear size={16} className="shrink-0" />
+                <span className="truncate">{tc("settings")}</span>
               </Link>
               <AppearanceControl />
             </div>
@@ -194,10 +214,12 @@ export function AppShell() {
             <button
               onClick={() => setPaletteOpen(true)}
               aria-label={t("askPluton")}
+              data-tour="ask"
               className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-raised hover:text-ink"
             >
               <MagnifyingGlass size={18} />
             </button>
+            <HelpButton />
             <NotificationBell />
           </header>
 
@@ -216,10 +238,15 @@ export function AppShell() {
           ref={setInspector}
           className={cn(
             "flex shrink-0 flex-col overflow-hidden rounded-[calc(var(--gg-r-window)-8px)] [corner-shape:squircle] empty:hidden",
-            // One width for every inspector, a little wider than the sidebar it mirrors; pages fill it.
-            "w-80 2xl:w-96 max-xl:w-[min(24rem,calc(100vw-16px))]",
+            // One width for every inspector, wider than the sidebar it mirrors so a lead's evidence reads in full; pages fill it.
+            "w-96 2xl:w-[28rem] max-xl:w-[min(28rem,calc(100vw-32px))] max-md:w-[min(28rem,calc(100vw-16px))]",
             "xl:relative xl:m-2 xl:ml-0 xl:bg-control xl:shadow-[inset_0_0_0_1px_var(--gg-rim-low)]",
-            "max-xl:drawer max-xl:fixed max-xl:inset-y-2 max-xl:right-2 max-xl:z-40 max-xl:bg-(--gg-material-thick) max-xl:shadow-window max-xl:backdrop-blur-2xl",
+            // Beside the content, it slides a little and fades in as it appears, and back out as it closes.
+            "xl:transition-[translate,opacity] xl:duration-250 xl:ease-out xl:starting:translate-x-4 xl:starting:opacity-0 motion-reduce:xl:starting:translate-x-0",
+            // Over the page, it keeps the sidebar's distance from the screen's edges: the window's margin plus its own.
+            "max-xl:drawer max-xl:fixed max-xl:inset-y-4 max-xl:right-4 max-md:inset-y-2 max-md:right-2 max-xl:z-40 max-xl:bg-(--gg-material-thick) max-xl:shadow-window max-xl:backdrop-blur-2xl",
+            "xl:has-[[data-closing]]:translate-x-4 xl:has-[[data-closing]]:opacity-0 has-[[data-closing]]:duration-220 has-[[data-closing]]:ease-(--ease-exit)",
+            "max-xl:has-[[data-closing]]:translate-x-[calc(100%+16px)] motion-reduce:has-[[data-closing]]:translate-x-0 motion-reduce:has-[[data-closing]]:opacity-0",
           )}
         />
         </div>
@@ -228,6 +255,7 @@ export function AppShell() {
         <Toaster />
         <ContextMenuHost />
         <ConfirmHost />
+        <ProductTour />
       </div>
     </InspectorSlot.Provider>
   );
@@ -244,8 +272,24 @@ function ProfileButton() {
       title={`${t("section.profile")} · ${name}`}
       className="flex size-8 shrink-0 items-center justify-center rounded-full transition-[box-shadow] duration-150 hover:shadow-[0_0_0_2px_var(--gg-accent-soft)] focus-visible:focus-ring"
     >
-      <Avatar name={name} className="size-7 text-[11px]" />
+      <Identicon seed={name} className="size-7" />
     </Link>
+  );
+}
+
+/** Replays the guided tour, beside the notifications so it is always in reach. */
+function HelpButton() {
+  const t = useT("tour");
+  return (
+    <button
+      onClick={startTour}
+      data-tour="help"
+      aria-label={t("replay")}
+      title={t("replay")}
+      className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90"
+    >
+      <Question size={16} />
+    </button>
   );
 }
 
@@ -254,8 +298,10 @@ function GetStarted() {
   const t = useT("shell");
   const trpc = useTRPC();
   const checklist = useQuery({ ...trpc.workspace.checklist.queryOptions(), refetchInterval: 60_000 });
+  // Home lists the same steps, each explained; the card would only repeat them beside it.
+  const onHome = useRouterState({ select: (s) => s.location.pathname === "/home" });
   const steps = checklist.data ?? [];
-  if (!steps.length || steps.every((s) => s.done)) return null;
+  if (onHome || !steps.length || steps.every((s) => s.done)) return null;
   return (
     <div className="rounded-xl bg-raised p-3">
       <p className="mb-2 flex items-center text-xs font-semibold text-muted">
@@ -341,6 +387,7 @@ function AskBar({ label, hidden, onOpen }: { label: string; hidden: boolean; onO
     <button
       ref={ref}
       onClick={onOpen}
+      data-tour="ask"
       style={{ left: left ?? "calc(50% + 124px - 160px)" }}
       // While ⌘K is open it slides below the window's edge.
       aria-hidden={hidden || undefined}

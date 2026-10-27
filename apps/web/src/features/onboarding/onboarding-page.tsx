@@ -82,6 +82,17 @@ function OnboardingForm() {
           {t("form.heading")}
         </h1>
         <p className="mt-3 text-sm text-muted">{t("form.description")}</p>
+        {/* What the button sets off, so nothing after it comes as a surprise. */}
+        <ol className="mt-5 flex flex-col gap-2">
+          {(["read", "confirm", "leads"] as const).map((step, i) => (
+            <li key={step} className="flex items-center gap-2.5 text-sm">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-selected text-[11px] font-semibold text-accent tabular-nums">
+                {i + 1}
+              </span>
+              {t(`form.next.${step}`)}
+            </li>
+          ))}
+        </ol>
 
         <Field label={t("form.name")} optional className="mt-8">
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("form.namePlaceholder")} autoComplete="name" />
@@ -160,7 +171,8 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
   // After activation: a short transition over the faded graph, then on to the Plays.
   useEffect(() => {
     if (!celebrating) return;
-    const t = setTimeout(() => void navigate({ to: "/plays" }), 2800);
+    // Home, where the guided tour opens and the first steps are listed.
+    const t = setTimeout(() => void navigate({ to: "/home" }), 2800);
     return () => clearTimeout(t);
   }, [celebrating, navigate]);
 

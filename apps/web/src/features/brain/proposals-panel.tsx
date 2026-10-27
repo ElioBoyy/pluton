@@ -12,6 +12,7 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { SECTION_FIELDS, SECTION_LABELS, titleOf, type BrainSection } from "./fields.ts";
 import { CHIP, ItemFields } from "./sections.tsx";
+import { useClosing } from "../../lib/use-closing.ts";
 
 type Proposal = inferRouterOutputs<AppRouter>["brain"]["proposals"][number];
 
@@ -31,11 +32,12 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
   const proposals = useQuery(trpc.brain.proposals.queryOptions());
   const list = proposals.data ?? [];
   const wide = useWideScreen();
+  const [closing, close] = useClosing(onClose);
 
   if (!wide && !open) return null;
   return (
     // A macOS inspector: a fixed header with the panel's one action, the suggestions scrolling below.
-    <Inspector>
+    <Inspector closing={closing}>
       <section className="flex h-full w-full flex-col" aria-label={t("proposals.title")}>
         <div className="px-4 pt-5 pb-2">
           <div className="flex items-center gap-2">
@@ -43,7 +45,7 @@ export function ProposalsPanel({ items, open, onClose }: { items: BrainItemView[
             <h2 className="text-sm font-semibold">{t("proposals.title")}</h2>
             {list.length > 0 && <span className="inline-flex rounded-full h-5 min-w-5 items-center justify-center bg-control px-1.5 text-xs font-medium text-muted tabular-nums">{list.length}</span>}
             <button
-              onClick={onClose}
+              onClick={close}
               aria-label={tc("close")}
               title={tc("close")}
               className="-my-1 ml-auto flex rounded-full size-7 items-center justify-center text-muted transition-colors hover:bg-raised hover:text-ink xl:hidden"

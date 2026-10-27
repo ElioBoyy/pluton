@@ -2,12 +2,13 @@ import { Lightning, Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Button, Group, PageHeader, Segmented, Stat } from "../../components/ui.tsx";
+import { Button, Group, PageHeader, Segmented } from "../../components/ui.tsx";
 import { contextMenu } from "../../components/context-menu.tsx";
 import { usePlayMenu } from "./play-menu.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useT } from "../../i18n/index.ts";
+import { formatDate } from "../../lib/format.ts";
 import { PILL, PILL_BASE, PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
 
 const FILTERS = ["active", "paused", "archived"] as const;
@@ -20,7 +21,6 @@ export function PlaysPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("active");
   const all = plays.data ?? [];
   const shown = all.filter((p) => (filter === "active" ? p.status === "active" || p.status === "draft" : p.status === filter));
-  const totals = all.reduce((t, p) => ({ q: t.q + p.leadCounts.qualified, r: t.r + p.leadCounts.needsReview }), { q: 0, r: 0 });
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
@@ -35,11 +35,6 @@ export function PlaysPage() {
           </Link>
         }
       />
-      <div className="mb-8 grid gap-3 sm:grid-cols-3">
-        <Stat label={t("list.activePlays")} value={all.filter((p) => p.status === "active").length} />
-        <Stat label={t("list.qualifiedLeads")} value={totals.q} />
-        <Stat label={t("list.toReview")} value={totals.r} />
-      </div>
       {plays.isSuccess && !all.some((p) => p.isMain) && <CreateMainPlay />}
       <div className="mb-4">
         <Segmented label={t("list.show")} options={FILTERS.map((f) => ({ value: f, label: t(`filter.${f}`) }))} value={filter} onChange={setFilter} />
@@ -95,7 +90,16 @@ export function PlaysPage() {
                     <span aria-hidden>·</span>
                     <span className="text-system-green tabular-nums">{t("list.qualified", { count: p.leadCounts.qualified })}</span>
                     <span aria-hidden>·</span>
-                    <span className="tabular-nums">{t("list.reviewCount", { count: p.leadCounts.needsReview })}</span>
+                    {/* The same count as the sidebar and the Leads page: people waiting for your verdict. */}
+                    <span className={cn("tabular-nums", p.leadCounts.toReview > 0 && "font-medium text-accent")}>
+                      {t("list.reviewCount", { count: p.leadCounts.toReview })}
+                    </span>
+                    <span aria-hidden>·</span>
+                    <span>
+                      {p.lastRun
+                        ? t("list.lastRun", { date: formatDate(p.lastRun.createdAt, { day: "numeric", month: "short" }) })
+                        : t("list.never")}
+                    </span>
                   </div>
                 </Link>
               </li>

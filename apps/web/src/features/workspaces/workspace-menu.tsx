@@ -9,6 +9,7 @@ import { Button, Input } from "../../components/ui.tsx";
 import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
+import { POPOVER_EXIT_MS, useClosing } from "../../lib/use-closing.ts";
 
 export type WorkspaceItem = inferRouterOutputs<AppRouter>["workspace"]["list"][number];
 
@@ -81,6 +82,8 @@ export function WorkspaceMenu({ className }: { className?: string }) {
   const list = useQuery(trpc.workspace.list.queryOptions());
   const current = list.data?.find((w) => w.current);
   const [open, setOpen] = useState(false);
+  // The button, a click outside and Escape all close through the same exit.
+  const [closing, close] = useClosing(() => setOpen(false), POPOVER_EXIT_MS);
   const [creating, setCreating] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
 
@@ -88,7 +91,7 @@ export function WorkspaceMenu({ className }: { className?: string }) {
     <>
       <button
         ref={button}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close() : setOpen(true))}
         aria-haspopup="menu"
         aria-label={t("menuLabel", { name: current?.name ?? "…" })}
         aria-expanded={open}
@@ -96,7 +99,7 @@ export function WorkspaceMenu({ className }: { className?: string }) {
           // The sidebar header: workspace tile, name, and the pop-up chevron, pressable as one control.
           "flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-[var(--gg-r-row)] px-1.5 text-left [corner-shape:squircle] transition-[background-color,scale] duration-150 ease-out",
           "hover:bg-raised motion-safe:active:scale-[0.98]",
-          open && "bg-selected",
+          open && !closing && "bg-selected",
           className,
         )}
       >
@@ -110,7 +113,8 @@ export function WorkspaceMenu({ className }: { className?: string }) {
         <Menu
           anchor={button}
           workspaces={list.data ?? []}
-          onClose={() => setOpen(false)}
+          closing={closing}
+          onClose={close}
           onNew={() => {
             setOpen(false);
             setCreating(true);
@@ -122,7 +126,19 @@ export function WorkspaceMenu({ className }: { className?: string }) {
   );
 }
 
-function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<HTMLElement | null>; workspaces: WorkspaceItem[]; onClose: () => void; onNew: () => void }) {
+function Menu({
+  anchor,
+  workspaces,
+  closing,
+  onClose,
+  onNew,
+}: {
+  anchor: React.RefObject<HTMLElement | null>;
+  workspaces: WorkspaceItem[];
+  closing: boolean;
+  onClose: () => void;
+  onNew: () => void;
+}) {
   const t = useT("workspaces");
   const { open, pending } = useOpenWorkspace();
   const ref = useRef<HTMLDivElement>(null);
@@ -154,7 +170,7 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
       role="menu"
       aria-label={t("workspaces")}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
-      className="glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden p-1 origin-top-left"
+      className={cn("glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden p-1 origin-top-left", closing && "popover-out pointer-events-none")}
     >
       <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-faint">{t("workspaces")}</p>
       <div className="min-h-0 overflow-y-auto">
@@ -194,7 +210,8 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
 }
 
 /** Name the new workspace and choose what it starts with; then its onboarding begins. */
-export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceItem | undefined; onClose: () => void }) {
+export function NewWorkspaceDialog({ current, onClose: done }: { current: WorkspaceItem | undefined; onClose: () => void }) {
+  const [closing, onClose] = useClosing(done);
   const t = useT("workspaces");
   const tc = useT("common");
   const { create } = useOpenWorkspace();
@@ -208,11 +225,14 @@ export function NewWorkspaceDialog({ current, onClose }: { current: WorkspaceIte
   }, [onClose]);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 motion-safe:animate-[fadeIn_160ms_ease-out]", closing && "fade-out")}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
       <form
         role="dialog"
         aria-label={t("newWorkspace")}
-        className="glass w-[min(420px,100%)] p-5"
+        className={cn("glass modal-in w-[min(420px,100%)] p-5", closing && "modal-out")}
         onSubmit={(e) => {
           e.preventDefault();
           create.mutate({ name: name.trim(), copyFrom: settings === "copy" ? (current?.id ?? null) : null }, { onSuccess: onClose });

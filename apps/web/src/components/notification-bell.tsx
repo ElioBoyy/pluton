@@ -10,6 +10,7 @@ import { cn } from "../lib/cn.ts";
 import { timeAgo } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { AppLink } from "./app-link.tsx";
+import { POPOVER_EXIT_MS, useClosing } from "../lib/use-closing.ts";
 
 type Item = inferRouterOutputs<AppRouter>["notifications"]["list"][number];
 
@@ -25,6 +26,8 @@ export function NotificationBell() {
   const t = useT("shell");
   const trpc = useTRPC();
   const [open, setOpen] = useState(false);
+  // The bell, a click outside and Escape all close through the same exit.
+  const [closing, close] = useClosing(() => setOpen(false), POPOVER_EXIT_MS);
   const button = useRef<HTMLButtonElement>(null);
   const unread = useQuery({ ...trpc.notifications.unread.queryOptions(), refetchInterval: 15_000 });
   const n = unread.data ?? 0;
@@ -33,10 +36,10 @@ export function NotificationBell() {
     <>
       <button
         ref={button}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close() : setOpen(true))}
         className={cn(
           "relative flex rounded-full size-7 items-center justify-center text-muted transition-[background-color,color,scale] duration-150 hover:bg-raised hover:text-ink motion-safe:active:scale-90",
-          open && "bg-raised text-ink",
+          open && !closing && "bg-raised text-ink",
         )}
         aria-label={n ? t("bell.unread", { count: n }) : t("bell.title")}
         title={t("bell.title")}
@@ -48,12 +51,12 @@ export function NotificationBell() {
           </span>
         )}
       </button>
-      {open && <Panel anchor={button} onClose={() => setOpen(false)} />}
+      {open && <Panel anchor={button} closing={closing} onClose={close} />}
     </>
   );
 }
 
-function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null>; onClose: () => void }) {
+function Panel({ anchor, closing, onClose }: { anchor: React.RefObject<HTMLElement | null>; closing: boolean; onClose: () => void }) {
   const t = useT("shell");
   const tc = useT("common");
   const trpc = useTRPC();
@@ -90,7 +93,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
     <div
       ref={ref}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: Math.min(WIDTH, window.innerWidth - 16) }}
-      className="glass popover-motion fixed z-50 flex max-h-[70vh] origin-top-left flex-col overflow-hidden"
+      className={cn("glass popover-motion fixed z-50 flex max-h-[70vh] origin-top-left flex-col overflow-hidden", closing && "popover-out pointer-events-none")}
       role="dialog"
       aria-label={t("bell.title")}
     >
