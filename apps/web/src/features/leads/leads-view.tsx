@@ -33,6 +33,7 @@ import { formatDate } from "../../lib/format.ts";
 import { translate, useT } from "../../i18n/index.ts";
 import { PIPELINE_LABELS } from "../plays/labels.ts";
 import { COLUMNS, LEAD_TABS, STATUS, type ColumnKey, type LeadTabKey, type RejectReason } from "./labels.ts";
+import { ProofLink } from "./proof-link.tsx";
 import { LeadDrawer } from "./lead-drawer.tsx";
 import { RejectPopover } from "./reject-popover.tsx";
 import { downloadText, useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
@@ -481,6 +482,7 @@ function Row({
         <td className="max-w-72 min-w-48 px-3 py-2" title={`${l.reason}\n\n${l.signal}`}>
           <p className="line-clamp-1 text-sm">{l.signalLabel}</p>
           <p className="line-clamp-2 text-xs text-muted">{l.reason}</p>
+          <ProofLink evidence={l.evidence} className="mt-0.5 text-xs" />
         </td>
       )}
       {has("fit") && <td className="px-3 py-2 text-right tabular-nums text-muted">{l.fit}</td>}

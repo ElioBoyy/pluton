@@ -37,6 +37,7 @@ import { LeadCampaignBlock } from "../sequence/lead-campaign-block.tsx";
 import { LeadCrmBlock } from "../integrations/crm-export.tsx";
 import { useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
 import { Inspector } from "../../components/inspector.tsx";
+import { ProofLink } from "./proof-link.tsx";
 
 type Detail = inferRouterOutputs<AppRouter>["leads"]["get"];
 type TimelineEvent = Detail["timeline"][number];
@@ -213,6 +214,7 @@ export function LeadDrawer({
                   <span className="font-medium text-ink">{t("drawer.signal")} · </span>
                   {data.signal}
                 </p>
+                <ProofLink evidence={data.evidence} className="mt-2 text-sm" />
               </Group>
             </Section>
 
