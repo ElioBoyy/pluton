@@ -78,6 +78,8 @@ import { searchRouter } from "./search-router.ts";
 import { activityRouter, creditsRouter, notificationsRouter } from "./credits-router.ts";
 import { integrationsRouter } from "./integrations-router.ts";
 import { mcpRouter } from "./mcp-router.ts";
+import { apiKeysRouter } from "./api-keys-router.ts";
+import { assertSettingOpen } from "./api-access.ts";
 import { leadsRouter } from "./leads-router.ts";
 import { publicProcedure, router } from "./trpc.ts";
 
@@ -450,6 +452,7 @@ const settingsRouter = router({
   save: publicProcedure
     .input(z.object({ key: z.string(), value: z.string().max(500).nullable() }))
     .mutation(async ({ ctx, input }) => {
+      assertSettingOpen(input.key);
       try {
         await saveSetting(ctx.db, input.key, input.value);
       } catch (error) {
@@ -496,6 +499,7 @@ export const appRouter = router({
   notifications: notificationsRouter,
   integrations: integrationsRouter,
   mcp: mcpRouter,
+  apiKeys: apiKeysRouter,
   copilot: copilotRouter,
   appearance: appearanceRouter,
   search: searchRouter,

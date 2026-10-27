@@ -105,7 +105,7 @@ export const activityRouter = router({
 
 export const notificationsRouter = router({
   list: publicProcedure
-    .input(z.object({ before: z.date().optional() }))
+    .input(z.object({ before: z.coerce.date().optional() }))
     .query(async ({ ctx, input }) => listNotifications(ctx.db, (await ws(ctx.db)).id, { before: input.before, limit: 30 })),
   unread: publicProcedure.query(async ({ ctx }) => unreadNotificationCount(ctx.db, (await ws(ctx.db)).id)),
   markRead: publicProcedure

@@ -70,7 +70,7 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
   const sendTest = useMutation(trpc.settings.sendTestEmail.mutationOptions({ onSuccess: setMailResult }));
   // The SMTP password row also sends an email to yourself and looks for it over IMAP.
   const mailTestable = s.key === "smtp_password";
-  const testable = ["agent_backend", "anthropic_api_key", "apify_token", "hunter_api_key", "smtp_password", "imap_host"].includes(s.key);
+  const testable = ["agent_backend", "anthropic_api_key", "openai_api_key", "apify_token", "hunter_api_key", "smtp_password", "imap_host"].includes(s.key);
 
   return (
     <div className="px-4 py-3.5">

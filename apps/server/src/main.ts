@@ -13,6 +13,7 @@ import { ensureMcpToken, MCP_URL } from "./mcp-router.ts";
 import { currentUser, HOSTED, isPaid, mountAuth } from "./auth.ts";
 import { mountBilling } from "./billing.ts";
 import { mountPassword } from "./password.ts";
+import { mountRestApi } from "./rest.ts";
 
 const db = createDb();
 await prepareDb(db);
@@ -63,6 +64,8 @@ app.get("/api/workspaces/:id/logo", async (c) => {
 mountAuth(app, db);
 mountPassword(app, db);
 mountBilling(app, db);
+// Pluton's own API for scripts and tools, with the keys made in Settings → Pluton API.
+mountRestApi(app, db);
 // Hosted: the API answers only people signed in who have paid; self-hosted it answers this machine.
 app.use("/rpc/*", async (c, next) => {
   if (!HOSTED) return next();

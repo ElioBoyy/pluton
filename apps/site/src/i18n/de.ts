@@ -205,7 +205,7 @@ export default {
     all: "Alles inklusive",
     perMonth: "pro Monat",
     ownLines: [
-      "Ihr eigener Anthropic-API-Schlüssel, von Anthropic zum Selbstkostenpreis abgerechnet",
+      "Ihr eigener API-Schlüssel von Anthropic oder OpenAI, vom jeweiligen Anbieter zum Selbstkostenpreis abgerechnet",
       "Brain, Plays, Leads, LinkedIn- und E-Mail-Sequenzen",
       "Slack, HubSpot, Attio, Pipedrive und MCP für Ihre KI",
       "Läuft weiter, auch wenn Ihr Laptop zugeklappt ist",
@@ -236,8 +236,8 @@ export default {
         "Es handelt nur in einem Versandfenster an Werktagen, innerhalb täglicher Limits pro Konto (standardmäßig 80 Besuche, 20 Einladungen, 50 Nachrichten) und mit zufälligen Pausen zwischen den Aktionen. Sie können alles ändern oder alles von Hand senden.",
       ],
       [
-        "Brauche ich ein eigenes Claude-Konto?",
-        "Im Tarif für 39,99 € ja: Sie bringen einen Anthropic-API-Schlüssel mit, und Anthropic berechnet Ihnen, was Pluton verbraucht, zum Selbstkostenpreis. Im Tarif für 59,99 € ist Claude bis zu einem monatlichen Kontingent enthalten.",
+        "Brauche ich ein eigenes Claude- oder OpenAI-Konto?",
+        "Im Tarif für 39,99 € ja: Sie bringen einen API-Schlüssel von Anthropic oder OpenAI mit, und dieser Anbieter berechnet Ihnen, was Pluton verbraucht, zum Selbstkostenpreis. Im Tarif für 59,99 € ist Claude bis zu einem monatlichen Kontingent enthalten.",
       ],
       [
         "Kann ich es aus Claude Code oder Codex nutzen?",

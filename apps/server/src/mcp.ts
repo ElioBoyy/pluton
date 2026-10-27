@@ -4,6 +4,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { recordActivity } from "@pluton/core";
 import { eq, HOSTED, mcpClients, sql, users, withCostScope, settingByWorkspace, workspaces, type Db } from "@pluton/db";
 import { isPaid } from "./auth.ts";
+import { bearer, findApiKey, isApiKey, withApiKey, type ApiKeyGrant } from "./api-access.ts";
 import { buildPlutonTools } from "./agent-tools.ts";
 
 /**
@@ -48,7 +49,7 @@ function buildServer(db: Db, onCall: (tool: string) => void) {
   return server;
 }
 
-type Session = { transport: WebStandardStreamableHTTPServerTransport; workspaceId: string; lastSeen: number };
+type Session = { transport: WebStandardStreamableHTTPServerTransport; workspaceId: string; keyId: string | null; lastSeen: number };
 const sessions = new Map<string, Session>();
 
 // Sessions idle for an hour are dropped; a client reconnects with a new initialize.
@@ -56,13 +57,19 @@ setInterval(() => {
   for (const [id, s] of sessions) if (Date.now() - s.lastSeen > 3_600_000) void s.transport.close().then(() => sessions.delete(id));
 }, 300_000).unref();
 
-/** Each workspace has its own token: the one a client was given decides which workspace it works in. */
-const workspaceFor = (req: Request) => {
-  const header = req.headers.get("authorization") ?? "";
-  const given = header.startsWith("Bearer ") ? header.slice(7) : new URL(req.url).searchParams.get("token") ?? "";
+/**
+ * The token a client was given decides which workspace it works in: the workspace's MCP token
+ * (every tool), or an API key from Settings → Pluton API (only what its permissions allow).
+ */
+async function accessFor(db: Db, req: Request): Promise<{ workspaceId: string; key: ApiKeyGrant | null } | null> {
+  const given = bearer(req) || (new URL(req.url).searchParams.get("token") ?? "");
+  if (isApiKey(given)) {
+    const key = await findApiKey(db, given);
+    return key ? { workspaceId: key.workspaceId, key } : null;
+  }
   const match = settingByWorkspace("mcp_token").find(({ value }) => given.length === value.length && timingSafeEqual(Buffer.from(given), Buffer.from(value)));
-  return match?.workspaceId ?? null;
-};
+  return match ? { workspaceId: match.workspaceId, key: null } : null;
+}
 
 /** Only local pages may call it from a browser (DNS-rebinding protection); CLI clients send no Origin. */
 const localOrigin = (req: Request) => {
@@ -90,10 +97,11 @@ async function trackClient(db: Db, workspaceId: string, name: string, version: s
 
 export async function handleMcp(db: Db, req: Request): Promise<Response> {
   if (!localOrigin(req)) return new Response("Forbidden origin", { status: 403 });
-  const workspaceId = workspaceFor(req);
-  if (!workspaceId) {
+  const access = await accessFor(db, req);
+  if (!access) {
     return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "Missing or wrong token: copy it from Pluton → Settings → Connect your AI" }, id: null }, { status: 401 });
   }
+  const { workspaceId, key } = access;
   // Hosted, a token works while the account that owns its workspace pays, like the app itself.
   if (HOSTED) {
     const [owner] = await db.select({ subscriptionStatus: users.subscriptionStatus }).from(workspaces).innerJoin(users, eq(users.id, workspaces.userId)).where(eq(workspaces.id, workspaceId));
@@ -103,17 +111,17 @@ export async function handleMcp(db: Db, req: Request): Promise<Response> {
   if (sid) {
     const session = sessions.get(sid);
     if (!session) return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "Session expired; reconnect" }, id: null }, { status: 404 });
-    // A token rotated or moved to another workspace ends its sessions.
-    if (session.workspaceId !== workspaceId) return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "Session expired; reconnect" }, id: null }, { status: 404 });
+    // A token rotated, moved to another workspace or swapped for another key ends its sessions.
+    if (session.workspaceId !== workspaceId || session.keyId !== (key?.id ?? null)) return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "Session expired; reconnect" }, id: null }, { status: 404 });
     session.lastSeen = Date.now();
-    return inWorkspace(db, workspaceId, () => session.transport.handleRequest(req));
+    return inWorkspace(db, workspaceId, key, () => session.transport.handleRequest(req));
   }
   let clientName = "MCP client";
   let clientVersion: string | undefined;
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (id: string) => {
-      sessions.set(id, { transport, workspaceId, lastSeen: Date.now() });
+      sessions.set(id, { transport, workspaceId, keyId: key?.id ?? null, lastSeen: Date.now() });
     },
     onsessionclosed: (id: string) => {
       sessions.delete(id);
@@ -127,14 +135,15 @@ export async function handleMcp(db: Db, req: Request): Promise<Response> {
     void trackClient(db, workspaceId, clientName, clientVersion).catch(() => {});
   };
   await server.connect(transport);
-  return inWorkspace(db, workspaceId, () => transport.handleRequest(req));
+  return inWorkspace(db, workspaceId, key, () => transport.handleRequest(req));
 }
 
 /**
  * Tools read and write the token's workspace, and what they spend is charged to it. Hosted, they
- * act as the account that owns it.
+ * act as the account that owns it. With an API key, each tool is held to the key's permissions.
  */
-async function inWorkspace<T>(db: Db, workspaceId: string, fn: () => T) {
+async function inWorkspace<T>(db: Db, workspaceId: string, key: ApiKeyGrant | null, fn: () => T) {
   const ws = HOSTED ? await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId), columns: { userId: true } }) : undefined;
-  return withCostScope({ db, workspaceId, userId: ws?.userId ?? null, purpose: "agent" }, fn);
+  const run = () => withCostScope({ db, workspaceId, userId: ws?.userId ?? null, purpose: "agent" }, fn);
+  return key ? withApiKey(key, run) : run();
 }

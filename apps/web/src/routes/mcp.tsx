@@ -148,7 +148,7 @@ export function McpPage() {
 }
 
 /** Icon-only actions: a round, muted hit area that lights on hover. */
-function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+export function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
@@ -162,7 +162,7 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
   );
 }
 
-function CopyButton({ text, label }: { text: string; label: string }) {
+export function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <IconButton
@@ -178,7 +178,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-function CodeBlock({ text }: { text: string }) {
+export function CodeBlock({ text }: { text: string }) {
   const tc = useT("common");
   return (
     // The copy button sits beside the scrolling code, never over it.

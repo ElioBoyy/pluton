@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import {
   and,
+  apiKeys,
   brainItems,
   brainProposals,
   campaigns,
@@ -28,7 +29,8 @@ import {
 } from "@pluton/db";
 
 type Owned = typeof plays | typeof leads | typeof leadFindingRuns | typeof copilotConversations | typeof campaigns | typeof onboardingSessions
-  | typeof enrollments | typeof senders | typeof jobs | typeof brainItems | typeof brainProposals | typeof creditEntries | typeof mcpClients | typeof outreachActions;
+  | typeof enrollments | typeof senders | typeof jobs | typeof brainItems | typeof brainProposals | typeof creditEntries | typeof mcpClients | typeof outreachActions
+  | typeof apiKeys;
 
 /** Input fields that name a row, and the table it lives in, whatever the procedure. */
 const BY_FIELD: Record<string, Owned> = {
@@ -56,6 +58,8 @@ function tableForId(path: string, field: "id" | "actionId"): Owned | "draft" | "
   if (path.startsWith("credits.")) return creditEntries;
   if (path.startsWith("mcp.")) return mcpClients;
   if (path.startsWith("jobs.")) return jobs;
+  if (path.startsWith("campaigns.")) return campaigns;
+  if (path.startsWith("apiKeys.")) return apiKeys;
   return null;
 }
 

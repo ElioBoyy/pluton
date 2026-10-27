@@ -2,6 +2,7 @@ import { z } from "zod";
 import { estimateRun, getJob, getCurrentWorkspace, reviewLeads, startRun } from "@pluton/core";
 import { ACTIVITY_CONTEXTS, CRM_PROVIDERS, FEEDBACK_REASONS, getSetting, type Db } from "@pluton/db";
 import { appRouter } from "./router.ts";
+import { requirePermission } from "./api-access.ts";
 import { assertInWorkspace } from "./workspace-guard.ts";
 
 /**
@@ -118,6 +119,7 @@ export function buildPlutonTools(db: Db, via: "mcp" | "agent"): PlutonTool[] {
     "Starts a lead search for a Play. Without confirm it only returns the expected cost and the budget left: tell the user, and call again with confirm: true after an explicit yes.",
     { playId: z.string(), confirm: z.boolean().default(false) },
     async ({ playId, confirm }) => {
+      requirePermission("plays:run");
       await inThisWorkspace("plays.run", { playId });
       const estimate = await estimateRun(db, playId);
       if (!confirm) return { needsConfirmation: true, estimate, note: "Amounts are micro-USD. Claude through the user's subscription is not charged." };
@@ -158,6 +160,7 @@ export function buildPlutonTools(db: Db, via: "mcp" | "agent"): PlutonTool[] {
     "Approve (up) or reject (down) leads, with reasons for a rejection. This teaches later searches; only on the user's verdict.",
     { leadIds: z.array(z.string()).min(1).max(200), verdict: z.enum(["up", "down"]), reasons: z.array(z.enum(FEEDBACK_REASONS)).default([]), comment: z.string().max(1000).optional() },
     async (args) => {
+      requirePermission("leads:review");
       const ws = await getCurrentWorkspace(db);
       await assertInWorkspace(db, ws.id, "leads.review", { leadIds: args.leadIds });
       return reviewLeads(db, { workspaceId: ws.id, ...args, via });
