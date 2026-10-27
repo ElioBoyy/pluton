@@ -248,14 +248,15 @@ export function ConfirmHost() {
           <button
             ref={confirmRef}
             onClick={() => done(true)}
+            // Capsules, as every button in the app; red when the action can't be undone.
             className={cn(
-              "h-8 text-sm font-medium text-white outline-none focus-visible:focus-ring motion-safe:active:scale-[0.98]",
+              "h-8 rounded-full text-sm font-medium text-white outline-none transition-[filter,scale] duration-150 hover:brightness-110 focus-visible:focus-ring motion-safe:active:scale-[0.98]",
               state.destructive ? "bg-system-red" : "bg-accent",
             )}
           >
             {state.confirmLabel}
           </button>
-          <button onClick={() => done(false)} className="capsule h-8 text-sm font-medium motion-safe:active:scale-[0.98]">
+          <button onClick={() => done(false)} className="capsule h-8 rounded-full text-sm font-medium transition-[background-color,scale] duration-150 hover:bg-(--capsule-bg-hover) motion-safe:active:scale-[0.98]">
             {tc("cancel")}
           </button>
         </div>
