@@ -15,9 +15,12 @@ import { mountBilling } from "./billing.ts";
 import { mountUnipileHooks } from "./unipile-hooks.ts";
 import { mountPassword } from "./password.ts";
 import { mountRestApi } from "./rest.ts";
+import { watchPlatformCaps } from "./platform-alerts.ts";
 
 const db = createDb();
 await prepareDb(db);
+// Before the first read of the ledger, so a cap already crossed at start-up is reported too.
+if (HOSTED) watchPlatformCaps();
 await watchSettings(db);
 watchBudgetThresholds();
 // Self-hosted, the app shows one workspace from the start; hosted, each account gets its own when it signs up.

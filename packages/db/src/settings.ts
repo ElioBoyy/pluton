@@ -350,6 +350,7 @@ async function refreshPlans(db: Db) {
     }),
   );
   plans = next;
+  await refreshFleet(db);
 }
 
 /** A pack just paid for counts at once rather than at the next refresh. */
@@ -359,11 +360,117 @@ export function forgetPlans() {
 
 // The ledger total is up to 30 seconds old: what this process spends counts at once.
 onCostRecorded((entry) => {
+  if (entry.platform) addFleetSpend(entry.source, entry.costMicroUsd);
   const plan = entry.platform && entry.workspaceId ? plans.get(entry.workspaceId) : undefined;
   if (!plan) return;
   plan.spentMicroUsd += entry.costMicroUsd;
   plan.spentBySource[entry.source] = (plan.spentBySource[entry.source] ?? 0) + entry.costMicroUsd;
 });
+
+// ── Platform-wide caps ───────────────────────────────────────────────────────
+
+/**
+ * Pluton's own keys are one account per provider for every customer, so each source can also be
+ * capped across all of them: PLATFORM_MONTHLY_CAP_USD_<SOURCE> per calendar month and
+ * PLATFORM_DAILY_CAP_USD_<SOURCE> per day (UTC), in US dollars of the ledger's cost. A fixed-price
+ * plan (Hunter, TheirStack) gets a monthly cap just under its size; a metered one (Claude, Apify) a
+ * daily cap high enough to only ever stop a runaway. Reached, Pluton's key for that source pauses
+ * for everyone until the period ends (a customer's own key still works). Unset or 0: no cap.
+ */
+export type CapPeriod = "monthly" | "daily";
+const CAP_PERIODS: CapPeriod[] = ["monthly", "daily"];
+/** Fractions of a cap that tell the operator: early warning, then the pause. */
+const ALERT_AT = [0.8, 1] as const;
+
+const capMicroUsd = (period: CapPeriod, source: string) => Math.round(envNumber(`PLATFORM_${period.toUpperCase()}_CAP_USD_${source.toUpperCase()}`, 0) * 1_000_000);
+
+const periodBounds = (period: CapPeriod, now = new Date()) => {
+  const start =
+    period === "monthly" ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)) : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end =
+    period === "monthly" ? new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1)) : new Date(start.getTime() + 86_400_000);
+  return { start, end };
+};
+
+/** Spend through Pluton's keys, every account together, by source, in the current month and day. */
+const fleet: Record<CapPeriod, { start: number; bySource: Record<string, number> }> = {
+  monthly: { start: 0, bySource: {} },
+  daily: { start: 0, bySource: {} },
+};
+
+async function refreshFleet(db: Db) {
+  await Promise.all(
+    CAP_PERIODS.map(async (period) => {
+      const { start } = periodBounds(period);
+      const rows = await db
+        .select({ source: creditEntries.source, n: sql<number>`coalesce(sum(${creditEntries.costMicroUsd}), 0)`.mapWith(Number) })
+        .from(creditEntries)
+        .where(and(eq(creditEntries.platform, true), gte(creditEntries.createdAt, start)))
+        .groupBy(creditEntries.source);
+      fleet[period] = { start: start.getTime(), bySource: Object.fromEntries(rows.map((r) => [r.source, Number(r.n)])) };
+    }),
+  );
+  // The first read after a start notes thresholds already crossed without telling again: they were
+  // reported when crossed, and a deploy would otherwise send the same emails each time.
+  for (const period of CAP_PERIODS) for (const source of Object.keys(fleet[period].bySource)) checkFleetAlerts(period, source, !fleetPrimed);
+  fleetPrimed = true;
+}
+
+let fleetPrimed = false;
+
+function addFleetSpend(source: string, micro: number) {
+  for (const period of CAP_PERIODS) {
+    const { start } = periodBounds(period);
+    // A new month or day starts from nothing until the next refresh reads the ledger.
+    if (fleet[period].start !== start.getTime()) fleet[period] = { start: start.getTime(), bySource: {} };
+    fleet[period].bySource[source] = (fleet[period].bySource[source] ?? 0) + micro;
+    checkFleetAlerts(period, source);
+  }
+}
+
+export type PlatformCapAlert = { source: string; period: CapPeriod; threshold: number; spentMicroUsd: number; capMicroUsd: number; until: Date };
+const capListeners = new Set<(alert: PlatformCapAlert) => void>();
+const alerted = new Set<string>();
+
+/** Tells the operator (the server mails them) when a source crosses 80% and 100% of a platform-wide cap. */
+export function onPlatformCapAlert(listener: (alert: PlatformCapAlert) => void) {
+  capListeners.add(listener);
+  return () => capListeners.delete(listener);
+}
+
+function checkFleetAlerts(period: CapPeriod, source: string, silent = false) {
+  const cap = capMicroUsd(period, source);
+  if (!cap) return;
+  const spent = fleet[period].bySource[source] ?? 0;
+  for (const threshold of ALERT_AT) {
+    const key = `${period}:${fleet[period].start}:${source}:${threshold}`;
+    if (spent < cap * threshold || alerted.has(key)) continue;
+    alerted.add(key);
+    if (silent) {
+      if (threshold >= 1) console.warn(`[platform cap] ${source} is paused for everyone (${period} cap reached before this start).`);
+      continue;
+    }
+    const alert = { source, period, threshold, spentMicroUsd: spent, capMicroUsd: cap, until: periodBounds(period).end };
+    for (const listener of capListeners) listener(alert);
+  }
+}
+
+/** The end of the pause when Pluton's key for `source` has reached a platform-wide cap, else null. */
+function fleetPausedUntil(source: string) {
+  for (const period of CAP_PERIODS) {
+    const cap = capMicroUsd(period, source);
+    if (cap && fleet[period].start === periodBounds(period).start.getTime() && (fleet[period].bySource[source] ?? 0) >= cap) return periodBounds(period).end;
+  }
+  return null;
+}
+
+/** For the operator: each capped source's spend against its platform-wide caps. */
+export function platformCaps() {
+  const sources = new Set(Object.values(PLATFORM_KEYS).map((k) => k.source));
+  return [...sources].flatMap((source) =>
+    CAP_PERIODS.map((period) => ({ source, period, capMicroUsd: capMicroUsd(period, source), spentMicroUsd: fleet[period].bySource[source] ?? 0 })).filter((c) => c.capMicroUsd > 0),
+  );
+}
 
 /** A source's cap this period, in micro-USD: the plan's, raised by the packs in proportion. */
 function sourceCapMicroUsd(plan: WorkspacePlan, source: string) {
@@ -427,6 +534,8 @@ export function assertPlatformQuota(key: string, workspaceId?: string) {
   const source = PLATFORM_KEYS[key]?.source;
   const cap = plan && source ? sourceCapMicroUsd(plan, source) : undefined;
   if (plan && source && cap !== undefined && (plan.spentBySource[source] ?? 0) >= cap) throw new SourceCapError(source, plan.periodEnd);
+  const paused = source ? fleetPausedUntil(source) : null;
+  if (source && paused) throw new PlatformPausedError(source, paused);
 }
 
 /** A capped source (Hunter, TheirStack) is used up for this period, though credits may be left. */
@@ -437,6 +546,19 @@ export class SourceCapError extends PlatformQuotaError {
   ) {
     super(until);
     this.message = t("error.sourceCap", { source: source === "hunter" ? "Hunter" : "TheirStack", until: until.toISOString().slice(0, 10) });
+  }
+}
+
+const SOURCE_NAMES: Record<string, string> = { claude: "Claude", apify: "Apify", hunter: "Hunter", theirstack: "TheirStack", unipile: "Unipile" };
+
+/** Pluton's own key for a source has reached its platform-wide cap: paused for every customer until `until`. */
+export class PlatformPausedError extends PlatformQuotaError {
+  constructor(
+    readonly source: string,
+    until: Date,
+  ) {
+    super(until);
+    this.message = t("error.platformPaused", { source: SOURCE_NAMES[source] ?? source, until: until.toISOString().slice(0, 10) });
   }
 }
 
