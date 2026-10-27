@@ -82,6 +82,8 @@ export function WorkspaceMenu({ className }: { className?: string }) {
   const list = useQuery(trpc.workspace.list.queryOptions());
   const current = list.data?.find((w) => w.current);
   const [open, setOpen] = useState(false);
+  // The button, a click outside and Escape all close through the same exit.
+  const [closing, close] = useClosing(() => setOpen(false), POPOVER_EXIT_MS);
   const [creating, setCreating] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
 
@@ -89,7 +91,7 @@ export function WorkspaceMenu({ className }: { className?: string }) {
     <>
       <button
         ref={button}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close() : setOpen(true))}
         aria-haspopup="menu"
         aria-label={t("menuLabel", { name: current?.name ?? "…" })}
         aria-expanded={open}
@@ -97,7 +99,7 @@ export function WorkspaceMenu({ className }: { className?: string }) {
           // The sidebar header: workspace tile, name, and the pop-up chevron, pressable as one control.
           "flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-[var(--gg-r-row)] px-1.5 text-left [corner-shape:squircle] transition-[background-color,scale] duration-150 ease-out",
           "hover:bg-raised motion-safe:active:scale-[0.98]",
-          open && "bg-selected",
+          open && !closing && "bg-selected",
           className,
         )}
       >
@@ -111,7 +113,8 @@ export function WorkspaceMenu({ className }: { className?: string }) {
         <Menu
           anchor={button}
           workspaces={list.data ?? []}
-          onClose={() => setOpen(false)}
+          closing={closing}
+          onClose={close}
           onNew={() => {
             setOpen(false);
             setCreating(true);
@@ -123,8 +126,19 @@ export function WorkspaceMenu({ className }: { className?: string }) {
   );
 }
 
-function Menu({ anchor, workspaces, onClose: done, onNew }: { anchor: React.RefObject<HTMLElement | null>; workspaces: WorkspaceItem[]; onClose: () => void; onNew: () => void }) {
-  const [closing, onClose] = useClosing(done, POPOVER_EXIT_MS);
+function Menu({
+  anchor,
+  workspaces,
+  closing,
+  onClose,
+  onNew,
+}: {
+  anchor: React.RefObject<HTMLElement | null>;
+  workspaces: WorkspaceItem[];
+  closing: boolean;
+  onClose: () => void;
+  onNew: () => void;
+}) {
   const t = useT("workspaces");
   const { open, pending } = useOpenWorkspace();
   const ref = useRef<HTMLDivElement>(null);
