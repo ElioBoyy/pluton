@@ -29,11 +29,11 @@ function stripe(method, path, params = {}) {
 /** Software as a service for business use, as on the packs (Managed Payments needs a tax code). */
 const TAX_CODE = "txcd_10103001";
 
-// Euro cents; a year is a 1-year commitment at −5 %. The app shows the same (apps/web/src/lib/pricing.ts).
+// Euro cents; a year is a 1-year commitment with one month free (eleven months). The app shows the same (apps/web/src/lib/pricing.ts).
 const PRODUCTS = [
-  { key: "byo", name: "Pluton · Your own AI", env: "BYO", month: 2499, year: 28490 },
-  { key: "all", name: "Pluton · All included", env: "ALL", month: 5900, year: 67260 },
-  { key: "linkedin", name: "Pluton · LinkedIn account", env: "LINKEDIN", month: 1500, year: 17100 },
+  { key: "byo", name: "Pluton · Your own AI", env: "BYO", month: 2499, year: 27489 },
+  { key: "all", name: "Pluton · All included", env: "ALL", month: 5900, year: 64900 },
+  { key: "linkedin", name: "Pluton · LinkedIn account", env: "LINKEDIN", month: 1500, year: 16500 },
 ];
 
 const products = stripe("get", "/v1/products", { limit: 100, active: true }).data;
@@ -70,7 +70,7 @@ for (const p of PRODUCTS) {
 
 // Stripe's portal: card, invoices and cancelling at the end of the period. Plan changes happen in
 // the app (pro rata, yearly commitment), so the portal doesn't offer them.
-const portal = stripe("post", "/v1/billing_portal/configurations", {
+const portalParams = {
   "features[payment_method_update][enabled]": true,
   "features[invoice_history][enabled]": true,
   "features[customer_update][enabled]": true,
@@ -79,7 +79,11 @@ const portal = stripe("post", "/v1/billing_portal/configurations", {
   "features[subscription_cancel][mode]": "at_period_end",
   "features[subscription_update][enabled]": false,
   default_return_url: `${appUrl}/workspace/billing`,
-});
+  "metadata[pluton]": "portal",
+};
+// One portal configuration, updated in place on later runs.
+const existingPortal = stripe("get", "/v1/billing_portal/configurations", { limit: 100, active: true }).data.find((c) => c.metadata?.pluton === "portal");
+const portal = stripe("post", `/v1/billing_portal/configurations${existingPortal ? `/${existingPortal.id}` : ""}`, portalParams);
 lines.push(`STRIPE_PORTAL_CONFIGURATION=${portal.id}`);
 
 if (webhookUrl) {

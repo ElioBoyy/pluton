@@ -183,14 +183,14 @@ const en: Record<LegalDocId, LegalDoc> = {
         body: [
           {
             list: [
-              "“Your own AI”: €24.99 per month, or €284.90 per year. The Customer provides their own Anthropic or OpenAI API key; that provider bills the Customer directly for the artificial intelligence. The plan includes 600 credits a month.",
-              "“All included”: €59 per month, or €672.60 per year. Artificial intelligence is included. The plan includes 2,000 credits a month.",
+              "“Your own AI”: €24.99 per month, or €274.89 per year. The Customer provides their own Anthropic or OpenAI API key; that provider bills the Customer directly for the artificial intelligence. The plan includes 600 credits a month.",
+              "“All included”: €59 per month, or €649 per year. Artificial intelligence is included. The plan includes 2,000 credits a month.",
             ],
           },
           "The following options can be added to either plan, and removed, at any time:",
           {
             list: [
-              "LinkedIn sending account: €15 per month per account, or €171 per year per account on a yearly plan. The Publisher provides the connection to LinkedIn, through Unipile.",
+              "LinkedIn sending account: €15 per month per account, or €165 per year per account on a yearly plan. The Publisher provides the connection to LinkedIn, through Unipile.",
               "Credit packs, bought one-off in the app: 1,000 credits for €22, 2,500 credits for €55, 5,000 credits for €109.",
             ],
           },
