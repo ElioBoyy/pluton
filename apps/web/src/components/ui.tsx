@@ -351,11 +351,31 @@ export function Progress({ value, tone = "accent", className }: { value: number;
 /** A figure with its label in a card, the number set like the landing's price: bold, tight, tabular. */
 export function Stat({ label, value, detail, className }: { label: ReactNode; value: ReactNode; detail?: ReactNode; className?: string }) {
   return (
-    <div className={cn("gg-card px-4 py-4", className)}>
+    <div className={cn("gg-card @container min-w-0 px-4 py-4", className)}>
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-2 text-[34px] leading-[30px] font-bold tracking-[-0.04em] tabular-nums">{value}</p>
+      {/* Sized by the card, not the window: a long amount ("1 234,56 $US") shrinks to fit on one line, never past it. */}
+      <p className="mt-2 text-[clamp(1rem,15cqi,34px)] leading-[0.9] font-bold tracking-[-0.04em] whitespace-nowrap tabular-nums">
+        {typeof value === "string" ? <Amount text={value} /> : value}
+      </p>
       {detail && <p className="mt-0.5 text-xs text-muted">{detail}</p>}
     </div>
+  );
+}
+
+/** The figure at full size, its currency ("$US", "$", "€") smaller beside it, so the number carries the card. */
+function Amount({ text }: { text: string }) {
+  const m = /^(\D*?)([-−]?\d[\d\s.,\u00a0\u202f]*)(\D*)$/.exec(text);
+  const [, before = "", figure = "", after = ""] = m ?? [];
+  if (!m || (!before.trim() && !after.trim())) return text;
+  const unit = (u: string) => u.trim() && <span className="text-[0.5em] font-semibold tracking-normal text-muted">{u.trim()}</span>;
+  return (
+    <>
+      {unit(before)}
+      {before.trim() && "\u2009"}
+      {figure.trim()}
+      {after.trim() && "\u2009"}
+      {unit(after)}
+    </>
   );
 }
 
