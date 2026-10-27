@@ -231,7 +231,7 @@ const FADE = "28px";
  * out, a mouse can grab and drag it, a vertical wheel moves it sideways, and the chosen option is
  * always brought into view. Touch scrolls natively.
  */
-function useStrip(value: string) {
+export function useStrip(value: string, chosenSelector = '[aria-checked="true"]', enabled = true) {
   const ref = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: false, end: false });
   const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
@@ -274,7 +274,7 @@ function useStrip(value: string) {
     shown.current = true;
     // After layout: the labels' widths are only right once the strip is laid out.
     const frame = requestAnimationFrame(() => {
-      const chosen = el.querySelector<HTMLElement>('[aria-checked="true"]');
+      const chosen = el.querySelector<HTMLElement>(chosenSelector);
       if (!chosen || el.scrollWidth <= el.clientWidth) return;
       const room = 36;
       const left = chosen.offsetLeft - room;
@@ -283,10 +283,10 @@ function useStrip(value: string) {
       if (target !== null) el.scrollTo({ left: target, behavior: smooth ? "smooth" : "auto" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [value]);
+  }, [value, chosenSelector]);
 
   const mask =
-    edges.start || edges.end
+    enabled && (edges.start || edges.end)
       ? `linear-gradient(to right, ${edges.start ? "transparent" : "#000"} 0, #000 ${edges.start ? FADE : "0"}, #000 calc(100% - ${edges.end ? FADE : "0px"}), ${edges.end ? "transparent" : "#000"} 100%)`
       : undefined;
 
