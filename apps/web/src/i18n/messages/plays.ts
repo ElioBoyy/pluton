@@ -338,7 +338,7 @@ export default defineMessages({
     "activity.usage": "Consommation",
 
     "estimate.noHistory": "Pas encore d’historique de coût",
-    "estimate.free": "Les exécutions passées n’ont rien coûté",
+    "estimate.free": "Rien n’a été facturé pour les exécutions passées",
     "estimate.about": "Environ {amount} par exécution",
     "estimate.aboutWorkspace": "Environ {amount} par exécution (moyenne de l’espace)",
     "estimate.cap": "plafond {amount}",
@@ -538,7 +538,7 @@ export default defineMessages({
     "activity.usage": "Utilizzo",
 
     "estimate.noHistory": "Ancora nessuno storico dei costi",
-    "estimate.free": "Le esecuzioni passate non sono costate nulla",
+    "estimate.free": "Nulla è stato addebitato per le esecuzioni passate",
     "estimate.about": "Circa {amount} per esecuzione",
     "estimate.aboutWorkspace": "Circa {amount} per esecuzione (media dello spazio)",
     "estimate.cap": "tetto {amount}",
@@ -738,7 +738,7 @@ export default defineMessages({
     "activity.usage": "Uso",
 
     "estimate.noHistory": "Aún sin historial de costes",
-    "estimate.free": "Las ejecuciones anteriores no costaron nada",
+    "estimate.free": "No se facturó nada por las ejecuciones anteriores",
     "estimate.about": "Unos {amount} por ejecución",
     "estimate.aboutWorkspace": "Unos {amount} por ejecución (media del espacio)",
     "estimate.cap": "tope {amount}",
@@ -938,7 +938,7 @@ export default defineMessages({
     "activity.usage": "Nutzung",
 
     "estimate.noHistory": "Noch keine Kostenhistorie",
-    "estimate.free": "Bisherige Durchläufe haben nichts gekostet",
+    "estimate.free": "Für bisherige Durchläufe wurde nichts berechnet",
     "estimate.about": "Etwa {amount} pro Durchlauf",
     "estimate.aboutWorkspace": "Etwa {amount} pro Durchlauf (Durchschnitt des Arbeitsbereichs)",
     "estimate.cap": "Limit {amount}",
