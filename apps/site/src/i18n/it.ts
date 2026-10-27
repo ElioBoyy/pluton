@@ -2,9 +2,9 @@ import type { Strings } from "./index.ts";
 
 export default {
   meta: {
-    title: "Pluton: i tuoi prossimi clienti, trovati dall'IA",
+    title: "Pluton: i tuoi prossimi clienti, li troviamo noi",
     description:
-      "Pluton osserva il tuo mercato, individua le persone la cui azienda ha appena iniziato ad assumere, a pubblicare o a raccogliere fondi, e scrive loro con la tua voce. Non parte nulla finché non lo dici tu.",
+      "Pluton trova i tuoi prossimi clienti per te: osserva il tuo mercato, individua le aziende che assumono, pubblicano o raccolgono fondi, e scrive loro con la tua voce. A te resta solo approvare.",
   },
   nav: {
     how: "Come funziona",
@@ -16,8 +16,8 @@ export default {
     language: "Lingua",
   },
   hero: {
-    title: "I tuoi prossimi clienti, trovati dall'IA.",
-    sub: "Pluton è un agente IA per i founder che vendono. Legge il tuo sito, osserva le aziende del tuo mercato che hanno appena iniziato ad assumere, pubblicare o raccogliere fondi, e scrive loro con la tua voce. Non parte nulla finché non lo dici tu.",
+    title: "I tuoi prossimi clienti, li troviamo noi.",
+    sub: "Pluton legge il tuo sito, individua le aziende del tuo mercato che assumono, pubblicano o raccolgono fondi, e scrive loro con la tua voce. A te resta solo approvare.",
     cta: "Inizia dal tuo sito",
     code: "Ospitalo tu",
     price: "Da 24,99\u00a0€ al mese. Gratis sul tuo computer.",
@@ -75,28 +75,28 @@ export default {
     caption: "Le lastre su cui Clyde Tombaugh trovò Plutone, Lowell Observatory.",
   },
   how: {
-    heading: "Come funziona Pluton",
+    heading: "Cosa fa Pluton per te",
     stagesLabel: "Fase",
     stages: [
       {
         name: "Brain",
-        clause: "Prima, legge il tuo sito",
-        text: "Dagli il tuo sito, o due frasi. Pluton studia la tua azienda, il mercato, i clienti ideali, le personas, i concorrenti e il tono, e ti mostra tutto perché tu possa modificarlo.",
+        clause: "Impara la tua azienda",
+        text: "Dagli il tuo sito, o due frasi: è tutto ciò che gli serve. Pluton ne ricava il tuo mercato, i clienti ideali, le persona, i concorrenti e il tuo tono. Correggi se serve.",
       },
       {
         name: "Play",
-        clause: "Poi dici chi raggiungere",
-        text: "Descrivili con parole semplici. Pluton chiede ciò che gli serve, poi propone un Play: chi, come trovarli, quanti e con quale frequenza.",
+        clause: "Prepara la caccia",
+        text: "Di' in una frase chi vuoi raggiungere. Pluton fa le sue domande, poi organizza tutto: chi cercare, dove, quanti e con che ritmo.",
       },
       {
         name: "Leads",
-        clause: "Dà un punteggio a ognuno",
-        text: "Prima le fonti gratuite: registri delle imprese, pagine carriere, rilevamento delle tecnologie, ricerca web. Ogni punteggio da 0 a 100 arriva con le prove che lo sostengono.",
+        clause: "Trova i tuoi lead",
+        text: "Pluton cerca da solo nei registri delle imprese, nelle pagine carriere, nelle tecnologie dei siti e sul web, e dà a ogni persona un punteggio da 0 a 100, con le prove. Tu non cerchi più.",
       },
       {
         name: "Message",
-        clause: "Infine, scrive con la tua voce",
-        text: "Fino a tre messaggi per persona, scritti a partire dal loro segnale e dal tono del tuo Brain. Li leggi tutti, e una risposta interrompe la sequenza.",
+        clause: "Scrive al posto tuo",
+        text: "Fino a tre messaggi per persona, scritti a partire dal suo segnale e con il tuo tono. Approvi con un clic, e una risposta ferma la sequenza da sola.",
       },
     ],
     brain: {
@@ -142,11 +142,11 @@ export default {
     sample: "Spazio di esempio. I nomi sono inventati.",
   },
   trust: {
-    heading: "Chiede prima di agire.",
-    text: "L'agente prepara, tu decidi. Le ricerche mostrano prima il loro costo, i messaggi aspettano la tua revisione e una risposta ferma la sequenza da sola.",
+    heading: "Fa lui il lavoro, l'ultima parola è tua.",
+    text: "Pluton prepara tutto, tu devi solo dire sì. Le ricerche mostrano prima il loro costo, i messaggi aspettano il tuo clic e una risposta ferma la sequenza da sola.",
     points: [
-      ["Approvazioni", "Niente viene inviato, speso o esportato senza la tua approvazione, e ciò che approvi si può annullare per dieci minuti."],
-      ["Limiti di budget", "Imposta un budget mensile e un tetto per ricerca. Una ricerca si ferma al suo tetto e restituisce ciò che non ha usato."],
+      ["Un clic per approvare", "Niente viene inviato, speso o esportato senza la tua approvazione, e ciò che approvi si può annullare per dieci minuti."],
+      ["Un budget che rispetta da solo", "Imposta una volta un budget mensile e un tetto per ricerca. Pluton si ferma al suo tetto e restituisce ciò che non ha usato."],
       ["Ogni passo alla luce del sole", "Ogni ricerca mostra quanto ha usato, in crediti, e quanto resta, e tutto ciò che fa l'agente compare in Attività."],
     ],
     search: { time: "07:00", title: "Ricerca pronta da avviare", body: "Studi che assumono: circa 15 persone, fino a 300 crediti. Restano 1.290 crediti questo mese.", run: "Avvia la ricerca", later: "Non ora" },
@@ -165,23 +165,23 @@ export default {
     token: "Indirizzo del server e token sono già compilati in Impostazioni → Collega la tua IA.",
   },
   compose: {
-    heading: "Ogni parola passa da te",
+    heading: "Lui scrive, tu approvi",
     blocks: [
       {
         title: "LinkedIn o email",
-        text: "Pluton scrive entrambe le versioni di ogni messaggio e passa all'email quando un invito resta senza risposta.",
+        text: "Pluton scrive entrambe le versioni di ogni messaggio, e passa da solo all'email quando un invito resta senza risposta.",
       },
       {
         title: "Nella loro lingua",
-        text: "Cinque lingue, quella del tuo Brain o una scelta per ogni sequenza.",
+        text: "Pluton scrive in cinque lingue: quella del tuo Brain, o un'altra per ogni sequenza.",
       },
       {
-        title: "Scegli tu chi invia",
-        text: "Invia dal tuo account collegato in una fascia oraria feriale, oppure ricevi una lista di cose da fare con il testo pronto da copiare.",
+        title: "Invia lui per te",
+        text: "Dal tuo account collegato, nei giorni feriali, negli orari che scegli. Oppure, se preferisci, una lista di attività con il testo pronto da copiare.",
       },
       {
         title: "Niente parte senza di te",
-        text: "Ogni messaggio aspetta la tua revisione. Una risposta interrompe la sequenza da sola.",
+        text: "Ogni messaggio aspetta il tuo clic. Una risposta ferma la sequenza da sola.",
       },
     ],
     channelLabel: "Canale",
@@ -252,6 +252,10 @@ export default {
   faq: {
     heading: "Prima di iniziare",
     items: [
+      [
+        "Cosa devo fare io?",
+        "Quasi niente. Dai a Pluton il tuo sito, di' chi vuoi raggiungere, poi approva i messaggi che prepara. Cercare, valutare, scrivere e ricontattare è compito suo.",
+      ],
       [
         "Parte qualcosa senza di me?",
         "No. Ogni messaggio aspetta la tua revisione, e ciò che approvi può ancora essere annullato per dieci minuti. Una risposta della persona interrompe la sua sequenza.",
