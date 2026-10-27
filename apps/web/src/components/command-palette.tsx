@@ -194,7 +194,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 if (e.key === "Enter") run(active);
               }}
               placeholder={t("askAnything")}
-              className="h-full min-w-0 flex-1 bg-transparent text-xl text-ink caret-accent outline-none placeholder:text-muted"
+              className="h-full min-w-0 flex-1 bg-transparent text-xl! text-ink caret-accent outline-none placeholder:text-muted"
             />
           </div>
           {QUICK.map(({ label, to, icon: IconCmp }, i) => (
