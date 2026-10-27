@@ -49,14 +49,11 @@ export function hideUpdate(token: string) {
 }
 
 type Key = MessageKey<"settings">;
-export type Release = { id: string; title: Key; hosted?: boolean; items: Array<{ text: Key; to?: string }> };
+export type Section = { id: string; title: Key; hosted?: boolean; items: Array<{ text: Key; to?: string }> };
+export type Version = { version: string; sections: Section[] };
 
-/**
- * Newest first, one entry per batch of features, without dates. A new entry at the top is what the
- * sidebar announces once (its id is remembered as seen). `hosted` entries are for app.plut0n.com
- * only. Each item links to where the feature lives; the text is in the settings namespace.
- */
-export const RELEASES: Release[] = [
+/** 1.0.0, the first release: everything Pluton did when releases began. */
+const V1_0_0: Section[] = [
   {
     id: "start",
     title: "whatsNew.start.title",
@@ -162,8 +159,16 @@ export const RELEASES: Release[] = [
   },
 ];
 
-/** The entries this install shows: a self-hosted one leaves out what is about the hosted service. */
+/**
+ * What's new, one entry per release, newest first; the first is the version this code is (the root
+ * package.json's). A release adds its entry on top: the sidebar announces it once (its version is
+ * remembered as seen). `hosted` sections are for app.plut0n.com only. Each item links to where the
+ * feature lives; the text is in the settings namespace.
+ */
+export const VERSIONS: Version[] = [{ version: "1.0.0", sections: V1_0_0 }];
+
+/** The releases this install shows: a self-hosted one leaves out what is about the hosted service. */
 export function useReleases() {
   const hosted = useQuery(authStateQuery).data?.hosted ?? false;
-  return RELEASES.filter((r) => hosted || !r.hosted);
+  return VERSIONS.map((v) => ({ ...v, sections: v.sections.filter((s) => hosted || !s.hosted) })).filter((v) => v.sections.length);
 }
