@@ -29,6 +29,9 @@ export default defineMessages({
     "leads.title": "Leads: the people found",
     "leads.body":
       "Each one comes with a score and the reason it fits. Approve the good ones, reject the others: Pluton learns from every answer. The number shows how many are waiting for you.",
+    "messages.title": "Messages: who is waiting for you",
+    "messages.body":
+      "When someone replies, it lands here, across every Play. So do the LinkedIn steps to do by hand, with the text ready to copy. The number shows how many are waiting.",
     "agent.title": "Ask Pluton, in plain words",
     "agent.body": "A question about your leads, your Plays or your spending? Type it here from any page, for example “Who should I contact today?”.",
     "help.title": "Lost? Come back here",
@@ -61,6 +64,9 @@ export default defineMessages({
     "leads.title": "Prospects : les personnes trouvées",
     "leads.body":
       "Chacun arrive avec une note et la raison pour laquelle il correspond. Approuvez les bons, rejetez les autres : Pluton apprend de chaque réponse. Le chiffre indique combien vous attendent.",
+    "messages.title": "Messages : qui vous attend",
+    "messages.body":
+      "Quand quelqu’un répond, c’est ici, pour tous vos Plays. Les étapes LinkedIn à faire à la main aussi, avec le texte prêt à copier. Le chiffre indique combien vous attendent.",
     "agent.title": "Demandez à Pluton, avec vos mots",
     "agent.body":
       "Une question sur vos prospects, vos Plays ou vos dépenses ? Tapez-la ici depuis n’importe quelle page, par exemple « Qui dois-je contacter aujourd’hui ? ».",
@@ -94,6 +100,9 @@ export default defineMessages({
     "leads.title": "Lead: le persone trovate",
     "leads.body":
       "Ognuna arriva con un punteggio e il motivo per cui è adatta. Approva quelle giuste, rifiuta le altre: Pluton impara da ogni risposta. Il numero indica quante ti aspettano.",
+    "messages.title": "Messaggi: chi ti aspetta",
+    "messages.body":
+      "Quando qualcuno risponde, arriva qui, per tutti i tuoi Play. Anche i passaggi LinkedIn da fare a mano, con il testo pronto da copiare. Il numero indica quanti ti aspettano.",
     "agent.title": "Chiedi a Pluton, con parole tue",
     "agent.body":
       "Una domanda sui tuoi lead, sui tuoi Play o sulla spesa? Scrivila qui da qualsiasi pagina, per esempio “Chi dovrei contattare oggi?”.",
@@ -127,6 +136,9 @@ export default defineMessages({
     "leads.title": "Leads: las personas encontradas",
     "leads.body":
       "Cada uno llega con una puntuación y el motivo por el que encaja. Aprueba los buenos y rechaza los demás: Pluton aprende de cada respuesta. El número indica cuántos te esperan.",
+    "messages.title": "Mensajes: quién te espera",
+    "messages.body":
+      "Cuando alguien responde, llega aquí, de todos tus Plays. También los pasos de LinkedIn por hacer a mano, con el texto listo para copiar. El número indica cuántos te esperan.",
     "agent.title": "Pregúntale a Pluton, con tus palabras",
     "agent.body":
       "¿Una pregunta sobre tus leads, tus Plays o tu gasto? Escríbela aquí desde cualquier página, por ejemplo “¿A quién debería contactar hoy?”.",
@@ -160,6 +172,9 @@ export default defineMessages({
     "leads.title": "Leads: die gefundenen Personen",
     "leads.body":
       "Jeder kommt mit einer Bewertung und dem Grund, warum er passt. Geben Sie die guten frei, lehnen Sie die anderen ab: Pluton lernt aus jeder Antwort. Die Zahl zeigt, wie viele auf Sie warten.",
+    "messages.title": "Nachrichten: wer auf Sie wartet",
+    "messages.body":
+      "Wenn jemand antwortet, landet es hier, aus allen Plays. Ebenso die LinkedIn-Schritte von Hand, mit dem Text zum Kopieren. Die Zahl zeigt, wie viele warten.",
     "agent.title": "Fragen Sie Pluton, in Ihren Worten",
     "agent.body":
       "Eine Frage zu Ihren Leads, Plays oder Ausgaben? Tippen Sie sie hier auf jeder Seite ein, zum Beispiel „Wen sollte ich heute kontaktieren?“.",

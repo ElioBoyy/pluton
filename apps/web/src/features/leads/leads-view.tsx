@@ -808,7 +808,8 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
   }, [open]);
   const ordered = useMemo(() => (c: ColumnKey[]) => COLUMNS.filter((k) => c.includes(k)), []);
   return (
-    <div ref={ref} className="relative">
+    // A flex box, so the button fills the group's height and its label sits in the middle like Export's.
+    <div ref={ref} className="relative flex">
       <GroupButton className="gap-1.5 px-3 text-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <GearSix size={14} /> {t("columns")}
       </GroupButton>
