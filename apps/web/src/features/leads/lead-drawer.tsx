@@ -38,6 +38,7 @@ import { LeadCrmBlock } from "../integrations/crm-export.tsx";
 import { useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
 import { Inspector } from "../../components/inspector.tsx";
 import { ProofLink } from "./proof-link.tsx";
+import { useClosing } from "../../lib/use-closing.ts";
 
 type Detail = inferRouterOutputs<AppRouter>["leads"]["get"];
 type TimelineEvent = Detail["timeline"][number];
@@ -66,6 +67,7 @@ export function LeadDrawer({
   const [rejecting, setRejecting] = useState(false);
   const verdictRef = useRef<HTMLDivElement>(null);
   const data = lead.data;
+  const [closing, close] = useClosing(onClose);
   const menu = useLeadMenu({ open: () => {}, reject: () => setRejecting(true), onDeleted: onClose });
 
   useEffect(() => {
@@ -86,7 +88,9 @@ export function LeadDrawer({
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement && e.target.closest("input, textarea, select, [contenteditable]");
       if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "Escape") onClose();
+      // A dialog over the panel (adding to a campaign, a confirmation) has the keys, Escape included.
+      if (document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"]')) return;
+      if (e.key === "Escape") close();
       else if ((e.key === "ArrowDown" || e.key === "j") && onStep) (e.preventDefault(), onStep(1));
       else if ((e.key === "ArrowUp" || e.key === "k") && onStep) (e.preventDefault(), onStep(-1));
       else if (e.key === "a") void approve();
@@ -97,7 +101,7 @@ export function LeadDrawer({
   });
 
   return (
-    <Inspector>
+    <Inspector closing={closing}>
       <section className="flex h-full w-full flex-col" aria-label={t("drawer.label")}>
         <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
           <div className="flex min-w-0 items-center gap-3">
@@ -124,7 +128,7 @@ export function LeadDrawer({
                 }}
               />
             )}
-            <IconButton icon={X} label={t("drawer.close")} onClick={onClose} />
+            <IconButton icon={X} label={t("drawer.close")} onClick={close} />
           </div>
         </div>
 

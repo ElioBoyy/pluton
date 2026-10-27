@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowSquareOut, Browsers, Link as LinkIcon, type Icon } from "@phosphor-icons/react";
 import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
+import { EXIT_MS } from "../lib/use-closing.ts";
 
 /**
  * Right-click menus: an opaque plate at the pointer, items highlighted in ultramarine, destructive
@@ -213,20 +214,29 @@ export function ConfirmHost() {
     () => pending,
   );
   const confirmRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => confirmRef.current?.focus(), [state]);
+  // The answer is given at once; the dialog then plays its exit before it goes.
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    confirmRef.current?.focus();
+    setClosing(false);
+  }, [state]);
   if (!state) return null;
   const done = (ok: boolean) => {
-    pending = null;
-    confirmListeners.forEach((l) => l());
+    if (closing) return;
     state.resolve(ok);
+    setClosing(true);
+    window.setTimeout(() => {
+      pending = null;
+      confirmListeners.forEach((l) => l());
+    }, EXIT_MS);
   };
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/25 p-6 motion-safe:animate-[fadeIn_150ms_ease-out]"
+      className={cn("fixed inset-0 z-[70] flex items-center justify-center bg-black/25 p-6 motion-safe:animate-[fadeIn_150ms_ease-out]", closing && "fade-out")}
       onClick={(e) => e.target === e.currentTarget && done(false)}
       onKeyDown={(e) => e.key === "Escape" && done(false)}
     >
-      <div role="alertdialog" aria-modal="true" aria-label={state.title} className="glass modal-in w-full max-w-[280px] p-5 text-center">
+      <div role="alertdialog" aria-modal="true" aria-label={state.title} className={cn("glass modal-in w-full max-w-[280px] p-5 text-center", closing && "modal-out")}>
         <p className="text-[15px] leading-5 font-semibold text-balance">{state.title}</p>
         {state.message && <p className="mt-1.5 text-xs text-muted text-pretty">{state.message}</p>}
         <div className="mt-5 flex flex-col gap-2">

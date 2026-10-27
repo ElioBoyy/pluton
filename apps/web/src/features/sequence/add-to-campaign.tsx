@@ -11,6 +11,7 @@ import { translate, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { formatTime } from "../../lib/format.ts";
 import { useTRPC } from "../../lib/trpc.ts";
+import { useClosing } from "../../lib/use-closing.ts";
 import { REVIEW } from "./labels.ts";
 
 type Recipient = inferRouterOutputs<AppRouter>["campaigns"]["recipients"]["preview"][number];
@@ -39,8 +40,10 @@ const stepWhen = (i: number, delayHours: number) =>
  * "Add N people to your campaign": each person's messages are written first (AI) or filled in
  * (template), you can read and edit them, then they join. Nothing is sent for 10 minutes.
  */
-export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; onClose: () => void }) {
+export function AddToCampaignModal({ leadIds, onClose: done }: { leadIds: string[]; onClose: () => void }) {
   const t = useT("sequence");
+  // Every way out (the button, Escape, the backdrop, Done) plays the exit first.
+  const [closing, onClose] = useClosing(done);
   const tc = useT("common");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
@@ -88,64 +91,87 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
   const reviewed = joinable.filter((r) => r.review === "reviewed").length;
   const title = joinable.length === 1 ? t("add.titleOne", { name: joinable[0]!.person.name }) : t("add.titleMany", { count: joinable.length });
 
+  // One person: their name is the title and the list would hold a single row, so it goes.
+  const single = rows.length === 1;
+  const person = single ? rows[0]! : undefined;
+
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-label={title} className="modal-in flex max-h-[88vh] w-[min(960px,100%)] flex-col overflow-hidden glass">
+    <div
+      className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 motion-safe:animate-[fadeIn_160ms_ease-out]", closing && "fade-out")}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={cn(
+          "glass modal-in flex max-h-[88vh] flex-col overflow-hidden",
+          single ? "w-[min(680px,100%)]" : "w-[min(960px,100%)]",
+          closing && "modal-out",
+        )}
+      >
         {result ? (
           <Result result={result} onClose={onClose} />
         ) : (
           <>
             <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
               <div className="min-w-0">
-                <h2 className="truncate text-lg font-semibold">{preview.isLoading ? tc("loading") : title}</h2>
-                <p className="mt-1 max-w-[70ch] text-sm text-pretty text-muted">
-                  {t("add.intro")}
-                </p>
+                <h2 className="text-lg leading-6 font-semibold text-balance">{preview.isLoading ? tc("loading") : title}</h2>
+                {person && (
+                  <p className="mt-1 text-sm text-muted">
+                    {person.person.title}
+                    {person.person.company && ` @ ${person.person.company}`} · {person.playName}
+                  </p>
+                )}
+                <p className="mt-2 max-w-[62ch] text-sm text-pretty text-muted">{t("add.intro")}</p>
               </div>
               <CloseButton onClick={onClose} />
             </div>
 
-            <div className="grid min-h-0 flex-1 grid-cols-[17rem_1fr]">
-              {/* A source list on the left, the selected person's messages on the right. */}
-              <ul className="flex flex-col gap-0.5 overflow-y-auto px-3 pb-3">
-                {rows.map((r) => (
-                  <li key={r.leadId}>
-                    <button
-                      onClick={() => setSelected(r.leadId)}
-                      className={cn(
-                        "flex w-full items-center gap-2.5 px-2.5 py-2 text-left transition-colors duration-150",
-                        current?.leadId === r.leadId ? "bg-accent/15" : "hover:bg-raised",
-                        r.conflict && "opacity-50",
-                      )}
-                    >
-                      <Avatar name={r.person.name} className="size-7 text-[11px]" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm">{r.person.name}</span>
-                        <span className={cn("flex min-w-0 items-center gap-1 truncate text-xs", r.conflict ? "text-system-orange" : REVIEW[r.review]?.className)}>
-                          {r.review === "being_written" && !r.conflict && <CircleNotch size={10} className="animate-spin" />}
-                          {r.review === "reviewed" && !r.conflict && <Check size={10} weight="bold" />}
-                          {r.conflict ?? REVIEW[r.review]?.label}
+            <div className={cn("grid min-h-0 flex-1", !single && "md:grid-cols-[15rem_minmax(0,1fr)]")}>
+              {/* Several people: a source list on the left (a strip on phones), the selected person's messages beside it. */}
+              {!single && (
+                <ul className="flex gap-0.5 overflow-auto px-3 pb-3 max-md:flex-row md:flex-col">
+                  {rows.map((r) => (
+                    <li key={r.leadId} className="max-md:shrink-0">
+                      <button
+                        onClick={() => setSelected(r.leadId)}
+                        className={cn(
+                          "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors duration-150",
+                          current?.leadId === r.leadId ? "bg-selected" : "hover:bg-raised",
+                          r.conflict && "opacity-50",
+                        )}
+                      >
+                        <Avatar name={r.person.name} className="size-7 text-[11px]" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm">{r.person.name}</span>
+                          <span className={cn("flex min-w-0 items-center gap-1 truncate text-xs", r.conflict ? "text-system-orange" : REVIEW[r.review]?.className)}>
+                            {r.review === "being_written" && !r.conflict && <CircleNotch size={10} className="animate-spin" />}
+                            {r.review === "reviewed" && !r.conflict && <Check size={10} weight="bold" />}
+                            {r.conflict ?? REVIEW[r.review]?.label}
+                          </span>
                         </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <div className="min-h-0 overflow-y-auto px-6 pb-6">{current && <Messages recipient={current} onRegenerate={() => prepare.mutate({ leadIds: [current.leadId], force: true })} />}</div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="min-h-0 overflow-y-auto px-6 pb-6">
+                {current && <Messages recipient={current} showName={!single} onRegenerate={() => prepare.mutate({ leadIds: [current.leadId], force: true })} />}
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 px-6 pt-3 pb-5">
-              <div className="flex min-w-0 items-center gap-3 text-sm text-muted">
+            {/* One line: where things stand on the left, the actions on the right, the main one last. */}
+            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-3 px-6 pt-3 pb-5">
+              <p className="mr-auto min-w-0 text-sm text-muted">
+                {writing > 0 ? t("add.writing", { count: writing }) : t("add.willJoin", { count: joinable.length, reviewed })}
+              </p>
+              <div className="flex flex-wrap justify-end gap-2">
                 {missing.length > 0 && (
                   <Button variant="ghost" disabled={prepare.isPending || writing > 0} onClick={() => prepare.mutate({ leadIds: missing.map((m) => m.leadId) })}>
                     <Sparkle size={13} weight="fill" className="text-accent" /> {missing.length > 1 ? t("add.generateFor", { count: missing.length }) : t("add.generate")}
                   </Button>
                 )}
-                {writing > 0
-                  ? t("add.writing", { count: writing })
-                  : t("add.willJoin", { count: joinable.length, reviewed, notReviewed: joinable.length - reviewed })}
-              </div>
-              <div className="flex gap-2">
                 <Button variant="ghost" onClick={onClose}>
                   {tc("cancel")}
                 </Button>
@@ -162,30 +188,33 @@ export function AddToCampaignModal({ leadIds, onClose }: { leadIds: string[]; on
   );
 }
 
-function Messages({ recipient: r, onRegenerate }: { recipient: Recipient; onRegenerate: () => void }) {
+function Messages({ recipient: r, showName, onRegenerate }: { recipient: Recipient; showName: boolean; onRegenerate: () => void }) {
   const t = useT("sequence");
   const trpc = useTRPC();
   const refresh = useRefreshSequences();
   const markReviewed = useMutation(trpc.campaigns.drafts.markReviewed.mutationOptions({ onSuccess: () => refresh() }));
   return (
     <div>
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      {/* Who (when the title doesn't already say it), then the actions on their own line so neither squeezes the other. */}
+      {showName && (
+        <div className="mb-3 min-w-0">
           <p className="text-base font-semibold">{r.person.name}</p>
           <p className="mt-0.5 text-sm text-muted">
             {r.person.title}
             {r.person.company && ` @ ${r.person.company}`} · {r.playName}
           </p>
         </div>
+      )}
+      <div className="mb-4 flex flex-wrap gap-2">
         {!r.conflict && (
-          <div className="flex shrink-0 gap-2">
+          <>
             <Button variant="ghost" disabled={r.review === "being_written"} onClick={onRegenerate} title={t("add.rewriteHint")}>
               <ArrowsClockwise size={13} /> {t("add.rewrite")}
             </Button>
             <Button variant="ghost" disabled={r.review !== "not_reviewed"} onClick={() => markReviewed.mutate({ campaignId: r.campaignId, leadIds: [r.leadId] })}>
               <Check size={13} /> {t("add.markReviewed")}
             </Button>
-          </div>
+          </>
         )}
       </div>
       {r.conflict && <p className="mb-4 bg-system-orange/10 px-3 py-2 text-sm text-system-orange">{t("add.conflict", { reason: r.conflict })}</p>}
@@ -237,14 +266,18 @@ function StepDraft({
   const edit = useMutation(trpc.campaigns.drafts.edit.mutationOptions({ onSuccess: () => refresh(), onError: (e) => toast(e.message, { tone: "error" }) }));
   const state = draft?.review ?? "missing";
   return (
-    <li className="bg-canvas p-4">
-      <div className="mb-2 flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium text-muted">
-          {index + 1} · {stepWhen(index, step.delayHours)} · {step.label}
-          {step.mode === "ai" && <Sparkle size={10} weight="fill" className="ml-1 inline text-accent" />}
-          {!switcher && channel === "email" && ` · ${t("step.channelEmail")}`}
+    <li className="rounded-xl bg-canvas p-4">
+      {/* The step's name leads; when it goes out sits under it; its state on the right. */}
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <span className="min-w-0">
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            {step.label}
+            {step.mode === "ai" && <Sparkle size={11} weight="fill" className="text-accent" aria-label={t("add.ai")} />}
+            {!switcher && channel === "email" && <span className="font-normal text-muted">· {t("step.channelEmail")}</span>}
+          </span>
+          <span className="mt-0.5 block text-xs text-muted">{stepWhen(index, step.delayHours)}</span>
         </span>
-        <span className="flex shrink-0 items-center gap-3">
+        <span className="flex shrink-0 items-center gap-3 text-xs">
           {switcher}
           <span className={REVIEW[state]?.className}>{draft?.skipReason ? t("add.skipped", { reason: draft.skipReason }) : REVIEW[state]?.label}</span>
         </span>
