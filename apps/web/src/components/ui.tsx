@@ -292,7 +292,12 @@ export function useStrip(value: string, chosenSelector = '[aria-checked="true"]'
 
   return {
     ref,
-    className: cn("overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", (edges.start || edges.end) && "cursor-grab active:cursor-grabbing"),
+    // While it overflows: an open hand between the options (which keep their pointer), a closed one
+    // over everything while it is held.
+    className: cn(
+      "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+      (edges.start || edges.end) && "cursor-grab select-none active:cursor-grabbing [&:active_*]:cursor-grabbing",
+    ),
     style: { maskImage: mask, WebkitMaskImage: mask },
     // Mouse only: touch and pens already scroll the strip themselves.
     onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
@@ -325,6 +330,8 @@ export function useStrip(value: string, chosenSelector = '[aria-checked="true"]'
       drag.current = null;
     },
     onPointerCancel: () => (drag.current = null),
+    // Links in a strip (Settings' sections) would start the browser's own link drag instead.
+    onDragStart: (e: React.DragEvent<HTMLDivElement>) => e.preventDefault(),
   };
 }
 

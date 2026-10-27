@@ -15,7 +15,6 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar } from "@pluton/glass";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useT } from "../i18n/index.ts";
@@ -36,6 +35,7 @@ import { Wallpaper } from "./wallpaper.tsx";
 import { WorkspaceMenu } from "../features/workspaces/workspace-menu.tsx";
 import { authStateQuery } from "../features/account/auth-state.ts";
 import { ProductTour, startTour } from "../features/tour/product-tour.tsx";
+import { Identicon } from "./identicon.tsx";
 
 /** Each link's name is the shell namespace's `nav.<key>` string. */
 const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads" | "messages"; icon: Icon }> = [
@@ -268,7 +268,7 @@ function ProfileButton() {
       title={`${t("section.profile")} · ${name}`}
       className="flex size-8 shrink-0 items-center justify-center rounded-full transition-[box-shadow] duration-150 hover:shadow-[0_0_0_2px_var(--gg-accent-soft)] focus-visible:focus-ring"
     >
-      <Avatar name={name} className="size-7 text-[11px]" />
+      <Identicon seed={name} className="size-7" />
     </Link>
   );
 }

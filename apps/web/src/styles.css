@@ -394,6 +394,24 @@ select {
 
 /* Browser surfaces carry the palette too. */
 @layer base {
+  /* Everything that does something on a click shows the hand (Tailwind resets buttons to the arrow). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="radio"],
+  [role="tab"],
+  a[href],
+  summary,
+  select:not(:disabled),
+  label:has(> input:not(:disabled)),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="range"]:not(:disabled) {
+    cursor: pointer;
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-line-strong) transparent;

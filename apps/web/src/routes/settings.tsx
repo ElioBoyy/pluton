@@ -18,7 +18,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button, Group, Input, PageHeader, Row, Section, useStrip } from "../components/ui.tsx";
-import { Avatar } from "@pluton/glass";
 import { authStateQuery } from "../features/account/auth-state.ts";
 import { WorkspacesSection } from "../features/workspaces/workspaces-section.tsx";
 import { useProfileName } from "./profile.tsx";
@@ -27,6 +26,7 @@ import { startTour } from "../features/tour/product-tour.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
+import { Identicon } from "../components/identicon.tsx";
 
 /** Each pane's name is the settings namespace's `section.<slug>` string. */
 export const SETTINGS_SECTIONS = [
@@ -126,7 +126,7 @@ function ProfileCard() {
       className="flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-sm whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised lg:mb-4 lg:h-auto lg:gap-2.5 lg:py-2"
       activeProps={{ className: "!bg-selected" }}
     >
-      <Avatar name={name} className="size-5 shrink-0 text-[9px] lg:size-9 lg:text-sm" />
+      <Identicon seed={name} className="size-5 lg:size-9" />
       <span className="max-lg:hidden min-w-0">
         <span className="block truncate font-medium">{name}</span>
         <span className="block truncate text-xs text-muted">{user ? (user.email ?? t("profile.account")) : t("profile.local")}</span>
