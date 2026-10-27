@@ -36,6 +36,7 @@ import { WorkspaceMenu } from "../features/workspaces/workspace-menu.tsx";
 import { authStateQuery } from "../features/account/auth-state.ts";
 import { ProductTour, startTour } from "../features/tour/product-tour.tsx";
 import { Identicon } from "./identicon.tsx";
+import { UpdateNotice, WhatsNewNotice } from "./release-notices.tsx";
 
 /** Each link's name is the shell namespace's `nav.<key>` string. */
 const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads" | "messages"; icon: Icon }> = [
@@ -185,6 +186,8 @@ export function AppShell() {
           </nav>
 
           <div className="mt-auto flex flex-col gap-3 p-3">
+            <UpdateNotice compact />
+            <WhatsNewNotice />
             <GetStarted />
             <div className="flex items-center gap-1.5">
               <ProfileButton />

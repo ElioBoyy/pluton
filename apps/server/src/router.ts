@@ -80,8 +80,11 @@ import { integrationsRouter } from "./integrations-router.ts";
 import { mcpRouter } from "./mcp-router.ts";
 import { leadsRouter } from "./leads-router.ts";
 import { publicProcedure, router } from "./trpc.ts";
+import { checkForUpdate } from "./updates.ts";
 
 const system = router({
+  /** Self-hosted only: how far this install is behind GitHub's main branch, or null. */
+  update: publicProcedure.query(() => checkForUpdate()),
   health: publicProcedure.query(async ({ ctx }) => {
     const ws = await getCurrentWorkspace(ctx.db);
     // This workspace's jobs only; bookkeeping ticks belong to none.

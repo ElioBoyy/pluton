@@ -49,6 +49,21 @@ export function startTour() {
   setOpen(true);
 }
 
+/** Whether the tour is on screen now; what waits for it (the What's new card) stays out of its way. */
+export function useTourOpen() {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => open,
+  );
+}
+
+export function tourSeen() {
+  return seen();
+}
+
 function seen() {
   try {
     return localStorage.getItem(DONE_KEY) === "1";
