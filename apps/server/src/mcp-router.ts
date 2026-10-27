@@ -2,11 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { getCurrentWorkspace, newMcpToken } from "@pluton/core";
-import { desc, eq, getSetting, mcpClients, repoRoot, saveSetting, type Db } from "@pluton/db";
+import { desc, eq, getSetting, HOSTED, mcpClients, repoRoot, saveSetting, type Db } from "@pluton/db";
+import { APP_URL } from "./auth.ts";
 import { publicProcedure, router } from "./trpc.ts";
 
 const PORT = Number(process.env.SERVER_PORT ?? 8787);
-export const MCP_URL = `http://localhost:${PORT}/api/mcp`;
+/** Where AI clients reach the MCP server: the app's address when hosted, this computer's server otherwise. */
+export const MCP_URL = HOSTED ? `${APP_URL}/api/mcp` : `http://localhost:${PORT}/api/mcp`;
 const SKILL_FILE = path.resolve(repoRoot, "skills/pluton/SKILL.md");
 
 /** The bearer token AI clients use, one per workspace; created on first start, rotated from Settings. */

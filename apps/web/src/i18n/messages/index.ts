@@ -1,3 +1,4 @@
+import access from "./access.ts";
 import account from "./account.ts";
 import activity from "./activity.ts";
 import agent from "./agent.ts";
@@ -15,4 +16,4 @@ import usage from "./usage.ts";
 import workspaces from "./workspaces.ts";
 
 /** One namespace per area of the app; a component asks for its own with useT("leads"). */
-export const catalogs = { account, activity, agent, brain, common, home, integrations, leads, onboarding, plays, sequence, settings, shell, usage, workspaces };
+export const catalogs = { access, account, activity, agent, brain, common, home, integrations, leads, onboarding, plays, sequence, settings, shell, usage, workspaces };

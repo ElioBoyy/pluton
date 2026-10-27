@@ -3,6 +3,7 @@ import superjson from "superjson";
 import { getCurrentWorkspace, openWorkspaceFor, UsageLimitError } from "@pluton/core";
 import { currentCostScope, eq, HOSTED, withCostScope, workspaces, type CostPurpose, type Db } from "@pluton/db";
 import { isLocale, withLocale } from "@pluton/i18n/server";
+import { currentApiKey, permissionFor, requirePermission } from "./api-access.ts";
 import { assertInWorkspace } from "./workspace-guard.ts";
 
 /**
@@ -40,7 +41,12 @@ function purposeFor(path: string): CostPurpose {
  * The agent's tools call in from inside a job or an MCP session: they stay in that one's workspace.
  */
 const costScope = t.middleware(async ({ ctx, path, getRawInput, next }) => {
+  // A call made with an API key: refused unless the key was given this procedure's permission.
+  requirePermission(permissionFor(path));
+  const key = currentApiKey();
   const inherited = currentCostScope();
+  // Defense in depth: a key only ever works in its own workspace.
+  if (key && inherited?.workspaceId !== key.workspaceId) throw new TRPCError({ code: "FORBIDDEN" });
   const userId = ctx.userId ?? inherited?.userId ?? null;
   if (HOSTED && !inherited?.workspaceId && !userId) throw new TRPCError({ code: "UNAUTHORIZED" });
   const workspace = HOSTED && !inherited?.workspaceId ? await openWorkspaceFor(ctx.db, userId!) : await getCurrentWorkspace(ctx.db);
