@@ -3,7 +3,7 @@ import {
   Segmented as GlassSegmented,
   Switch as GlassSwitch,
 } from "@pluton/glass";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn.ts";
 
 /*
@@ -203,9 +203,10 @@ export function Segmented<T extends string>({
   label: string;
   size?: "sm" | "md";
 }) {
+  const strip = useStrip(value);
   return (
     // Wider than the room it has (a phone, a pane beside it), it scrolls sideways instead of widening the page.
-    <div className="-m-1 max-w-full min-w-0 overflow-x-auto p-1 [scrollbar-width:none]">
+    <div {...strip} className={cn(strip.className, "-m-1 max-w-full min-w-0 p-1")}>
       <GlassSegmented
         options={options}
         value={value}
@@ -218,6 +219,113 @@ export function Segmented<T extends string>({
       />
     </div>
   );
+}
+
+/** Pixels a press must travel before it counts as a drag rather than a click. */
+const DRAG_SLOP = 4;
+/** How far the edge fade reaches, where more options hide past the edge. */
+const FADE = "28px";
+
+/**
+ * A row that scrolls sideways when it doesn't fit, and says so: the edge with more past it fades
+ * out, a mouse can grab and drag it, a vertical wheel moves it sideways, and the chosen option is
+ * always brought into view. Touch scrolls natively.
+ */
+function useStrip(value: string) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      setEdges({ start: el.scrollLeft > 1, end: el.scrollLeft < max - 1 });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    if (el.firstElementChild) observer.observe(el.firstElementChild);
+    el.addEventListener("scroll", measure, { passive: true });
+    // A plain wheel scrolls the page; over a strip that overflows it moves the strip until its end.
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if ((e.deltaY < 0 && el.scrollLeft <= 0) || (e.deltaY > 0 && el.scrollLeft >= max)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("scroll", measure);
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
+  // The chosen option comes into view, clear of the edge fade: at once when the strip appears (a
+  // page reopened on a far tab), smoothly when the choice changes.
+  const shown = useRef(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const smooth = shown.current && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    shown.current = true;
+    // After layout: the labels' widths are only right once the strip is laid out.
+    const frame = requestAnimationFrame(() => {
+      const chosen = el.querySelector<HTMLElement>('[aria-checked="true"]');
+      if (!chosen || el.scrollWidth <= el.clientWidth) return;
+      const room = 36;
+      const left = chosen.offsetLeft - room;
+      const right = chosen.offsetLeft + chosen.offsetWidth + room - el.clientWidth;
+      const target = el.scrollLeft > left ? left : el.scrollLeft < right ? right : null;
+      if (target !== null) el.scrollTo({ left: target, behavior: smooth ? "smooth" : "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+
+  const mask =
+    edges.start || edges.end
+      ? `linear-gradient(to right, ${edges.start ? "transparent" : "#000"} 0, #000 ${edges.start ? FADE : "0"}, #000 calc(100% - ${edges.end ? FADE : "0px"}), ${edges.end ? "transparent" : "#000"} 100%)`
+      : undefined;
+
+  return {
+    ref,
+    className: cn("overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", (edges.start || edges.end) && "cursor-grab active:cursor-grabbing"),
+    style: { maskImage: mask, WebkitMaskImage: mask },
+    // Mouse only: touch and pens already scroll the strip themselves.
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      const el = ref.current;
+      if (e.pointerType !== "mouse" || e.button !== 0 || !el || el.scrollWidth <= el.clientWidth) return;
+      drag.current = { x: e.clientX, left: el.scrollLeft, moved: false };
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = drag.current;
+      const el = ref.current;
+      if (!d || !el) return;
+      const dx = e.clientX - d.x;
+      if (!d.moved && Math.abs(dx) < DRAG_SLOP) return;
+      // Keep the drag while the pointer leaves the strip; a pointer the browser no longer tracks just isn't captured.
+      if (!d.moved && el.hasPointerCapture && !el.hasPointerCapture(e.pointerId)) {
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch {}
+      }
+      d.moved = true;
+      el.scrollLeft = d.left - dx;
+    },
+    onPointerUp: () => {
+      // A drag that moved ends without choosing the option it was released over.
+      if (drag.current?.moved) {
+        const swallow = (ev: MouseEvent) => (ev.stopPropagation(), ev.preventDefault());
+        window.addEventListener("click", swallow, { capture: true, once: true });
+        setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 0);
+      }
+      drag.current = null;
+    },
+    onPointerCancel: () => (drag.current = null),
+  };
 }
 
 /** The kit's meter: a thin capsule filled in ultramarine (or a status colour); `value` is 0–1. */
