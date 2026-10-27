@@ -98,7 +98,6 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
         {s.options ? (
           <Segmented
             label={s.label}
-            size="sm"
             options={s.options.map((o) => ({ value: o.value, label: o.label }))}
             value={s.value ?? ""}
             onChange={(value) => save.mutate({ key: s.key, value })}
