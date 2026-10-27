@@ -40,7 +40,8 @@ type Action = Conversation["actions"][number];
 export function AgentPage({ conversationId }: { conversationId?: string }) {
   return (
     <div className="flex h-full gap-2 p-3 max-md:p-2">
-      <ConversationList activeId={conversationId} className={cn("max-md:hidden")} />
+      {/* Beside the window only from lg up: narrower, it would leave the conversation a third of the room. */}
+      <ConversationList activeId={conversationId} className={cn("max-lg:hidden")} />
       {conversationId ? <Chat key={conversationId} conversationId={conversationId} /> : <NewConversation />}
     </div>
   );
@@ -187,9 +188,9 @@ function NewConversation() {
             })}
           </div>
           {send.error && <p className="mt-3 text-sm text-cat-orange">{send.error.message}</p>}
-          {/* The list is beside the window from md up; below, recent conversations sit here. */}
+          {/* The list is beside the window from lg up; below, recent conversations sit here. */}
           {(list.data?.length ?? 0) > 0 && (
-            <div className="mt-10 w-full text-left md:hidden">
+            <div className="mt-10 w-full max-w-md text-left lg:hidden">
               <p className="mb-2 px-2.5 text-sm font-semibold text-muted">{t("recent")}</p>
               <ul className="flex flex-col gap-0.5">
                 {list.data!.slice(0, 8).map((c) => (
@@ -306,7 +307,7 @@ function Chat({ conversationId }: { conversationId: string }) {
       working={thinking}
       title={
         <span className="flex min-w-0 items-center gap-1.5">
-          <Link to="/agent" aria-label={t("allConversations")} className="-ml-1 rounded-full p-1 text-muted hover:bg-raised hover:text-ink md:hidden">
+          <Link to="/agent" aria-label={t("allConversations")} className="-ml-1 rounded-full p-1 text-muted hover:bg-raised hover:text-ink lg:hidden">
             <CaretLeft size={16} />
           </Link>
           <span className="truncate">{state.data?.conversation.title ?? "…"}</span>
