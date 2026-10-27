@@ -1,6 +1,7 @@
 import {
   Brain,
   CaretRight,
+  ChatCircleText,
   CheckCircle,
   Circle,
   Gear,
@@ -37,12 +38,13 @@ import { authStateQuery } from "../features/account/auth-state.ts";
 import { ProductTour, startTour } from "../features/tour/product-tour.tsx";
 
 /** Each link's name is the shell namespace's `nav.<key>` string. */
-const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads"; icon: Icon }> = [
+const NAV: Array<{ to: string; key: "home" | "brain" | "agent" | "plays" | "leads" | "messages"; icon: Icon }> = [
   { to: "/home", key: "home", icon: House },
   { to: "/brain", key: "brain", icon: Brain },
   { to: "/agent", key: "agent", icon: Sparkle },
   { to: "/plays", key: "plays", icon: Lightning },
   { to: "/leads", key: "leads", icon: UsersThree },
+  { to: "/messages", key: "messages", icon: ChatCircleText },
 ];
 
 export function AppShell() {
@@ -55,6 +57,10 @@ export function AppShell() {
   const plays = useQuery(trpc.plays.list.queryOptions());
   const leadCounts = useQuery(trpc.leads.counts.queryOptions({}));
   const toReview = leadCounts.data?.counts.to_review ?? 0;
+  // What the sequences wait on you for: replies to answer, LinkedIn steps by hand, invitations to confirm.
+  const replies = useQuery({ ...trpc.campaigns.replies.needingYou.queryOptions({}), refetchInterval: 60_000 });
+  const tasks = useQuery({ ...trpc.campaigns.tasks.list.queryOptions(), refetchInterval: 60_000 });
+  const waitingOnYou = (replies.data?.length ?? 0) + (tasks.data?.tasks.length ?? 0) + (tasks.data?.waiting.length ?? 0);
   const [paletteOpen, setPaletteOpen] = useState(false);
   // Below md the sidebar is a drawer, closed whenever the page changes.
   const [navOpen, setNavOpen] = useState(false);
@@ -128,6 +134,11 @@ export function AppShell() {
                   {to === "/leads" && toReview > 0 && (
                     <span className="text-xs tabular-nums opacity-70" title={t("nav.toReview", { count: toReview })}>
                       {toReview}
+                    </span>
+                  )}
+                  {to === "/messages" && waitingOnYou > 0 && (
+                    <span className="text-xs tabular-nums opacity-70" title={t("nav.waiting", { count: waitingOnYou })}>
+                      {waitingOnYou}
                     </span>
                   )}
                 </Link>
@@ -223,8 +234,8 @@ export function AppShell() {
           ref={setInspector}
           className={cn(
             "flex shrink-0 flex-col overflow-hidden rounded-[calc(var(--gg-r-window)-8px)] [corner-shape:squircle] empty:hidden",
-            // One width for every inspector, a little wider than the sidebar it mirrors; pages fill it.
-            "w-80 2xl:w-96 max-xl:w-[min(24rem,calc(100vw-16px))]",
+            // One width for every inspector, wider than the sidebar it mirrors so a lead's evidence reads in full; pages fill it.
+            "w-96 2xl:w-[28rem] max-xl:w-[min(28rem,calc(100vw-16px))]",
             "xl:relative xl:m-2 xl:ml-0 xl:bg-control xl:shadow-[inset_0_0_0_1px_var(--gg-rim-low)]",
             "max-xl:drawer max-xl:fixed max-xl:inset-y-2 max-xl:right-2 max-xl:z-40 max-xl:bg-(--gg-material-thick) max-xl:shadow-window max-xl:backdrop-blur-2xl",
           )}

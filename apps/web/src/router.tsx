@@ -15,6 +15,7 @@ import { NotificationsPage } from "./routes/notifications.tsx";
 import { UsagePage } from "./routes/usage.tsx";
 import { IntegrationPage, IntegrationsPage } from "./routes/integrations.tsx";
 import { McpPage } from "./routes/mcp.tsx";
+import { MessagesPage } from "./routes/messages.tsx";
 import { WhatsNewPage } from "./routes/whats-new.tsx";
 import { LinkedinPage } from "./routes/linkedin.tsx";
 import { DataSourcesPage } from "./routes/data-sources.tsx";
@@ -259,6 +260,7 @@ const routeTree = rootRoute.addChildren([
     createRoute({ getParentRoute: () => appRoute, path: "/plays/new", component: NewPlayPage }),
     playRoute,
     leadsRoute,
+    createRoute({ getParentRoute: () => appRoute, path: "/messages", component: MessagesPage }),
     workspaceRoute.addChildren([workspaceIndexRoute, ...settingsRoutes, integrationRoute]),
   ]),
 ]);
