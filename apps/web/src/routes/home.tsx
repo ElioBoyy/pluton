@@ -135,8 +135,13 @@ function Waiting() {
   );
 }
 
-/** The road every lead travels, left to right; each figure opens its tab on the Leads page. */
-const STAGES = ["to_review", "approved", "in_campaign", "contacted"] as const;
+/** The road every lead travels, left to right; each figure opens its tab on the Leads page. Colours are the status pills'. */
+const STAGES = [
+  { key: "to_review", dot: "bg-system-yellow" },
+  { key: "approved", dot: "bg-system-green" },
+  { key: "in_campaign", dot: "bg-system-purple" },
+  { key: "contacted", dot: "bg-system-pink" },
+] as const;
 
 function Pipeline() {
   const t = useT("home");
@@ -145,51 +150,65 @@ function Pipeline() {
   const counts = useQuery({ ...trpc.leads.counts.queryOptions({}), refetchInterval: 30_000 }).data?.counts;
   if (!counts) return null;
   const aside = (["rejected", "unreachable"] as const).filter((k) => counts[k] > 0);
+  const onRoad = STAGES.reduce((n, s) => n + counts[s.key], 0);
   return (
     <Section
       title={t("pipeline.title")}
-      description={t("pipeline.description", { count: counts.all })}
+      // Those set aside close the line rather than trailing under the card.
+      description={
+        <>
+          {t("pipeline.description", { count: counts.all })}
+          {aside.map((k) => (
+            <span key={k}>
+              {" · "}
+              <Link to="/leads" search={{ tab: k }} className="hover:text-ink">
+                {tl(`tab.${k}`)} <span className="tabular-nums">{counts[k]}</span>
+              </Link>
+            </span>
+          ))}
+        </>
+      }
       actions={
         <Link to="/leads" search={{ tab: "all" }} className={SECTION_LINK}>
           {t("pipeline.all")} <CaretRight size={11} weight="bold" />
         </Link>
       }
     >
-      <Group>
-        <ol className="grid grid-cols-2 sm:grid-cols-4">
-          {STAGES.map((stage, i) => (
-            <li key={stage} className="flex min-w-0">
+      <Group className="p-1.5">
+        <ol className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+          {STAGES.map(({ key, dot }) => (
+            <li key={key} className="min-w-0">
+              {/* Inset cells with their own corners, so the hover sits inside the card's. */}
               <Link
                 to="/leads"
-                search={{ tab: stage }}
-                className="flex min-w-0 flex-1 flex-col gap-1 px-4 py-3.5 transition-colors duration-150 hover:bg-raised"
+                search={{ tab: key }}
+                className="flex min-w-0 flex-col gap-1.5 rounded-[10px] px-3 py-2.5 transition-colors duration-150 hover:bg-raised"
               >
-                <span className="flex items-center gap-1.5 text-xs text-muted">
-                  {tl(`tab.${stage}`)}
-                  {i < STAGES.length - 1 && <CaretRight size={10} weight="bold" className="text-faint max-sm:hidden" aria-hidden />}
+                <span className="flex min-w-0 items-center gap-1.5 text-xs whitespace-nowrap text-muted">
+                  <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", dot)} />
+                  <span className="truncate">{tl(`tab.${key}`)}</span>
                 </span>
                 <span
                   className={cn(
-                    "text-[28px] leading-[30px] font-bold tracking-[-0.03em] tabular-nums",
-                    counts[stage] === 0 && "text-faint",
+                    "text-[28px] leading-none font-bold tracking-[-0.03em] tabular-nums",
+                    counts[key] === 0 && "text-faint",
                     // What waits for a verdict is the one figure in colour: it is the one that asks for something.
-                    stage === "to_review" && counts[stage] > 0 && "text-accent",
+                    key === "to_review" && counts[key] > 0 && "text-accent",
                   )}
                 >
-                  {counts[stage]}
+                  {counts[key]}
                 </span>
               </Link>
             </li>
           ))}
         </ol>
-        {aside.length > 0 && (
-          <p className="flex flex-wrap gap-x-3 px-4 pb-3 text-xs text-muted">
-            {aside.map((k) => (
-              <Link key={k} to="/leads" search={{ tab: k }} className="hover:text-ink">
-                {tl(`tab.${k}`)} <span className="tabular-nums">{counts[k]}</span>
-              </Link>
+        {/* Where they all are at once: each stage's share of the road, in its colour. */}
+        {onRoad > 0 && (
+          <div aria-hidden className="mx-3 mt-1 mb-2 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
+            {STAGES.filter((s) => counts[s.key] > 0).map(({ key, dot }) => (
+              <span key={key} className={cn("h-full first:rounded-l-full last:rounded-r-full", dot)} style={{ flexGrow: counts[key] }} />
             ))}
-          </p>
+          </div>
         )}
       </Group>
     </Section>
