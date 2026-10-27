@@ -40,6 +40,7 @@ import { downloadText, useRefreshLeads, useReviewLeads } from "./use-lead-action
 import { AddToCampaignModal } from "../sequence/add-to-campaign.tsx";
 import { ENROLLMENT } from "../sequence/labels.ts";
 import { BulkCrmExport } from "../integrations/crm-export.tsx";
+import { POPOVER_EXIT_MS, useClosing } from "../../lib/use-closing.ts";
 
 /** "Add N to campaign": opens the message review before they join their Play's sequence. */
 function BulkAddToCampaign({ resolveIds, count, onDone }: { resolveIds: () => Promise<string[]>; count: number; onDone: () => void }) {
@@ -787,6 +788,8 @@ function ExportButton({ filter, count }: { filter: Filter; count: number }) {
 function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c: ColumnKey[]) => void }) {
   const t = useT("leads");
   const [open, setOpen] = useState(false);
+  // Closing lets the menu fade back toward the button before it goes.
+  const [closing, dismiss] = useClosing(() => setOpen(false), POPOVER_EXIT_MS);
   const ref = useRef<HTMLDivElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
@@ -794,9 +797,9 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
     if (!open) return;
     const a = ref.current?.getBoundingClientRect();
     if (a) setPos({ top: a.bottom + 8, right: window.innerWidth - a.right });
-    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && !menu.current?.contains(e.target as Node) && setOpen(false);
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    const close = () => setOpen(false);
+    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && !menu.current?.contains(e.target as Node) && dismiss();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && dismiss();
+    const close = () => dismiss();
     document.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey);
     window.addEventListener("resize", close);
@@ -810,7 +813,7 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
   return (
     // A flex box, so the button fills the group's height and its label sits in the middle like Export's.
     <div ref={ref} className="relative flex">
-      <GroupButton className="gap-1.5 px-3 text-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <GroupButton className="gap-1.5 px-3 text-sm" onClick={() => (open ? dismiss() : setOpen(true))} aria-expanded={open && !closing}>
         <GearSix size={14} /> {t("columns")}
       </GroupButton>
       {open &&
@@ -822,7 +825,7 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
             role="menu"
             aria-label={t("columns")}
             style={{ top: pos.top, right: pos.right }}
-            className="popover fixed z-50 w-48 origin-top-right p-1.5"
+            className={cn("popover fixed z-50 w-48 origin-top-right p-1.5", closing && "popover-out pointer-events-none")}
           >
             {/* A menu: checkmarks in the leading gutter, square highlights inset from the edge. */}
             {COLUMNS.map((c) => {

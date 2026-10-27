@@ -9,7 +9,7 @@ import { Button, Input } from "../../components/ui.tsx";
 import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
-import { useClosing } from "../../lib/use-closing.ts";
+import { POPOVER_EXIT_MS, useClosing } from "../../lib/use-closing.ts";
 
 export type WorkspaceItem = inferRouterOutputs<AppRouter>["workspace"]["list"][number];
 
@@ -123,7 +123,8 @@ export function WorkspaceMenu({ className }: { className?: string }) {
   );
 }
 
-function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<HTMLElement | null>; workspaces: WorkspaceItem[]; onClose: () => void; onNew: () => void }) {
+function Menu({ anchor, workspaces, onClose: done, onNew }: { anchor: React.RefObject<HTMLElement | null>; workspaces: WorkspaceItem[]; onClose: () => void; onNew: () => void }) {
+  const [closing, onClose] = useClosing(done, POPOVER_EXIT_MS);
   const t = useT("workspaces");
   const { open, pending } = useOpenWorkspace();
   const ref = useRef<HTMLDivElement>(null);
@@ -155,7 +156,7 @@ function Menu({ anchor, workspaces, onClose, onNew }: { anchor: React.RefObject<
       role="menu"
       aria-label={t("workspaces")}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
-      className="glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden p-1 origin-top-left"
+      className={cn("glass popover-motion fixed z-50 flex max-h-[70vh] flex-col overflow-hidden p-1 origin-top-left", closing && "popover-out pointer-events-none")}
     >
       <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-faint">{t("workspaces")}</p>
       <div className="min-h-0 overflow-y-auto">

@@ -470,6 +470,19 @@ select {
   }
 }
 
+/* A menu or popover leaving: back up toward its trigger as it fades, quicker than it came. */
+@utility popover-out {
+  opacity: 0;
+  translate: 0 -4px;
+  transition:
+    opacity 140ms var(--ease-out),
+    translate 140ms var(--ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    translate: 0;
+  }
+}
+
 @utility fade-out {
   opacity: 0;
   transition: opacity 200ms var(--ease-out);
