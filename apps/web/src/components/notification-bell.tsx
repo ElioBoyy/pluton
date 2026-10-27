@@ -10,6 +10,7 @@ import { cn } from "../lib/cn.ts";
 import { timeAgo } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { AppLink } from "./app-link.tsx";
+import { POPOVER_EXIT_MS, useClosing } from "../lib/use-closing.ts";
 
 type Item = inferRouterOutputs<AppRouter>["notifications"]["list"][number];
 
@@ -53,7 +54,8 @@ export function NotificationBell() {
   );
 }
 
-function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null>; onClose: () => void }) {
+function Panel({ anchor, onClose: done }: { anchor: React.RefObject<HTMLElement | null>; onClose: () => void }) {
+  const [closing, onClose] = useClosing(done, POPOVER_EXIT_MS);
   const t = useT("shell");
   const tc = useT("common");
   const trpc = useTRPC();
@@ -90,7 +92,7 @@ function Panel({ anchor, onClose }: { anchor: React.RefObject<HTMLElement | null
     <div
       ref={ref}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: Math.min(WIDTH, window.innerWidth - 16) }}
-      className="glass popover-motion fixed z-50 flex max-h-[70vh] origin-top-left flex-col overflow-hidden"
+      className={cn("glass popover-motion fixed z-50 flex max-h-[70vh] origin-top-left flex-col overflow-hidden", closing && "popover-out pointer-events-none")}
       role="dialog"
       aria-label={t("bell.title")}
     >

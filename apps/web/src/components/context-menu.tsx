@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowSquareOut, Browsers, Link as LinkIcon, type Icon } from "@phosphor-icons/react";
 import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
-import { EXIT_MS } from "../lib/use-closing.ts";
+import { EXIT_MS, POPOVER_EXIT_MS } from "../lib/use-closing.ts";
 
 /**
  * Right-click menus: an opaque plate at the pointer, items highlighted in ultramarine, destructive
@@ -82,7 +82,12 @@ function Menu({ state }: { state: NonNullable<MenuState> }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: state.x, top: state.y, origin: "top left" });
   const [active, setActive] = useState(-1);
-  const close = () => setMenu(null);
+  // Appears at once, fades as it goes, as macOS menus do; a menu opened meanwhile isn't touched.
+  const [closing, setClosing] = useState(false);
+  const close = () => {
+    setClosing(true);
+    window.setTimeout(() => menu === state && setMenu(null), POPOVER_EXIT_MS);
+  };
   const selectable = state.items.map((item, i) => (item !== "gap" && !item.disabled ? i : -1)).filter((i) => i >= 0);
 
   // Open toward the side with room, as macOS does near the screen edges.
@@ -157,7 +162,7 @@ function Menu({ state }: { state: NonNullable<MenuState> }) {
       role="menu"
       tabIndex={-1}
       onContextMenu={(e) => e.preventDefault()}
-      className="glass fixed z-[60] min-w-52 p-1.5 text-sm outline-none select-none"
+      className={cn("glass fixed z-[60] min-w-52 p-1.5 text-sm outline-none select-none", closing && "popover-out pointer-events-none")}
       style={{ left: pos.left, top: pos.top, transformOrigin: pos.origin }}
     >
       {state.items.map((item, i) =>

@@ -4,6 +4,7 @@ import { Button } from "../../components/ui.tsx";
 import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { REJECT_REASONS, reasonLabel, type RejectReason } from "./labels.ts";
+import { POPOVER_EXIT_MS, useClosing } from "../../lib/use-closing.ts";
 
 const WIDTH = 320;
 
@@ -15,7 +16,7 @@ export function RejectPopover({
   anchor,
   count = 1,
   onSubmit,
-  onClose,
+  onClose: done,
   align = "right",
 }: {
   anchor: RefObject<HTMLElement | null>;
@@ -29,6 +30,13 @@ export function RejectPopover({
   const [reasons, setReasons] = useState<RejectReason[]>([]);
   const [comment, setComment] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  // Cancelling and sending both let the popover leave first; sending then gives the verdict.
+  const after = useRef<() => void>(done);
+  const [closing, onClose] = useClosing(() => after.current(), POPOVER_EXIT_MS);
+  const submit = () => {
+    after.current = () => onSubmit(reasons, comment);
+    onClose();
+  };
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -67,7 +75,7 @@ export function RejectPopover({
       aria-label={tc("reject")}
       onClick={(e) => e.stopPropagation()}
       style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0, width: WIDTH }}
-      className="popover fixed z-50 p-4 text-left"
+      className={cn("popover fixed z-50 p-4 text-left", closing && "popover-out pointer-events-none")}
     >
       <p className="text-sm font-semibold">{count > 1 ? t("reject.title", { count }) : t("action.notFit")}</p>
       <p className="mt-1 text-xs text-muted">{t("reject.hint")}</p>
@@ -100,7 +108,7 @@ export function RejectPopover({
         <Button variant="ghost" onClick={onClose}>
           {tc("cancel")}
         </Button>
-        <Button onClick={() => onSubmit(reasons, comment)}>
+        <Button onClick={submit}>
           {t("reject.submit")}
         </Button>
       </div>
