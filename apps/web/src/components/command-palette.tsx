@@ -172,7 +172,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       className="group fixed inset-0 z-50 flex items-start justify-center px-4 pt-[18vh] data-[state=closed]:pointer-events-none"
       onMouseDown={onClose}
     >
-      <div className="w-full max-w-[50rem]" onMouseDown={(e) => e.stopPropagation()}>
+      {/* Results read in 560px; idle, the window widens so the shortcuts sit beside the field, and folds back as you type. */}
+      <div
+        className={cn(
+          "w-full transition-[max-width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+          typing ? "max-w-[35rem]" : "max-w-[50rem]",
+        )}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         {/* The field is never narrower than its full prompt (28rem); where the shortcuts can't fit beside it, they go under it. */}
         <div className="flex flex-wrap items-center justify-center gap-y-2.5">
           <div className={cn("glass flex h-14 min-w-[min(100%,28rem)] flex-1 items-center gap-3 px-5", POP)}>
