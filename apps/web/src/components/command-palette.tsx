@@ -172,9 +172,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       className="group fixed inset-0 z-50 flex items-start justify-center px-4 pt-[18vh] data-[state=closed]:pointer-events-none"
       onMouseDown={onClose}
     >
-      <div className="w-full max-w-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-center">
-          <div className={cn("glass flex h-14 flex-1 items-center gap-3 px-5", POP)}>
+      <div className="w-full max-w-[50rem]" onMouseDown={(e) => e.stopPropagation()}>
+        {/* The field is never narrower than its full prompt (28rem); where the shortcuts can't fit beside it, they go under it. */}
+        <div className="flex flex-wrap items-center justify-center gap-y-2.5">
+          <div className={cn("glass flex h-14 min-w-[min(100%,28rem)] flex-1 items-center gap-3 px-5", POP)}>
             {ask.isPending ? (
               <CircleNotch size={22} className="shrink-0 animate-spin text-muted" />
             ) : (
@@ -197,34 +198,37 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               className="h-full min-w-0 flex-1 bg-transparent text-xl! text-ink caret-accent outline-none placeholder:text-muted"
             />
           </div>
-          {QUICK.map(({ label, to, icon: IconCmp }, i) => (
-            // Once you type, the shortcuts fold away (the last one first) and the field takes their room.
-            <div
-              key={to}
-              aria-hidden={typing || undefined}
-              style={{ transitionDelay: `${(typing ? QUICK.length - 1 - i : i) * 30}ms` }}
-              className={cn(
-                "shrink-0 transition-[width,margin,opacity,scale] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-sm:hidden motion-reduce:transition-none",
-                typing ? "pointer-events-none ml-0 w-0 scale-75 opacity-0" : "ml-2.5 w-14",
-              )}
-            >
-              <button
-                onClick={() => go(to)}
-                tabIndex={typing ? -1 : undefined}
-                aria-label={t(label)}
-                title={t(label)}
-                // The shortcuts follow the field in, 25ms apart.
-                style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
+          {/* One block: the shortcuts sit beside the field or all together under it, never split. */}
+          <div className="flex shrink-0">
+            {QUICK.map(({ label, to, icon: IconCmp }, i) => (
+              // Once you type, the shortcuts fold away (the last one first) and the field takes their room.
+              <div
+                key={to}
+                aria-hidden={typing || undefined}
+                style={{ transitionDelay: `${(typing ? QUICK.length - 1 - i : i) * 30}ms` }}
                 className={cn(
-                  "glass flex rounded-full size-14 items-center justify-center text-muted hover:text-ink",
-                  POP,
-                  "transition-[opacity,scale,color] motion-safe:hover:scale-105 motion-safe:active:scale-95",
+                  "shrink-0 transition-[width,margin,opacity,scale] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] max-sm:hidden motion-reduce:transition-none",
+                  typing ? "pointer-events-none ml-0 w-0 scale-75 opacity-0" : "ml-2.5 w-14",
                 )}
               >
-                <IconCmp size={22} />
-              </button>
-            </div>
-          ))}
+                <button
+                  onClick={() => go(to)}
+                  tabIndex={typing ? -1 : undefined}
+                  aria-label={t(label)}
+                  title={t(label)}
+                  // The shortcuts follow the field in, 25ms apart.
+                  style={{ transitionDelay: open ? `${(i + 1) * 25}ms` : "0ms" }}
+                  className={cn(
+                    "glass flex rounded-full size-14 items-center justify-center text-muted hover:text-ink",
+                    POP,
+                    "transition-[opacity,scale,color] motion-safe:hover:scale-105 motion-safe:active:scale-95",
+                  )}
+                >
+                  <IconCmp size={22} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         {typing && (
