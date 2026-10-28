@@ -2,7 +2,7 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Button, Group, Input, PageHeader, Row, Section, Segmented } from "../components/ui.tsx";
+import { Button, Group, Input, PageHeader, Row, Section, Segmented, Switch } from "../components/ui.tsx";
 import { toast } from "../components/toast.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
@@ -66,6 +66,7 @@ export function BudgetPage() {
       <div className="flex flex-col gap-8">
         <Subscription />
         {s.platform && <IncludedUsage quota={s.platform} />}
+        {s.platform && <AutoTopUp packs={s.platform.packs} />}
         <Section
           title={t("budget.period", { from: formatDate(s.period.start, { day: "numeric", month: "short" }), to: until })}
           actions={
@@ -283,6 +284,95 @@ function IncludedUsage({ quota: q }: { quota: Quota }) {
       {added !== null && <p className="mt-2 text-sm text-system-green">{t("quota.added", { amount: credits((added / CREDITS_PER_USD) * 1_000_000) })}</p>}
       {buy.error && <p className="mt-2 text-sm text-system-orange">{t("quota.failed")}</p>}
     </Section>
+  );
+}
+
+type AutoTopUpSettings = { below: number | null; credits: number; maxPerMonth: number; boughtThisMonth: number; error: string | null };
+const autoTopUpQuery = { queryKey: ["billing", "auto-top-up"], queryFn: () => get<AutoTopUpSettings>("/api/billing/auto-top-up") };
+/** The most automatic packs a month the server accepts (AUTO_TOP_UP_MAX_PER_MONTH). */
+const AUTO_TOP_UP_MAX = 10;
+
+/**
+ * Hosted: buys a pack on its own once the credits left fall below a threshold, on the card the
+ * subscription is paid with. The smallest pack is the least it buys; a monthly cap bounds it.
+ */
+function AutoTopUp({ packs }: { packs: Quota["packs"] }) {
+  const t = useT("usage");
+  const tc = useT("common");
+  const queryClient = useQueryClient();
+  const settings = useQuery(autoTopUpQuery);
+  const [form, setForm] = useState({ on: false, below: "200", credits: packs[0]?.credits ?? 1000, maxPerMonth: 3 });
+  const saved = settings.data;
+  useEffect(() => {
+    if (saved) setForm({ on: saved.below !== null, below: String(saved.below ?? 200), credits: saved.credits, maxPerMonth: saved.maxPerMonth });
+  }, [saved]);
+  const save = useMutation({
+    mutationFn: () =>
+      post<AutoTopUpSettings>("/api/billing/auto-top-up", { below: form.on ? Number(form.below) : null, credits: form.credits, maxPerMonth: form.maxPerMonth }),
+    onSuccess: (next) => queryClient.setQueryData(autoTopUpQuery.queryKey, next),
+  });
+  if (!saved) return null;
+  const below = Number(form.below);
+  const invalid = form.on && (!Number.isInteger(below) || below < 1);
+  const dirty =
+    form.on !== (saved.below !== null) ||
+    (form.on && below !== saved.below) ||
+    form.credits !== saved.credits ||
+    form.maxPerMonth !== saved.maxPerMonth;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <Section title={t("auto.title")} footnote={t("auto.hint", { count: saved.boughtThisMonth, max: saved.maxPerMonth })}>
+        <Group>
+          <Row label={t("auto.on")} description={t("auto.onHint")}>
+            <Switch checked={form.on} onChange={(on) => setForm({ ...form, on })} label={t("auto.on")} />
+          </Row>
+          {form.on && (
+            <>
+              <Row label={t("auto.below")} description={t("auto.belowHint")}>
+                <div className="w-28 shrink-0">
+                  <Input
+                    type="number"
+                    min={1}
+                    step="1"
+                    inputMode="numeric"
+                    value={form.below}
+                    onChange={(e) => setForm({ ...form, below: e.target.value })}
+                    aria-label={t("auto.below")}
+                    className="text-right tabular-nums"
+                    required
+                  />
+                </div>
+              </Row>
+              <Row label={t("auto.pack")}>
+                <Segmented
+                  label={t("auto.pack")}
+                  options={packs.map((pack) => ({ value: String(pack.credits), label: `${credits((pack.credits / CREDITS_PER_USD) * 1_000_000)} · ${euros(pack.priceCents / 100)}` }))}
+                  value={String(form.credits)}
+                  onChange={(value) => setForm({ ...form, credits: Number(value) })}
+                />
+              </Row>
+              <Row label={t("auto.max")} description={t("auto.maxHint")}>
+                <Stepper value={form.maxPerMonth} onChange={(n) => setForm({ ...form, maxPerMonth: Math.max(1, n) })} max={AUTO_TOP_UP_MAX} label={t("auto.max")} />
+              </Row>
+            </>
+          )}
+        </Group>
+      </Section>
+      {saved.error && <p className="mt-2 px-1 text-sm text-system-orange">{t("auto.failed", { reason: saved.error })}</p>}
+      <div className="mt-4 flex items-center justify-end gap-3">
+        {save.isSuccess && !dirty && <span className="text-sm text-muted">{tc("saved")}</span>}
+        {save.isError && <span className="text-sm text-system-orange">{t("auto.saveFailed")}</span>}
+        <Button type="submit" disabled={!dirty || invalid || save.isPending}>
+          {tc("save")}
+        </Button>
+      </div>
+    </form>
   );
 }
 

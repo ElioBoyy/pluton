@@ -165,6 +165,15 @@ The budget belongs to the workspace; a new workspace created with "Copy from…"
 
 **Included in your plan** shows this month's credits, in credits on both plans: **Spent**, "of" the month's total, a meter (orange from 80 %, red at 100 %), **Available**, **This month's** (the plan's monthly credits), **Bought, carried over** (when you have packs left) and **Buy credits** with the three packs. Its footnote: "Claude and the data sources Pluton provides draw on it. Once spent, Pluton stops until {date}; with your own keys in Settings → API keys, it keeps going on them." After paying for a pack you see "{amount} added."
 
+**Automatic top-up**, under it, buys a pack for you when credits run low:
+
+- **Top up automatically**: on or off (off by default).
+- **When credits left fall below**: the threshold, in credits, for the whole account.
+- **Pack to buy**: one of the three packs; the smallest, 1,000 credits for 22 €, is the least it buys.
+- **At most, each month**: how many automatic packs a billing month may buy, from 1 to 10 (3 by default).
+
+Pluton checks every 30 seconds. Below the threshold, and under the monthly cap, it charges the pack at once to the card your subscription is paid with, and adds the credits as soon as Stripe confirms the payment; they carry over like packs you buy yourself, and the invoice comes from Stripe. If the payment is refused, the top-up turns itself off and the page shows why: "The last automatic top-up didn't go through, so it was turned off: (reason)". Save again to turn it back on.
+
 The section below is titled "This period · {start} to {end}", with a **See where it went** link to Usage. It refreshes every 10 seconds.
 
 - **Spent**: the big figure, spend of the period, followed by "of {monthly budget}" when one is set.
