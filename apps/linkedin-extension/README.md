@@ -25,8 +25,13 @@ node apps/linkedin-extension/build.mjs --api=https://pluton.example.com   # anot
 The server zips `dist/` on `GET /api/extension/linkedin/download`, so it must be built where the
 server runs (`pnpm build` does it).
 
-If invitations fail with "not_available", LinkedIn has probably renamed a button: the names are at
-the top of `src/invite.ts`. Its dialogs live in the shadow root of `#interop-outlet`.
+Invitations go through the link LinkedIn's own Connect button points to,
+`/preload/custom-invite/?vanityName=…`, which opens the invitation dialog at once; its buttons are
+found by their classes (`artdeco-button--primary` sends, `--secondary` adds a note,
+`textarea#custom-message`), which don't change with the interface's language. When the link shows
+no dialog (pending, already connected), the profile is tried, by the buttons' names in English and
+French. If invitations fail with "not_available", LinkedIn has probably changed one of these: they
+are at the top of `src/invite.ts`. The profile's dialogs live in the shadow root of `#interop-outlet`.
 
 ## Files
 

@@ -74,11 +74,21 @@ function loaded(tabId: number, timeout = 30_000) {
 
 const signedOutUrl = (url?: string) => Boolean(url && /linkedin\.com\/(login|authwall|checkpoint|uas\/login)/.test(url));
 
-/** Opens the profile in a background tab, runs `step` in it, and closes it. */
-async function inProfileTab<T>(profileUrl: string, step: (tabId: number) => Promise<T>): Promise<T | { status: "disconnected" }> {
+/**
+ * The invitation link LinkedIn's own Connect button points to: it opens the invitation dialog
+ * straight away, whatever the profile's layout or the interface's language.
+ */
+function inviteLink(profileUrl: string) {
+  const url = new URL(profileUrl);
+  const vanity = url.pathname.match(/^\/in\/([^/]+)/)?.[1];
+  return vanity ? `${url.origin}/preload/custom-invite/?vanityName=${vanity}` : null;
+}
+
+/** Opens a page of that profile in a background tab, runs `step` in it, and closes it. */
+async function inProfileTab<T>(profileUrl: string, step: (tabId: number) => Promise<T>, url = profileUrl): Promise<T | { status: "disconnected" }> {
   if (!PROFILE.test(profileUrl)) throw new Error("not a LinkedIn profile URL");
   // In the background: the founder keeps working in their own tab.
-  const tab = await chrome.tabs.create({ url: profileUrl, active: false });
+  const tab = await chrome.tabs.create({ url, active: false });
   const tabId = tab.id!;
   try {
     await loaded(tabId);
@@ -101,15 +111,23 @@ async function run(action: Action): Promise<Result> {
       return { status: "visited" as const };
     });
   }
-  return inProfileTab(action.profileUrl, async (tabId) => {
+  const step = (fn: "__plutonInvite" | "__plutonInviteFromLink") => async (tabId: number) => {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["invite.js"] });
     const [done] = await chrome.scripting.executeScript({
       target: { tabId },
-      func: (n?: string) => (globalThis as unknown as { __plutonInvite: (note?: string) => Promise<unknown> }).__plutonInvite(n),
-      args: [action.note ?? ""],
+      func: (name: string, n?: string) => (globalThis as unknown as Record<string, (note?: string) => Promise<unknown>>)[name]!(n),
+      args: [fn, action.note ?? ""],
     });
     return done?.result as InviteResult;
-  });
+  };
+  // The invitation link first; the profile, where pending and connected show, when it has no dialog.
+  const link = inviteLink(action.profileUrl);
+  if (link) {
+    const direct = await inProfileTab(action.profileUrl, step("__plutonInviteFromLink"), link);
+    if (direct.status !== "not_available") return direct;
+    await pause(4000, 9000);
+  }
+  return inProfileTab(action.profileUrl, step("__plutonInvite"));
 }
 
 async function remember(entry: HistoryEntry) {

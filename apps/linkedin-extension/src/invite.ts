@@ -1,8 +1,9 @@
 /**
- * Runs inside a LinkedIn profile tab: sends a connection invitation the way a person would. Press
- * Connect (or find it under More), add the note if there is one, send. LinkedIn's buttons are found
- * by their accessible names in English and French; a name LinkedIn changes is the first thing to
- * check when it fails.
+ * Runs inside a LinkedIn tab: sends a connection invitation the way a person would. First on the
+ * invitation dialog LinkedIn opens at /preload/custom-invite/?vanityName=…, found by its classes and
+ * ids, which don't change with the interface's language; failing that, on the profile: press Connect
+ * (or find it under More), add the note if there is one, send, the buttons found by their names in
+ * English and French. What LinkedIn renames is the first thing to check when it fails.
  */
 
 export type InviteResult =
@@ -16,6 +17,11 @@ const ADD_NOTE = /add a note|ajouter une note/i;
 const SEND_WITHOUT_NOTE = /send without a note|envoyer sans note/i;
 const SEND = /^(send|envoyer)( invitation| l.invitation)?$/i;
 const MESSAGE = /^message$/i;
+
+// The invitation dialog, as LinkedIn renders it in every language (seen October 2026).
+const DIALOG_SEND = ".artdeco-button--primary";
+const DIALOG_ADD_NOTE = ".artdeco-button--secondary";
+const DIALOG_NOTE = "textarea#custom-message, textarea[name=message]";
 
 /** The document and the open shadow roots under it: LinkedIn renders its dialogs inside #interop-outlet's. */
 function roots(): ParentNode[] {
@@ -66,6 +72,41 @@ async function type(field: HTMLTextAreaElement, text: string) {
   }
 }
 
+/** The dialog the invitation link opens: Add a note (secondary), Send (primary), the note's field. */
+function inviteDialog() {
+  return roots()
+    .flatMap((r) => [...r.querySelectorAll("[role=dialog]")])
+    .find((d) => shown(d) && (d.querySelector(DIALOG_SEND) || d.querySelector(DIALOG_NOTE) || d.querySelector("input[type=email]"))) as HTMLElement | undefined;
+}
+
+const enabled = (el: Element | null | undefined) => (el && shown(el) && !(el as HTMLButtonElement).disabled ? (el as HTMLElement) : undefined);
+
+/** On the invitation link's page: the dialog is already open. Not there means try the profile. */
+async function inviteFromLink(note?: string): Promise<InviteResult> {
+  if (/\/(login|authwall|checkpoint|uas\/login)/.test(location.pathname)) return { status: "disconnected" };
+  await pause(1200, 2500);
+  const dialog = await waitFor(inviteDialog, 6000);
+  if (!dialog) return { status: "not_available", detail: "no invitation dialog at the invitation link" };
+  if (dialog.querySelector("input[type=email]")) return { status: "email_required" };
+
+  const text = note?.trim().slice(0, NOTE_MAX);
+  if (text) {
+    const add = enabled(dialog.querySelector(DIALOG_ADD_NOTE)) ?? control(dialog, ADD_NOTE);
+    if (add) press(add);
+    const field = await waitFor(() => [...dialog.querySelectorAll(DIALOG_NOTE)].find(shown) as HTMLTextAreaElement | undefined);
+    if (!field) return { status: "not_available", detail: "no note field" };
+    await pause(400, 900);
+    await type(field, text);
+    await pause();
+  }
+  // Send turns active once the note is typed; without a note it is "Send without a note".
+  const send = await waitFor(() => enabled(dialog.querySelector(DIALOG_SEND)) ?? control(dialog, text ? SEND : SEND_WITHOUT_NOTE));
+  if (!send) return { status: "not_available", detail: "no Send button" };
+  press(send);
+  const closed = await waitFor(() => !shown(dialog) || !dialog.isConnected, 10_000);
+  return closed ? { status: "sent" } : { status: "not_available", detail: "the invitation dialog stayed open" };
+}
+
 async function invite(note?: string): Promise<InviteResult> {
   if (/\/(login|authwall|checkpoint|uas\/login)/.test(location.pathname)) return { status: "disconnected" };
   await pause(1200, 2500);
@@ -114,4 +155,5 @@ async function invite(note?: string): Promise<InviteResult> {
 }
 
 // Called by the background with chrome.scripting.executeScript once this file is in the tab.
-(globalThis as unknown as { __plutonInvite: typeof invite }).__plutonInvite = invite;
+(globalThis as unknown as { __plutonInvite: typeof invite; __plutonInviteFromLink: typeof inviteFromLink }).__plutonInvite = invite;
+(globalThis as unknown as { __plutonInviteFromLink: typeof inviteFromLink }).__plutonInviteFromLink = inviteFromLink;
