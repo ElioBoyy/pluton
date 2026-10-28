@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, desc, enrollments, eq, leads, lt, outreachActions, people, type Sender, senders } from "@pluton/db";
+import { and, asc, desc, enrollments, eq, inArray, isNull, leads, lt, outreachActions, people, type Sender, senders, workspaces } from "@pluton/db";
 import { localized } from "@pluton/i18n/server";
 import { completeManualAction, createSender } from "./campaigns.ts";
 import messages from "./messages/campaigns.ts";
@@ -24,6 +24,16 @@ export async function pairExtension(db: Db, workspaceId: string, input: { token:
   const externalId = hash(input.token.trim());
   const taken = await db.query.senders.findFirst({ where: and(eq(senders.provider, "extension"), eq(senders.externalId, externalId)) });
   if (taken) throw new Error(t("extensionAlreadyPaired"));
+  // One LinkedIn account per person: an account (or a local install) pairs one extension, across all its workspaces.
+  const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId), columns: { userId: true } });
+  const siblings = await db
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(ws?.userId ? eq(workspaces.userId, ws.userId) : isNull(workspaces.userId));
+  const paired = await db.query.senders.findFirst({
+    where: and(eq(senders.provider, "extension"), inArray(senders.workspaceId, siblings.map((w) => w.id))),
+  });
+  if (paired) throw new Error(t("extensionOnePerUser", { name: paired.name }));
   return createSender(db, workspaceId, { provider: "extension", name: input.name, externalId, status: "connecting" });
 }
 
