@@ -91,6 +91,7 @@ export const PROCEDURE_PERMISSIONS: Record<ProcedurePath, ApiPermission | "app">
   "system.runUpdate": "app",
   "workspace.current": "workspace:read",
   "workspace.list": "workspace:read",
+  "workspace.overview": "workspace:read",
   "workspace.checklist": "workspace:read",
   "workspace.create": "app",
   "workspace.switch": "app",

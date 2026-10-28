@@ -46,6 +46,7 @@ import {
   getCurrentWorkspace,
   getSession,
   listWorkspaces,
+  accountOverview,
   switchWorkspace,
   getStartedChecklist,
   jobPayloads,
@@ -123,6 +124,8 @@ const system = router({
 const workspace = router({
   current: publicProcedure.query(({ ctx }) => getCurrentWorkspace(ctx.db)),
   list: publicProcedure.query(({ ctx }) => listWorkspaces(ctx.db)),
+  /** Every workspace of the account side by side, and the plan's shared pot of credits (hosted). */
+  overview: publicProcedure.query(({ ctx }) => accountOverview(ctx.db)),
   /** A new workspace, switched to at once; its onboarding starts from scratch. */
   create: publicProcedure
     .input(z.object({ name: z.string().trim().min(1).max(80), copyFrom: z.string().nullable() }))

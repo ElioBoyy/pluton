@@ -16,6 +16,12 @@ export type WorkspaceItem = inferRouterOutputs<AppRouter>["workspace"]["list"][n
 const WIDTH = 260;
 const COLORS = ["bg-cat-pink", "bg-cat-blue", "bg-cat-green", "bg-cat-orange", "bg-cat-purple", "bg-cat-mint", "bg-cat-yellow"];
 
+/** The workspace's own colour, from its id: its icon, and its share wherever workspaces are compared. */
+export function workspaceColor(id: string) {
+  const hash = [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0);
+  return COLORS[hash % COLORS.length]!;
+}
+
 /**
  * Each workspace keeps one colour, picked from its id, so they tell apart at a glance. With a
  * website, its icon (fetched by the server from the site itself) covers the letter once it loads.
@@ -27,14 +33,13 @@ export function WorkspaceIcon({
   workspace: { id: string; name: string; icon: string | null; website?: string | null } | undefined;
   className?: string;
 }) {
-  const hash = [...(workspace?.id ?? "")].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0);
   const src = workspace?.website ? `/api/workspaces/${workspace.id}/logo?site=${encodeURIComponent(workspace.website)}` : null;
   const [loaded, setLoaded] = useState<string | null>(null);
   return (
     <span
       className={cn(
         "relative flex size-6 rounded-sm shrink-0 items-center justify-center overflow-hidden text-xs font-semibold text-on-accent",
-        loaded === src && src ? "bg-white" : COLORS[hash % COLORS.length],
+        loaded === src && src ? "bg-white" : workspaceColor(workspace?.id ?? ""),
         className,
       )}
     >
@@ -69,7 +74,7 @@ export function useOpenWorkspace() {
   const switchTo = useMutation(trpc.workspace.switch.mutationOptions({ onSuccess: after }));
   const create = useMutation(trpc.workspace.create.mutationOptions({ onSuccess: () => after({ onboarded: false }) }));
   return {
-    open: (ws: WorkspaceItem) => switchTo.mutate({ id: ws.id }),
+    open: (ws: Pick<WorkspaceItem, "id">) => switchTo.mutate({ id: ws.id }),
     create,
     pending: switchTo.isPending || create.isPending,
   };
