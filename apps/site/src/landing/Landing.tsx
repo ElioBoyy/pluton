@@ -4,6 +4,7 @@ import {
   Check,
   Copy,
   EnvelopeSimple,
+  FilmStrip,
   GithubLogo,
   Globe,
   ImageSquare,
@@ -119,6 +120,26 @@ function Hero({ t }: Props) {
         <p className="hero-price reveal">{t.hero.price}</p>
       </div>
       <Agent t={t} />
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ the film */
+
+function Film({ t }: Props) {
+  return (
+    <section className="film section" id="film" aria-labelledby="film-heading">
+      <h2 id="film-heading" className="headline reveal">
+        {t.film.heading}
+      </h2>
+      <Window className="film-window reveal" icon={<FilmStrip weight="fill" aria-hidden />} title={t.film.window}>
+        {/* It has sound, so it waits for a click; nothing loads until then but the poster. */}
+        <video className="film-video" controls playsInline preload="none" poster="/img/annonce-poster.webp" width="1920" height="1080">
+          <source src="/img/annonce.webm" type='video/webm; codecs="av01.0.08M.08, opus"' />
+          <source src="/img/annonce.mp4" type="video/mp4" />
+        </video>
+        {t.film.note && <p className="window-note">{t.film.note}</p>}
+      </Window>
     </section>
   );
 }
@@ -799,6 +820,7 @@ export function Landing({ t, locale }: Props) {
       <Bar t={t} locale={locale} />
       <main id="top">
         <Hero t={t} locale={locale} />
+        <Film t={t} locale={locale} />
         <Story t={t} locale={locale} />
         <How t={t} locale={locale} />
         <Trust t={t} locale={locale} />

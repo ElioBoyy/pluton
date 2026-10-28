@@ -64,6 +64,11 @@ export default {
       spent: "710 von 2.000",
     },
   },
+  film: {
+    heading: "In weniger als einer Minute gesehen.",
+    window: "Pluton, der Launch-Film",
+    note: "Der Film ist auf Englisch.",
+  },
   story: {
     heading: "Was sich bewegt, ist einen Blick wert.",
     text: "Pluto wurde 1930 gefunden, indem man zwischen zwei Fotos desselben Himmels hin und her schaltete. Die Sterne blieben, ein Punkt bewegte sich. Pluton beobachtet Ihren Markt genauso: Die Firmen, die gerade einstellen, posten oder Kapital aufnehmen, sind die Punkte, die sich bewegt haben.",
