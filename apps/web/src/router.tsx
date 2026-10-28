@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter, Link, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell.tsx";
 import { AgentPage } from "./features/agent/agent-page.tsx";
+import { DocsApiPage, DocsEmailPage, DocsHomePage, DocsReferencePage } from "./features/docs/docs-page.tsx";
 import { BRAIN_TAB_SLUGS, BrainPage, type BrainTabSlug } from "./features/brain/brain-page.tsx";
 import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
 import { NewPlayPage } from "./features/plays/new-play-page.tsx";
@@ -52,6 +53,8 @@ const rootRoute = createRootRoute({
     const { hosted, user } = await queryClient.ensureQueryData(authStateQuery);
     // A reset link works signed in or out: it signs in once the new password is saved.
     if (hosted && location.pathname === "/reset") return;
+    // The docs are public: the guides and the API reference read the same signed in or out.
+    if (location.pathname === "/docs" || location.pathname.startsWith("/docs/")) return;
     const onAccountPage = ACCOUNT_PATHS.includes(location.pathname);
     if (!hosted || user?.paid) {
       // Stripe's webhook often marks the account paid before the browser is back from Checkout.
@@ -119,6 +122,14 @@ const subscribeRoute = createRoute({
     return <SubscribePage sessionId={subscribeRoute.useSearch().session_id} />;
   },
 });
+
+// Public, outside the app's window: guides and the API reference.
+const docsRoutes = [
+  createRoute({ getParentRoute: () => rootRoute, path: "/docs", component: DocsHomePage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/docs/email", component: DocsEmailPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/docs/api", component: DocsApiPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/docs/reference", component: DocsReferencePage }),
+];
 
 const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", component: AppShell });
 
@@ -247,6 +258,7 @@ const agentConversationRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  ...docsRoutes,
   signupRoute,
   resetRoute,
   loginRoute,
