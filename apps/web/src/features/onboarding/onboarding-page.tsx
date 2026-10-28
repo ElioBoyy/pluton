@@ -213,7 +213,12 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
             <AppearanceControl />
           </div>
         </aside>
-        <section className="relative min-w-0 flex-1 overflow-hidden max-md:order-first max-md:h-[32%] max-md:flex-none">
+        <section
+          className={cn(
+            "relative min-w-0 flex-1 overflow-hidden max-md:order-first max-md:h-[32%] max-md:flex-none",
+            !detail && "rounded-r-[var(--gg-r-window)] [corner-shape:squircle] max-md:rounded-none",
+          )}
+        >
           <BrainGraph items={items} rootLabel={rootLabel} selectedHub={pickedHub} onSelectHub={setPickedHub} />
           {celebrating && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-(--gg-material-thick) px-6 text-center backdrop-blur-2xl motion-safe:animate-[fadeIn_600ms_ease-out] max-md:fixed">
@@ -251,6 +256,11 @@ function OnboardingLive({ sessionId, startedAt }: { sessionId: string; startedAt
             </ul>
           </aside>
         )}
+        {/* The window's rim again, over the graph that would hide it; under the cards (z-20) and the launch screen (z-30). */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] shadow-[inset_0_1px_0_var(--gg-rim),inset_0_0_0_1px_var(--gg-rim-low)] [corner-shape:squircle] max-md:hidden"
+        />
       </div>
     </div>
   );

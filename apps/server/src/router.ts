@@ -61,6 +61,7 @@ import {
 } from "@pluton/core";
 import { checkClaude, claudeAccess, webSearch } from "@pluton/agent";
 import { BRAIN_SECTIONS, HOSTED, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, eq, gte, jobs, providerCalls, saveSetting, sql } from "@pluton/db";
+import { currentLocale, withLocale } from "@pluton/i18n/server";
 import {
   MissingKeyError,
   checkProviderKey,
@@ -210,14 +211,18 @@ const events = router({
   /** SSE stream of a channel. `tracked` ids let the client resume after a reconnect. */
   watch: publicProcedure
     .input(z.object({ channel: z.string().min(1), lastEventId: z.string().nullish() }))
-    .subscription(async function* ({ ctx, input, signal }) {
+    .subscription(({ ctx, input, signal }) => {
+      // The stream is read after the call's language scope has closed, so its language is kept here.
+      const locale = currentLocale();
       const afterId = input.lastEventId ? Number(input.lastEventId) : 0;
       // The agent's answer streams in as drafts: polled faster so the text flows rather than jumps.
       const intervalMs = input.channel.startsWith("copilot:") ? 100 : undefined;
-      for await (const event of tailStreamEvents(ctx.db, input.channel, { afterId, signal, intervalMs })) {
-        // Onboarding's fixed labels read in the current language, whatever language they were stored in.
-        yield tracked(String(event.id), localizeStreamEvent(event));
-      }
+      return (async function* () {
+        for await (const event of tailStreamEvents(ctx.db, input.channel, { afterId, signal, intervalMs })) {
+          // Onboarding's fixed labels read in the founder's language, whatever language they were stored in.
+          yield tracked(String(event.id), withLocale(locale, () => localizeStreamEvent(event)));
+        }
+      })();
     }),
 });
 
