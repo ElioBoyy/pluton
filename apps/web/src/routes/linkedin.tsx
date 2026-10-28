@@ -54,7 +54,8 @@ export function LinkedinPage() {
   const senders = list.data?.senders ?? [];
   const platform = Boolean(list.data?.platform);
   const billing = useQuery({ ...billingQuery, enabled: platform });
-  const used = senders.filter((s) => s.provider === "unipile").length;
+  // The paid options are the subscription's: accounts connected in the account's other workspaces use them too.
+  const used = list.data?.seatsUsed ?? 0;
   const seats = billing.data?.linkedinSeats ?? 0;
   const interval = billing.data?.interval ?? "month";
   // On Pluton's Unipile account each LinkedIn account is an option: one more is bought, pro rata, before connecting.
@@ -67,9 +68,12 @@ export function LinkedinPage() {
     onError: () => toast(translate("settings", "linkedin.seatFailed"), { tone: "error" }),
   });
   const price = t(interval === "year" ? "linkedin.pricePerYear" : "linkedin.pricePerMonth", { price: euros(PRICES.linkedin[interval]) });
-  const startConnect = () => {
+  // Connecting is where a LinkedIn account is bought: one more option on the subscription in
+  // progress, charged pro rata now, ending with it.
+  const startConnect = async () => {
     if (!platform || used < seats) return connect.mutate({});
-    if (window.confirm(t("linkedin.confirmSeat", { price }))) addSeat.mutate();
+    const ok = await askConfirm({ title: t("linkedin.seatTitle"), message: t("linkedin.seatMessage", { price }), confirmLabel: t("linkedin.seatConfirm") });
+    if (ok) addSeat.mutate();
   };
 
   return (

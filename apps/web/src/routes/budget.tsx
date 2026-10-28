@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button, Group, Input, PageHeader, Row, Section, Segmented } from "../components/ui.tsx";
+import { toast } from "../components/toast.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { credits, CREDITS_PER_USD, formatDate, moneyUnit, usd } from "../lib/format.ts";
@@ -311,7 +312,12 @@ function Subscription() {
     mutationFn: (to: { plan: PlanId; interval: Interval }) => post<BillingSummary>("/api/billing/plan", to),
     onSuccess: settled,
   });
-  const seats = useMutation({ mutationFn: (n: number) => post<BillingSummary>("/api/billing/linkedin", { seats: n }), onSuccess: settled });
+  const seats = useMutation({
+    mutationFn: (n: number) => post<BillingSummary>("/api/billing/linkedin", { seats: n }),
+    onSuccess: settled,
+    // Fewer than the accounts connected would leave one unpaid: the account goes first, from its page.
+    onError: (e) => toast(e.message === "seats_in_use" ? t("manage.seatsInUse") : t("manage.seatsFailed"), { tone: "error" }),
+  });
   const b = billing.data;
   if (!user?.plan) return null;
   const plan = b?.plan ?? user.plan;

@@ -123,6 +123,24 @@ export async function billingSummary(user: User, fresh = false): Promise<Billing
 export const MAX_LINKEDIN_SEATS = 20;
 
 /**
+ * LinkedIn accounts on Pluton's Unipile account that use one of the subscription's paid options:
+ * the options are the account's, so every workspace of it counts. A workspace with its own Unipile
+ * key uses none (its accounts are the customer's). `connecting` is the workspace about to connect:
+ * the account it is still connecting doesn't count, connecting again reuses it.
+ */
+export async function linkedinSeatsInUse(db: Db, userId: string, connecting?: string) {
+  const owned = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.userId, userId));
+  if (!owned.length) return 0;
+  const ids = owned.map((w) => w.id);
+  const [rows, ownKeys] = await Promise.all([
+    db.select({ workspaceId: senders.workspaceId, externalId: senders.externalId }).from(senders).where(and(inArray(senders.workspaceId, ids), eq(senders.provider, "unipile"))),
+    db.query.workspaceSettings.findMany({ where: (s, { and: all, eq: is, inArray: among }) => all(among(s.workspaceId, ids), is(s.key, "unipile_api_key")) }),
+  ]);
+  const own = new Set(ownKeys.filter((k) => k.value).map((k) => k.workspaceId));
+  return rows.filter((r) => !own.has(r.workspaceId) && !(r.workspaceId === connecting && r.externalId?.startsWith("pending:"))).length;
+}
+
+/**
  * Sets how many LinkedIn accounts the subscription pays for. More is charged now, pro rata for the
  * days left in the period; fewer stops at the next renewal, without a refund. Null without a plan.
  */
@@ -362,6 +380,9 @@ export function mountBilling(app: Hono, db: Db) {
     if (!user) return c.json({ error: "signed_out" }, 401);
     const { seats } = await c.req.json<{ seats?: number }>();
     if (!Number.isInteger(seats) || seats! < 0 || seats! > MAX_LINKEDIN_SEATS) return c.json({ error: "unknown_quantity" }, 400);
+    // Fewer options than connected accounts would leave one unpaid: remove the account instead.
+    const used = await linkedinSeatsInUse(db, user.id);
+    if (seats! < used) return c.json({ error: "seats_in_use", used }, 409);
     const summary = await setLinkedinSeats(user, seats!);
     return summary ? c.json(summary) : c.json({ error: "not_paid" }, 402);
   }));
