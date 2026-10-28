@@ -4,53 +4,63 @@
 
 Settings opens from the **Settings** link (gear icon) at the bottom of the sidebar, next to the Light/Dark switch. It can also be reached from the workspace menu at the top of the sidebar (**Workspace settings**). The address of every pane starts with `/workspace/`, and opening `/workspace` alone lands on General.
 
-The left column is titled **Workspace** and lists twelve panes, in this order:
+At the top of the left column is your **Profile**: your avatar, name and the email you sign in with. Below it, a column titled **Workspace** lists twelve panes, in this order:
 
-1. **General**: workspace name, website, timezone, the app's language, and your list of workspaces.
-2. **Appearance**: wallpapers for the light and dark appearances, how they look, and generating them with Codex.
+1. **General**: workspace name, website, timezone, and your list of workspaces.
+2. **Appearance**: wallpapers for the light and dark appearances and how they look.
 3. **Notifications**: what reaches the bell in the sidebar, and the morning digest.
-4. **LinkedIn accounts**: the accounts your sequences send from (Unipile or manual) and their daily limits.
-5. **Connect your AI**: Pluton's local MCP server for Claude Code, Claude Desktop or Codex.
-6. **API keys**: how Pluton reaches Claude, paid data source keys, Unipile, SMTP email and automation switches.
+4. **LinkedIn accounts**: the accounts your sequences send from (automated through Pluton, or manual) and their daily limits.
+5. **Connect your AI**: Pluton's MCP server for Claude Code, Claude Desktop or Codex.
+6. **API keys**: the research model, your own AI key, your own data source keys, SMTP email and automation switches.
 7. **Data sources**: every source Plays search, its status, its usage and a "Try it" box.
 8. **Integrations**: Slack, HubSpot, Attio and Pipedrive.
 9. **Usage**: what Pluton spent, per day, per Play, per type and per source, plus the full ledger.
-10. **Budget**: the monthly budget, daily cap, the most one search may spend, and what happens at the limit (its address is `/workspace/billing`).
+10. **Budget**: your subscription, the credits included in your plan and credit packs, then the monthly budget, daily cap, the most one search may spend, and what happens at the limit (its address is `/workspace/billing`).
 11. **Activity**: everything that happened in the workspace, by you and by Pluton.
 12. **What's new**: the changes in Pluton, newest first.
 
 On a phone, the column becomes a row of tabs you scroll sideways at the top of the page.
 
-Most panes save with a **Save** button that is only active once you change something; after saving, "Saved" appears next to it. API keys save field by field, and the wallpaper sliders save when you let go of the slider.
+Most panes save with a **Save** button that is only active once you change something; after saving, "Saved" appears next to it. API keys save field by field, the wallpaper sliders save when you let go of the slider, and the Profile fields save when you leave the field or press Enter.
 
-## What applies to a workspace, a browser or the whole install
+## What applies to your account, a workspace or a browser
 
-Pluton can hold several workspaces (one per company). Settings don't all live in the same place, which matters when you switch workspace or open Pluton in another browser:
+Your account can hold several workspaces (one per company). Settings don't all live in the same place, which matters when you switch workspace or open Pluton in another browser:
 
-- **Per workspace** (stored in the local database, travel with the workspace): name, website, timezone, budget, notification and digest settings, every key on the API keys page (Claude access mode, Anthropic key, Apify, TheirStack, Hunter, Unipile, SMTP, Daily Brain review), integrations tokens (Slack, CRMs), the MCP token and its guardrail, LinkedIn accounts. The General page says it plainly: "Settings, API keys and integrations on these pages apply to the open workspace only."
-- **Per browser** (kept in the browser, not in the database): the app's **Language** and the **Light/Dark/System** appearance. A different browser, or a private window, starts back on Automatic and System.
-- **Per install** (shared by every workspace on this computer): the two **wallpapers** and the **Wallpaper look** sliders. They are files in the `data/backgrounds` folder next to the database.
+- **Per account** (shared by all your workspaces): your name, how you sign in, and your plan: the subscription, the monthly credits and the credit packs. A second workspace doesn't double the credits.
+- **Per workspace**: name, website, timezone, budget, notification and digest settings, every key on the API keys page, the "Sign as" name on the Profile page, integrations tokens (Slack, CRMs), the MCP token and its guardrail, LinkedIn accounts, and the two **wallpapers** with their **Wallpaper look** sliders. The General page says it plainly: "Settings, API keys and integrations on these pages apply to the open workspace only."
+- **Per browser** (kept in the browser): the app's **Language** and the **Light/Dark/System** appearance. A different browser, or a private window, starts back on Automatic and System.
 
-The workspace's own language is also remembered on the server: each time you use the app, the workspace records the language the app is displayed in, so background work (searches, digests, Slack posts) can write in it. See "Language" below.
+The workspace's own language is also remembered on Pluton's side: each time you use the app, the workspace records the language the app is displayed in, so background work (searches, digests, Slack posts) can write in it. See "Language" below.
+
+## Profile: your name, signature and sign-in
+
+**Settings → Profile**: "Who you are in Pluton: your name, how your emails are signed, your language and how you sign in." Sections:
+
+- **Name**: "The name your account goes by." Saved when you leave the field. **Email** shows "The address you sign in with." (it can't be changed here).
+- **Messages → Sign as**: "The name at the bottom of your emails in this workspace. Left empty, Pluton uses your LinkedIn account's name." It is the same value as **From name** on the API keys page.
+- **Language**: see "Language" below.
+- **Sign-in**: "The ways you sign in to this account." One row each for **Email and password**, **Google** and **Apple**, marked Connected or Not connected. **Connect** goes through that provider's sign-in and joins it to this account; **Disconnect** removes it. **Set a password** or **Change password** emails you a link to choose one. You can't remove the last way in ("Keep at least one way to sign in."); a Google or Apple account already used by another Pluton account is refused ("That account already signs in to another Pluton account.").
+- **Session → Sign out**: "Signs you out of Pluton in this browser."
 
 ## General: workspace name, website and timezone
 
 **Settings → General** shows "This workspace's name, website and timezone, and your other workspaces." Three fields:
 
 - **Workspace name**: required, 1 to 80 characters. Shown at the top of Home and in the workspace menu.
-- **Website**: optional, up to 200 characters, placeholder `example.com`. Hint: "The Brain is researched from this site during onboarding." Changing it later does not re-run onboarding or rewrite the Brain. It is also where the workspace's little icon comes from: Pluton fetches the site's own icon once and keeps it in the `data/logos` folder (retried after a day if the site has none; fetched again when you change the website).
+- **Website**: optional, up to 200 characters, placeholder `example.com`. Hint: "The Brain is researched from this site during onboarding." Changing it later does not re-run onboarding or rewrite the Brain. It is also where the workspace's little icon comes from: Pluton fetches the site's own icon (retried after a day if the site has none; fetched again when you change the website).
 - **Timezone**: a list of every timezone your browser knows; the default for a new workspace is **Europe/Paris**. Hint: "Sequences send on weekdays 9:00–18:00 in this timezone." It drives much more than sequences: when a budget period and a "day" start for the daily cap, when scheduled Plays run (once per local day, from 07:00), when the daily Brain review runs (from 06:00), and when the digest goes out.
 
 Click **Save** to apply. If the workspace was changed somewhere else since you opened the page (another tab, the agent, an AI client), saving fails with "Workspace changed since revision N; reload and retry", and the page reloads the latest values on its own; make your change again and save.
 
 ## Workspaces: open, create, copy settings, delete
 
-Below Language, the **Workspaces** section lists every workspace: "One per company. Settings, API keys and integrations on these pages apply to the open workspace only." Each row shows its icon and name, then "Open now" for the current one, its website once onboarded, or "Onboarding not finished".
+Below the fields, the **Workspaces** section lists every workspace of your account: "One per company. Settings, API keys and integrations on these pages apply to the open workspace only." Each row shows its icon and name, then "Open now" for the current one, its website once onboarded, or "Onboarding not finished".
 
 - **Open** switches to that workspace. If its onboarding is finished you land on Home; otherwise on onboarding.
 - **New workspace** opens a dialog: "One per company: its own Brain, Plays, leads and sequences. You'll go through onboarding for it next." Fill **Name** (placeholder "Company name", up to 80 characters) and choose **Settings**:
   - **Copy from {current workspace}** (default): "API keys, integrations, budget, notifications and timezone start the same. Change any of them later for this workspace only. LinkedIn accounts are not copied." LinkedIn accounts are left out on purpose: daily limits are counted per workspace, so one account in two workspaces could send twice its limit.
-  - **Start from defaults**: "No API keys or integrations: you set this workspace up from scratch in Settings."
+  - **Start from defaults**: "No API keys or integrations: you set this workspace up from scratch in Settings." The keys included in your plan still apply to it; on Your own AI, the new workspace needs its own AI key.
   - Click **Create and start onboarding**. The new workspace is opened at once and gets its own MCP token, so AI clients' calls land in the right workspace.
 - **Delete…** (shown only when there are two or more workspaces) asks "Delete {name}?" with "Its Brain, Plays, leads, sequences and settings are deleted for good." Click **Delete** to confirm or **Cancel**. Pluton always keeps at least one workspace ("Pluton needs at least one workspace"). Deleting the open workspace moves you to the one opened before it. There is no undo.
 
@@ -58,20 +68,20 @@ The same list is available from the workspace menu at the top of the sidebar (wi
 
 ## Language
 
-**Settings → General → Language** chooses the language of the interface. Options:
+**Settings → Profile → Language** chooses the language of the interface. Options:
 
 - **Automatic ({language})**, the default: follows your browser's languages, taking the first one Pluton speaks (French for "fr-CA", for example), English otherwise. The name in brackets is what it currently resolves to.
 - **English**, **Français**, **Italiano**, **Español**, **Deutsch**.
 
 Hint: "Kept in this browser. Automatic follows your browser's language." The change is immediate, no reload. In a private window the choice won't survive a reload.
 
-**How the agent and background work follow it.** Every request the app makes carries its current language. The server answers in it (error messages, setting labels, notifications) and stores it on the workspace as "the language its founder last used". Work that runs later in the background (lead searches and their narration, the "why they fit" reason of each lead, Brain reviews and their suggestions, Play planning questions, notifications, Activity entries, the morning digest, Slack posts) then writes in that stored language. The agent (Agent page and ⌘K) is told which language you read and answers in it, unless you clearly write to it in another language, in which case it answers in yours. For Brain reviews, the rationales and questions follow your language, but the Brain content they propose keeps the Brain's own wording. Text already written stays as it was: switching to German does not translate existing lead reasons.
+**How the agent and background work follow it.** Every request the app makes carries its current language. Pluton answers in it (error messages, setting labels, notifications) and stores it on the workspace as "the language its founder last used". Work that runs later in the background (lead searches and their narration, the "why they fit" reason of each lead, Brain reviews and their suggestions, Play planning questions, notifications, Activity entries, the morning digest, Slack posts) then writes in that stored language. The agent (Agent page and ⌘K) is told which language you read and answers in it, unless you clearly write to it in another language, in which case it answers in yours. For Brain reviews, the rationales and questions follow your language, but the Brain content they propose keeps the Brain's own wording. Text already written stays as it was: switching to German does not translate existing lead reasons.
 
 Two things do **not** follow the interface language: searches look for people in whatever language finds them (job titles and keywords as written in their market), and **LinkedIn messages** are written in the sequence's own language, or else the Brain's voice language (see "LinkedIn sequences and outreach").
 
 ## Light and dark appearance
 
-The appearance switch is the small three-part control at the bottom of the sidebar, beside Settings: **System** (monitor icon), **Light** (sun) and **Dark** (moon). System, the default, follows your computer's setting and changes with it. Light and Dark force one. The new appearance spreads from the button you clicked as a wave; with "reduce motion" turned on in your system, it crossfades instead.
+The appearance switch is the small three-part control at the bottom of the sidebar, beside Settings: **System** (monitor icon), **Light** (sun) and **Dark** (moon). System, the default, follows your device's setting and changes with it. Light and Dark force one. The new appearance spreads from the button you clicked as a wave; with "reduce motion" turned on in your system, it crossfades instead.
 
 The choice is kept in the browser, so it applies to every workspace in that browser and resets to System in another browser or a private window.
 
@@ -89,7 +99,7 @@ The **Wallpapers** section has two slots, **Light** and **Dark**. For each:
 
 Errors you may see: "Choose an image file." (the file isn't an image), "That image is over 15 MB. Try a smaller one.", and "That file is not a PNG, JPEG, WebP or AVIF image." (for example a GIF dropped on the frame).
 
-The images are saved on this computer only, in the `data/backgrounds` folder next to the database. They are shared by all workspaces. A wide 16:9 picture of at least 1920×1080 looks best.
+Wallpapers belong to the open workspace: another workspace has its own. A wide 16:9 picture of at least 1920×1080 looks best.
 
 ## Appearance: wallpaper look sliders
 
@@ -101,79 +111,75 @@ Once at least one wallpaper is set, a **Wallpaper look** section appears ("Appli
 
 **Restore defaults** (top right of the section) puts back 80 px, 80 % and 50 %. It is greyed out when the values already are the defaults.
 
-## Appearance: generate wallpapers with Codex
-
-**Generate with Codex**: "Describe a picture once. Codex draws it for the light appearance, then repaints the same scene at night for dark."
-
-**Requirements.** The Codex command-line tool from OpenAI must be installed on the same computer as Pluton and signed in with ChatGPT; image generation must be available on your ChatGPT plan. If Codex isn't found, the section says "Codex isn't installed on this computer. Install the Codex CLI and sign in with ChatGPT, then come back here:" followed by the install command (`npm i -g @openai/codex`). Pluton checks for Codex at most once a minute, so after installing, wait a minute and reload. The background worker must be running, since the drawing happens there.
-
-**Using it.** Type a description in the box (placeholder "Misty pine forest above a still lake, soft morning haze"; at least 3 characters, at most 1000) and click **Generate both**. The footnote says "Takes a few minutes. Uses your ChatGPT plan through Codex." Progress shows "Starting Codex…", "Drawing the light version…", then "Drawing the dark version…". The light wallpaper is saved and appears as soon as it is done, before the dark one starts. **Stop** cancels; a light wallpaper already drawn stays. You can leave the page; coming back shows the drawing still in progress.
-
-Nothing is recorded in Usage: it runs on your ChatGPT plan, not on Pluton's budget. Your description is sent to OpenAI through Codex.
-
-**Errors.** "Codex is already drawing a wallpaper." (one at a time per workspace), "Codex could not draw the wallpaper.", "Codex stopped (exit N): …" with Codex's last lines, and "Codex finished without saving an image. Is image generation on for your ChatGPT plan?". Each image has a 6-minute limit.
-
 ## API keys page: how it works
 
-**Settings → API keys**: "Stored encrypted in Pluton's local database. Takes effect within a few seconds, no restart." It has five groups: **Claude**, **Data sources**, **LinkedIn sending**, **Email** and **Automation** (Slack, CRM and MCP keys live on the Integrations and Connect your AI pages instead).
+**Settings → API keys** has five groups: **Claude**, **Data sources**, **LinkedIn sending**, **Email** and **Automation** (Slack, CRM and MCP keys live on the Integrations and Connect your AI pages instead). Keys are stored encrypted and take effect within a few seconds.
 
-Each row shows the setting's name, a green check when it is set or a grey "Not set" chip, a one-line description, and where the value comes from: **Saved here** (you saved it) or **Default** (Pluton's built-in value). For a secret, only its last four characters are ever shown back (for example "Saved here · ••••a1b2"); the full key is never displayed again, not even to you. When a key is missing, a link opens the provider's page to create one.
+Each row shows the setting's name, a green check when it is set or a grey "Not set" chip, a one-line description, and where the value comes from:
 
-- **Text fields**: paste the value (placeholder "Paste key", or "Replace key" when one is set) and click **Save**. Values are trimmed and limited to 500 characters. **Remove** (shown for values you saved) deletes it.
-- **Choices** (such as the Claude access mode) are a segmented control that saves as soon as you click.
-- **Test** appears under some rows once they are set: How Pluton reaches Claude, Anthropic API key, Apify token, Hunter API key and SMTP password. It makes a cheap call and shows a green or orange result line.
+- **Saved here**: you saved it. For a secret, only its last four characters are ever shown back (for example "Saved here · ••••a1b2"); the full key is never displayed again, not even to you.
+- **Included in your plan · paste your own to use it instead**: Pluton's own key is used. Nothing of it is shown.
+- **Default**: Pluton's built-in value.
 
-Secret values are encrypted with AES-256-GCM using a key that is unique to this installation, kept in the file `data/secret.key`. A copy of the database alone does not reveal your keys. Non-secret values (access mode, Unipile DSN, SMTP host, port, user and From address, switches) are stored as plain text. Keys belong to the open workspace; a new workspace created with "Copy from…" starts with the same keys.
+When a key is missing, a link opens the provider's page to create one.
 
-A saved key reaches the background worker within about 3 seconds.
+- **Text fields**: paste the value (placeholder "Paste key", or "Replace key" when one is set) and click **Save**. Values are trimmed and limited to 500 characters. **Remove** (shown for values you saved) deletes it; a row included in your plan goes back to Pluton's own key.
+- **Choices** (such as the research model) are a segmented control that saves as soon as you click.
+- **Test** appears under some rows once you have saved your own value: Anthropic API key, OpenAI API key, Apify token, Hunter API key, SMTP password and IMAP host. It makes a cheap call and shows a green or orange result line. Pluton's own keys have no Test button.
 
-## Claude: subscription or Anthropic API key
+Secret values (keys, tokens, passwords) are encrypted with AES-256-GCM. Non-secret values (research model, SMTP host, port, user and From address, IMAP host, port and user, switches) are stored as plain text. Keys belong to the open workspace; a new workspace created with "Copy from…" starts with the same keys you saved.
 
-The **Claude** group ("The model behind onboarding, reviews, planning and lead finding.") has two rows.
+A key you save with your own account at a provider is billed by that provider, and what Pluton spends through it does not count against your credits.
 
-**How Pluton reaches Claude**: "Your Claude subscription (through your Claude Code login, personal use only) or an Anthropic API key." Two choices:
+## Claude: research model and your own AI key
 
-- **Claude subscription** (default): Pluton goes through Claude Code, which must be installed on this computer and signed in with your Claude account. No key needed. Calls are not charged to Pluton's budget; Usage still shows what they would have cost at API prices, marked "via subscription". Personal use only. Any `ANTHROPIC_API_KEY` set in your environment is deliberately ignored in this mode.
-- **Anthropic API key**: Pluton calls the Anthropic API with the key below. Every call is billed by Anthropic to that key, and its cost counts against your Budget.
+The **Claude** group ("The model behind onboarding, reviews, planning and lead finding.") has three rows.
 
-**Anthropic API key**: "Used when the backend is set to API key." Link when missing: **Create an Anthropic key** (Anthropic Console → API keys).
+**Research model**: "Sonnet 5.5 does Pluton's research well at a lower cost; Opus 5.5 digs deeper, at twice the price." Choices **Claude Sonnet 5.5** (default) and **Claude Opus 5.5**, saved on click.
 
-**Test** on the first row checks the mode currently selected: "The Claude subscription works (Claude Code login)." or "The API key works ({model} available)." A failure shows Claude's own error in orange.
+**Anthropic API key** and **OpenAI API key**: what they mean depends on your plan.
 
-Switching mode takes effect within seconds for new work; anything already running finishes with the mode it started with. Which models Pluton uses for what, and their prices, are in "Costs and budget".
+- **Your own AI**: the AI runs on your key, billed by Anthropic or OpenAI. You usually entered it in the dialog that opens at the start of onboarding; this is where you replace it. The OpenAI row says: "Instead of Anthropic: Pluton's research then runs on OpenAI's GPT models. An Anthropic key, if saved, comes first." Link when missing: **Create an Anthropic key**. **Test** on the Anthropic row answers "The API key works ({model} available)." A failure shows the provider's own error in orange.
+- **All included**: the Anthropic row shows "Included in your plan": the AI runs on Pluton's own key and draws on your credits. There is nothing to enter. If you paste your own key, Pluton uses it instead and those calls are billed by your provider rather than counted in your credits.
+
+A new key or model takes effect within a few seconds. Which models Pluton uses for what, and their prices, are in "Costs and budget".
 
 ## Data source keys: Apify, TheirStack, Hunter
 
 The **Data sources** group: "Optional paid sources. Free sources work without any key."
 
-- **Apify token**: "LinkedIn posts, engagers and profile search." Unlocks the two LinkedIn engagement Play types (engagement on tracked profiles, people posting about keywords) and lets message writing read a lead's recent posts. Uses no LinkedIn cookies of yours. Link: **Create an Apify token** (Apify console → Settings → Integrations). **Test** shows "Apify token works (account {name})".
+On both plans, Pluton provides these three sources with its own keys: each row shows "Included in your plan", and their use draws on your credits (with a monthly cap for Hunter and TheirStack; see "Costs and budget"). You can save your own key on any of them: Pluton then uses it instead, and that spend does not count against your credits.
+
+- **Apify token**: "LinkedIn posts, engagers and profile search." Powers the two LinkedIn engagement Play types (engagement on tracked profiles, people posting about keywords) and lets message writing read a lead's recent posts. Uses no LinkedIn cookies of yours. Link: **Create an Apify token** (Apify console → Settings → Integrations). **Test** (own key) shows "Apify token works (account {name})".
 - **TheirStack API key**: "Market-wide job posts and tech stacks." Lets hiring and stack searches look across the whole market instead of company by company. Link: **Create a TheirStack key (Settings → API Keys)**. No Test button: TheirStack has no free check, so the key is checked on first use.
-- **Hunter API key**: "Finds work emails (free plan: 50 searches/month)." Used by Find email after the free sources. Link: **Create a Hunter key**. **Test** shows "Hunter key works ({count} searches left this month)".
+- **Hunter API key**: "Finds work emails (free plan: 50 searches/month)." Used by Find email after the free sources. Link: **Create a Hunter key**. **Test** (own key) shows "Hunter key works ({count} searches left this month)".
 
-Without these keys Pluton still works on free sources (French company registry, careers pages, website tech detection, company website emails, and web search through Claude). Each source's status is on Settings → Data sources. How each one is charged is in "Costs and budget".
+Free sources always work too (French company registry, careers pages, website tech detection, company website emails), and web search runs on your plan's AI. Each source's status is on Settings → Data sources. How each one is charged is in "Costs and budget".
 
-## LinkedIn sending keys: Unipile
+## LinkedIn sending
 
-The **LinkedIn sending** group: "Unipile sends from your LinkedIn accounts. Without it, sequences run in manual mode."
+The **LinkedIn sending** group is used by the **LinkedIn sending account** option: automated sending goes through Pluton's own Unipile account, so there is nothing to enter on this page.
 
-- **Unipile API key**: "Sends from your LinkedIn accounts (visit, invite, message, like) and reads replies. Without it, accounts run in manual mode." Link: **Get your Unipile key** (Unipile dashboard).
-- **Unipile DSN**: "Your Unipile API address, shown in their dashboard, e.g. api8.unipile.com:13851." Not secret, shown in full. Both are needed: with a key but no DSN, sending fails with "Unipile DSN missing; add it in Settings → API keys".
+The option costs 15 € per LinkedIn account per month (165 € a year), billed with your plan. You add accounts at checkout, in Settings → Budget → Subscription (**LinkedIn accounts**), or directly from **Settings → LinkedIn accounts** with **Connect LinkedIn**: when every account on your plan is in use, Pluton asks "Add a LinkedIn account to your plan for {price}? Today you only pay for the days left in this period." Removing one stops at the next renewal.
 
-There is no Test button on this page for Unipile; after saving both, go to **Settings → LinkedIn accounts** and click **Refresh** or **Connect LinkedIn** to see whether Pluton reaches your Unipile account. Connecting accounts, daily limits and sending behaviour are covered in "LinkedIn sequences and outreach". Unipile's own subscription is not seen by Pluton; you can add it by hand on the Usage page.
+Without the option, sequences run in manual mode: Pluton puts each step in the Play's to-do with the message ready to copy. Connecting accounts, daily limits and sending behaviour are covered in "LinkedIn sequences and outreach".
 
-## Email: SMTP for the morning digest
+## Email: SMTP and IMAP
 
-The **Email** group: "Sends the morning digest from your own mailbox. Optional: the digest is always in the app." Nothing is hosted by Pluton: mail leaves from your own mail server.
+The **Email** group: "Sends the morning digest from your own mailbox. Optional: the digest is always in the app." Mail leaves from your own mail server.
 
-- **SMTP host**: "Mail server for the morning digest, e.g. smtp.gmail.com or smtp.fastmail.com."
+- **SMTP host**: "Mail server for the morning digest and outreach emails, e.g. smtp.gmail.com or smtp.fastmail.com."
 - **SMTP port**: "465 (TLS) or 587 (STARTTLS)." Default **465**. Port 465 uses a secure connection from the start; any other port upgrades with STARTTLS.
 - **SMTP user**: "Usually your email address."
 - **SMTP password**: "An app password, not your main password." Secret.
-- **From address**: "Sender of the digest. Defaults to the SMTP user." Mail appears as "Pluton <address>".
+- **From address**: "Sender of the digest and of outreach emails. Defaults to the SMTP user."
+- **From name**: "The name people see on outreach emails, usually yours." The same value as **Sign as** on the Profile page.
+- **Outreach emails per day**: "The most sequence emails sent from this mailbox in a day. Keep it low on a new address." Default **30**.
+- **IMAP host**, **IMAP port** (default **993**), **IMAP user** and **IMAP password**: where Pluton reads replies to outreach emails. User and password default to the SMTP ones.
 
-SMTP counts as set up once host, user and password are all saved. **Test** (on the SMTP password row) connects and logs in: "SMTP works ({host})". If something is missing: "not configured: add the SMTP host, user and password in Settings → API keys". Any other error is your mail server's own message (wrong password, port blocked, app password required).
+SMTP counts as set up once host, user and password are all saved. **Test** (on the SMTP password row) connects and logs in: "SMTP works ({host})". Beside it, **Send me a test email** sends a message to yourself. **Test** on the IMAP host row answers "IMAP works ({host}, {count} messages in the inbox)". If something is missing: "not configured: add the SMTP host, user and password in Settings → API keys". Any other error is your mail server's own message (wrong password, port blocked, app password required).
 
-Then turn on email in **Settings → Notifications** ("Also send it by email", with a **Send to** address). Gmail, Fastmail and most providers require an app password when two-factor sign-in is on.
+For the digest, then turn on email in **Settings → Notifications** ("Also send it by email", with a **Send to** address). Gmail, Fastmail and most providers require an app password when two-factor sign-in is on.
 
 ## Automation: Daily Brain review
 
@@ -181,19 +187,19 @@ The **Automation** group ("What Pluton does on its own.") has one setting:
 
 **Daily Brain review**: "Each morning Pluton reviews the Brain against what your Plays found and leaves suggestions." Choices **On** (default) and **Off**, saved on click.
 
-When On, the background worker queues one Brain review per workspace per local day, from 06:00 in the workspace timezone, as long as the workspace has a confirmed company in its Brain (onboarding done). If the computer is asleep at 06:00, it runs when the worker is next running that day. The review only proposes changes; they wait for you on the Brain page. It uses Claude, so with an API key it costs money (recorded as "Brain review" in Usage).
+When On, Pluton queues one Brain review per workspace per local day, from 06:00 in the workspace timezone, as long as the workspace has a confirmed company in its Brain (onboarding done). The review only proposes changes; they wait for you on the Brain page. It uses the AI, so it has a cost (recorded as "Brain review" in Usage): billed by your AI provider on Your own AI, drawn from your credits on All included.
 
 Turning it Off does not stop the review triggered after five new lead rejections, nor the "Review my Brain" button. See the Brain documentation for what a review does.
 
 ## Data sources page
 
-**Settings → Data sources**: "Where Plays find companies, people and signals. Free sources work now; keyed ones switch on when you add their key in API keys." One box per source, each with an access pill (**Free**, **Your Claude subscription** or **API key**), a **Ready** pill when usable or an **Add its key in API keys** link, a description, chips listing what it powers, and a line "Last 30 days: N calls, N results" (plus "N failed") counting real calls, not cached answers.
+**Settings → Data sources**: "Where Plays find companies, people and signals. Free sources work now; keyed ones switch on when you add their key in API keys." One box per source, each with an access pill, a **Ready** pill when usable or an **Add its key in API keys** link, a description, chips listing what it powers, and a line "Last 30 days: N calls, N results" (plus "N failed") counting real calls, not cached answers.
 
-Sources: **French company registry** (free; role match, lookalikes), **Company careers pages** (free; Greenhouse, Lever, Ashby or Recruitee boards; hiring signal per company), **Website tech detection** (free; stack signal per company), **Company website emails** (free; find email), **Web search (Claude)** (your Claude subscription; web evidence, recent funding, finding people), **LinkedIn profile lookup (Claude)** (your Claude subscription; lead enrichment, needed before LinkedIn outreach), **Hunter** (API key; find email), **TheirStack** (API key; market-wide hiring and stack; "1 credit per job"), **Apify (LinkedIn)** (API key; engagement and keyword posts).
+Sources: **French company registry** (free; role match, lookalikes), **Company careers pages** (free; Greenhouse, Lever, Ashby or Recruitee boards; hiring signal per company), **Website tech detection** (free; stack signal per company), **Company website emails** (free; find email), **Web search (Claude)** (web evidence, recent funding, finding people), **LinkedIn profile lookup (Claude)** (lead enrichment, needed before LinkedIn outreach), **Hunter** (API key; find email), **TheirStack** (API key; market-wide hiring and stack; "1 credit per job"), **Apify (LinkedIn)** (API key; engagement and keyword posts).
 
-The two Claude sources say "your Claude subscription", but they follow the mode set on API keys: with an API key they are billed to it.
+The two Claude sources run on your plan's AI: on Your own AI they are billed by your AI provider; on All included they draw on your credits. Hunter, TheirStack and Apify are ready on both plans through the keys included in your plan, or through your own key if you saved one.
 
-**Try it** (registry, careers, tech detection, web search, TheirStack, Apify; greyed out until the source is ready) opens a box with a sample query you can edit, and **Run** shows results. Web search takes about 20–40 seconds ("Claude is searching…"). A Try on Apify, TheirStack or web search with an API key spends real money or credits, recorded in Usage as "Source checks".
+**Try it** (registry, careers, tech detection, web search, TheirStack, Apify; greyed out until the source is ready) opens a box with a sample query you can edit, and **Run** shows results. Web search takes about 20–40 seconds ("Claude is searching…"). A Try on Apify, TheirStack or web search has a real cost, recorded in Usage as "Source checks".
 
 ## Notifications page (overview)
 
@@ -211,12 +217,22 @@ The two Claude sources say "your Claude subscription", but they follow the mode 
 
 Details of notifications, the bell and Activity are in the activity documentation.
 
+## Budget: subscription and credits
+
+**Settings → Budget** starts with your plan, then the workspace's own spending limits.
+
+- **Subscription**: your plan and price, with "Billed monthly, renews on {date}." or "Billed yearly (1-year commitment), renews on {date}." Buttons **Switch to {other plan}** and, on a monthly plan, **Pay yearly, 1 month free**: Pluton asks "Switch now? The difference for the days left in this period is charged or credited at once." **LinkedIn accounts** is a stepper for the LinkedIn sending account option ("Adding one is charged now for the days left in the period; removing one stops at the next renewal."). **Manage subscription** opens Stripe to change card, see invoices or cancel. Footnote: "Plan changes apply now, settled pro rata for the days left in the period."
+- **Included in your plan**: the credits spent this period out of what you have, with **Available**, **This month's** and, once you bought some, **Bought, carried over**. **Buy credits** offers the packs (1,000, 2,500 or 5,000 credits for 22 €, 55 € or 109 €), paid on Stripe and counted as soon as the payment is confirmed. The footnote explains that once the credits are spent, calls through Pluton's own keys stop until the next period, while your own keys in Settings → API keys keep going.
+- Below: this period's spend and the **Limits** (monthly budget, period start day, daily cap, the most one search may spend, and what happens at the limit). See "Costs and budget".
+
+The amounts are in US dollars on both plans.
+
 ## Other settings panes (pointers)
 
 These panes are explained in other parts of the documentation; here is what each is for.
 
-- **LinkedIn accounts**: the accounts sequences send from. Connect through Unipile (**Connect LinkedIn**, then **Refresh**) or add a **manual account** (you do each action by hand). Per account: status (Connected, Connecting, Disconnected, Error), **Reconnect**, daily limits (visits/follows/likes, invitations, messages) with **Save limits**, and **Remove account** (its leads' sequences stop). Shows the warning that automating LinkedIn is against its terms. See "LinkedIn sequences and outreach".
-- **Connect your AI**: the local MCP server address and token (**Show token**, **Copy token**, **New token**), setup lines for Claude Code, Claude Desktop and Codex, the guardrail "Pause searches started from AI clients", connected clients with **Forget**, and **Download SKILL.md**. See the MCP documentation.
+- **LinkedIn accounts**: the accounts sequences send from. Under **Send through Unipile**, **Connect LinkedIn** opens a secure page to log in to LinkedIn (codes and captchas handled there), then **Refresh**; the line under it shows how many of your plan's LinkedIn accounts are in use. Or add a **manual account** (you do each action by hand). Per account: status (Connected, Connecting, Disconnected, Error), **Reconnect**, daily limits (visits/follows/likes, invitations, messages) with **Save limits**, and **Remove account** (its leads' sequences stop). Shows the warning that automating LinkedIn is against its terms. See "LinkedIn sequences and outreach".
+- **Connect your AI**: the MCP server address (https://app.plut0n.com/api/mcp) and this workspace's token (**Show token**, **Copy token**, **New token**), setup lines for Claude Code, Claude Desktop and Codex, the guardrail "Pause searches started from AI clients", connected clients with **Forget**, and **Download SKILL.md**. See the MCP documentation.
 - **Integrations**: Slack (new leads with Approve/Reject buttons) and HubSpot, Attio, Pipedrive (create-only export with field mapping). See the integrations documentation.
 - **Usage** and **Budget**: see "Costs and budget".
 - **Activity**: the full feed with filters **All**, **Leads**, **Sequences**, **Brain** and **Spend**, and **Show older**. Refreshes every 20 seconds.
@@ -225,28 +241,31 @@ These panes are explained in other parts of the documentation; here is what each
 ## FAQ
 
 **Where do I change the app's language?**
-Settings → General → Language. Pick Automatic, English, Français, Italiano, Español or Deutsch. It is kept in this browser and changes instantly.
+Settings → Profile → Language. Pick Automatic, English, Français, Italiano, Español or Deutsch. It is kept in this browser and changes instantly.
 
 **I switched to French but some lead reasons are still in English. Why?**
 Text is written in the language you used when it was produced. New searches, reviews and digests will be in French; existing reasons are not translated.
 
 **Do I need an Anthropic API key?**
-No. By default Pluton uses your Claude subscription through Claude Code signed in on this computer. Choose "Anthropic API key" under How Pluton reaches Claude only if you prefer pay-as-you-go billing or don't use Claude Code.
+On All included, no: the AI is included. On Your own AI, you need an Anthropic or an OpenAI key; replace it any time in Settings → API keys.
 
-**I saved a key. Do I need to restart Pluton?**
-No. Keys reach the worker within a few seconds.
+**Where do I change plan, card or cancel?**
+Settings → Budget → Subscription. Switching plan or moving to yearly is done there; **Manage subscription** opens Stripe for the card, invoices and cancelling.
+
+**I saved a key. Is there anything else to do?**
+No. Keys take effect within a few seconds.
 
 **Can I see a key I saved?**
 No. Only its last four characters are shown. Paste it again to replace it, or Remove it.
 
-**Why does my new workspace have no API keys?**
-It was created with "Start from defaults". Add the keys in that workspace's API keys page, or create workspaces with "Copy from…" next time.
+**Why does my new workspace have none of my API keys?**
+It was created with "Start from defaults". Add the keys in that workspace's API keys page, or create workspaces with "Copy from…" next time. The keys included in your plan apply to it regardless.
 
 **My wallpaper disappeared in dark mode.**
-Each appearance has its own slot. Set a Dark wallpaper too, or generate both with Codex.
+Each appearance has its own slot. Set a Dark wallpaper too.
 
-**The Generate with Codex section says Codex isn't installed, but I installed it.**
-Pluton checks at most once a minute and looks for the `codex` command on the computer running Pluton. Wait a minute, reload, and make sure Codex is signed in with ChatGPT.
+**My wallpaper is gone in another workspace.**
+Wallpapers belong to a workspace. Set them in that workspace's Settings → Appearance.
 
 **What does "Restore defaults" restore?**
 Only the wallpaper look: blur 80 px, colour intensity 80 %, veil 50 %. Your pictures stay.
@@ -259,6 +278,3 @@ Settings → API keys → Automation → Daily Brain review → Off.
 
 **How do I delete a workspace?**
 Settings → General → Workspaces → Delete… on its row, then Delete. Everything in it is removed for good. You can't delete the last workspace.
-
-**Does deleting a workspace remove my wallpapers?**
-No. Wallpapers belong to the installation and are shared by all workspaces.

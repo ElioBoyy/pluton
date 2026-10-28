@@ -35,7 +35,7 @@ const en: Record<LegalDocId, LegalDoc> = {
         heading: "Intellectual property",
         body: [
           `The Pluton name, its logo, and the website's text, interface and layout belong to ${PUBLISHER.name}. Reproduction without written permission is prohibited.`,
-          "Pluton's source code is published on GitHub under the PolyForm Noncommercial 1.0.0 license: it may be used free of charge for noncommercial purposes, and any commercial use requires written permission.",
+          "Installing Pluton on the customer's own servers (on-premise) is subject to a separate written agreement. To discuss it: mathis.sportiello@gmail.com.",
           "The website's photographs are used under their respective licenses, listed on the Picture credits page.",
         ],
       },
@@ -105,7 +105,7 @@ const en: Record<LegalDocId, LegalDoc> = {
         heading: "6. Third-party services",
         body: [
           "At the Customer's request, the Service can connect to third-party services: LinkedIn, their mailbox (SMTP and IMAP), Slack, HubSpot, Attio, Pipedrive, data providers (Hunter, Apify, TheirStack) and, on the “Your own AI” plan, their Anthropic or OpenAI API key.",
-          "On the Service, LinkedIn is connected through Unipile with the LinkedIn sending account option provided by the Publisher. A self-hosted installation of Pluton, which these terms do not cover, uses its user's own Unipile account.",
+          "On the Service, LinkedIn is connected through Unipile with the LinkedIn sending account option provided by the Publisher.",
           "These services remain subject to their own terms. The Publisher is not responsible for their availability, their prices, or restrictions they apply to the Customer's account, such as a limit placed on their LinkedIn account.",
         ],
       },
@@ -137,7 +137,6 @@ const en: Record<LegalDocId, LegalDoc> = {
         heading: "9. Intellectual property",
         body: [
           "The Service, its brand and its interface belong to the Publisher. The subscription gives the Customer a personal, non-exclusive, non-transferable right to use the hosted Service for the duration of the subscription.",
-          "The source code published on GitHub remains governed by its own license (PolyForm Noncommercial 1.0.0).",
         ],
       },
       {
@@ -175,7 +174,7 @@ const en: Record<LegalDocId, LegalDoc> = {
         body: [
           "Subscriptions are reserved for professionals, individuals or companies, acting for the purposes of their business. By subscribing, the Customer declares they act in that capacity.",
           "These terms prevail over any other document from the Customer. They complement the terms of use.",
-          "The self-hosted version of Pluton, published on GitHub, is not covered: it is governed by its license.",
+          "An installation of Pluton on the customer's own servers (on-premise) is not covered: it is subject to a separate written agreement.",
         ],
       },
       {
@@ -293,7 +292,7 @@ const en: Record<LegalDocId, LegalDoc> = {
         heading: "1. Who is responsible",
         body: [
           `The controller is ${publisher}, ${fill(PUBLISHER.address, "postal address")}. Contact for any question about your data: ${email}.`,
-          "If you run Pluton on your own machine (self-hosted version), your data stays on that machine: the Publisher receives none of it.",
+          "An installation of Pluton on a customer's own servers (on-premise) is not covered by this policy: how data is handled there is set by the written agreement made for that installation.",
         ],
       },
       {

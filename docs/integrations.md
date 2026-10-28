@@ -2,7 +2,7 @@
 
 ## Overview of the Integrations page
 
-**Settings → Integrations** ("Send new leads to Slack and approved leads to your CRM. Tokens are stored encrypted on this machine.") lists four integrations, each with a status on the right:
+**Settings → Integrations** ("Send new leads to Slack and approved leads to your CRM.") lists four integrations, each with a status on the right:
 
 - **Slack**: "New leads in a channel, with Approve and Reject buttons."
 - **HubSpot**: "Approved leads become contacts (and companies)."
@@ -14,19 +14,19 @@ Statuses: **Not connected**, **Connected**, **Connected · off** (connected but 
 Click an integration to open its page. Every page has the same first section, **1. Access**:
 
 - Short setup steps for that service, with an **Open** link to the right page of that service.
-- One row per token to paste. Tokens are stored encrypted in Pluton's local database, never in a file you edit, and take effect within seconds.
+- One row per token to paste. Tokens are stored encrypted and take effect within seconds.
 - A connection row with **Connect** (enabled once every token is pasted). Pluton checks the token with the service; on success the row shows the account it belongs to and the status becomes Connected. Once connected, the button becomes **Check again**, and **Disconnect** appears.
 - An **On** switch, once connected. Off means Pluton does nothing with this integration on its own, and exports are refused (see "Errors").
 
 **Disconnect** asks "Disconnect {name} and forget its tokens?". It deletes the tokens and marks the integration not connected; the export history stays. Connecting and disconnecting are logged in Activity ("You connected HubSpot").
 
-There are no outgoing webhooks in Pluton: Slack and the CRMs are the only places it sends leads, and LinkedIn replies are read by polling Unipile (see the sequences documentation).
+There are no outgoing webhooks in Pluton: Slack and the CRMs are the only places it sends leads. LinkedIn replies are read from the conversations of your connected LinkedIn accounts (see the sequences documentation).
 
 When you create a new workspace by copying an existing one, the integrations' settings are copied too.
 
 ## Slack: setting up the app
 
-Slack needs a small Slack app you create in your own Slack workspace. It uses **Socket Mode**, so Pluton opens the connection itself and no public URL is needed: it works on a laptop.
+Slack needs a small Slack app you create in your own Slack workspace. It uses **Socket Mode**: Pluton opens the connection to Slack itself, so you don't configure any request URL in Slack.
 
 Steps (shown on the Slack page):
 
@@ -37,7 +37,7 @@ Steps (shown on the Slack page):
 
 In Pluton, paste the **Slack bot token** and the **Slack app-level token**, then click **Connect**. Pluton checks the bot token with Slack; the account shows as "{team} (as @{bot})". If Slack refuses: "Slack refused the token (401). Check it, and its scopes."
 
-The Approve and Reject buttons only work while Pluton's background worker runs, because the worker holds the Socket Mode connection ("Approve and Reject in Slack work while Pluton's worker runs (it holds the Socket Mode connection)."). If you click while Pluton is off, nothing happens; click again once it's running. The worker reconnects on its own when Slack refreshes the connection or it drops.
+The Approve and Reject buttons reach Pluton over that Socket Mode connection, which needs the app-level token. Pluton opens the connection within about 15 seconds of both tokens being saved, and reconnects on its own when Slack refreshes the connection or it drops.
 
 ## Slack: channel, format and test
 
@@ -62,7 +62,7 @@ Click **Save**. Then **Send a test message** (available once a channel is saved 
 
 Each lead line shows the name (linked to their LinkedIn profile when known), "{title} at {company}", "fit {fit}", and the signal in italics. Under it, two buttons: **Approve** and **Reject**.
 
-The **Review in Pluton** link points to Pluton's address on the computer running it (by default localhost on port 5173), so it opens Pluton only on that computer.
+The **Review in Pluton** link opens the Play's leads to review in Pluton (app.plut0n.com).
 
 Activity records "Pluton posted {count} leads from {play} to Slack". If posting fails because of the token (revoked, invalid), the integration goes to **Needs attention**; a failed post is retried once.
 
@@ -168,7 +168,7 @@ A failed row can be retried: export the lead again and the new result replaces t
 - **"the Pluton app isn't in this channel: invite it with /invite @YourApp"**: private channel; invite the app.
 - **"Pick a channel first"**: save a channel before sending a test.
 - **Needs attention** on Slack: the token was revoked or the app uninstalled; reinstall the app, paste the new bot token, **Check again**.
-- **Approve/Reject in Slack does nothing**: Pluton's worker isn't running, or the app-level token is missing or wrong. Start Pluton and check the app-level token and that Socket Mode and Interactivity are on.
+- **Approve/Reject in Slack does nothing**: the app-level token is missing or wrong, or Socket Mode or Interactivity is off in your Slack app. Check the app-level token (xapp-…, with connections:write) and that both are on.
 - **Nothing posted after a search**: Slack is off, no channel is saved, the search found no new lead, or every lead was below the minimum fit.
 - **Notification "{count} leads not exported to {crm}"**: open the export log, read the error on the failed rows, fix (token, scopes, a required custom property in your CRM), then export them again.
 
@@ -177,8 +177,8 @@ A failed row can be retried: export the lead again and the new result replaces t
 **Q: Will Pluton overwrite contacts that already exist in my CRM?**
 A: No. Exports are create-only. A person found by email is left exactly as they are and logged as "Already there". Pluton never edits or deletes CRM records.
 
-**Q: Do I need a public URL or a server for the Slack buttons?**
-A: No. Slack's Socket Mode lets Pluton open the connection from your computer. The buttons work whenever Pluton's worker is running.
+**Q: Do I need to set a request URL in Slack for the buttons?**
+A: No. With Socket Mode, Pluton opens the connection to Slack itself; the app-level token is all it needs.
 
 **Q: Can Slack post only my best leads?**
 A: Yes. Set **Only leads with a fit of at least** on the Slack page (0 to 100). In "One message" mode the post also shows only the best 10, with a count of the rest.

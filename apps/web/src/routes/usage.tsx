@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
 import { Button, Group, Input, PageHeader, Progress, Section, Segmented, Stat, TextButton } from "../components/ui.tsx";
 import { getLocale, useT, type Translate } from "../i18n/index.ts";
+import { authStateQuery } from "../features/account/auth-state.ts";
 import { cn } from "../lib/cn.ts";
 import { formatDate, formatDateTime, usd } from "../lib/format.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -32,12 +33,14 @@ export function UsagePage() {
   const [range, setRange] = useState<NonNullable<Range>>("period");
   const usage = useQuery(trpc.credits.usage.queryOptions({ range }));
   const u = usage.data;
+  // Hosted, the AI always runs on an API key: nothing is ever "via subscription".
+  const hosted = useQuery(authStateQuery).data?.hosted ?? false;
 
   return (
     <>
       <PageHeader
         title={t("title")}
-        description={t("description")}
+        description={t(hosted ? "descriptionHosted" : "description")}
       />
       <div className="-mt-3 mb-6">
         <Segmented label={t("range")} options={RANGES.map((key) => ({ value: key, label: t(`range.${key}`) }))} value={range} onChange={setRange} />
@@ -45,17 +48,17 @@ export function UsagePage() {
       {u && (
         <div className="@container flex flex-col gap-8">
           {/* Three across only when the page is wide enough for each amount to stay large. */}
-          <div className="grid gap-3 @xl:grid-cols-3">
+          <div className={cn("grid gap-3", hosted ? "@xl:grid-cols-2" : "@xl:grid-cols-3")}>
             <Stat label={t("spent")} value={usd(u.totals.billed)} detail={t("spentDetail")} />
-            <Stat label={t("subscription")} value={usd(u.totals.unbilled)} detail={t("subscriptionDetail")} />
+            {!hosted && <Stat label={t("subscription")} value={usd(u.totals.unbilled)} detail={t("subscriptionDetail")} />}
             <Stat
               label={t("paidCalls")}
               value={u.totals.calls.toLocaleString(getLocale())}
               detail={`${shortDate(u.range.from)} – ${shortDate(u.range.to.getTime() - 1)}`}
             />
           </div>
-          <DailyChart usage={u} />
-          <ByPlay usage={u} />
+          <DailyChart usage={u} hosted={hosted} />
+          <ByPlay usage={u} hosted={hosted} />
           <div className="grid gap-x-4 gap-y-8 md:grid-cols-2">
             <Breakdown title={t("byType")} rows={u.byPurpose.map((r) => ({ key: r.purpose, label: u.purposeLabels[r.purpose as Purpose], billed: r.billed, unbilled: r.unbilled, calls: r.calls }))} />
             <Breakdown title={t("bySource")} rows={u.bySource.map((r) => ({ key: r.source, label: sourceLabel(r.source, t), billed: r.billed, unbilled: r.unbilled, calls: r.calls }))} />
@@ -68,7 +71,7 @@ export function UsagePage() {
 }
 
 /** One bar per day: spend in accent, the subscription equivalent stacked above in a lighter tint. */
-function DailyChart({ usage }: { usage: Usage }) {
+function DailyChart({ usage, hosted }: { usage: Usage; hosted: boolean }) {
   const t = useT("usage");
   const days = useMemo(() => {
     const out: Array<{ day: string; billed: number; unbilled: number }> = [];
@@ -94,9 +97,11 @@ function DailyChart({ usage }: { usage: Usage }) {
           <span className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-accent" /> {t("spent")}
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent/35" /> {t("subscription")}
-          </span>
+          {!hosted && (
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-accent/35" /> {t("subscription")}
+            </span>
+          )}
         </span>
       }
     >
@@ -110,7 +115,11 @@ function DailyChart({ usage }: { usage: Usage }) {
                 <div
                   key={d.day}
                   className="group flex h-full flex-1 flex-col justify-end transition-colors hover:bg-raised"
-                  title={t("chart.bar", { day: dayLabel(d.day), billed: usd(d.billed, { precise: true }), unbilled: usd(d.unbilled, { precise: true }) })}
+                  title={
+                    hosted
+                      ? t("chart.barHosted", { day: dayLabel(d.day), billed: usd(d.billed, { precise: true }) })
+                      : t("chart.bar", { day: dayLabel(d.day), billed: usd(d.billed, { precise: true }), unbilled: usd(d.unbilled, { precise: true }) })
+                  }
                 >
                   <div className="bg-accent/35" style={{ height: `${(d.unbilled / max) * 100}%` }} />
                   <div className={cn("bg-accent", d.unbilled === 0 && "")} style={{ height: `${(d.billed / max) * 100}%` }} />
@@ -130,7 +139,7 @@ function DailyChart({ usage }: { usage: Usage }) {
 
 const dayLabel = (day: string) => shortDate(`${day}T12:00:00`);
 
-function ByPlay({ usage }: { usage: Usage }) {
+function ByPlay({ usage, hosted }: { usage: Usage; hosted: boolean }) {
   const t = useT("usage");
   if (!usage.byPlay.length) return null;
   return (
@@ -144,7 +153,7 @@ function ByPlay({ usage }: { usage: Usage }) {
               <th className="num">{t("col.leads")}</th>
               <th className="num">{t("spent")}</th>
               <th className="num">{t("col.perLead")}</th>
-              <th className="num">{t("col.viaSubscription")}</th>
+              {!hosted && <th className="num">{t("col.viaSubscription")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -163,7 +172,7 @@ function ByPlay({ usage }: { usage: Usage }) {
                 <td className="num text-muted">{p.leads}</td>
                 <td className="num">{usd(p.billed, { precise: true })}</td>
                 <td className="num text-muted">{p.perLead === null ? "—" : usd(p.perLead, { precise: true })}</td>
-                <td className="num text-muted">{usd(p.unbilled, { precise: true })}</td>
+                {!hosted && <td className="num text-muted">{usd(p.unbilled, { precise: true })}</td>}
               </tr>
             ))}
           </tbody>

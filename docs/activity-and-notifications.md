@@ -5,13 +5,15 @@
 Pluton keeps you informed in four places, all per workspace:
 
 - **The Activity feed**: one chronological journal of what you and Pluton did (searches, verdicts, sequences, Brain, spend, integrations, agent actions). Full page in Settings → Activity (/workspace/activity); the 8 latest events on Home; each Play's own events on its Overview.
-- **The notification bell**: at the top of the sidebar, next to the workspace name. Only events that need your attention become notifications: new leads, failed or refused searches, replies, disconnected LinkedIn accounts, Brain suggestions, budget alerts, CRM export failures and the digest.
-- **The morning digest**: a summary of what waits for you and what happened, every weekday at 08:30 by default, in the bell and optionally by email through your own SMTP server. Settings → Notifications (/workspace/notifications).
+- **The notification bell**: at the top of the sidebar, next to the workspace name. Only events that need your attention become notifications: new leads, failed or refused searches, replies, disconnected LinkedIn accounts, Brain suggestions, budget and credit alerts, CRM export failures and the digest.
+- **The morning digest**: a summary of what waits for you and what happened, every weekday at 08:30 by default, in the bell and optionally by email. Settings → Notifications (/workspace/notifications).
 - **What's new**: release notes of Pluton in Settings → What's new (/workspace/whats-new).
 
 The activity feed records everything regardless of notification settings; turning a notification category off only stops new bell entries of that kind.
 
 Every line is worded when you read it, so the feed, the bell and the digest follow your current app language, past entries included.
+
+Amounts of money in these sentences (search costs, budget alerts, the digest's Spend line) are written in US dollars on both plans, at API prices.
 
 ## The Activity feed
 
@@ -82,7 +84,7 @@ Every sentence the feed can show, with what triggers it:
 
 **Spend**
 - "The search for (Play) cost $X; $Y of its hold went back to the budget": a search settled its budget hold.
-- "A search for (Play) was not started: the monthly budget is used up" (or "the daily budget").
+- "A search for (Play) was not started: the monthly budget is used up" (or "the daily budget"). On All included, a search refused because the plan's credits are used up is recorded with the same "monthly budget" sentence; the notification says which it was.
 - "You set the monthly budget to $X" / "You removed the monthly spend limit".
 - "80% of the monthly budget is spent ($X of $Y)" / "The monthly budget is used up".
 - "You added an expense of $X" (with your note when you wrote one).
@@ -117,17 +119,18 @@ Notifications are per workspace: switching workspace shows that workspace's bell
 | "N new leads for (Play)": "X qualified, Y to double-check." | A search finished with at least one lead. Once per search. | New leads | The Play's leads, To review tab |
 | "The search for (Play) stopped" + the error | A search failed. Once per search. | Searches that fail | The Play |
 | "Search for (Play) not started": "The monthly budget is used up until (date). Raise it in Settings → Budget." or "The daily budget is used up for today…" | A scheduled or manual search was refused for budget. At most once per Play per day. | Searches that fail | Budget |
+| "Search for (Play) not started": "The credits included in your plan are used up until (date). Add credits in Settings → Budget, or your own Anthropic key in Settings → API keys, to keep searching." | All included only: a search was refused because the plan's credits are used up. At most once per Play per day. | Searches that fail | Budget |
 | "N leads not exported to (CRM)": "See the export log for the error." | A CRM export had failures. | Searches that fail | The integration page |
 | "(Name) replied": "Interested." / "They asked something only you can answer." / "Not interested: the sequence stopped." | A LinkedIn reply arrived. | Replies | The Play's sequence |
 | "(Account) disconnected": "Sending from this account is paused until you reconnect it." | A LinkedIn account disconnected. | LinkedIn accounts | LinkedIn accounts |
 | "The Brain has N suggestions": "Accept or reject them on the Brain page." | A Brain review left at least one suggestion. | Brain suggestions | Brain |
 | "80% of the monthly budget spent": "$X of $Y spent this period." | Spend reached 80% of the monthly budget. Once per budget period. | Budget | Budget |
 | "Monthly budget used up": "New searches won't start until the next period or until you raise the budget." (or "Tracking only: searches keep running.") | Spend reached 100%. Once per period. | Budget | Budget |
-| Hosted plans: "80% of your monthly credits used", then "90% of your monthly credits used": "They renew on {date}. To keep going until then without a pause, add credits in Billing." | The plan's credits (this month's plus packs left) reached 80%, then 90%. Each once per billing month. | Budget | Billing |
-| Hosted plans: "Your monthly credits are used up": "Searches pause until {date}. Add credits in Billing to pick up now." | The plan's credits reached 100%. Once per billing month. | Budget | Billing |
+| Hosted plans: "80% of your monthly credits used", then "90% of your monthly credits used": "They renew on {date}. To keep going until then without a pause, add credits in Settings → Budget." | The plan's credits (this month's plus packs left) reached 80%, then 90%. Each once per billing month. | Budget | Budget |
+| Hosted plans: "Your monthly credits are used up": "Searches pause until {date}. Add credits in Settings → Budget to pick up now." | The plan's credits reached 100%. Once per billing month. | Budget | Budget |
 | "Your morning digest" / "Your digest" + what waits for you | The digest was sent. | Morning digest | Home |
 
-Budget alerts only exist when a monthly budget is set (Settings → Budget).
+The two monthly budget alerts only exist when you set a monthly budget yourself (Settings → Budget). The two credit alerts come from your plan and exist on both plans.
 
 ## Notification settings (in the app)
 
@@ -161,8 +164,7 @@ The digest is a short summary in up to three parts:
 - "N searches stopped on an error": opens Activity.
 
 **Spend**
-- "$X of $Y spent this period, $Z left" or "$X spent this period (no limit set)": opens Usage.
-- "Claude through your subscription: $X at API prices, not charged", when relevant.
+- "$X of $Y spent this period, $Z left" or "$X spent this period (no limit set)": opens Usage. The limit is the monthly budget you set in Settings → Budget, not your plan's credits. The amounts are in US dollars on both plans.
 
 The window "since the last digest" starts at the previous digest (scheduled or sent by hand). For the very first digest it covers the previous day (the previous week for a weekly digest), from local midnight.
 
@@ -180,32 +182,26 @@ In Settings → Notifications → **Morning digest** ("What waits for you (leads
 How the schedule works:
 
 - Every weekday means Monday to Friday; there is never a scheduled digest on Saturday or Sunday. Mondays means once a week, on Monday.
-- Pluton's background worker checks every minute. Once the local time has passed the chosen time on a digest day, it sends the digest, at most once per day.
-- The worker must be running. If Pluton is off at 08:30 and you start it at 10:00 the same day, the digest is sent then. If Pluton stays off all day, that day's digest is not sent later.
+- Pluton checks every minute. Once the local time has passed the chosen time on a digest day, it sends the digest, at most once per day.
 - Off stops scheduled digests. You can still send one by hand from the preview.
 - Each workspace has its own digest, on its own timezone and settings.
 
 Click **Save** to apply changes. A wrong time format is refused ("Digest time must be HH:MM").
 
-## Getting the digest by email (SMTP)
+## Getting the digest by email
 
-The digest is always in the app (bell and Home). To also get it by email, Pluton sends it from **your own mail server**, so you need SMTP settings.
+The digest is always in the app (bell and Home). To also get it by email:
 
-1. Go to Settings → **API keys** → **Email** group ("Sends the morning digest from your own mailbox. Optional: the digest is always in the app.") and fill in:
-   - **SMTP host**: for example smtp.gmail.com or smtp.fastmail.com.
-   - **SMTP port**: 465 (TLS, the default) or 587 (STARTTLS).
-   - **SMTP user**: usually your email address.
-   - **SMTP password**: an app password from your mail provider, not your main password. Stored encrypted.
-   - **From address** (optional): the sender; defaults to the SMTP user.
-   SMTP counts as set up once host, user and password are filled.
-2. Go to Settings → **Notifications** → Morning digest:
-   - **Also send it by email**: shows "SMTP is set up" with a green check, or "Needs your SMTP server in API keys → Email" with a link. Turn on the **Email the digest** switch.
-   - **Send to**: the recipient address (required while email is on; must be a valid address). Placeholder "you@company.com".
-3. Click **Save**.
+1. Go to Settings → **Notifications** → Morning digest.
+2. Under **Also send it by email**, turn on the **Email the digest** switch.
+3. **Send to**: the recipient address (required while email is on; must be a valid address). Placeholder "you@company.com".
+4. Click **Save**.
 
-The email has the subject "Pluton: (headline)", where the headline is the first thing waiting for you (or the number of new leads, or "Nothing waiting"), the heading "Your Pluton digest", the same sections as a simple list, and the footer "Change or turn off this digest in Settings → Notifications." Its links point to Pluton at http://localhost:5173, so they open only on the computer running Pluton.
+Pluton sends the digest email from its own address: there is no mail server to set up for it.
 
-If sending fails, the digest is still put in the bell and the error reads "Digest saved in the app, but the email failed: (error)". Common causes: wrong host or port, a regular password instead of an app password, or a provider blocking SMTP.
+The email has the subject "Pluton: (headline)", where the headline is the first thing waiting for you (or the number of new leads, or "Nothing waiting"), the heading "Your Pluton digest", the same sections as a simple list, and the footer "Change or turn off this digest in Settings → Notifications." Its links open the matching page of Pluton at app.plut0n.com.
+
+If sending fails, the digest is still put in the bell and the error reads "Digest saved in the app, but the email failed: (error)". Check the **Send to** address, then use **Send it now** to try again.
 
 ## Previewing and sending the digest now
 
@@ -213,7 +209,7 @@ At the bottom of Settings → Notifications, **Next digest, as of now** shows ex
 
 The button on its right depends on your setup:
 
-- **Send it now**: when email is on, a recipient is set and SMTP is configured. It emails the digest and puts it in the bell. Result: "Sent to your inbox and to the bell."
+- **Send it now**: when email is on and a recipient is saved. It emails the digest and puts it in the bell. Result: "Sent to your inbox and to the bell."
 - **Put it in the app now**: otherwise. It puts the digest in the bell only. Result: "Sent to the bell."
 
 If emailing fails, the error appears in orange in place of the result.
@@ -225,7 +221,7 @@ A digest sent by hand:
 - resets the "since the last digest" window, so the next scheduled digest covers only what happens after it;
 - doesn't prevent the scheduled digest of the same day.
 
-The button is disabled while a send is in progress. Use it to test your SMTP settings.
+The button is disabled while a send is in progress. Use it to check that the email reaches you.
 
 ## Digest on the Home page
 
@@ -247,18 +243,16 @@ Settings → **What's new** (/workspace/whats-new): "What changed in Pluton, new
 5. **Leads**: review leads with reasons that teach the next searches, find work emails, export CSV.
 6. **Plays and the Brain**: describe who to find and Pluton plans the Play and searches free sources first; edit the Brain and accept the agent's suggestions; onboarding deepsearch builds the Brain from your website.
 
-The page is part of the app itself: it changes when you update Pluton, not from the internet.
+The page is part of the app itself: it changes when Pluton is updated.
 
 ## Troubleshooting notifications and the digest
 
-- **The bell never shows anything.** Check the categories in Settings → Notifications → In the app are on. Notifications only appear for events listed in "What creates a notification": a search that finds no leads, for example, creates none. Background events require the worker to be running.
-- **I didn't get this morning's digest.** Check, in order: Frequency isn't Off; today is a weekday (or Monday for weekly); the time has passed in the workspace timezone (Settings → General); Pluton (the worker) was running that day; and something was new: a scheduled digest is skipped when nothing waits and nothing happened.
-- **The digest arrives at the wrong hour.** It uses the workspace timezone, not your computer's. Fix it in Settings → General → Timezone.
+- **The bell never shows anything.** Check the categories in Settings → Notifications → In the app are on. Notifications only appear for events listed in "What creates a notification": a search that finds no leads, for example, creates none.
+- **I didn't get this morning's digest.** Check, in order: Frequency isn't Off; today is a weekday (or Monday for weekly); the time has passed in the workspace timezone (Settings → General); and something was new: a scheduled digest is skipped when nothing waits and nothing happened.
+- **The digest arrives at the wrong hour.** It uses the workspace timezone, not the one of the device you read it on. Fix it in Settings → General → Timezone.
 - **The email switch is greyed out.** Frequency is Off; pick Every weekday or Mondays.
-- **"Needs your SMTP server in API keys → Email".** Fill in SMTP host, user and password in Settings → API keys → Email.
-- **"Digest saved in the app, but the email failed: …".** Fix the SMTP settings (port 465 vs 587, app password), then use **Send it now** to test.
-- **Links in the email don't open.** They point to http://localhost:5173 and only work on the computer running Pluton.
-- **Budget alerts never come.** They need a monthly budget in Settings → Budget, and the Budget category on.
+- **"Digest saved in the app, but the email failed: …".** Check the Send to address, then use **Send it now** to try again.
+- **Budget alerts never come.** The monthly budget alerts need a monthly budget in Settings → Budget, and the Budget category on. The credit alerts only need the Budget category on.
 - **A notification is in the wrong language.** Notifications are worded when shown; switch the app language in Settings → General → Language. Emails and background items use the language you last used the app in.
 - **The activity feed is missing something.** Check the filter is on All; Slack, CRM, agent, MCP and digest events only appear there.
 
@@ -273,11 +267,11 @@ Yes: Settings → Notifications → In the app → switch off New leads, then Sa
 **When is the morning digest sent?**
 Every weekday (Monday to Friday) at 08:30 in the workspace timezone by default. You can pick Mondays only or Off, and any time. It's skipped on days with nothing new.
 
-**Can I get the digest by email without SMTP?**
-No. Pluton sends email only through your own mail server (Settings → API keys → Email). Without it, the digest is in the bell and on Home.
+**Do I need my own mail server to get the digest by email?**
+No. Turn on Email the digest, enter a Send to address and Save: Pluton sends it from its own address.
 
 **How do I test the email digest?**
-Set SMTP, turn on Email the digest with a Send to address, Save, then click Send it now under "Next digest, as of now".
+Turn on Email the digest with a Send to address, Save, then click Send it now under "Next digest, as of now".
 
 **Does sending the digest by hand cancel today's scheduled one?**
 No. The scheduled one still comes if there is something new since the one you sent by hand.
@@ -295,7 +289,7 @@ No. Each workspace has its own feed, bell, settings and digest.
 Pluton classifies each LinkedIn reply as interested, in your hands, or not interested. "In your hands" means the person asked something only you can answer; reply from the sequence page.
 
 **Will the digest email include my spend?**
-Yes, the Spend section is in every digest: spent this period, the limit and what's left, and Claude subscription usage at API prices (not charged).
+Yes, the Spend section is in every digest: spent this period, and the monthly budget you set with what's left of it, in US dollars. Your plan's credits are on Settings → Budget.
 
 **Can the agent tell me what happened since yesterday?**
 Yes. Ask it; it reads the activity feed, Plays and leads to answer.

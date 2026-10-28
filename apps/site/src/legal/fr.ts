@@ -35,7 +35,7 @@ const fr: Record<LegalDocId, LegalDoc> = {
         heading: "Propriété intellectuelle",
         body: [
           `Le nom Pluton, son logo, les textes, l'interface et la mise en page du site appartiennent à ${PUBLISHER.name}. Toute reproduction sans autorisation écrite est interdite.`,
-          "Le code source de Pluton est publié sur GitHub sous la licence PolyForm Noncommercial 1.0.0 : il peut être utilisé gratuitement à des fins non commerciales, et toute utilisation commerciale demande une autorisation écrite.",
+          "L'installation de Pluton sur les propres serveurs du client (on-premise) fait l'objet d'un accord écrit distinct. Pour en discuter : mathis.sportiello@gmail.com.",
           "Les photographies du site sont utilisées selon leurs licences respectives, indiquées sur la page Crédits des images.",
         ],
       },
@@ -105,7 +105,7 @@ const fr: Record<LegalDocId, LegalDoc> = {
         heading: "6. Services tiers",
         body: [
           "Le Service peut se connecter, à la demande du Client, à des services tiers : LinkedIn, sa messagerie (SMTP et IMAP), Slack, HubSpot, Attio, Pipedrive, des fournisseurs de données (Hunter, Apify, TheirStack) et, pour l'offre « Votre propre IA », sa clé d'API Anthropic ou OpenAI.",
-          "Sur le Service, LinkedIn est connecté via Unipile, avec l'option Compte LinkedIn d'envoi fournie par l'Éditeur. Une installation auto-hébergée de Pluton, que les présentes CGU ne couvrent pas, utilise le compte Unipile de son utilisateur.",
+          "Sur le Service, LinkedIn est connecté via Unipile, avec l'option Compte LinkedIn d'envoi fournie par l'Éditeur.",
           "Ces services restent soumis à leurs propres conditions. L'Éditeur n'est pas responsable de leur disponibilité, de leurs tarifs ni des restrictions qu'ils appliquent au compte du Client, par exemple une limitation de son compte LinkedIn.",
         ],
       },
@@ -137,7 +137,6 @@ const fr: Record<LegalDocId, LegalDoc> = {
         heading: "9. Propriété intellectuelle",
         body: [
           "Le Service, sa marque et son interface appartiennent à l'Éditeur. L'abonnement donne au Client un droit d'utilisation personnel, non exclusif et non transférable du Service hébergé, pour la durée de l'abonnement.",
-          "Le code source publié sur GitHub reste régi par sa propre licence (PolyForm Noncommercial 1.0.0).",
         ],
       },
       {
@@ -175,7 +174,7 @@ const fr: Record<LegalDocId, LegalDoc> = {
         body: [
           "Les abonnements sont réservés aux professionnels, personnes physiques ou morales, agissant pour les besoins de leur activité. En souscrivant, le Client déclare agir à ce titre.",
           "Les présentes CGV prévalent sur tout autre document du Client. Elles complètent les conditions générales d'utilisation (CGU).",
-          "La version auto-hébergée de Pluton, publiée sur GitHub, n'est pas concernée : elle est régie par sa licence.",
+          "Une installation de Pluton sur les propres serveurs du client (on-premise) n'est pas concernée : elle fait l'objet d'un accord écrit distinct.",
         ],
       },
       {
@@ -294,7 +293,7 @@ const fr: Record<LegalDocId, LegalDoc> = {
         heading: "1. Qui est responsable",
         body: [
           `Le responsable de traitement est ${publisher}, ${fill(PUBLISHER.address, "adresse postale")}. Contact pour toute question sur vos données : ${email}.`,
-          "Si vous utilisez Pluton sur votre propre machine (version auto-hébergée), vos données restent sur cette machine : l'Éditeur n'en reçoit aucune.",
+          "Une installation de Pluton sur les propres serveurs d'un client (on-premise) n'est pas couverte par la présente politique : le traitement des données y est fixé par l'accord écrit conclu pour cette installation.",
         ],
       },
       {

@@ -19,8 +19,8 @@ export default {
     title: "Vos prochains clients, on les trouve pour vous.",
     sub: "Pluton lit votre site, repère les entreprises de votre marché qui recrutent, publient ou lèvent des fonds, et leur écrit avec votre voix. Vous n'avez qu'à valider.",
     cta: "Commencer avec votre site",
-    code: "L'héberger vous-même",
-    price: "À partir de 24,99\u00a0€ par mois. Gratuit sur votre propre machine.",
+    plans: "Voir les formules",
+    price: "À partir de 24,99\u00a0€ par mois.",
   },
   agent: {
     title: "Agent",
@@ -219,14 +219,20 @@ export default {
     allKey: "Environ {min} à {max} leads prêts à contacter chaque mois.",
     saved: "{amount} d'économie par an",
     ownLines: [
-      "Votre propre clé API Anthropic ou OpenAI ; ce fournisseur vous facture l'IA directement",
-      "Prospects trouvés et notés pour vous, messages LinkedIn et email écrits pour vous",
-      "Slack, HubSpot, Attio, Pipedrive et MCP pour votre IA",
+      "L'IA tourne sur votre propre clé API Anthropic ou OpenAI ; ce fournisseur vous la facture directement",
+      "Vos crédits ne paient que les sources de données fournies par Pluton : offres d'emploi, engagement LinkedIn, adresses email",
+      "Vous collez votre clé une fois au démarrage, et Pluton vérifie qu'elle fonctionne",
     ],
     allLines: [
-      "L'IA est incluse, décomptée de vos crédits",
+      "L'IA est incluse et décomptée de vos crédits : recherche, notation, rédaction et l'agent",
+      "Les mêmes crédits couvrent les sources de données fournies par Pluton : offres d'emploi, engagement LinkedIn, adresses email",
+      "Rien à connecter : ni clé API, ni compte chez un fournisseur d'IA",
+    ],
+    both: "Sur les deux formules",
+    bothLines: [
       "Prospects trouvés et notés pour vous, messages LinkedIn et email écrits pour vous",
       "Slack, HubSpot, Attio, Pipedrive et MCP pour votre IA",
+      "Hébergé par Pluton : tourne même ordinateur fermé",
     ],
     cta: "Commencer",
     options: "Options, sur les deux formules",
@@ -251,8 +257,7 @@ export default {
       ["Retirer un compte LinkedIn", "Il reste actif jusqu’au prochain renouvellement."],
     ],
     vat: "Prix en euros. TVA non applicable, article 293 B du Code général des impôts.",
-    selfHost: "Ou faites-le tourner vous-même. Sur votre machine, Pluton est gratuit pour un usage non commercial.",
-    selfHostLink: "Le code sur GitHub",
+    onPremise: "Besoin de Pluton sur vos propres serveurs ? L'installation sur site (on-premise) se fait sur demande. Écrivez à",
   },
   faq: {
     heading: "Avant de commencer",
@@ -267,7 +272,7 @@ export default {
       ],
       [
         "D'où viennent les leads ?",
-        "Des sources gratuites d'abord : registres d'entreprises, pages carrières, détection des technos d'un site et recherche web. Ajoutez une clé TheirStack, Apify ou Hunter et Pluton cherche aussi dans les offres d'emploi de tout le marché, l'engagement LinkedIn et les adresses email.",
+        "Des sources gratuites d'abord : registres d'entreprises, pages carrières, détection des technos d'un site et recherche web. Puis les sources de données fournies par Pluton sur les deux formules, payées avec vos crédits : offres d'emploi de tout le marché, engagement LinkedIn et adresses email.",
       ],
       [
         "Comment traite-t-il mon compte LinkedIn ?",
@@ -283,27 +288,24 @@ export default {
       ],
       [
         "Est-ce qu'il garde mes dépenses sous contrôle ?",
-        "Chaque recherche montre ce qu'elle a consommé, en crédits, et ce qu'il reste pour le mois. Fixez un budget mensuel et un plafond par recherche ; une recherche s'arrête à son plafond et rend ce qu'elle n'a pas utilisé. Sur votre propre machine, chaque appel payant est noté à son coût réel.",
+        "Chaque recherche montre ce qu'elle a consommé, en crédits, et ce qu'il reste pour le mois. Fixez un budget mensuel et un plafond par recherche ; une recherche s'arrête à son plafond et rend ce qu'elle n'a pas utilisé.",
       ],
       [
         "Puis-je envoyer les leads dans mon CRM ?",
         "Oui : HubSpot, Attio et Pipedrive, à la main ou à la validation, plus l'export CSV. Pluton ne fait que créer des fiches ; il ne modifie ni ne supprime rien dans votre CRM.",
       ],
       [
-        "Qu'est-ce qui change si je l'héberge moi-même ?",
-        "Tout vit dans un fichier SQLite sur votre machine et rien n'en sort, sauf les appels aux services que vous connectez. C'est gratuit pour un usage non commercial ; l'usage commercial demande une autorisation écrite.",
+        "Puis-je installer Pluton sur mes propres serveurs ?",
+        "Oui, en on-premise, sur demande. Écrivez à mathis.sportiello@gmail.com pour en parler.",
       ],
     ],
   },
   footer: {
     notes: [
       "Pluton est conçu et développé par Mathis Sportiello.",
-      "Gratuit sur votre machine pour un usage non commercial.",
+      "Pour une installation on-premise, écrivez à mathis.sportiello@gmail.com.",
     ],
     top: "Retour en haut",
-    display: "github.com/ElioBoyy/pluton",
-    license: "Licence",
-    picturesLabel: "Images",
     domain: "plut0n.com, avec un zéro",
     creditsLink: "Crédits images",
     creditsBack: "Retour à Pluton",

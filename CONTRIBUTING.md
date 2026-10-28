@@ -1,10 +1,10 @@
 # Contributing
 
-Thanks for wanting to improve Pluton. Bug reports and ideas are welcome as [issues](https://github.com/ElioBoyy/pluton/issues).
+Thanks for wanting to improve Pluton. Send bug reports and ideas to mathis.sportiello@gmail.com.
 
 ## Contribution terms
 
-Pluton is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.md), and Mathis Sportiello also licenses it commercially. So that this stays possible, by submitting a contribution (code, documentation or design) you confirm that it is your own work and you grant Mathis Sportiello a perpetual, worldwide, irrevocable, royalty-free license to use, modify, sublicense and distribute it under any terms, including commercial ones. You keep the copyright to your contribution.
+Pluton's code is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.md), and Mathis Sportiello also licenses it commercially. So that this stays possible, by submitting a contribution (code, documentation or design) you confirm that it is your own work and you grant Mathis Sportiello a perpetual, worldwide, irrevocable, royalty-free license to use, modify, sublicense and distribute it under any terms, including commercial ones. You keep the copyright to your contribution.
 
 ## Working on the code
 

@@ -6,7 +6,7 @@ import { Button, Group, Input, PageHeader, Row, Section, Segmented } from "../co
 import { toast } from "../components/toast.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
-import { credits, CREDITS_PER_USD, formatDate, moneyUnit, usd } from "../lib/format.ts";
+import { credits, CREDITS_PER_USD, formatDate, usd } from "../lib/format.ts";
 import { getLocale } from "../i18n/locale.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { authStateQuery, get, post } from "../features/account/auth-state.ts";
@@ -24,21 +24,19 @@ export function BudgetPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const status = useQuery({ ...trpc.credits.status.queryOptions(), refetchInterval: 10_000 });
-  // The form shows amounts in the app's unit; the budget itself is stored in dollars.
-  const k = moneyUnit() === "credits" ? CREDITS_PER_USD : 1;
   const [form, setForm] = useState({ monthlyUsd: "", periodStartDay: "1", dailyUsd: "", mode: "enforce" as "enforce" | "track", runCapUsd: "" });
 
   useEffect(() => {
     const s = status.data?.settings;
     if (s)
       setForm({
-        monthlyUsd: s.monthlyUsd ? String(s.monthlyUsd * k) : "",
+        monthlyUsd: s.monthlyUsd ? String(s.monthlyUsd) : "",
         periodStartDay: String(s.periodStartDay),
-        dailyUsd: s.dailyUsd ? String(s.dailyUsd * k) : "",
+        dailyUsd: s.dailyUsd ? String(s.dailyUsd) : "",
         mode: s.mode,
-        runCapUsd: String(s.runCapUsd * k),
+        runCapUsd: String(s.runCapUsd),
       });
-  }, [status.data?.settings, k]);
+  }, [status.data?.settings]);
 
   const save = useMutation(
     trpc.credits.setBudget.mutationOptions({
@@ -50,11 +48,11 @@ export function BudgetPage() {
   const s = status.data;
   const saved = s.settings;
   const next = {
-    monthlyUsd: Number(form.monthlyUsd || 0) / k,
+    monthlyUsd: Number(form.monthlyUsd || 0),
     periodStartDay: Number(form.periodStartDay),
-    dailyUsd: Number(form.dailyUsd || 0) / k,
+    dailyUsd: Number(form.dailyUsd || 0),
     mode: form.mode,
-    runCapUsd: Number(form.runCapUsd || 0) / k,
+    runCapUsd: Number(form.runCapUsd || 0),
   };
   const dirty = (Object.keys(next) as Array<keyof typeof next>).some((k) => next[k] !== saved[k]);
   const invalid = !(next.runCapUsd > 0) || [next.monthlyUsd, next.dailyUsd].some((v) => Number.isNaN(v) || v < 0);
@@ -127,7 +125,7 @@ export function BudgetPage() {
           <Section title={t("budget.limits")}>
             <Group>
               <Row label={t("budget.monthly")} description={t("budget.monthlyHint")}>
-                <Money step={k > 1 ? "1" : "0.01"} placeholder={t("budget.noLimit")} value={form.monthlyUsd} onChange={(v) => setForm({ ...form, monthlyUsd: v })} label={t("budget.monthly")} />
+                <Money step="0.01" placeholder={t("budget.noLimit")} value={form.monthlyUsd} onChange={(v) => setForm({ ...form, monthlyUsd: v })} label={t("budget.monthly")} />
               </Row>
               <Row label={t("budget.startDay")} description={t("budget.startDayHint")}>
                 <select
@@ -142,10 +140,10 @@ export function BudgetPage() {
                 </select>
               </Row>
               <Row label={t("budget.daily")} description={t("budget.dailyHint")}>
-                <Money step={k > 1 ? "1" : "0.01"} placeholder={t("budget.noDailyCap")} value={form.dailyUsd} onChange={(v) => setForm({ ...form, dailyUsd: v })} label={t("budget.daily")} />
+                <Money step="0.01" placeholder={t("budget.noDailyCap")} value={form.dailyUsd} onChange={(v) => setForm({ ...form, dailyUsd: v })} label={t("budget.daily")} />
               </Row>
               <Row label={t("budget.runCap")} description={t("budget.runCapHint")}>
-                <Money min={0.01 * k} step={k > 1 ? "1" : "0.01"} value={form.runCapUsd} onChange={(v) => setForm({ ...form, runCapUsd: v })} label={t("budget.runCap")} required />
+                <Money min={0.01} step="0.01" value={form.runCapUsd} onChange={(v) => setForm({ ...form, runCapUsd: v })} label={t("budget.runCap")} required />
               </Row>
               <Row label={t("budget.atLimit")} description={t(`mode.${form.mode}.hint`)}>
                 <Segmented

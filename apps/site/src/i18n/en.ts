@@ -18,8 +18,8 @@ export default {
     title: "Your next clients, found for you.",
     sub: "Pluton reads your website, spots the companies in your market that are hiring, posting or raising, and writes to them in your voice. All you do is approve.",
     cta: "Start with your website",
-    code: "Run it yourself",
-    price: "From 24.99\u00a0€ a month. Free on your own machine.",
+    plans: "See the plans",
+    price: "From 24.99\u00a0€ a month.",
   },
   agent: {
     title: "Agent",
@@ -218,14 +218,20 @@ export default {
     allKey: "About {min} to {max} leads ready to contact each month.",
     saved: "{amount} saved a year",
     ownLines: [
-      "Bring your own Anthropic or OpenAI API key; that provider bills you for the AI directly",
-      "Prospects found and scored for you, LinkedIn and email messages written for you",
-      "Slack, HubSpot, Attio, Pipedrive and MCP for your AI",
+      "The AI runs on your own Anthropic or OpenAI API key; that provider bills you for it directly",
+      "Your credits pay only for the data sources Pluton provides: job boards, LinkedIn engagement, email addresses",
+      "You paste your key once when you start, and Pluton checks that it works",
     ],
     allLines: [
-      "The AI is included, counted in your credits",
+      "The AI is included and counted in your credits: research, scoring, writing and the agent",
+      "The same credits cover the data sources Pluton provides: job boards, LinkedIn engagement, email addresses",
+      "Nothing to connect: no API key, no AI provider account",
+    ],
+    both: "On both plans",
+    bothLines: [
       "Prospects found and scored for you, LinkedIn and email messages written for you",
       "Slack, HubSpot, Attio, Pipedrive and MCP for your AI",
+      "Hosted by Pluton: it keeps running while your laptop is closed",
     ],
     cta: "Start",
     options: "Options, on either plan",
@@ -250,8 +256,7 @@ export default {
       ["Removing a LinkedIn account", "It stays active until the next renewal."],
     ],
     vat: "Prices in euros. VAT not applicable, article 293 B of the French General Tax Code.",
-    selfHost: "Or run it yourself. On your own machine Pluton is free for noncommercial use.",
-    selfHostLink: "Get the code on GitHub",
+    onPremise: "Need Pluton on your own servers? On-premise installs are by arrangement. Write to",
   },
   faq: {
     heading: "Before you start",
@@ -266,7 +271,7 @@ export default {
       ],
       [
         "Where do the leads come from?",
-        "Free sources first: company registries, careers pages, website tech detection and web search. Add a TheirStack, Apify or Hunter key and Pluton also searches job boards market-wide, LinkedIn engagement and email addresses.",
+        "Free sources first: company registries, careers pages, website tech detection and web search. Then the data sources Pluton provides on both plans, paid from your credits: job boards across the market, LinkedIn engagement and email addresses.",
       ],
       [
         "How does it treat my LinkedIn account?",
@@ -282,27 +287,24 @@ export default {
       ],
       [
         "Does it keep my spending in check?",
-        "Every search shows what it used, in credits, and what is left for the month. Set a monthly budget and a cap per search; a search stops at its cap and gives back what it did not use. On your own machine, every paid call is logged at its real cost.",
+        "Every search shows what it used, in credits, and what is left for the month. Set a monthly budget and a cap per search; a search stops at its cap and gives back what it did not use.",
       ],
       [
         "Can I send leads to my CRM?",
         "Yes: HubSpot, Attio and Pipedrive, by hand or on approval, plus CSV export. Pluton only creates records; it never updates or deletes anything in your CRM.",
       ],
       [
-        "What changes if I host it myself?",
-        "Everything lives in a SQLite file on your machine and nothing leaves it except calls to the services you connect. It is free for noncommercial use; commercial use needs written permission.",
+        "Can I run Pluton on my own servers?",
+        "Yes, on-premise, by arrangement. Write to mathis.sportiello@gmail.com to talk it through.",
       ],
     ],
   },
   footer: {
     notes: [
       "Pluton is designed and built by Mathis Sportiello.",
-      "Free on your own machine for noncommercial use.",
+      "For an on-premise install, write to mathis.sportiello@gmail.com.",
     ],
     top: "Back to the top",
-    display: "github.com/ElioBoyy/pluton",
-    license: "License",
-    picturesLabel: "Pictures",
     domain: "plut0n.com, with a zero",
     creditsLink: "Picture credits",
     creditsBack: "Back to Pluton",
