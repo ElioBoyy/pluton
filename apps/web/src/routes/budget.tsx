@@ -2,11 +2,11 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Button, Group, Input, PageHeader, Row, Section, Segmented } from "../components/ui.tsx";
+import { Button, Group, Input, PageHeader, Row, Section, Segmented, Switch } from "../components/ui.tsx";
 import { toast } from "../components/toast.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
-import { credits, CREDITS_PER_USD, formatDate, moneyUnit, usd } from "../lib/format.ts";
+import { credits, CREDITS_PER_USD, formatDate, usd } from "../lib/format.ts";
 import { getLocale } from "../i18n/locale.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { authStateQuery, get, post } from "../features/account/auth-state.ts";
@@ -24,21 +24,19 @@ export function BudgetPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const status = useQuery({ ...trpc.credits.status.queryOptions(), refetchInterval: 10_000 });
-  // The form shows amounts in the app's unit; the budget itself is stored in dollars.
-  const k = moneyUnit() === "credits" ? CREDITS_PER_USD : 1;
   const [form, setForm] = useState({ monthlyUsd: "", periodStartDay: "1", dailyUsd: "", mode: "enforce" as "enforce" | "track", runCapUsd: "" });
 
   useEffect(() => {
     const s = status.data?.settings;
     if (s)
       setForm({
-        monthlyUsd: s.monthlyUsd ? String(s.monthlyUsd * k) : "",
+        monthlyUsd: s.monthlyUsd ? String(s.monthlyUsd) : "",
         periodStartDay: String(s.periodStartDay),
-        dailyUsd: s.dailyUsd ? String(s.dailyUsd * k) : "",
+        dailyUsd: s.dailyUsd ? String(s.dailyUsd) : "",
         mode: s.mode,
-        runCapUsd: String(s.runCapUsd * k),
+        runCapUsd: String(s.runCapUsd),
       });
-  }, [status.data?.settings, k]);
+  }, [status.data?.settings]);
 
   const save = useMutation(
     trpc.credits.setBudget.mutationOptions({
@@ -50,11 +48,11 @@ export function BudgetPage() {
   const s = status.data;
   const saved = s.settings;
   const next = {
-    monthlyUsd: Number(form.monthlyUsd || 0) / k,
+    monthlyUsd: Number(form.monthlyUsd || 0),
     periodStartDay: Number(form.periodStartDay),
-    dailyUsd: Number(form.dailyUsd || 0) / k,
+    dailyUsd: Number(form.dailyUsd || 0),
     mode: form.mode,
-    runCapUsd: Number(form.runCapUsd || 0) / k,
+    runCapUsd: Number(form.runCapUsd || 0),
   };
   const dirty = (Object.keys(next) as Array<keyof typeof next>).some((k) => next[k] !== saved[k]);
   const invalid = !(next.runCapUsd > 0) || [next.monthlyUsd, next.dailyUsd].some((v) => Number.isNaN(v) || v < 0);
@@ -68,6 +66,7 @@ export function BudgetPage() {
       <div className="flex flex-col gap-8">
         <Subscription />
         {s.platform && <IncludedUsage quota={s.platform} />}
+        {s.platform && <AutoTopUp packs={s.platform.packs} />}
         <Section
           title={t("budget.period", { from: formatDate(s.period.start, { day: "numeric", month: "short" }), to: until })}
           actions={
@@ -127,7 +126,7 @@ export function BudgetPage() {
           <Section title={t("budget.limits")}>
             <Group>
               <Row label={t("budget.monthly")} description={t("budget.monthlyHint")}>
-                <Money step={k > 1 ? "1" : "0.01"} placeholder={t("budget.noLimit")} value={form.monthlyUsd} onChange={(v) => setForm({ ...form, monthlyUsd: v })} label={t("budget.monthly")} />
+                <Money step="0.01" placeholder={t("budget.noLimit")} value={form.monthlyUsd} onChange={(v) => setForm({ ...form, monthlyUsd: v })} label={t("budget.monthly")} />
               </Row>
               <Row label={t("budget.startDay")} description={t("budget.startDayHint")}>
                 <select
@@ -142,10 +141,10 @@ export function BudgetPage() {
                 </select>
               </Row>
               <Row label={t("budget.daily")} description={t("budget.dailyHint")}>
-                <Money step={k > 1 ? "1" : "0.01"} placeholder={t("budget.noDailyCap")} value={form.dailyUsd} onChange={(v) => setForm({ ...form, dailyUsd: v })} label={t("budget.daily")} />
+                <Money step="0.01" placeholder={t("budget.noDailyCap")} value={form.dailyUsd} onChange={(v) => setForm({ ...form, dailyUsd: v })} label={t("budget.daily")} />
               </Row>
               <Row label={t("budget.runCap")} description={t("budget.runCapHint")}>
-                <Money min={0.01 * k} step={k > 1 ? "1" : "0.01"} value={form.runCapUsd} onChange={(v) => setForm({ ...form, runCapUsd: v })} label={t("budget.runCap")} required />
+                <Money min={0.01} step="0.01" value={form.runCapUsd} onChange={(v) => setForm({ ...form, runCapUsd: v })} label={t("budget.runCap")} required />
               </Row>
               <Row label={t("budget.atLimit")} description={t(`mode.${form.mode}.hint`)}>
                 <Segmented
@@ -285,6 +284,95 @@ function IncludedUsage({ quota: q }: { quota: Quota }) {
       {added !== null && <p className="mt-2 text-sm text-system-green">{t("quota.added", { amount: credits((added / CREDITS_PER_USD) * 1_000_000) })}</p>}
       {buy.error && <p className="mt-2 text-sm text-system-orange">{t("quota.failed")}</p>}
     </Section>
+  );
+}
+
+type AutoTopUpSettings = { below: number | null; credits: number; maxPerMonth: number; boughtThisMonth: number; error: string | null };
+const autoTopUpQuery = { queryKey: ["billing", "auto-top-up"], queryFn: () => get<AutoTopUpSettings>("/api/billing/auto-top-up") };
+/** The most automatic packs a month the server accepts (AUTO_TOP_UP_MAX_PER_MONTH). */
+const AUTO_TOP_UP_MAX = 10;
+
+/**
+ * Hosted: buys a pack on its own once the credits left fall below a threshold, on the card the
+ * subscription is paid with. The smallest pack is the least it buys; a monthly cap bounds it.
+ */
+function AutoTopUp({ packs }: { packs: Quota["packs"] }) {
+  const t = useT("usage");
+  const tc = useT("common");
+  const queryClient = useQueryClient();
+  const settings = useQuery(autoTopUpQuery);
+  const [form, setForm] = useState({ on: false, below: "200", credits: packs[0]?.credits ?? 1000, maxPerMonth: 3 });
+  const saved = settings.data;
+  useEffect(() => {
+    if (saved) setForm({ on: saved.below !== null, below: String(saved.below ?? 200), credits: saved.credits, maxPerMonth: saved.maxPerMonth });
+  }, [saved]);
+  const save = useMutation({
+    mutationFn: () =>
+      post<AutoTopUpSettings>("/api/billing/auto-top-up", { below: form.on ? Number(form.below) : null, credits: form.credits, maxPerMonth: form.maxPerMonth }),
+    onSuccess: (next) => queryClient.setQueryData(autoTopUpQuery.queryKey, next),
+  });
+  if (!saved) return null;
+  const below = Number(form.below);
+  const invalid = form.on && (!Number.isInteger(below) || below < 1);
+  const dirty =
+    form.on !== (saved.below !== null) ||
+    (form.on && below !== saved.below) ||
+    form.credits !== saved.credits ||
+    form.maxPerMonth !== saved.maxPerMonth;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <Section title={t("auto.title")} footnote={t("auto.hint", { count: saved.boughtThisMonth, max: saved.maxPerMonth })}>
+        <Group>
+          <Row label={t("auto.on")} description={t("auto.onHint")}>
+            <Switch checked={form.on} onChange={(on) => setForm({ ...form, on })} label={t("auto.on")} />
+          </Row>
+          {form.on && (
+            <>
+              <Row label={t("auto.below")} description={t("auto.belowHint")}>
+                <div className="w-28 shrink-0">
+                  <Input
+                    type="number"
+                    min={1}
+                    step="1"
+                    inputMode="numeric"
+                    value={form.below}
+                    onChange={(e) => setForm({ ...form, below: e.target.value })}
+                    aria-label={t("auto.below")}
+                    className="text-right tabular-nums"
+                    required
+                  />
+                </div>
+              </Row>
+              <Row label={t("auto.pack")} description={t("auto.packHint")}>
+                <Segmented
+                  label={t("auto.pack")}
+                  options={packs.map((pack) => ({ value: String(pack.credits), label: `${pack.credits.toLocaleString(getLocale())} · ${euros(pack.priceCents / 100)}` }))}
+                  value={String(form.credits)}
+                  onChange={(value) => setForm({ ...form, credits: Number(value) })}
+                />
+              </Row>
+              <Row label={t("auto.max")} description={t("auto.maxHint")}>
+                <Stepper value={form.maxPerMonth} onChange={(n) => setForm({ ...form, maxPerMonth: Math.max(1, n) })} max={AUTO_TOP_UP_MAX} label={t("auto.max")} />
+              </Row>
+            </>
+          )}
+        </Group>
+      </Section>
+      {saved.error && <p className="mt-2 px-1 text-sm text-system-orange">{t("auto.failed", { reason: saved.error })}</p>}
+      <div className="mt-4 flex items-center justify-end gap-3">
+        {save.isSuccess && !dirty && <span className="text-sm text-muted">{tc("saved")}</span>}
+        {save.isError && <span className="text-sm text-system-orange">{t("auto.saveFailed")}</span>}
+        <Button type="submit" disabled={!dirty || invalid || save.isPending}>
+          {tc("save")}
+        </Button>
+      </div>
+    </form>
   );
 }
 

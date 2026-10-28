@@ -1237,6 +1237,16 @@ export const users = sqliteTable(
     /** Stripe's own status (active, trialing, past_due, canceled…); null until they pay. */
     subscriptionStatus: text("subscription_status"),
     currentPeriodEnd: integer("current_period_end", { mode: "timestamp_ms" }),
+    /** Automatic top-up: buy a pack once what is left of the plan's credits falls below this many; null is off. */
+    autoTopUpBelow: integer("auto_top_up_below"),
+    /** The pack it buys, one of TOP_UP_PACKS: the smallest by default. */
+    autoTopUpCredits: integer("auto_top_up_credits").notNull().default(1000),
+    /** At most this many automatic packs a billing month, so a runaway search can't keep charging. */
+    autoTopUpMaxPerMonth: integer("auto_top_up_max_per_month").notNull().default(3),
+    /** The last attempt, claimed before charging so two checks never buy twice. */
+    autoTopUpAttemptAt: integer("auto_top_up_attempt_at", { mode: "timestamp_ms" }),
+    /** Why the last attempt failed (Stripe's message); a failure turns the top-up off. */
+    autoTopUpError: text("auto_top_up_error"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -1263,6 +1273,7 @@ export const creditPacks = sqliteTable(
     /** What was paid, in the currency's smallest unit. */
     amountCents: integer("amount_cents").notNull(),
     currency: text("currency").notNull(),
+    /** The Checkout session it was paid through (cs_…), or the invoice of an automatic top-up (in_…). */
     stripeSessionId: text("stripe_session_id").notNull(),
     createdAt: createdAt(),
   },

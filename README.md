@@ -1,10 +1,10 @@
 # Pluton
 
-**Your go-to-market agent, running on your own machine.**
+**Your go-to-market agent.**
 
-Pluton reads your website, learns who you sell to, finds the people worth talking to and reaches out to them on LinkedIn, while you stay in control of every lead and every message. Everything lives in a local SQLite database; nothing leaves your computer except the calls to the services you connect.
+Pluton reads your website, learns who you sell to, finds the people worth talking to and reaches out to them on LinkedIn, while you stay in control of every lead and every message. It runs hosted at [app.plut0n.com](https://app.plut0n.com/), on one of two plans (see [Plans](#plans)).
 
-Designed and built by **Mathis Sportiello**. Free for noncommercial use; commercial use needs written permission from Mathis Sportiello (see [License](#license)).
+Designed and built by **Mathis Sportiello**. To run Pluton on your own servers (on-premise), write to mathis.sportiello@gmail.com.
 
 ## What it does
 
@@ -13,28 +13,43 @@ Designed and built by **Mathis Sportiello**. Free for noncommercial use; commerc
 - **Finds and qualifies leads.** Each run collects candidates from free sources first (company registries, careers pages, tech detection, web search), checks them, looks up their LinkedIn profile and scores their fit against your ideal customer, with the evidence behind every score.
 - **Learns from your verdicts.** Approve or reject leads with a reason. Later runs score similar people the same way, rejected people never come back, and repeated rejections trigger a Brain review.
 - **Runs LinkedIn sequences.** Visit, follow, like, connect, then up to three messages written in your voice for each person, all reviewed by you before anything is sent. Visits and invitations go out from your own Chrome through the Pluton LinkedIn extension; the rest is a ready-to-copy to-do list. A reply stops the sequence.
-- **Finds emails and exports.** Free sources first, then Hunter if you add a key; CSV export of any lead list.
+- **Finds emails and exports.** Free sources first, then Hunter (provided by Pluton on both plans, or your own key on a local install); CSV export of any lead list.
 - **Keeps spend in check.** Every paid call is logged at its real cost, per Play and per lead. Set a monthly budget; a search holds its cap, stops at it and gives back what it didn't use.
 - **Tells you what needs you.** One activity feed, a notification bell and a morning digest (in the app, or by email through your own SMTP).
 - **Has an agent you can talk to.** Ask about your leads, Plays, Brain or spend from the Agent page or ⌘K. It reads what it needs and asks before it changes anything, starts a search, contacts someone or exports to a CRM.
-- **Plugs into your tools.** New leads in Slack with Approve/Reject buttons, approved leads in HubSpot, Attio or Pipedrive, and a local MCP server so Claude Code, Claude Desktop or Codex can work with your leads.
-- **Printed like the 1930 plates.** The app shares its landing page's look: plate-grey and print-black surfaces, square corners, one ultramarine ink for what to press, in light and dark appearances, and it works on a phone.
+- **Plugs into your tools.** New leads in Slack with Approve/Reject buttons, approved leads in HubSpot, Attio or Pipedrive, and an MCP server so Claude Code, Claude Desktop or Codex can work with your leads.
+- **Looks like its landing page.** The app and the site share the glass components of `packages/glass`, one ultramarine for what to press, light and dark appearances, and the app works on a phone.
 
-## Requirements
+## Plans
+
+Both plans are hosted by Pluton, billed monthly or yearly (1-year commitment, one month free), and include the Brain, Plays, leads, LinkedIn and email sequences, Slack, HubSpot, Attio, Pipedrive and the MCP server. What sets them apart is who runs the AI and what the credits pay for.
+
+**Your own AI**, 24.99 € a month (274.89 € a year)
+- The AI runs on your own Anthropic or OpenAI API key, billed by that provider at cost. You paste the key once when you start; Pluton checks it with a real call.
+- 600 credits a month, for the data sources Pluton provides only (TheirStack job search, Apify LinkedIn engagement, Hunter emails).
+- No lead cap from Pluton.
+
+**All included**, 59 € a month (649 € a year)
+- The AI is included: nothing to connect, no API key.
+- 2,000 credits a month cover both the AI's work (research, scoring, writing, the agent) and the data sources Pluton provides.
+
+**Options, on either plan**: a LinkedIn sending account, 15 € per account per month (165 € a year), through Pluton's own Unipile account; credit packs of 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
+
+**On-premise**: by arrangement, write to mathis.sportiello@gmail.com.
+
+## Development
+
+Access to the code is by arrangement with Mathis Sportiello. To work on it:
 
 - **Node.js 22** or later
 - **pnpm** (`corepack enable` sets up the version the repo pins)
-- **Claude**, in one of two ways:
+- **Claude**, in one of two ways (local and on-premise installs only; the hosted plans work as described in Plans):
   - your Claude subscription through [Claude Code](https://claude.com/claude-code), installed and signed in on this machine (the default; personal use only), or
   - an Anthropic API key, added in the app under Settings → API keys.
 
-Optional keys unlock more sources and automation, all added in the app (Settings → API keys, stored encrypted): **TheirStack** (market-wide job search), **Apify** (LinkedIn engagement and posts), **Hunter** (email finding). LinkedIn sending needs no key: it's the Pluton LinkedIn extension, in your own Chrome.
-
-## Download and install
+Optional keys unlock more sources on a local install, all added in the app (Settings → API keys, stored encrypted): **TheirStack** (market-wide job search), **Apify** (LinkedIn engagement and posts), **Hunter** (email finding). LinkedIn sending needs no key: it's the Pluton LinkedIn extension, in your own Chrome.
 
 ```bash
-git clone https://github.com/ElioBoyy/pluton.git
-cd pluton
 corepack enable
 pnpm install
 cp .env.example .env
@@ -42,7 +57,7 @@ cp .env.example .env
 
 `.env` only holds technical settings (database file, server port). You never put API keys in it.
 
-## Run
+### Run
 
 ```bash
 pnpm dev
@@ -82,7 +97,7 @@ To check, the server asks GitHub's public API for the latest release, at most ev
 | `apps/web` | Vite + React + TanStack Router/Query + tRPC client + Tailwind |
 | `apps/server` | Hono + tRPC (`/rpc`), subscriptions over SSE |
 | `apps/worker` | Polls the `job` table and runs handlers (`src/handlers`) |
-| `packages/db` | Drizzle schema + migrations, SQLite file in `data/` |
+| `packages/db` | Drizzle schema + migrations: Postgres hosted (`PLUTON_HOSTED=1`), a SQLite file in `data/` locally |
 | `packages/core` | Domain logic shared by server and worker: jobs, events, workspaces, Brain, onboarding |
 | `packages/providers` | Data sources: French registry, careers boards, stack detection (free); TheirStack, Apify (keys). Cached, every real call logged |
 | `packages/agent` | Claude research agent (`claude-opus-5-5`, web search/fetch + save tools) |
@@ -151,7 +166,7 @@ Settings → Integrations:
 - **Slack**: create a Slack app with Socket Mode (no public URL needed), paste the bot and app-level tokens, pick a channel. After each search, new leads are posted (one message, or one per lead with why they fit) with Approve and Reject buttons that act like the app's.
 - **HubSpot, Attio, Pipedrive**: paste a token, map Pluton fields to CRM properties, and export from the Leads table (“To HubSpot”) or automatically on approval. Create-only: a person already in the CRM (same email) is left alone, and nothing is ever updated or deleted. Every export is logged.
 
-Settings → Connect your AI: a local MCP server at `http://localhost:8787/api/mcp` (bearer token shown there) with the same actions as the app: Brain, Plays, searches, leads and feedback, sequences, replies, spend, activity, CRM export. A search returns its cost first and needs an explicit confirmation; so do sequences and CRM exports. Copy the setup line for Claude Code, Claude Desktop or Codex, and install the Claude Code skill (`skills/pluton/SKILL.md`) for the morning check and lead review routines.
+Settings → Connect your AI: an MCP server at `https://app.plut0n.com/api/mcp` hosted, `http://localhost:8787/api/mcp` locally (bearer token shown there) with the same actions as the app: Brain, Plays, searches, leads and feedback, sequences, replies, spend, activity, CRM export. A search returns its cost first and needs an explicit confirmation; so do sequences and CRM exports. Copy the setup line for Claude Code, Claude Desktop or Codex, and install the Claude Code skill (`skills/pluton/SKILL.md`) for the morning check and lead review routines.
 
 ## Contributing
 
@@ -170,4 +185,4 @@ Pluton is designed, written and maintained by **Mathis Sportiello**: product, de
 
 ## License
 
-Copyright © 2026 Mathis Sportiello. Pluton is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.md): you may use, copy and modify it for noncommercial purposes only. **Any commercial use** (in or for a business, selling it, hosting it as a service, or using it to prospect and sell) **requires a written license from Mathis Sportiello.**
+Copyright © 2026 Mathis Sportiello. Pluton's code is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.md): you may use, copy and modify it for noncommercial purposes only. **Any commercial use** (in or for a business, selling it, hosting it as a service, or using it to prospect and sell) **requires a written license from Mathis Sportiello.** For an on-premise install, write to mathis.sportiello@gmail.com.

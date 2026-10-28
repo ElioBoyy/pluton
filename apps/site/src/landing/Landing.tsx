@@ -4,7 +4,7 @@ import {
   Check,
   Copy,
   EnvelopeSimple,
-  GithubLogo,
+  FilmStrip,
   Globe,
   ImageSquare,
   Lightning,
@@ -35,7 +35,7 @@ import {
 import type { CSSProperties } from "react";
 import { LOCALES, LOCALE_NAMES, pathFor, type Locale, type Strings } from "../i18n/index.ts";
 import { SAMPLE_MESSAGES } from "../i18n/messages.ts";
-import { APP_URL, LICENSE_URL, REPO_URL } from "../links.ts";
+import { APP_URL, ON_PREMISE_EMAIL } from "../links.ts";
 import { LEGAL_DOCS } from "../legal/publisher.ts";
 import { Agent } from "./Agent.tsx";
 
@@ -111,14 +111,33 @@ function Hero({ t }: Props) {
           <LinkButton variant="accent" size="lg" href={APP_URL}>
             {t.hero.cta}
           </LinkButton>
-          <LinkButton variant="glass" size="lg" href={REPO_URL}>
-            <GithubLogo weight="fill" aria-hidden />
-            {t.hero.code}
+          <LinkButton variant="glass" size="lg" href="#pricing">
+            {t.hero.plans}
           </LinkButton>
         </div>
         <p className="hero-price reveal">{t.hero.price}</p>
       </div>
       <Agent t={t} />
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ the film */
+
+function Film({ t }: Props) {
+  return (
+    <section className="film section" id="film" aria-labelledby="film-heading">
+      <h2 id="film-heading" className="headline reveal">
+        {t.film.heading}
+      </h2>
+      <Window className="film-window reveal" icon={<FilmStrip weight="fill" aria-hidden />} title={t.film.window}>
+        {/* It has sound, so it waits for a click; nothing loads until then but the poster. */}
+        <video className="film-video" controls playsInline preload="none" poster="/img/annonce-poster.webp" width="1920" height="1080">
+          <source src="/img/annonce.webm" type='video/webm; codecs="av01.0.08M.08, opus"' />
+          <source src="/img/annonce.mp4" type="video/mp4" />
+        </video>
+        {t.film.note && <p className="window-note">{t.film.note}</p>}
+      </Window>
     </section>
   );
 }
@@ -464,8 +483,7 @@ function Compose({ t, locale }: Props) {
 
 /* ------------------------------------------------------------------ your AI */
 
-/** The hosted app's MCP server; self-hosted, the app shows its own address (localhost) in Settings → MCP. */
-const MCP_URL = "https://app.plut0n.com/api/mcp";
+const MCP_URL = `${APP_URL}api/mcp`;
 const TOKEN = "pluton_…";
 const CLIENTS = {
   code: `claude mcp add --transport http pluton ${MCP_URL} --header "Authorization: Bearer ${TOKEN}"`,
@@ -630,6 +648,17 @@ function Pricing({ t, locale }: Props) {
               </div>
             ))}
           </div>
+          <div className="price-both">
+            <h3 className="price-both-title">{p.both}</h3>
+            <ul className="price-lines">
+              {p.bothLines.map((l) => (
+                <li key={l}>
+                  <Check weight="bold" aria-hidden />
+                  {l}
+                </li>
+              ))}
+            </ul>
+          </div>
           <div className="price-actions">
             <LinkButton variant="accent" size="lg" href={APP_URL} className="plan-own">
               {p.cta} · {p.own}
@@ -702,10 +731,10 @@ function Pricing({ t, locale }: Props) {
             </div>
           </div>
         </Glass>
-        <p className="self-host reveal">
-          {p.selfHost}{" "}
-          <a href={REPO_URL}>
-            {p.selfHostLink}
+        <p className="on-premise reveal">
+          {p.onPremise}{" "}
+          <a href={`mailto:${ON_PREMISE_EMAIL}`}>
+            {ON_PREMISE_EMAIL}
             <ArrowUpRight weight="bold" aria-hidden />
           </a>
         </p>
@@ -768,8 +797,6 @@ function Footer({ t, locale }: Props) {
           <Logo />
         </a>
         <div className="foot-meta">
-          <a href={REPO_URL}>GitHub</a>
-          <a href={LICENSE_URL}>{t.footer.license}</a>
           <a href={`${pathFor(locale)}credits/`}>{t.footer.creditsLink}</a>
           {LEGAL_DOCS.map((doc) => (
             <a key={doc} href={`${pathFor(locale)}legal/${doc}/`}>
@@ -799,6 +826,7 @@ export function Landing({ t, locale }: Props) {
       <Bar t={t} locale={locale} />
       <main id="top">
         <Hero t={t} locale={locale} />
+        <Film t={t} locale={locale} />
         <Story t={t} locale={locale} />
         <How t={t} locale={locale} />
         <Trust t={t} locale={locale} />

@@ -11,7 +11,7 @@ import { appRouter } from "./router.ts";
 import { handleMcp } from "./mcp.ts";
 import { ensureMcpToken, MCP_URL } from "./mcp-router.ts";
 import { currentUser, HOSTED, isPaid, mountAuth } from "./auth.ts";
-import { mountBilling } from "./billing.ts";
+import { mountBilling, startAutoTopUps } from "./billing.ts";
 import { mountLinkedinExtension } from "./linkedin-extension.ts";
 import { mountPassword } from "./password.ts";
 import { mountRestApi } from "./rest.ts";
@@ -68,6 +68,7 @@ app.get("/api/workspaces/:id/logo", async (c) => {
 mountAuth(app, db);
 mountPassword(app, db);
 mountBilling(app, db);
+startAutoTopUps(db);
 // The Chrome extension that does LinkedIn steps in the founder's browser.
 mountLinkedinExtension(app, db);
 // Pluton's own API for scripts and tools, with the keys made in Settings → Pluton API.

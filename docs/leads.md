@@ -12,7 +12,7 @@ A lead is a real person a Play found, checked and scored as a possible buyer, wa
 - **Why they fit**: a one-sentence reason from the judge, naming the concrete match.
 - **Signal**: why this person surfaced ("Hiring a data engineer (posted 3 days ago)", "Commented on a post by …"), and a short signal label ("Their company is hiring").
 - **Evidence**: up to four sources (label and link) backing the signal.
-- **Status**: where they are in your review: To review, Approved, In campaign, Contacted or Rejected (and "New" while unopened).
+- **Status**: where they are in your review: To review, Approved, In campaign, Contacted, Rejected or Unreachable (and "New" while unopened).
 - **Timeline**: everything that happened to them, plus your notes.
 
 Where leads live:
@@ -26,7 +26,7 @@ How Plays search is documented in the Plays documentation; this page covers what
 
 ## How a candidate becomes a lead
 
-Each search of a Play collects candidates (from Claude's web research, the French company registry, company careers boards, website tech detection, or LinkedIn through Apify), then puts every candidate through the same steps:
+Each search of a Play collects candidates (from the AI's web research, the French company registry, company careers boards, website tech detection, or LinkedIn through Apify), then puts every candidate through the same steps:
 
 1. **Code checks** (no AI). Candidates are dropped if they have no job title, or neither a company nor a LinkedIn profile; if they work at your company or a competitor (names from the Play's Brain snapshot); if their company or name matches one of the Play's exclusions; or if you already rejected them in any Play.
 2. **Deduplication**. The person is matched with the people already in your workspace. If they are already a lead of this Play (or appeared twice in the same search), they are skipped.
@@ -62,22 +62,22 @@ A LinkedIn profile URL is needed for LinkedIn outreach, so every search looks on
 
 How it works:
 
-- Claude searches the web for each person with their organization and title, in batches of 8 people (up to 2 searches per person, 12 per batch).
+- The AI searches the web for each person with their organization and title, in batches of 8 people (up to 2 searches per person, 12 per batch).
 - A LinkedIn profile URL (linkedin.com/in/…) counts, and so does a LinkedIn post URL by that person (search engines index posts more than profiles): Pluton turns the post's author id into the profile URL.
-- A URL is accepted only if the profile id contains part of the person's name (a name part of at least 3 letters). Claude is told to leave a person out rather than guess.
+- A URL is accepted only if the profile id contains part of the person's name (a name part of at least 3 letters). The AI is told to leave a person out rather than guess.
 - Results are cached per person (name and company): a profile found is remembered for **30 days**, a miss for **3 days**, so later searches don't pay twice.
 
-It uses your Claude access (your subscription by default, so not billed). Each search's funnel shows how many were found under **LinkedIn found**, and the narration says "Looking up LinkedIn profiles for {count} people…".
+It uses the AI: on Your own AI, your own Anthropic or OpenAI key (billed by that provider); on All included, your plan's credits. Each search's funnel shows how many were found under **LinkedIn found**, and the narration says "Looking up LinkedIn profiles for {count} people…".
 
 People from the LinkedIn pipelines (Engagement on tracked profiles, People posting about keywords) already come with their profile URL, so they skip this step.
 
-**From the lead drawer**: when a lead has no LinkedIn URL, the **LinkedIn** row shows a **Find LinkedIn** button that runs the same lookup for that one person. If found, it shows **Profile** with a link, and the timeline adds "LinkedIn profile found". If not, a message says "No LinkedIn profile found for {name}" and the timeline adds "Looked for a LinkedIn profile, none found". Because misses are remembered for 3 days, pressing the button again within 3 days gives the same answer.
+**From the lead drawer**: **Check contacts** runs the same lookup for that one person when the lead has no LinkedIn URL, then looks for an email (see "Checking a lead's contacts"). If a profile is found, the **LinkedIn** row shows **Profile** with a link, and the timeline adds "LinkedIn profile found". If not, the row says "None found · {date}" and the timeline adds "Looked for a LinkedIn profile, none found". Because misses are remembered for 3 days, checking again within 3 days gives the same answer.
 
 When a LinkedIn URL is known, a small LinkedIn icon appears next to the lead's name in the table (opens the profile).
 
 ## Fit scoring: the judge
 
-The judge is a Claude agent (no web access) that scores every kept candidate. It reads:
+The judge is an AI agent (no web access) that scores every kept candidate. It reads:
 
 - your company, ICP and buyer personas, from the Play's Brain snapshot;
 - the Play's audience (titles, industries, sizes, geographies, keywords, hiring roles, technologies, exclusions);
@@ -163,6 +163,7 @@ A lead's status says where it is in your review and outreach:
 - **In campaign** (purple): added to the Play's LinkedIn sequence. The pill adds the sequence step, for example "In campaign · Preparing messages" or "In campaign · Invitation sent".
 - **Contacted** (pink): the first invitation or message went out. The pill also adds the sequence step, for example "Contacted · Replied".
 - **Rejected** (grey): you marked it not a fit.
+- **Unreachable** (orange): set aside because there is no way to contact them yet: no LinkedIn profile and no email found. Only a lead still To review is moved here, and only when no lookup failed. The timeline adds "Set aside as unreachable: no LinkedIn profile, no email found". As soon as a LinkedIn profile or an email turns up for the person, their unreachable leads go back to **To review**.
 
 How statuses change:
 
@@ -172,6 +173,7 @@ How statuses change:
 - Adding to the sequence → **In campaign** (a Contacted lead stays Contacted).
 - Removing from the sequence → an In campaign lead goes back to **Approved**.
 - First invitation or message sent → **Contacted**.
+- A contact check or email lookup that finds nothing, on a To review lead with no LinkedIn profile and no email → **Unreachable**.
 
 Rejecting a lead changes its status; it does not by itself stop a sequence already running for that person (remove them from the sequence in the drawer's Campaign section; see the sequences documentation).
 
@@ -181,7 +183,7 @@ Both show the same lead view; the only differences are the scope (all Plays vs o
 
 From top to bottom:
 
-1. **Status tabs** with counts: All, New, To review, Approved, In campaign, Contacted, Rejected.
+1. **Status tabs** with counts: All, New, To review, Approved, In campaign, Contacted, Rejected, Unreachable.
 2. **Review progress** on the right: a green bar and "{reviewed} of {total} reviewed" (hover: "Leads with your verdict, or already in a campaign").
 3. **Toolbar**: search box, Signal filter, Sort, then **Columns** and **Export** in one capsule.
 4. **Selection bar** when leads are ticked (bulk actions).
@@ -201,11 +203,11 @@ The tabs filter the table by status. Each shows its count for the current scope,
 - **All**: every lead.
 - **New**: To review leads you haven't opened yet.
 - **To review**: every lead waiting for a verdict, opened or not (New leads are included here too).
-- **Approved**, **In campaign**, **Contacted**, **Rejected**: by status.
+- **Approved**, **In campaign**, **Contacted**, **Rejected**, **Unreachable**: by status.
 
 Counts are computed with the search box and Signal filter applied, so filtering by "Their company is hiring" shows how many hiring-signal leads wait in each tab.
 
-**Review progress**: "{reviewed} of {total} reviewed", where total is all leads in scope and reviewed is everything not To review (approved, rejected, in a campaign or contacted). It reaches 100% when nothing waits for you.
+**Review progress**: "{reviewed} of {total} reviewed", where total is all leads in scope except Unreachable ones, and reviewed is everything not To review or Unreachable (approved, rejected, in a campaign or contacted). It reaches 100% when nothing waits for you. Unreachable leads wait for a way to contact them, not for your verdict, so they count in neither figure.
 
 The sidebar mirrors this: the **Leads** entry shows the number To review across all Plays, and each Play in the sidebar shows its own To review count.
 
@@ -291,9 +293,9 @@ Click a lead to open its drawer on the right (full width on a phone).
 **Header**: the person's initials, name, "title @ company", the status pill (Approved, To review, …) and a grey pill with the judge's stage (**Strong match** or **Worth a look**).
 
 **Verdict area**:
-- With no verdict yet: **Good lead** and **Not a fit** buttons.
-- After approving: "You marked this a good lead", a thumbs-down button to switch to Not a fit, and **Undo**.
-- After rejecting: "You marked this not a fit", your reasons underneath, an **Approve instead** button (thumbs up), and **Undo**.
+- With no verdict yet: **Good lead** and **Not a fit** buttons, and **Check contacts** on the same line.
+- After approving: "You marked this a good lead", a thumbs-down button to switch to Not a fit, and **Undo**. **Check contacts** sits below.
+- After rejecting: "You marked this not a fit", your reasons underneath, an **Approve instead** button (thumbs up), and **Undo**. **Check contacts** sits below.
 
 Opening a New lead marks it as seen: it leaves the New tab but stays in To review until you give a verdict.
 
@@ -301,23 +303,24 @@ If the lead was deleted meanwhile, the drawer shows "Lead not found".
 
 ## The lead drawer: fields
 
-Under the verdict, a group of fields:
+Under the verdict, from top to bottom:
 
-- **Email**: the address (click to write an email), with where it came from and its confidence underneath, for example "Hunter, verified · 94% confidence", "Found on a public page · 85% confidence" or "Guessed from the site's address pattern, unverified · 25% confidence" (in orange). Without an address: a **Find email** button (or **Search again** after a miss), "No email found on {date}" after a miss, and a line saying what a lookup will use and cost (see "Finding a lead's email").
-- **Title**: the job title.
-- **Seniority**: read from the title, for example "Director (from title)", or "—".
-- **LinkedIn**: **Profile** (opens it) or a **Find LinkedIn** button.
-- **Company**: the company name and its website link.
-- **Location**.
-- **Play**: the Play that found the lead; click to open that Play's Leads tab.
-- **Fit**: green meter and "N/100".
-- **Warmness**: orange meter and "N/100".
-
-Then the sections:
-
+- **Contact**: every way to reach the lead.
+  - **Email**: the address (click to write an email), with where it came from and its confidence underneath, for example "Hunter, verified · 94% confidence", "Found on a public page · 85% confidence" or "Guessed from the site's address pattern, unverified · 25% confidence" (in orange). Without an address: "None found · {date}" after a lookup found nothing, or "Not looked up yet".
+  - **LinkedIn**: **Profile** (opens it), "None found · {date}" or "Not looked up yet".
+  - Under the section, while there is no email, a line says what an email lookup will use (see "Checking a lead's contacts").
 - **Campaign**: the lead's place in the Play's LinkedIn sequence (add, messages, steps, replies, remove). Documented with sequences.
+- A group of fields:
+  - **Seniority**: read from the title, for example "Director (from title)", or "—".
+  - **Company**: the company name and its website link.
+  - **Location**.
+  - **Play**: the Play that found the lead; click to open that Play's Leads tab.
+  - **Fit**: green meter and "N/100".
+  - **Warmness**: orange meter and "N/100".
 - **CRM**: shown only when a CRM is connected or the lead was exported; export status per CRM. Documented with integrations.
 - **Why they fit**, **Evidence**, **Also found by**, **Timeline**: see the next sections.
+
+The job title is in the header, under the name.
 
 ## The lead drawer: why they fit, evidence, other Plays, timeline
 
@@ -335,6 +338,7 @@ Then the sections:
 - "You undid your approval" / "You undid your rejection"
 - "Email found: {email} ({source})" / "Looked for an email, none found"
 - "LinkedIn profile found" / "Looked for a LinkedIn profile, none found"
+- "Set aside as unreachable: no LinkedIn profile, no email found"
 - "Exported to CSV"
 - your notes, in full
 - sequence and CRM events (added to or removed from the campaign, exports)
@@ -454,56 +458,63 @@ Details:
 
 Rejecting does not erase what Pluton knows about the person (email, LinkedIn); it only keeps them out of searches.
 
-## Finding a lead's email
+## Checking a lead's contacts
 
-Leads don't come with an email. Look one up from the drawer's **Email** row with **Find email** (or **Search again** after a miss). A line under the row says what the lookup will use:
+Leads don't come with an email, and some come without a LinkedIn profile. Press **Check contacts** in the lead drawer to look up every way to reach the lead that isn't known yet, in this order:
 
-- No Hunter key: "Checks public pages and the company site (free). Add a Hunter key in Settings → API keys for verified emails."
-- Hunter key set: "Free sources first, then 1 Hunter search if needed ({left} left this month)".
-- Hunter key not working: "Free sources first, then Hunter (unavailable: {error})", for example "key rejected, fix it in Settings → API keys".
+1. **LinkedIn**: the profile lookup described in "LinkedIn profile lookup", when the lead has no LinkedIn URL.
+2. **Email**: the email lookup below, when the lead has no email.
 
-The lookup tries, in order, and stops at the first address found:
+The button is disabled when both are already known ("Every way to reach them is already known"). When it's done, a message sums up what it found, for example "Marie Dupont: LinkedIn found, no email.". If the lead ends up with neither a LinkedIn profile nor an email, and no lookup failed, it moves to **Unreachable** and the message adds "Moved to Unreachable: no LinkedIn profile, no email." If an unreachable lead gets a way to reach it, the message adds "Back in To review."
 
-1. **An address already in the research**: in the lead's signal, reason or evidence, if it matches the person's name. Source "Found on a public page", confidence 80%.
-2. **The company's own website**: Pluton reads the home page and, when they exist, /contact, /nous-contacter, /mentions-legales, /equipe, /notre-equipe, /a-propos, /about, /team and /presse, and collects every address on the company's domain. An address matching the person's name is used: "Found on a public page", confidence 85%. Needs the company website. The site scan is cached 30 days.
-3. **Hunter** (only with a Hunter key, and a company website or name): Hunter's email finder from first name, last name and domain (or company name when there is no website, less reliable). Source "Hunter, verified", with Hunter's own confidence score.
-4. **A pattern guess**: if step 2 found other personal addresses on the site (generic inboxes like contact@ or info@ are ignored), Pluton builds one for this person with the most common pattern (first.last, f.last, first-last or first_last). Source "Guessed from the site's address pattern, unverified", confidence 25% (35% when several addresses follow the pattern). Shown in yellow/orange everywhere.
+While a lead has no email, a line under the drawer's **Contact** section says what the email lookup will use: "Free sources first, then 1 Hunter search if needed ({left} left this month)", or "Free sources first, then Hunter (unavailable: {error})" when Pluton can't read the Hunter account. The count comes from the Hunter account whose key is used (Pluton's, unless you saved your own Hunter key).
 
-Results: the address appears in the drawer and the Email column; the timeline adds "Email found: {email} ({source})". If nothing is found: "No email found for {name}", the timeline adds "Looked for an email, none found", the drawer shows "No email found on {date}" and the Email column says "None found". A later miss never erases an address found earlier.
+The email lookup tries, in order:
+
+1. **An address already in the research**: in the lead's signal, reason or evidence, if it matches the person's name. Source "Found on a public page", confidence 80%. Used at once.
+2. **The company's own website**: Pluton reads the home page and, when they exist, /contact, /nous-contacter, /mentions-legales, /equipe, /notre-equipe, /a-propos, /about, /team and /presse, and collects every address on the company's domain. An address matching the person's name is used at once: "Found on a public page", confidence 85%. Needs the company website. The site scan is cached 30 days.
+3. **Hunter** (needs a company website or name): Hunter's email finder from first name, last name and domain (or company name when there is no website, less reliable). Source "Hunter, verified", with Hunter's own confidence score. Used at once when it returns an address.
+4. **A fallback from the website**, only when nothing above found the person's own address:
+   - **A pattern guess**: if step 2 found other personal addresses on the site (generic inboxes like contact@ or info@ are ignored), Pluton builds one for this person with the most common pattern (first.last, f.last, first-last or first_last). Source "Guessed from the site's address pattern, unverified", confidence 25% (35% when several addresses follow the pattern). Shown in yellow/orange everywhere.
+   - Otherwise **the company's general inbox** (contact@, bonjour@, info@, hello@…) found on its site. Source "The company's general inbox (contact@…), found on its site", confidence 50%.
+
+Results: the address appears in the drawer and the Email column; the timeline adds "Email found: {email} ({source})". If nothing is found, the timeline adds "Looked for an email, none found", the drawer shows "None found · {date}" and the Email column says "None found". Both timeline entries list each source tried and what came of it (for example "Company website: pattern guess · Hunter: nothing"). A later miss never erases an address found earlier.
 
 ## Email costs, Hunter and confidence
 
-**Free sources** (steps 1, 2 and 4 of the lookup) cost nothing and need no key.
+**Free sources** (the research, the company website and the fallbacks) cost nothing.
 
 **Hunter**:
-- Add a Hunter API key in Settings → API keys. Hunter's free plan includes 50 searches a month.
+- Pluton provides Hunter on both plans: nothing to connect. Its searches are paid from your plan's credits, within a monthly Hunter cap of 400 credits on Your own AI and 550 on All included.
 - Pluton only calls Hunter when the free sources found the person's own address nowhere, and only once per lead lookup.
-- Hunter counts a search only when it returns an email. Pluton records what a credit costs on your Hunter plan (about **$0.027** per email found on Starter, less on larger plans) and $0 on the free plan (logged under "Email finding" on Usage); a search that finds nothing costs nothing.
-- The remaining searches for the month are shown in the drawer and in the bulk Find emails hint.
+- Hunter counts a search only when it returns an email: Pluton records the per-email price of the Hunter plan behind the key in use (logged under "Email finding" on Usage); a search that finds nothing costs nothing.
 - Hunter answers are cached 30 days, so searching again for the same person within a month doesn't spend a search.
+- When the Hunter cap is reached, the Hunter step fails with "This month's Hunter allowance on your plan is used up until (date). A credit pack raises it, or add your own Hunter key in Settings → API keys." When the month's credits are used up: "Your plan's included usage is used up until (date). Add your own key in Settings → API keys to keep going."
+- You can save your own Hunter key in Settings → API keys. Pluton then uses it instead of its own, and that spend doesn't count against your credits.
 
-**If Hunter fails**: when the key is rejected and the free sources found nothing at all, the lookup stops with "Hunter rejected the API key; fix it in Settings → API keys". If the free sources found a guess, you get the guess instead and no error.
+**If Hunter fails**: when the free sources found nothing at all, the lookup stops with the error (for a key you saved that Hunter rejects: "Hunter rejected the API key; fix it in Settings → API keys"). If the free sources found a guess or an inbox, you get that instead and no error.
 
 **Reading confidence**:
 - 80–85%, "Found on a public page": the address was written publicly next to the person's name.
 - Hunter's score, "Hunter, verified": Hunter's own deliverability confidence.
+- 50%, "The company's general inbox": a shared address, not the person's own.
 - 25–35%, "Guessed…, unverified": built from the company's pattern, never verified. Check it before sending anything.
 
 The CSV export includes the email, its confidence and its source.
 
 ## Finding emails in bulk
 
-Select leads (up to 200), then press **Find emails** in the selection bar. Hover it to see the plan: "Free sources first, then up to {count} Hunter searches ({left} left this month)" or "Free sources only (no Hunter key)".
+Select leads (up to 200), then press **Find emails** in the selection bar. Hover it to see the plan: "Free sources first, then up to {count} Hunter searches ({left} left this month)".
 
 A confirmation asks "Find emails for {count} leads?" with that same line. Press OK to start.
 
 What happens:
 
-- The lookup runs in the background, one lead at a time, exactly as for a single lead (free sources first, then Hunter, then a guess).
+- The lookup runs in the background, one lead at a time, exactly as for a single lead's email lookup (free sources first, then Hunter, then a guess or the company inbox). A lead to review left with no LinkedIn profile and no email moves to Unreachable.
 - The selection bar shows "Finding emails {done}/{total}", and the table refreshes as addresses come in. You can keep working, close the drawer, or even reload: the progress picks up again.
 - One bulk lookup at a time per workspace. Starting another shows "Already finding emails; wait for it to finish".
-- An error on one lead (for example a rejected Hunter key) doesn't stop the others.
-- When done, a message says "Found {count} emails for {checked} leads", followed by the first error if any. Activity records "Pluton found {count} work emails for {checked} leads".
+- An error on one lead (for example the Hunter allowance used up) doesn't stop the others.
+- When done, a message says "Found {count} emails for {checked} leads", then "Unreachable: {count}" when some leads moved there, and the first error if any. Activity records "Pluton found {count} work emails for {checked} leads".
 
 With more than 200 selected, the button is disabled; narrow the selection (for example the Approved tab with a Signal filter) and run it in parts.
 
@@ -523,9 +534,9 @@ Columns, in order (headers in your app language):
 Name · Title · Seniority (from title) · Company · Company website · Location · LinkedIn · Email · Email confidence · Email source · Play · Status · Judge verdict · Fit · Warmness · Signal · Why they fit · Evidence · Found at
 
 Notes on values:
-- **Status**: to_review, approved, in_campaign, contacted or rejected.
+- **Status**: to_review, approved, in_campaign, contacted, rejected or unreachable.
 - **Judge verdict**: qualified (Strong match) or needs_review (Worth a look).
-- **Email source**: hunter, public_text or pattern (pattern = unverified guess).
+- **Email source**: hunter, public_text, company_inbox (the company's general inbox) or pattern (pattern = unverified guess).
 - **Signal**: the signal label; **Why they fit**: the judge's reason followed by the raw signal.
 - **Evidence**: the links (or labels when there is no link), separated by " | ".
 - **Found at**: date and time in UTC.
@@ -558,7 +569,7 @@ Items, in order:
 - **Open**: opens the lead drawer.
 - **Good lead** (A): approves. Greyed out when already approved.
 - **Not a fit…** (R): opens the reject popover. Greyed out when already rejected.
-- **Add to campaign…**: opens the "add to your campaign" window. Only for leads that are not rejected and not already in a sequence.
+- **Add to campaign…**: opens the "add to your campaign" window. Only for leads that are not rejected, not unreachable and not already in a sequence.
 - **Add a note**: opens the drawer with the note field focused.
 - **Copy name**: copies the name ("Name copied").
 - **Copy email**: copies the email ("Email copied"). Greyed out without an email.
@@ -569,9 +580,11 @@ Items, in order:
 
 - **"Lead not found"**: the lead was deleted (or its Play was). Close the drawer.
 - **"Already finding emails; wait for it to finish"**: a bulk email lookup is already running; wait for its result.
-- **"Hunter rejected the API key; fix it in Settings → API keys"**: the Hunter key is wrong or revoked and no free source found anything. Fix or remove the key.
-- **"Free sources first, then Hunter (unavailable: key rejected, fix it in Settings → API keys)"**: shown in the drawer when Pluton can't read your Hunter quota; same fix.
-- **"No email found for {name}"** / **"No LinkedIn profile found for {name}"**: nothing reliable was found. For emails, add the company website if missing (it comes from the research), or add a Hunter key. For LinkedIn, a miss is remembered for 3 days.
+- **"Hunter rejected the API key; fix it in Settings → API keys"**: the Hunter key you saved is wrong or revoked and no free source found anything. Fix it, or remove it to go back to the Hunter search included in your plan.
+- **"Free sources first, then Hunter (unavailable: key rejected, fix it in Settings → API keys)"**: shown in the drawer when Pluton can't read the Hunter account behind the key you saved; same fix.
+- **"This month's Hunter allowance on your plan is used up until (date)…"** / **"Your plan's included usage is used up until (date)…"**: Hunter can't be used through your plan until the date shown. A credit pack (Settings → Budget) or your own Hunter key lets you continue.
+- **"None found · {date}"** on the Email or LinkedIn row: nothing reliable was found. For LinkedIn, a miss is remembered for 3 days.
+- **"No way to reach them yet"** when adding a lead to a campaign: the lead is Unreachable. Check contacts again later, or leave it.
 - **"No lead matches these filters."**: clear the search box or set Signal back to "Every signal".
 - **"No leads yet. Run a search from a Play."**: no Play has found anyone yet.
 - **Find emails disabled**: more than 200 leads selected. **Add to campaign disabled**: more than 500.
@@ -608,10 +621,13 @@ No. Approving only records your verdict. Outreach starts when you add the lead t
 It is a guess built from the company's address pattern, never verified (25–35% confidence). Check it before using it.
 
 **How much does finding an email cost?**
-The free sources cost nothing. With a Hunter key, Hunter is used only when the free sources didn't find the person's own address; Hunter's free plan includes 50 searches a month, and Pluton logs about $0.027 per email Hunter finds on its Starter plan, less on larger ones.
+The free sources cost nothing. Hunter is used only when the free sources didn't find the person's own address, and only a search that returns an email costs anything. It is paid from your plan's credits, within the monthly Hunter cap (400 credits on Your own AI, 550 on All included), unless you saved your own Hunter key.
 
-**Why does "Find LinkedIn" keep saying none found?**
+**Why does "Check contacts" keep finding no LinkedIn profile?**
 A miss is remembered for 3 days per person, so retrying within 3 days gives the same answer. The lookup only accepts a profile whose address contains part of the person's name.
+
+**What does "Unreachable" mean?**
+Pluton found neither a LinkedIn profile nor an email for the lead, so there is no way to contact them yet. They wait in the Unreachable tab and don't count in your review progress. If a later lookup finds a profile or an email, they go back to To review.
 
 **Can I export only approved leads?**
 Yes: open the Approved tab and press Export in the toolbar. Search and the Signal filter apply too.

@@ -2,14 +2,15 @@
 
 ## What it is
 
-Pluton runs a local **MCP server** (Model Context Protocol, the standard AI assistants use to call outside tools). It lets Claude Code, Claude Desktop or Codex read your leads, Plays, Brain, sequences, replies and spend, and act on them, from their own chat. The page is **Settings → Connect your AI**: "Ask Claude or Codex about your leads and Plays, and let them act on them, through Pluton's local MCP server."
+Pluton runs an **MCP server** (Model Context Protocol, the standard AI assistants use to call outside tools). It lets Claude Code, Claude Desktop or Codex read your leads, Plays, Brain, sequences, replies and spend, and act on them, from their own chat. You set it up in **Settings → Connect your AI**.
 
 Key facts:
 
-- The server is part of Pluton's API and runs whenever Pluton runs. Its address is shown on the page; by default it is localhost on port 8787, path /api/mcp, over HTTP (Streamable HTTP transport).
-- Access needs a **token**. Each workspace has its own token, created automatically the first time Pluton starts; the token decides which workspace a client works in.
+- The server's address is **https://app.plut0n.com/api/mcp** (Streamable HTTP transport). It is also shown on the page.
+- Access needs a **token**, sent as a bearer token. Each workspace has its own token, created automatically the first time you open Settings → Connect your AI; the token decides which workspace a client works in.
+- A token works while the account that owns its workspace pays for a plan. Once the subscription ends, clients are refused with "Payment required".
 - The tools are the same ones the in-app agent uses (see the Agent documentation). Reading is free and direct; anything that starts a search, adds people to a LinkedIn sequence or exports to a CRM needs an explicit confirmation.
-- Whatever a client spends (for example a search it starts) is charged to that workspace's budget and appears in Usage under the agent's spend.
+- Whatever a client spends (for example a search it starts) is charged to that workspace: it appears in Usage under **Agent** (a search still runs as Lead finding), counts against the workspace budget and, for calls through Pluton's own keys, uses your plan's credits.
 - Everything a client does appears in **Activity**.
 
 You don't need the MCP server to use Pluton; it's for founders who already work in Claude or Codex and want Pluton available there.
@@ -24,7 +25,7 @@ The page has five parts.
 - **Token**: shown partly hidden (the first 10 characters, then dots), with **Show token** / **Hide token** and **Copy token**. Tokens start with "pluton_".
 - **New token** ("Every connected client stops working until you set it up again."): asks "Make a new token? Every connected client stops working until you set it up again." and replaces the token. Open sessions using the old token end.
 
-Footnote: "Local only: the server answers on this machine and checks the token on every call. Anything that can read your config files can use it."
+The server checks the token on every call. Anything that can read your AI clients' config files can use the token, so treat it like a password.
 
 **AI client**: a switcher with **Claude Code**, **Claude Desktop** and **Codex**. Each shows a short instruction and a ready-made block, already filled in with your server address and token, with a copy button. See the next section.
 
@@ -42,13 +43,13 @@ Footnote: "Local only: the server answers on this machine and checks the token o
 
 Pick your client in the **AI client** switcher, click the copy button next to the block, then:
 
-**Claude Code** ("Run it in a terminal."): the block is a single command that registers an MCP server named "pluton" with Claude Code, using the HTTP transport, your server address, and an Authorization header carrying "Bearer" followed by your token. Paste it in a terminal and press Enter. Start (or restart) Claude Code; the "pluton" server and its tools are then available. You can check with Claude Code's own MCP listing.
+**Claude Code**: the block is a single `claude mcp add` command that registers an MCP server named "pluton" with Claude Code, using the HTTP transport, your server address, and an Authorization header carrying "Bearer" followed by your token. Run it where you run Claude Code's own commands. Start (or restart) Claude Code; the "pluton" server and its tools are then available. You can check with Claude Code's own MCP listing.
 
 **Claude Desktop** ("Merge into claude_desktop_config.json (Settings → Developer → Edit config), then restart Claude Desktop. Needs Node."): the block is a JSON configuration with an "mcpServers" entry named "pluton". It launches the small bridge "mcp-remote" through npx, pointing it at your server address with the Authorization header. In Claude Desktop, open Settings → Developer → Edit config, merge the "pluton" entry into the existing "mcpServers" section (don't replace other servers you have), save, and quit and reopen Claude Desktop. Node.js must be installed, since npx comes with it.
 
 **Codex** ("Add to ~/.codex/config.toml."): the block is a section named "mcp_servers.pluton" with the server "url" and "http_headers" carrying the Authorization header. Add it to Codex's config.toml file (in your home folder, under .codex), save, and restart Codex.
 
-Pluton must be running (the usual start command launches the web app, the API and the worker) for any client to reach it. The first call from a client adds it to **Connected clients** and writes "{name} connected to Pluton over MCP" in Activity.
+The first call from a client adds it to **Connected clients** and writes "{name} connected to Pluton over MCP" in Activity.
 
 If you make a **New token**, repeat the setup for every client with the new block.
 
@@ -56,18 +57,7 @@ If you make a **New token**, repeat the setup for every client with the new bloc
 
 The sidebar's **Get started** card has five steps: **Review a lead**, **Create a Play**, **Edit the Brain**, **Ask the agent**, **Connect your AI**. Each ticks itself off; the card disappears once all five are done. Clicking **Connect your AI** opens Settings → Connect your AI.
 
-**Connect your AI** counts as done as soon as either:
-
-- an AI client has connected to this workspace's MCP server at least once (it appears in Connected clients), or
-- an AI client on this computer is **configured** to reach Pluton, even before its first call.
-
-For the second case, Pluton looks into the configuration files of the clients on this computer and checks whether one of them mentions Pluton's server address (localhost or 127.0.0.1 on Pluton's port, path /api/mcp):
-
-- Claude Code: its user configuration file in your home folder, and a project MCP file in Pluton's own folder.
-- Codex: its config.toml (in the .codex folder, or wherever CODEX_HOME points).
-- Claude Desktop: its claude_desktop_config.json in the Claude folder of your Mac's Application Support.
-
-Pluton reads these files at most every 30 seconds and the sidebar refreshes every minute, so the tick can take up to about a minute and a half to appear. Pluton only looks for the address; it doesn't read or use anything else in these files. Note that this check doesn't verify the token: a client configured with an old token still ticks the item but will be refused when it calls.
+**Connect your AI** counts as done once an AI client has connected to this workspace's MCP server at least once (it appears in Connected clients). Setting up a client isn't enough on its own: make one call from it, for example by asking it what's new in Pluton.
 
 ## Every tool the server exposes
 
@@ -97,19 +87,19 @@ Tools that change things are listed in the next section.
 
 These tools act on your data or reach outside Pluton. Three of them have a built-in two-step confirmation:
 
-- **plays_run**: starts a lead search. Called without confirmation it only returns the expected cost and the budget left (Claude through your subscription isn't charged). Called again with confirmation it starts the search. Refused with "Searches started from AI clients are paused in Pluton (Settings → Connect your AI)." when **Pause searches started from AI clients** is on. Your monthly budget and the per-search cap still apply.
+- **plays_run**: starts a lead search. Called without confirmation it only returns the expected cost and the budget left. Called again with confirmation it starts the search. Refused with "Searches started from AI clients are paused in Pluton (Settings → Connect your AI)." when **Pause searches started from AI clients** is on. Your monthly budget and the per-search cap still apply.
 - **campaign_add_lead**: adds up to 100 people to their Play's LinkedIn sequence ("this starts real LinkedIn outreach in the user's name"). Without confirmation it lists who would join and any conflict (already in a sequence, rejected). With confirmation, Pluton starts writing their messages and adds them; the 10-minute undo window applies, and messages not yet written are written when due.
 - **crm_export_leads**: creates up to 200 leads in a connected CRM (create-only). Without confirmation, or without a CRM or leads, it lists the connected CRMs.
 
 The others run when the client calls them. The client is instructed to use them only on your decision, and Claude Code, Claude Desktop and Codex ask your permission before running tools unless you've allowed them:
 
 - **brain_proposal_decide**: accept, reject or answer a Brain suggestion.
-- **brain_review_start**: starts a Brain review (a few minutes; uses Claude).
+- **brain_review_start**: starts a Brain review (a few minutes; uses the AI).
 - **plays_create**: saves a Play proposal from plays_plan, without running a search.
 - **plays_set_status**: pause, resume or archive a Play.
 - **lead_finding_cancel_run**: stops a running search (what it found stays).
 - **lead_feedback_submit**: approve or reject up to 200 leads, with reasons (wrong persona, seniority, company, geography, other) and a comment. Teaches later searches; can trigger the CRM export on approval. Activity shows "from your AI client".
-- **leads_find_email**: email lookup for up to 50 leads (free sources first, then Hunter if set up, which uses your Hunter quota).
+- **leads_find_email**: email lookup for up to 50 leads (free sources first, then Hunter: provided by Pluton and drawn from your credits, or your own Hunter key if you saved one).
 - **campaign_remove_lead**: takes people out of their sequence.
 - **campaign_set_status**: pauses or resumes a Play's sequence.
 
@@ -121,7 +111,7 @@ The **Claude Code skill** ("Teaches Claude how to work with Pluton: the morning 
 
 Two ways to install it:
 
-- Copy the one-line terminal command shown on the page: it creates the folder for a "pluton" skill in your personal Claude Code skills folder and downloads the file from Pluton's server into it. Pluton must be running.
+- Copy the one-line command shown on the page: it creates the folder for a "pluton" skill in your personal Claude Code skills folder and downloads the file from https://app.plut0n.com/skills/pluton/SKILL.md into it.
 - Or click **Download SKILL.md** and place the file yourself in a "pluton" folder inside your Claude Code skills folder.
 
 What the skill teaches Claude:
@@ -135,10 +125,11 @@ What the skill teaches Claude:
 
 ## Security and privacy
 
-- **Token on every call**: requests without the right token are refused with "Missing or wrong token: copy it from Pluton → Settings → Connect your AI". The token is compared safely and stored encrypted in Pluton's local database. It can be sent as an Authorization header (what the setup blocks do) or, for clients that can't set headers, as a token parameter in the address.
+- **Token on every call**: requests without the right token are refused with "Missing or wrong token: copy it from Pluton → Settings → Connect your AI". The token is compared safely and stored encrypted in Pluton's database. It can be sent as an Authorization header (what the setup blocks do) or, for clients that can't set headers, as a token parameter in the address.
 - **One token per workspace**: a client only ever sees the workspace its token belongs to.
-- **Browser protection**: calls coming from a web page are refused ("Forbidden origin") unless that page is on localhost, so a website you visit can't use the server. Command-line and desktop clients aren't affected.
-- **Network**: the server only listens on this computer's own loopback address (localhost), so other devices on your Wi-Fi or office network can't reach it at all, token or not. Treat the token like a password anyway; if it may have leaked, click **New token**.
+- **Paying accounts only**: a token works only while the account that owns its workspace has an active plan; otherwise calls get "Payment required".
+- **Browser protection**: calls coming from a web page are refused ("Forbidden origin"), so a website you visit can't use the server. Command-line and desktop clients aren't affected.
+- **Network**: the server is reachable over the internet at app.plut0n.com, so anyone holding the token can use it. Treat the token like a password; if it may have leaked, click **New token**.
 - **Config files**: the token sits in plain text in your AI clients' config files. As the page says, anything that can read those files can use it.
 - **Sessions**: a client's session ends after an hour of inactivity; clients reconnect on their own. After a token change, an old session gets "Session expired; reconnect".
 - **Outside services**: the MCP server itself sends nothing anywhere. A client's actions only reach outside services the same way the app does (Claude, data sources, CRMs), and the risky ones need confirmation.
@@ -146,15 +137,16 @@ What the skill teaches Claude:
 
 ## Troubleshooting
 
-- **The client says the server is unreachable**: Pluton isn't running, or the port changed. Start Pluton and check the address on the page matches the one in the client's config.
+- **The client says the server is unreachable**: check that the address in the client's config is exactly the one on the page (https://app.plut0n.com/api/mcp).
+- **"Payment required"**: the account that owns this workspace has no active plan. Check Settings → Budget → Subscription.
 - **"Missing or wrong token: copy it from Pluton → Settings → Connect your AI"**: the token in the client's config is wrong or old (after **New token**, or from another workspace). Copy the block again and redo the setup.
-- **"Session expired; reconnect"**: the session ended (idle for an hour, Pluton restarted, or token changed). Restart the client or reconnect the server from it.
-- **"Forbidden origin"**: the call came from a web page that isn't on localhost.
+- **"Session expired; reconnect"**: the session ended (idle for an hour, ended on Pluton's side, or token changed). Restart the client or reconnect the server from it.
+- **"Forbidden origin"**: the call came from a web page.
 - **Claude Desktop shows no Pluton tools**: Node.js is missing (needed for npx), the JSON wasn't merged correctly, or Claude Desktop wasn't fully restarted.
 - **"Searches started from AI clients are paused in Pluton (Settings → Connect your AI)."**: switch off **Pause searches started from AI clients**, or start the search from the app.
 - **A search was refused for budget**: the monthly budget or the per-search cap blocks it; change it in Settings → Budget.
 - **The client sees another workspace's data**: each workspace has its own token; set the client up with the token shown while the right workspace is open.
-- **The checklist item didn't tick**: wait about a minute and a half, make sure the client's config file contains Pluton's address, or make one call from the client.
+- **The checklist item didn't tick**: make one call from the client; the item ticks once a client has connected.
 
 ## FAQ
 
@@ -174,7 +166,7 @@ A: Yes. Claude Code, Claude Desktop and Codex can all use the same token at the 
 A: Copy the new block for each client and redo its setup. Until then, those clients get "Missing or wrong token".
 
 **Q: Does the Connect your AI step need a real call?**
-A: No. It ticks once a client on this computer is configured with Pluton's address, or after the first call from any client.
+A: Yes. It ticks after the first call from any client to this workspace's MCP server.
 
 **Q: Where do I see what a client did?**
 A: In Activity (verdicts say "from your AI client"), on each lead's timeline, and in **Connected clients** (number of tool calls and the last tool used).

@@ -505,6 +505,29 @@ a {
   }
 }
 
+/* ------------------------------------------------------------------ the film */
+
+.film > .headline {
+  grid-column: 1 / -1;
+  margin-bottom: clamp(8px, 2vw, 24px);
+}
+.film-window {
+  grid-column: 2 / span 10;
+}
+.film-video {
+  display: block;
+  width: calc(100% - 28px);
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin: 0 14px 14px;
+  border-radius: calc(var(--gg-r-window) - 12px);
+  corner-shape: squircle;
+  background: #06060a;
+}
+.film-window .window-note {
+  margin-top: -6px;
+}
+
 /* ------------------------------------------------------------------ the name */
 
 .story-copy {
@@ -1222,17 +1245,35 @@ a {
   color: var(--gg-ink-2);
   text-underline-offset: 2px;
 }
+/* What both plans share, under the plan's own lines. */
+.price-both {
+  display: grid;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--gg-rim-low);
+}
+.price-both-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gg-ink-2);
+}
+.price-both .price-lines {
+  grid-area: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 24px;
+  font-size: 15px;
+}
 .price-actions .gg-button {
   width: 100%;
 }
-.self-host {
+.on-premise {
   grid-column: 1 / span 9;
   justify-self: start;
   max-width: 60ch;
   font-size: 16px;
   color: var(--gg-ink-2);
 }
-.self-host a {
+.on-premise a {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1496,6 +1537,7 @@ a {
   }
   .hero-copy,
   .agent,
+  .film-window,
   .story-copy,
   .plates,
   .trust-copy,
@@ -1529,7 +1571,7 @@ a {
     position: static;
     margin-bottom: 16px;
   }
-  .self-host {
+  .on-premise {
     grid-column: 1 / -1;
   }
   .price-facts {
@@ -1619,6 +1661,9 @@ a {
   }
   .price-facts {
     gap: 18px;
+  }
+  .price-both .price-lines {
+    grid-template-columns: 1fr;
   }
   .foot-up {
     margin-left: 0;

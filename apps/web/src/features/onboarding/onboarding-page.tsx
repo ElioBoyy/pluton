@@ -26,7 +26,7 @@ export function OnboardingPage({ fresh }: { fresh: boolean }) {
   return (
     <>
       {!session || fresh ? <OnboardingForm /> : <OnboardingLive sessionId={session.id} startedAt={new Date(session.createdAt).getTime()} />}
-      {/* Bring your own AI: the workspace's Anthropic key comes first. */}
+      {/* Your own AI: the workspace's Anthropic key comes first. */}
       <ConnectAiModal />
     </>
   );

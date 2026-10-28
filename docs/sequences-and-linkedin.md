@@ -18,7 +18,7 @@ All three messages are written by AI by default, each with its own guidelines: t
 
 Key rules that apply to every sequence:
 
-- **Nothing is sent before they're connected.** Messages wait for the connection to be accepted. People who are already first-degree connections skip the request and go straight to the messages.
+- **Nothing is sent on LinkedIn before they're connected.** LinkedIn messages wait for the connection to be accepted. People who are already first-degree connections skip the request and go straight to the messages.
 - **A reply stops the sequence** at any point. The reply is then classified and either answered automatically (once) or put in front of you.
 - **Nothing runs for 10 minutes** after you add someone, so you can undo.
 - **Actions only happen inside the send window** (Monday to Friday, 9:00 to 18:00 in your workspace timezone by default), within each LinkedIn account's daily limits, and spaced out with random gaps.
@@ -62,7 +62,7 @@ Step-specific settings:
 
 - **Follow them**: "Always a task for you: the Chrome extension doesn't follow people."
 - **Send a connection request**: an **Invitation** section with **Note with the invitation** (empty means no note; "Empty sends it without a note, which tends to get accepted more. Variables work here."), limited to 300 characters (LinkedIn's limit), and **Give up after (days)**, from 1 to 30, default 7. Save with **Save invitation settings** (toast "Invitation settings saved"). These two settings apply to the whole sequence.
-- **Message steps**: choose **AI** ("I write it for each lead from their activity, following your guidelines.") or **Template** ("Your exact words for everyone, with details like their first name filled in."). See the next two sections.
+- **Message steps**: choose **AI** ("I write it for each lead from their activity, following your guidelines.") or **Template** ("Your exact words for everyone, with details like their first name filled in."). See the next two sections. Under **Sent on**, choose **LinkedIn** or **Email** (see "Sending by email").
 
 Click **Save** to save the step (toast "Step saved"). For a message step, when the sequence already has enrolled people, Save first asks **Apply to all future leads?**: "Leads you add from now on get this version. Leads already in the campaign keep their messages." A checkbox lets you **Also rewrite the unsent messages of leads already in (your edits to them are replaced)**. Click **Apply** to confirm. With the checkbox ticked, Pluton rewrites the not-yet-sent messages of everyone whose sequence is still running, in the background; messages already sent are never changed.
 
@@ -74,12 +74,12 @@ If two windows edit the same sequence, the second save fails with "This sequence
 
 An AI message step has **Guidelines** ("What this message should achieve. I follow them for every lead."), up to 2,000 characters. Under them: "Written in your campaign's tone of voice." with an **Edit tone** link, and the language used.
 
-**✦ Sharpen** ("Sharpen these guidelines") asks Claude for a tighter, more concrete version of your guidelines, including what to avoid. The suggestion appears in a **Suggested** box with **Dismiss** and **Confirm**. Confirm only replaces the text in the editor; you still need to click **Save**.
+**✦ Sharpen** ("Sharpen these guidelines") asks the AI for a tighter, more concrete version of your guidelines, including what to avoid. The suggestion appears in a **Suggested** box with **Dismiss** and **Confirm**. Confirm only replaces the text in the editor; you still need to click **Save**.
 
-How each lead's messages are written (by Claude Sonnet, one call per lead covering all AI message steps):
+How each lead's messages are written (by the AI, one call per lead covering all AI message steps):
 
 - **From your Brain**: the company, the voice (tone archetype and guidelines), up to six message pillars, objections to anticipate and buyer personas.
-- **From the lead**: name, title, company, location, why they were picked, the signal, the evidence labels, and their three most recent LinkedIn posts when an Apify token is set (otherwise their posts are "unknown").
+- **From the lead**: name, title, company, location, why they were picked, the signal, the evidence labels, and their three most recent LinkedIn posts, read through Apify (provided by Pluton on both plans and paid from your credits; when they can't be read, their posts are "unknown").
 - **From the sequence**: the objective (a short call, trying the product, or just a conversation) and the language. The objective link is only used if a message's guidelines ask for it.
 
 Built-in writing rules: write like a peer, not a salesperson; 2 to 4 sentences, under 600 characters; follow the step's guidelines exactly; ground the opener in something true and specific about this person and never invent facts ("if you know little, say less"); no flattery, no "I hope this finds you well", no buzzwords, no emojis unless your voice asks for them; messages 2 and 3 assume no reply and don't repeat earlier ones; first names correctly capitalised.
@@ -111,7 +111,7 @@ You add leads from the Leads table, never from the Sequence tab itself:
 - With several rows selected, **Add {count} to campaign** (up to 500 at once).
 - In the lead drawer's **Campaign** section, **Add to campaign** (disabled for rejected leads).
 
-Leads don't have to be approved first, but rejected leads are refused ("Rejected lead"). Each person joins the sequence of the Play that found them, and someone already in a live sequence is refused with "Already in the {play} sequence".
+Leads don't have to be approved first, but rejected leads are refused ("Rejected lead"), and so are unreachable ones ("No way to reach them yet"). Each person joins the sequence of the Play that found them, and someone already in a live sequence is refused with "Already in the {play} sequence".
 
 This opens the dialog **Add {name} to your campaign** or **Start contacting {count} people**: "They get these messages one by one as they move through your sequence. Nothing is sent before they're connected, and a reply stops the sequence." The left column lists each person with their state; the right side shows the selected person's messages, numbered, with when each goes out ("Once you're connected", "3 days later, if no reply").
 
@@ -153,8 +153,8 @@ Each enrolled person shows one status:
 - **Replied**: a reply arrived and was classified.
 - **Replied · link sent**: positive reply answered automatically with your objective link.
 - **Needs you**: a reply waits for your answer, or something can't continue without you (for example a message that couldn't be written).
-- **Lost**: they said they're not interested, or the invitation wasn't accepted in time.
-- **Failed**: Pluton couldn't continue (no LinkedIn profile, LinkedIn refuses this contact, or three errors in a row on the same step).
+- **Lost**: they said they're not interested, or the invitation wasn't accepted in time (unless the sequence continues by email; see "Sending by email").
+- **Failed**: Pluton couldn't continue (no LinkedIn profile and no way to email them, LinkedIn refuses this contact, an email bounced, or three errors in a row on the same step).
 - **Stopped**: removed by you, skipped by a template rule, or its LinkedIn account was removed.
 - **Sequence done**: every step ran without a reply.
 
@@ -244,12 +244,28 @@ Pluton doesn't read LinkedIn conversations: when someone answers, use **Log a re
 
 The morning digest counts these as "{count} LinkedIn steps to do by hand".
 
+## Sending by email
+
+Message steps can also go by email. In a message step's settings, **Sent on** offers:
+
+- **LinkedIn** (default): "A LinkedIn message, once you're connected. People without LinkedIn get it by email anyway."
+- **Email**: "To their inbox when their address is known, in the same thread as earlier emails; otherwise on LinkedIn. Replies on either side stop the sequence."
+
+Emails leave from your own mailbox; Pluton doesn't provide one for outreach. Set it up in **Settings → API keys → Email**: **SMTP host**, **SMTP port**, **SMTP user** and **SMTP password** (an app password, not your main password), and optionally **From address**, **From name**, **Outreach emails per day** (default 30) and the **IMAP** settings Pluton reads replies with. **Send me a test email** on the SMTP password row emails you and looks for the message in your inbox. Without a mailbox, everything stays on LinkedIn.
+
+With a mailbox set up:
+
+- A person with no LinkedIn profile but a known email goes through the sequence by email: LinkedIn-only steps are skipped ("LinkedIn step skipped: reached by email").
+- When LinkedIn can't go further for someone whose email is known (the sequence has no connection request step, the invitation wasn't accepted in time, or LinkedIn refuses this contact), the rest of the sequence continues by email, with a note such as "Invitation not accepted in 7 days: continued by email".
+- Once the day's email limit is reached, people wait for the next day's send window ("Today's email limit reached ({count})").
+- A reply by email stops the sequence like a LinkedIn reply. An email that bounces ends that person's sequence as **Failed** ("The email bounced").
+
 ## Replies, classification and automatic answers
 
 When a reply arrives (an email read from your mailbox, or a LinkedIn reply you logged), Pluton:
 
 1. Stops the sequence immediately and deletes any message tasks you hadn't done yet.
-2. Classifies it with Claude Haiku: **Positive** (interested, wants to talk, asks for the link or a time), **Not interested** (declines, asks to stop, wrong person with no lead) or **In your hands** (a question, a referral, an out-of-office, anything ambiguous; the default when unsure). It also writes a one-line summary. If classification fails: In your hands, "Couldn't classify; read it yourself".
+2. Classifies it with the AI: **Positive** (interested, wants to talk, asks for the link or a time), **Not interested** (declines, asks to stop, wrong person with no lead) or **In your hands** (a question, a referral, an out-of-office, anything ambiguous; the default when unsure). It also writes a one-line summary. If classification fails: In your hands, "Couldn't classify; read it yourself".
 3. Records it on the lead's timeline, in Activity ("{name} replied (interested)") and as a notification "{name} replied" (category **Replies**).
 
 Then:
@@ -266,8 +282,8 @@ Notes shown in orange on a person (Enrolled leads, lead drawer) explain what's h
 
 - **"Waiting for a connected LinkedIn account"**: no usable account. Retries every hour. Connect or switch on an account.
 - **"{name} is disconnected"** / "is connecting" / "has an error": the assigned account isn't connected. Retries every hour. For an extension, open Chrome and sign in to LinkedIn there.
-- **"{step} couldn't be written"**: the message couldn't be generated at send time. Status Needs you. Open the add dialog again or restart after fixing (check Claude access in Settings → API keys).
-- **"Writing was interrupted; generate again"**: the worker stopped mid-writing for more than 5 minutes. Click **Generate messages**.
+- **"{step} couldn't be written"**: the message couldn't be generated at send time. Status Needs you. Open the add dialog again or restart after fixing (on Your own AI, check your Anthropic or OpenAI key in Settings → API keys; on All included, check your credits in Settings → Budget).
+- **"Writing was interrupted; generate again"**: writing stopped on Pluton's side for more than 5 minutes. Click **Generate messages**.
 - **"Not connected, and the sequence has no connection request step"**: you switched off the invitation step and the person isn't a connection.
 
 Any other error is retried after 1 hour, then 2 hours; after three failures on the same step the person is **Failed** with the error text. Settings errors include "The window must end after it starts".
