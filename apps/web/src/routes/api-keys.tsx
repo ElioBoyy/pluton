@@ -1,4 +1,5 @@
-import { CheckCircle, CircleNotch, EnvelopeSimple, Info, WarningCircle } from "@phosphor-icons/react";
+import { BookOpen, CheckCircle, CircleNotch, EnvelopeSimple, Info, WarningCircle } from "@phosphor-icons/react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useEffect, useState } from "react";
@@ -7,6 +8,7 @@ import { Button, Group, Input, PageHeader, Section, Segmented } from "../compone
 import { KeyLink } from "./data-sources.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
+import { MAIL_PROVIDERS, providerFor, type MailProvider } from "../lib/mail-providers.ts";
 import { useTRPC } from "../lib/trpc.ts";
 
 type Setting = inferRouterOutputs<AppRouter>["settings"]["list"][number];
@@ -34,6 +36,8 @@ export function ApiKeysPage() {
           const included = inGroup.filter((s) => s.included && s.source !== "app");
           const shown = inGroup.filter((s) => !included.includes(s));
           if (inGroup.length === 0) return null;
+          // The mailbox has its own layout: provider, sending, sender, replies.
+          if (g === "email") return <EmailSettings key={g} settings={inGroup} />;
           return (
             <Section key={g} title={t(`apiKeys.group.${g}.title`)} description={t(`apiKeys.group.${g}.description`)}>
               <Group>
@@ -184,5 +188,114 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
       )}
       {save.error && <p className="mt-2 text-xs text-system-orange">{save.error.message}</p>}
     </div>
+  );
+}
+
+const SENDING = ["smtp_host", "smtp_port", "smtp_user", "smtp_password"];
+const SENDER = ["smtp_from", "smtp_from_name", "email_daily_limit"];
+const REPLIES = ["imap_host", "imap_port"];
+const IMAP_LOGIN = ["imap_user", "imap_password"];
+
+/**
+ * The mailbox, in the order it is set up: the provider fills in servers and ports, then sending,
+ * the sender people see, and replies. IMAP signs in as SMTP does, so its own login stays folded.
+ */
+function EmailSettings({ settings }: { settings: Setting[] }) {
+  const t = useT("settings");
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const save = useMutation(trpc.settings.save.mutationOptions());
+  const [filled, setFilled] = useState<string | null>(null);
+  const byKey = new Map(settings.map((s) => [s.key, s]));
+  const pick = (keys: string[]) => keys.flatMap((k) => (byKey.has(k) ? [byKey.get(k)!] : []));
+  const current = providerFor(byKey.get("smtp_host")?.value, byKey.get("imap_host")?.value);
+  const ownLogin = pick(IMAP_LOGIN).some((s) => s.source === "app");
+  const [otherLogin, setOtherLogin] = useState(ownLogin);
+  useEffect(() => setOtherLogin((open) => open || ownLogin), [ownLogin]);
+
+  const choose = async (provider: MailProvider) => {
+    const values: Array<[string, string]> = [
+      ["smtp_host", provider.smtp.host],
+      ["smtp_port", String(provider.smtp.port)],
+      ["imap_host", provider.imap.host],
+      ["imap_port", String(provider.imap.port)],
+    ];
+    let latest: Setting[] | undefined;
+    for (const [key, value] of values) latest = await save.mutateAsync({ key, value });
+    if (latest) queryClient.setQueryData(trpc.settings.list.queryKey(), latest);
+    setFilled(provider.name);
+  };
+
+  if (settings.length === 0) return null;
+  return (
+    <section id="email" className="flex scroll-mt-6 flex-col gap-4">
+      <div className="flex items-end justify-between gap-4 px-1">
+        <div className="min-w-0">
+          <h2 className="text-base font-medium">{t("apiKeys.group.email.title")}</h2>
+          <p className="mt-0.5 text-xs text-muted">{t("apiKeys.group.email.description")}</p>
+        </div>
+        <Link to="/docs/email" className="inline-flex shrink-0 items-center gap-1 text-xs text-accent hover:underline">
+          <BookOpen size={13} /> {t("apiKeys.email.guide")}
+        </Link>
+      </div>
+
+      <Group className="px-4 py-3.5">
+        <p className="text-sm">{t("apiKeys.email.provider")}</p>
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {MAIL_PROVIDERS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={save.isPending}
+              aria-pressed={current?.id === p.id}
+              onClick={() => void choose(p)}
+              className={cn(
+                "h-7 rounded-full px-3 text-xs font-medium transition-colors duration-150 disabled:opacity-60",
+                current?.id === p.id ? "bg-accent text-on-accent" : "bg-control text-ink hover:bg-panel-hover",
+              )}
+            >
+              {p.name}
+            </button>
+          ))}
+          <span className={cn("flex h-7 items-center rounded-full px-3 text-xs", !current && byKey.get("smtp_host")?.value ? "bg-selected text-accent" : "text-muted")}>
+            {t("apiKeys.email.other")}
+          </span>
+        </div>
+        <p className="mt-2.5 text-xs text-muted">{filled ? t("apiKeys.email.filled", { name: filled }) : t("apiKeys.email.microsoft")}</p>
+      </Group>
+
+      {[
+        { title: t("apiKeys.email.sending"), keys: SENDING },
+        { title: t("apiKeys.email.sender"), keys: SENDER },
+      ].map(({ title, keys }) => (
+        <div key={title}>
+          <p className="mb-1.5 px-1 text-xs font-medium text-muted">{title}</p>
+          <Group>
+            {pick(keys).map((s) => (
+              <SettingItem key={s.key} setting={s} />
+            ))}
+          </Group>
+        </div>
+      ))}
+
+      <div>
+        <p className="mb-1.5 px-1 text-xs font-medium text-muted">{t("apiKeys.email.replies")}</p>
+        <Group>
+          {pick(REPLIES).map((s) => (
+            <SettingItem key={s.key} setting={s} />
+          ))}
+          {otherLogin ? (
+            pick(IMAP_LOGIN).map((s) => <SettingItem key={s.key} setting={s} />)
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3.5 text-xs text-muted">
+              {t("apiKeys.email.sameLogin")}
+              <button type="button" onClick={() => setOtherLogin(true)} className="text-accent hover:underline">
+                {t("apiKeys.email.otherLogin")}
+              </button>
+            </div>
+          )}
+        </Group>
+      </div>
+    </section>
   );
 }
