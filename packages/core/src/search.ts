@@ -86,6 +86,7 @@ const PAGES = [
   { ref: "plays", href: "/plays", about: "Lead-finding campaigns run on a schedule. Campagnes de prospection" },
   { ref: "new-play", href: "/plays/new", about: "Describe who you want to reach and create a Play. Nouvelle campagne, créer" },
   { ref: "leads", href: "/leads", about: "People found by your Plays, to review, approve or reject. Prospects, contacts à valider" },
+  { ref: "messages", href: "/messages", about: "Replies to answer, LinkedIn steps to do by hand, invitations to confirm. Messages, réponses, boîte de réception, à faire" },
   { ref: "onboarding", href: "/onboarding", about: "Research your website and build the Brain again. Recommencer, analyser mon site" },
   { ref: "profile", href: "/workspace/profile", about: "Your name, email signature, language, sign-in methods, sign out. Profil, mon compte, se déconnecter, mot de passe, langue" },
   { ref: "settings", href: "/workspace/settings", about: "Workspace name, website, icon, timezone. Paramètres, réglages, fuseau horaire" },
@@ -252,13 +253,34 @@ async function collectDocuments(db: Db, workspaceId: string): Promise<Doc[]> {
           feedbackOf(l.id).map((f) => join(f.verdict === "up" ? "Good lead" : "Not a fit", f.reasons.join(", ").replaceAll("_", " "), f.comment)),
         ),
         section("Notes", notesOf(l.id).map((n) => String(n.payload.text ?? ""))),
-        section("Replies", repliesOf(l.id).map((r) => join(r.label?.replaceAll("_", " "), r.summary, r.text))),
-        section("Messages", [
-          ...draftsOf(l.id).map((d) => d.text && `${d.sentAt ? "Sent" : "Draft"}: ${d.text}`),
-          ...actionsOf(l.id).map((a) => a.text && a.status === "done" && `Sent (${a.kind.replace("_", " ")}): ${a.text}`),
-        ]),
         `Play: ${play}. Status: ${l.status.replace("_", " ")}. ${STAGE_LABELS[l.stage] ?? l.stage}, fit ${l.fit}/100, warmness ${l.warmness}/100.`,
         join(p.companyWebsite, p.linkedinUrl, p.email),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+    });
+  }
+
+  // The conversation with each lead, its own document: a lead's would only reach it past the 128
+  // tokens the model reads. Their replies lead (what is searched for most), then what was sent.
+  for (const { lead: l, person: p, play } of leadRows) {
+    const theirs = repliesOf(l.id);
+    const ours = [
+      ...draftsOf(l.id).map((d) => d.text && `${d.sentAt ? "Sent" : "Draft"}: ${d.text}`),
+      ...actionsOf(l.id).map((a) => a.text && a.status === "done" && `Sent (${a.kind.replace("_", " ")}): ${a.text}`),
+    ].filter((m): m is string => Boolean(m));
+    if (!theirs.length && !ours.length) continue;
+    const last = theirs.at(-1);
+    docs.push({
+      kind: "message",
+      refId: l.id,
+      title: p.name,
+      subtitle: last ? (last.summary ?? last.text).slice(0, 140) : join(p.company, play) || null,
+      href: `/leads?tab=all&lead=${l.id}`,
+      text: [
+        section("Replies", [...theirs].reverse().map((r) => join(r.label?.replaceAll("_", " "), r.summary, r.text))),
+        section("Messages", ours),
+        join(p.name, [p.title, p.company].filter(Boolean).join(" at "), `Play: ${play}`),
       ]
         .filter(Boolean)
         .join("\n\n"),

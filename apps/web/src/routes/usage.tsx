@@ -43,8 +43,9 @@ export function UsagePage() {
         <Segmented label={t("range")} options={RANGES.map((key) => ({ value: key, label: t(`range.${key}`) }))} value={range} onChange={setRange} />
       </div>
       {u && (
-        <div className="flex flex-col gap-8">
-          <div className="grid gap-3 sm:grid-cols-3">
+        <div className="@container flex flex-col gap-8">
+          {/* Three across only when the page is wide enough for each amount to stay large. */}
+          <div className="grid gap-3 @xl:grid-cols-3">
             <Stat label={t("spent")} value={usd(u.totals.billed)} detail={t("spentDetail")} />
             <Stat label={t("subscription")} value={usd(u.totals.unbilled)} detail={t("subscriptionDetail")} />
             <Stat

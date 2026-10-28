@@ -175,9 +175,10 @@ export async function getStartedChecklist(db: Db, workspaceId: string) {
     ),
   ]);
   return [
+    // In the order a newcomer meets them: check what Pluton understood, sort what it found, then ask for more.
+    { key: "brain", label: "Edit the brain", to: "/brain", done: editedBrain },
     { key: "review", label: "Review a lead", to: "/leads?tab=to_review", done: reviewedLead },
     { key: "play", label: "Create a play", to: "/plays/new", done: createdPlay },
-    { key: "brain", label: "Edit the brain", to: "/brain", done: editedBrain },
     { key: "agent", label: "Ask the agent", to: "/agent", done: askedAgent },
     { key: "mcp", label: "Connect your AI", to: "/workspace/mcp", done: connectedAi },
   ];

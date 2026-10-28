@@ -1156,7 +1156,7 @@ const vector = (name: string) =>
     fromDriver: (value) => Array.from(new Float32Array(value)),
   })(name);
 
-export const SEARCH_KINDS = ["page", "lead", "play", "brain", "conversation"] as const;
+export const SEARCH_KINDS = ["page", "lead", "play", "brain", "conversation", "message"] as const;
 export type SearchKind = (typeof SEARCH_KINDS)[number];
 
 /**

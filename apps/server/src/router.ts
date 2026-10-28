@@ -59,7 +59,7 @@ import {
   updateWorkspace,
 } from "@pluton/core";
 import { checkClaude, claudeAccess, webSearch } from "@pluton/agent";
-import { BRAIN_SECTIONS, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, eq, gte, jobs, providerCalls, saveSetting, sql } from "@pluton/db";
+import { BRAIN_SECTIONS, HOSTED, PIPELINES, PROPOSAL_STATUSES, count, describeSettings, eq, gte, jobs, providerCalls, saveSetting, sql } from "@pluton/db";
 import {
   MissingKeyError,
   checkProviderKey,
@@ -82,8 +82,28 @@ import { apiKeysRouter } from "./api-keys-router.ts";
 import { assertSettingOpen } from "./api-access.ts";
 import { leadsRouter } from "./leads-router.ts";
 import { publicProcedure, router } from "./trpc.ts";
+import { checkForUpdate, readUpdateProgress, restartsItself, startUpdate, systemLabel, updateBlocker } from "./updates.ts";
 
 const system = router({
+  /**
+   * Self-hosted only: how far this install is behind GitHub's main branch, what it runs on, and
+   * whether it can update itself (null: up to date, hosted, or unknown).
+   */
+  update: publicProcedure.query(async () => {
+    const update = await checkForUpdate();
+    if (!update) return null;
+    const [system, blocker] = await Promise.all([systemLabel(), updateBlocker().catch(() => "not_main" as const)]);
+    return { ...update, system, blocker, restart: restartsItself ? ("auto" as const) : ("manual" as const) };
+  }),
+  /** The update the app started: its step and output, until it is done or failed (null: none). */
+  updateProgress: publicProcedure.query(() => (HOSTED ? null : readUpdateProgress())),
+  runUpdate: publicProcedure.mutation(async () => {
+    try {
+      await startUpdate();
+    } catch (err) {
+      throw new TRPCError({ code: "PRECONDITION_FAILED", message: err instanceof Error ? err.message : String(err) });
+    }
+  }),
   health: publicProcedure.query(async ({ ctx }) => {
     const ws = await getCurrentWorkspace(ctx.db);
     // This workspace's jobs only; bookkeeping ticks belong to none.

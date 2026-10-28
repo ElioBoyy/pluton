@@ -15,30 +15,43 @@ type Provider = inferRouterOutputs<AppRouter>["integrations"]["list"][number]["p
 type Detail = inferRouterOutputs<AppRouter>["integrations"]["get"];
 type CrmProvider = Exclude<Provider, "slack">;
 
-const LOGO: Record<Provider, { letter: string; cls: string }> = {
-  slack: { letter: "S", cls: "bg-cat-purple" },
-  hubspot: { letter: "H", cls: "bg-cat-orange" },
-  attio: { letter: "A", cls: "bg-system-gray" },
-  pipedrive: { letter: "P", cls: "bg-cat-green" },
+/**
+ * Each tool's own mark, white on its brand colour. Slack and HubSpot come from Simple Icons (CC0),
+ * Attio's from its press kit, Pipedrive's "p" from its site icon (public/img/pipedrive.png).
+ */
+const LOGO: Record<Provider, { bg: string; viewBox?: string; paths?: string[]; img?: string }> = {
+  slack: { bg: "bg-[#4A154B]", viewBox: "0 0 24 24", paths: ["M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"] },
+  hubspot: { bg: "bg-[#FF7A59]", viewBox: "0 0 24 24", paths: ["M18.164 7.93V5.084a2.198 2.198 0 001.267-1.978v-.067A2.2 2.2 0 0017.238.845h-.067a2.2 2.2 0 00-2.193 2.193v.067a2.196 2.196 0 001.252 1.973l.013.006v2.852a6.22 6.22 0 00-2.969 1.31l.012-.01-7.828-6.095A2.497 2.497 0 104.3 4.656l-.012.006 7.697 5.991a6.176 6.176 0 00-1.038 3.446c0 1.343.425 2.588 1.147 3.607l-.013-.02-2.342 2.343a1.968 1.968 0 00-.58-.095h-.002a2.033 2.033 0 102.033 2.033 1.978 1.978 0 00-.1-.595l.005.014 2.317-2.317a6.247 6.247 0 104.782-11.134l-.036-.005zm-.964 9.378a3.206 3.206 0 113.215-3.207v.002a3.206 3.206 0 01-3.207 3.207z"] },
+  attio: {
+    bg: "bg-[#0F0F0F] shadow-[inset_0_0_0_1px_var(--gg-edge)]",
+    viewBox: "0 0 69 56",
+    paths: ["M67.4863 39.0275L61.7897 29.9104C61.7897 29.9104 61.7685 29.8722 61.7558 29.8553L61.3065 29.139C60.4588 27.7784 58.9922 26.9646 57.39 26.9603L48.2135 26.9307L47.5735 27.9564L36.6083 45.5041L36.0022 46.4747L40.5968 53.8159C41.4445 55.1807 42.9111 55.9945 44.526 55.9945H57.3858C58.971 55.9945 60.4715 55.1596 61.3107 53.8202L61.7642 53.0954C61.7642 53.0954 61.7812 53.0742 61.7854 53.0657L67.4905 43.9358C68.4273 42.4438 68.4273 40.5153 67.4905 39.0275H67.4863ZM65.7485 42.8465L60.0434 51.9764C60.0179 52.0188 59.9883 52.0527 59.9628 52.0866C59.7636 52.3112 59.5051 52.3409 59.3906 52.3409C59.2592 52.3409 58.9371 52.3028 58.7294 51.9721L53.0243 42.8423C52.9607 42.7405 52.9056 42.6346 52.8548 42.5201C52.8039 42.4099 52.7657 42.2997 52.7318 42.1853C52.6047 41.7275 52.6047 41.2358 52.7318 40.7781C52.7954 40.5534 52.8929 40.3288 53.0201 40.1253L58.7167 31.0039C58.7167 31.0039 58.7252 30.9912 58.7294 30.9827C58.8651 30.7793 59.0346 30.686 59.1829 30.6564C59.2423 30.6394 59.2932 30.6352 59.3355 30.6267C59.3567 30.6267 59.3779 30.6267 59.3991 30.6267C59.5305 30.6267 59.8569 30.6691 60.0603 30.9997L65.757 40.1169C66.2783 40.9476 66.2783 42.0157 65.757 42.8465H65.7485Z", "M50.6297 16.967C51.5622 15.4708 51.5622 13.5465 50.6297 12.0587L44.9331 2.94157L44.4584 2.17439C43.6064 0.813806 42.1399 0 40.5292 0H27.6694C26.063 0 24.5964 0.813805 23.7402 2.17863L0.71208 39.033C0.250076 39.7705 0 40.6225 0 41.4871C0 42.3518 0.245837 43.2038 0.707841 43.937L6.88344 53.8256C7.73539 55.1904 9.20194 56 10.8084 56H23.6682C25.2831 56 26.7496 55.1862 27.5973 53.8214L28.0678 53.0754C28.0678 53.0754 28.0678 53.0754 28.0678 53.0669C28.0678 53.0669 28.0763 53.0542 28.0763 53.05L32.6667 45.7088L46.2725 23.9352L50.6213 16.9712L50.6297 16.967ZM49.2861 14.5129C49.2861 14.9833 49.1547 15.4581 48.8877 15.8777L26.33 51.9818C26.1266 52.3082 25.8002 52.3464 25.6688 52.3464C25.5374 52.3464 25.2153 52.3082 25.0076 51.9818L19.3067 42.8477C18.7896 42.0212 18.7896 40.9573 19.3067 40.1223L41.8644 4.02664C42.0678 3.69603 42.3942 3.65789 42.5256 3.65789C42.657 3.65789 42.9834 3.69604 43.191 4.03088L48.8877 13.148C49.1547 13.5677 49.2861 14.0424 49.2861 14.5129V14.5129Z"],
+  },
+  pipedrive: { bg: "bg-[#017737]", img: "/img/pipedrive.png" },
 };
 
-/** The app's tile, as System Settings draws one beside each pane: rounded square, white glyph. */
+/** The tool's tile, rounded like the workspace's icon. */
 function Logo({ provider, large }: { provider: Provider; large?: boolean }) {
   const l = LOGO[provider];
   return (
     <span
-      className={cn(
-        "flex shrink-0 items-center justify-center font-semibold text-white",
-        large ? "size-12 text-xl" : "size-8 text-sm",
-        l.cls,
-      )}
+      aria-hidden
+      className={cn("flex shrink-0 items-center justify-center overflow-hidden", large ? "size-12 rounded-[14px]" : "size-8 rounded-sm", l.bg)}
     >
-      {l.letter}
+      {l.img ? (
+        <img src={l.img} alt="" draggable={false} className="size-full" />
+      ) : (
+        <svg viewBox={l.viewBox} className="size-[55%]" fill="white">
+          {l.paths!.map((d) => (
+            <path key={d.slice(0, 16)} d={d} />
+          ))}
+        </svg>
+      )}
     </span>
   );
 }
 
-const PILL = "inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-xs font-medium whitespace-nowrap";
+const PILL = "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-medium whitespace-nowrap";
 
 function StatusPill({ status, enabled }: { status?: string; enabled?: boolean }) {
   const t = useT("integrations");
@@ -251,7 +264,6 @@ function SlackConfigSection({ detail }: { detail: Detail }) {
         <Row label={t("slack.eachSearchPosts")} description={t(`delivery.${form.delivery}.hint`)}>
           <Segmented
             label={t("slack.eachSearchPosts")}
-            size="sm"
             options={DELIVERY.map((value) => ({ value, label: t(`delivery.${value}`) }))}
             value={form.delivery}
             onChange={(delivery) => setForm({ ...form, delivery })}

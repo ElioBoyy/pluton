@@ -4,7 +4,6 @@ import {
   Circle,
   CircleNotch,
   Clock,
-  Copy,
   EnvelopeSimple,
   Eye,
   GearSix,
@@ -15,7 +14,6 @@ import {
   Play as PlayIcon,
   UserPlus,
   Users,
-  UserCheck,
   Sparkle,
   type Icon,
 } from "@phosphor-icons/react";
@@ -32,8 +30,10 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useRefreshSequences } from "./add-to-campaign.tsx";
 import { ConfigurePanel, PanelHeader } from "./configure-panel.tsx";
-import { ENROLLMENT, REPLY_LABEL, REVIEW, actionLabel, delayLabel, when } from "./labels.ts";
+import { ENROLLMENT, REPLY_LABEL, REVIEW, delayLabel, when } from "./labels.ts";
 import { StepPanel, type Step } from "./step-panel.tsx";
+import { NeedsYou, Tasks } from "./inbox.tsx";
+import { useClosing } from "../../lib/use-closing.ts";
 
 type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 type ReviewState = "missing" | "being_written" | "not_reviewed" | "reviewed" | "failed";
@@ -299,137 +299,15 @@ function Node({ step, count, selected, onClick, expiry }: { step: Step; count: n
   );
 }
 
-function NeedsYou({ campaignId }: { campaignId: string }) {
-  const t = useT("sequence");
-  const trpc = useTRPC();
-  const refresh = useRefreshSequences();
-  const list = useQuery(trpc.campaigns.replies.needingYou.queryOptions({ campaignId }, { refetchInterval: 30_000 }));
-  const handled = useMutation(trpc.campaigns.replies.handled.mutationOptions({ onSuccess: () => refresh() }));
-  const rows = list.data ?? [];
-  return (
-    <Section title={<>{t("needsYou.title")} {rows.length > 0 && <span className="text-system-orange tabular-nums">· {rows.length}</span>}</>}>
-      {rows.length === 0 ? (
-        <Group className="px-4 py-3">
-          <p className="text-sm text-muted">{t("needsYou.empty")}</p>
-        </Group>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {rows.map((r) => (
-            <li key={r.reply.id} className="bg-panel px-4 py-3 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <Link to="/plays/$playId" params={{ playId: r.playId }} search={{ tab: "leads", lead: r.leadId }} className="truncate font-medium hover:underline">
-                  {r.person.name}
-                </Link>
-                {r.reply.label && <span className={cn("inline-flex rounded-full h-5 shrink-0 items-center px-2 text-xs", REPLY_LABEL[r.reply.label]?.className)}>{REPLY_LABEL[r.reply.label]?.label}</span>}
-              </div>
-              <p className="mt-1.5 text-sm whitespace-pre-wrap text-muted">“{r.reply.text}”</p>
-              {r.reply.summary && <p className="mt-1 text-xs text-muted">{r.reply.summary}</p>}
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                {r.person.linkedinUrl && (
-                  <a href={r.person.linkedinUrl} target="_blank" rel="noreferrer" className="mr-auto text-sm text-accent hover:underline">
-                    {t("needsYou.answer")}
-                  </a>
-                )}
-                <Button variant="ghost" onClick={() => handled.mutate({ replyId: r.reply.id })}>
-                  {t("needsYou.markHandled")}
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Section>
-  );
-}
-
-/** Manual accounts: what to do on LinkedIn now, with the text ready to paste. */
-function Tasks({ playId }: { playId: string }) {
-  const t = useT("sequence");
-  const tc = useT("common");
-  const trpc = useTRPC();
-  const refresh = useRefreshSequences();
-  const list = useQuery(trpc.campaigns.tasks.list.queryOptions(undefined, { refetchInterval: 30_000 }));
-  const complete = useMutation(trpc.campaigns.tasks.complete.mutationOptions({ onSuccess: () => refresh(), onError: (e) => toast(e.message, { tone: "error" }) }));
-  const answer = useMutation(trpc.campaigns.enrollments.invitationAnswer.mutationOptions({ onSuccess: () => refresh() }));
-  const tasks = (list.data?.tasks ?? []).filter((t) => t.playId === playId);
-  const waiting = (list.data?.waiting ?? []).filter((t) => t.playId === playId);
-  if (tasks.length === 0 && waiting.length === 0) return null;
-  const copy = (text: string) => navigator.clipboard.writeText(text).then(() => toast(tc("copied")));
-
-  return (
-    <Section title={t("tasks.title", { count: tasks.length })} description={t("tasks.description")}>
-      <ul className="flex flex-col gap-2">
-        {tasks.map(({ action, person, sender }) => (
-          <li key={action.id} className="bg-panel px-4 py-3 text-sm">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-medium">{actionLabel(action.kind)}</span>
-              <span className="truncate text-xs text-muted">{sender?.name}</span>
-            </div>
-            <p className="text-xs text-muted">
-              {person.name}
-              {person.linkedinUrl && (
-                <a href={person.linkedinUrl} target="_blank" rel="noreferrer" className="ml-1.5 text-accent hover:underline">
-                  {t("tasks.openProfile")}
-                </a>
-              )}
-            </p>
-            {action.detail && action.kind !== "message" && <p className="mt-0.5 text-xs text-muted">{action.detail}</p>}
-            {action.text && (
-              <div className="mt-2 bg-canvas px-3 py-2 text-sm whitespace-pre-wrap">
-                {action.text}
-                <button onClick={() => copy(action.text!)} className="mt-1.5 flex items-center gap-1 text-xs text-accent hover:underline">
-                  <Copy size={11} /> {tc("copy")}
-                </button>
-              </div>
-            )}
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {action.kind === "visit_profile" ? (
-                <>
-                  <Button onClick={() => complete.mutate({ actionId: action.id, done: true, connected: false })}>
-                    {t("tasks.doneNotConnected")}
-                  </Button>
-                  <Button variant="ghost" onClick={() => complete.mutate({ actionId: action.id, done: true, connected: true })}>
-                    {t("tasks.doneConnected")}
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => complete.mutate({ actionId: action.id, done: true })}>
-                  {tc("done")}
-                </Button>
-              )}
-              <Button variant="ghost" onClick={() => complete.mutate({ actionId: action.id, done: false })}>
-                {t("tasks.skip")}
-              </Button>
-            </div>
-          </li>
-        ))}
-        {waiting.map(({ enrollment, person }) => (
-          <li key={enrollment.id} className="bg-panel px-4 py-3 text-sm">
-            <span className="font-medium">{t("tasks.waiting", { name: person.name })}</span>
-            <p className="mt-0.5 text-xs text-muted">{t("tasks.invited", { when: when(enrollment.inviteSentAt) })}</p>
-            <div className="mt-2.5 flex gap-2">
-              <Button onClick={() => answer.mutate({ enrollmentId: enrollment.id, accepted: true })}>
-                <UserCheck size={12} /> {t("tasks.accepted")}
-              </Button>
-              <Button variant="ghost" onClick={() => answer.mutate({ enrollmentId: enrollment.id, accepted: false })}>
-                {t("tasks.giveUp")}
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </Section>
-  );
-}
-
 function EnrolledPanel({ data, onClose }: { data: Data; onClose: () => void }) {
   const t = useT("sequence");
+  const [closing, close] = useClosing(onClose);
   const trpc = useTRPC();
   const list = useQuery(trpc.campaigns.enrollments.list.queryOptions({ campaignId: data.campaign.id }, { refetchInterval: 15_000 }));
   return (
-    <Inspector>
+    <Inspector closing={closing}>
       <section className="flex h-full w-full flex-col" aria-label={t("enrolled.title")}>
-        <PanelHeader title={list.data ? t("enrolled.titleCount", { count: list.data.length }) : t("enrolled.title")} onClose={onClose} />
+        <PanelHeader title={list.data ? t("enrolled.titleCount", { count: list.data.length }) : t("enrolled.title")} onClose={close} />
         <div className="flex-1 overflow-y-auto px-4 pt-1 pb-6">
           {list.data?.length === 0 && <p className="py-8 text-center text-sm text-muted">{t("enrolled.empty")}</p>}
           <ul className="flex flex-col gap-2">

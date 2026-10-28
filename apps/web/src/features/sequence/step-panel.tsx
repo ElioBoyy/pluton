@@ -11,6 +11,7 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { PanelHeader } from "./configure-panel.tsx";
 import { ENROLLMENT, REVIEW, languageName } from "./labels.ts";
+import { POPOVER_EXIT_MS, useClosing } from "../../lib/use-closing.ts";
 
 type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 export type Step = Data["campaign"]["steps"][number];
@@ -21,11 +22,12 @@ const textarea =
 /** Side panel for one step: what it does (Configure) and who is at it (Leads). */
 export function StepPanel({ data, step, onClose, onSaved, onEditTone }: { data: Data; step: Step; onClose: () => void; onSaved: () => void; onEditTone: () => void }) {
   const t = useT("sequence");
+  const [closing, close] = useClosing(onClose);
   const [tab, setTab] = useState<"configure" | "leads">("configure");
   return (
-    <Inspector>
+    <Inspector closing={closing}>
       <section className="flex h-full w-full flex-col" aria-label={step.label}>
-        <PanelHeader eyebrow={step.kind === "message" ? t("step.eyebrowMessage") : t("step.eyebrowStep")} title={step.label} onClose={onClose} />
+        <PanelHeader eyebrow={step.kind === "message" ? t("step.eyebrowMessage") : t("step.eyebrowStep")} title={step.label} onClose={close} />
         <div className="flex shrink-0 justify-center px-5 pb-2">
           <Segmented
             label={t("step.view")}
@@ -54,11 +56,12 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [rewrite, setRewrite] = useState(false);
+  const [unconfirming, dismissConfirm] = useClosing(() => setConfirming(false), POPOVER_EXIT_MS);
   const save = useMutation(
     trpc.campaigns.updateStep.mutationOptions({
       onSuccess: () => {
         toast(t("step.saved"));
-        setConfirming(false);
+        if (confirming) dismissConfirm();
         onSaved();
       },
       onError: (e) => toast(e.message, { tone: "error" }),
@@ -181,7 +184,7 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
           {save.isPending && <CircleNotch size={12} className="animate-spin" />} {tc("save")}
         </Button>
         {confirming && (
-          <div className="popover absolute right-0 bottom-full mb-2 w-80 origin-bottom-right p-4 text-sm">
+          <div className={cn("popover absolute right-0 bottom-full mb-2 w-80 origin-bottom-right p-4 text-sm", unconfirming && "popover-out pointer-events-none")}>
             <p className="font-semibold">{t("step.applyTitle")}</p>
             <p className="mt-1 text-xs text-muted">{t("step.applyBody")}</p>
             <label className="mt-3 flex items-start gap-2 text-xs">
@@ -189,7 +192,7 @@ function Configure({ data, step, onSaved, onEditTone }: { data: Data; step: Step
               {t("step.alsoRewrite")}
             </label>
             <div className="mt-3 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setConfirming(false)}>
+              <Button variant="ghost" onClick={dismissConfirm}>
                 {tc("cancel")}
               </Button>
               <Button onClick={() => submit(rewrite)}>{t("step.apply")}</Button>
@@ -207,6 +210,7 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
   const vars = useQuery(trpc.campaigns.variables.queryOptions());
   const ref = useRef<HTMLTextAreaElement>(null);
   const [menu, setMenu] = useState(false);
+  const [closingMenu, dismissMenu] = useClosing(() => setMenu(false), POPOVER_EXIT_MS);
   const [debounced, setDebounced] = useState(draft.template ?? "");
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(draft.template ?? ""), 250);
@@ -221,7 +225,7 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
     const token = key === "person.first_name" ? `{{ ${key} | "there" }}` : `{{ ${key} }}`;
     const at = el?.selectionStart ?? text.length;
     set({ template: text.slice(0, at) + token + text.slice(el?.selectionEnd ?? at) });
-    setMenu(false);
+    dismissMenu();
   };
   const len = (draft.template ?? "").length;
 
@@ -232,11 +236,11 @@ function TemplateEditor({ data, draft, set }: { data: Data; draft: Step; set: (p
         description={t("template.description")}
         actions={
           <div className="relative">
-            <Button variant="ghost" type="button" onClick={() => setMenu((m) => !m)} aria-expanded={menu} className="!text-accent">
+            <Button variant="ghost" type="button" onClick={() => (menu ? dismissMenu() : setMenu(true))} aria-expanded={menu && !closingMenu} className="!text-accent">
               <BracketsCurly size={12} /> {t("template.insertVariable")}
             </Button>
             {menu && (
-              <div role="menu" className="popover absolute top-full right-0 z-10 mt-2 w-52 origin-top-right p-1.5">
+              <div role="menu" className={cn("popover absolute top-full right-0 z-10 mt-2 w-52 origin-top-right p-1.5", closingMenu && "popover-out pointer-events-none")}>
                 {vars.data?.variables.map((v) => (
                   <button key={v.key} role="menuitem" onClick={() => insert(v.key)} className="flex h-7 w-full items-center px-2.5 text-left text-sm hover:bg-raised">
                     {v.label}

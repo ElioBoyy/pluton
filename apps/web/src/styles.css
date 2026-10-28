@@ -117,6 +117,9 @@
   --ease-out: var(--gg-ease);
   --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
   --ease-drawer: var(--gg-ease);
+  /* Leaving: slow to start, then gone. The entrance curve, played forward, empties in the first 50ms
+     and reads as a cut; an exit has to be seen going. */
+  --ease-exit: cubic-bezier(0.4, 0, 0.9, 0.6);
 }
 
 /* Dark appearance: smoked glass. data-theme is set before first paint (index.html) and by lib/theme.ts. */
@@ -391,6 +394,24 @@ select {
 
 /* Browser surfaces carry the palette too. */
 @layer base {
+  /* Everything that does something on a click shows the hand (Tailwind resets buttons to the arrow). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="radio"],
+  [role="tab"],
+  a[href],
+  summary,
+  select:not(:disabled),
+  label:has(> input:not(:disabled)),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="range"]:not(:disabled) {
+    cursor: pointer;
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-line-strong) transparent;
@@ -452,6 +473,43 @@ select {
       translate: 0;
     }
   }
+}
+
+/*
+ * Leaving: the entrance played back, a little faster. The transitions are !important: the element
+ * still carries its entrance utility (modal-in, popover), whose ease-out would otherwise win. Put on an element while it is closing
+ * (useClosing), before it is removed. Movement is dropped with reduced motion; the fade stays.
+ */
+@utility modal-out {
+  opacity: 0;
+  translate: 0 10px;
+  scale: 0.98;
+  transition:
+    opacity 220ms var(--ease-exit),
+    translate 220ms var(--ease-exit),
+    scale 220ms var(--ease-exit) !important;
+
+  @media (prefers-reduced-motion: reduce) {
+    translate: 0;
+  }
+}
+
+/* A menu or popover leaving: back up toward its trigger as it fades, quicker than it came. */
+@utility popover-out {
+  opacity: 0;
+  translate: 0 -4px;
+  transition:
+    opacity 160ms var(--ease-exit),
+    translate 160ms var(--ease-exit) !important;
+
+  @media (prefers-reduced-motion: reduce) {
+    translate: 0;
+  }
+}
+
+@utility fade-out {
+  opacity: 0;
+  transition: opacity 220ms var(--ease-exit) !important;
 }
 
 /*

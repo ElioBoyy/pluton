@@ -2,9 +2,9 @@ import type { Strings } from "./index.ts";
 
 export default {
   meta: {
-    title: "Pluton : vos prochains clients, trouvés par l'IA",
+    title: "Pluton : vos prochains clients, on les trouve pour vous",
     description:
-      "Pluton surveille votre marché, repère les personnes dont l'entreprise vient de recruter, de publier ou de lever des fonds, et leur écrit avec votre voix. Rien ne part sans votre accord.",
+      "Pluton trouve vos prochains clients pour vous : il surveille votre marché, repère les entreprises qui recrutent, publient ou lèvent des fonds, et leur écrit avec votre voix. Vous n'avez qu'à valider.",
   },
   nav: {
     how: "Fonctionnement",
@@ -16,8 +16,8 @@ export default {
     language: "Langue",
   },
   hero: {
-    title: "Vos prochains clients, trouvés par l'IA.",
-    sub: "Pluton est un agent IA pour les fondateurs qui vendent. Il lit votre site, surveille les entreprises de votre marché qui viennent de recruter, de publier ou de lever des fonds, et leur écrit avec votre voix. Rien ne part sans votre accord.",
+    title: "Vos prochains clients, on les trouve pour vous.",
+    sub: "Pluton lit votre site, repère les entreprises de votre marché qui recrutent, publient ou lèvent des fonds, et leur écrit avec votre voix. Vous n'avez qu'à valider.",
     cta: "Commencer avec votre site",
     code: "L'héberger vous-même",
     price: "À partir de 24,99\u00a0€ par mois. Gratuit sur votre propre machine.",
@@ -75,28 +75,28 @@ export default {
     caption: "Les plaques sur lesquelles Clyde Tombaugh a trouvé Pluton, observatoire Lowell.",
   },
   how: {
-    heading: "Comment marche Pluton",
+    heading: "Ce que Pluton fait pour vous",
     stagesLabel: "Étape",
     stages: [
       {
         name: "Brain",
-        clause: "D'abord, il lit votre site",
-        text: "Donnez-lui votre site, ou deux phrases. Pluton étudie votre entreprise, votre marché, vos clients idéaux, vos personas, vos concurrents et votre ton, puis vous montre tout pour que vous le corrigiez.",
+        clause: "Il apprend votre métier",
+        text: "Donnez-lui votre site, ou deux phrases : c'est tout ce qu'il lui faut. Pluton en tire votre marché, vos clients idéaux, vos personas, vos concurrents et votre ton. Vous corrigez si besoin.",
       },
       {
         name: "Play",
-        clause: "Puis vous dites qui viser",
-        text: "Décrivez-les avec vos mots. Pluton pose les questions qu'il lui faut, puis propose un Play : qui, comment les trouver, combien et à quel rythme.",
+        clause: "Il prépare la chasse",
+        text: "Dites en une phrase qui vous voulez atteindre. Pluton pose ses questions, puis organise tout : qui chercher, où, combien et à quel rythme.",
       },
       {
         name: "Leads",
-        clause: "Il note chaque personne",
-        text: "Les sources gratuites d'abord : registres d'entreprises, pages carrières, détection de technos, recherche web. Chaque score de 0 à 100 vient avec ses preuves.",
+        clause: "Il trouve vos prospects",
+        text: "Pluton fouille tout seul les registres d'entreprises, les pages carrières, les technos des sites et le web, et note chaque personne de 0 à 100, preuves à l'appui. Vous ne cherchez plus.",
       },
       {
         name: "Message",
-        clause: "Enfin, il écrit avec votre voix",
-        text: "Jusqu'à trois messages par personne, écrits à partir de son signal et du ton de votre Brain. Vous les relisez tous, et une réponse arrête la séquence.",
+        clause: "Il écrit à votre place",
+        text: "Jusqu'à trois messages par personne, écrits à partir de ce qui l'a fait repérer et avec votre ton. Vous validez d'un clic, et dès qu'elle répond, Pluton arrête de la relancer.",
       },
     ],
     brain: {
@@ -142,12 +142,12 @@ export default {
     sample: "Espace d'exemple. Les noms sont inventés.",
   },
   trust: {
-    heading: "Il demande avant d'agir.",
-    text: "L'agent prépare, vous décidez. Les recherches montrent leur coût d'abord, les messages attendent votre relecture, et une réponse arrête la séquence d'elle-même.",
+    heading: "Il fait le travail, vous gardez le dernier mot.",
+    text: "Pluton prépare tout, vous n'avez qu'à dire oui. Avant de chercher, il vous dit ce que ça va coûter. Avant d'envoyer un message, il attend votre accord. Et dès qu'une personne répond, il arrête de la relancer.",
     points: [
-      ["Approbations", "Rien n'est envoyé, dépensé ni exporté sans votre accord, et tout ce que vous approuvez reste annulable pendant dix minutes."],
-      ["Plafonds de budget", "Fixez un budget mensuel et un plafond par recherche. Une recherche s'arrête à son plafond et rend ce qu'elle n'a pas utilisé."],
-      ["Chaque étape au grand jour", "Chaque recherche montre ce qu'elle a consommé, en crédits, et ce qu'il reste, et tout ce que fait l'agent apparaît dans l'Activité."],
+      ["Un clic pour valider", "Pluton n'envoie aucun message, ne dépense rien et n'envoie rien vers vos outils sans votre accord. Si vous changez d'avis, vous avez dix minutes pour annuler."],
+      ["Un budget qu'il respecte", "Vous décidez une fois combien Pluton peut dépenser par mois et par recherche. Il ne dépasse jamais ce montant, et ce qu'il n'a pas utilisé vous reste."],
+      ["Rien de caché", "Vous voyez ce que chaque recherche a coûté, ce qu'il vous reste, et l'historique de tout ce que Pluton a fait pour vous."],
     ],
     search: { time: "07:00", title: "Recherche prête à lancer", body: "Agences qui recrutent : environ 15 personnes, jusqu'à 300 crédits. Il reste 1\u00a0290 crédits ce mois-ci.", run: "Lancer la recherche", later: "Pas maintenant" },
     cap: { time: "07:04", title: "Recherche terminée sous son plafond", body: "230 crédits utilisés sur 300. Les 70 restants retournent à votre mois." },
@@ -165,23 +165,23 @@ export default {
     token: "L'adresse du serveur et votre jeton sont déjà remplis dans Réglages → Connecter votre IA.",
   },
   compose: {
-    heading: "Chaque mot passe par vous",
+    heading: "Il écrit, vous validez",
     blocks: [
       {
         title: "LinkedIn ou email",
-        text: "Pluton écrit les deux versions de chaque message et passe à l'email quand une invitation reste sans réponse.",
+        text: "Pluton écrit les deux versions de chaque message, et passe tout seul à l'email quand une invitation reste sans réponse.",
       },
       {
         title: "Dans leur langue",
-        text: "Cinq langues, celle de votre Brain ou une autre pour chaque séquence.",
+        text: "Pluton écrit en français, anglais, italien, espagnol ou allemand, selon les personnes que vous visez.",
       },
       {
-        title: "Vous choisissez qui envoie",
-        text: "Envoi depuis votre compte connecté, dans une plage horaire en semaine, ou une liste de tâches avec le texte prêt à copier.",
+        title: "Il envoie pour vous",
+        text: "Depuis votre compte connecté, en semaine, aux heures que vous choisissez. Ou, si vous préférez, une liste de tâches avec le texte prêt à copier.",
       },
       {
         title: "Rien ne part sans vous",
-        text: "Chaque message attend votre relecture. Une réponse arrête la séquence toute seule.",
+        text: "Chaque message attend votre clic. Dès qu'une personne répond, Pluton arrête de la relancer.",
       },
     ],
     channelLabel: "Canal",
@@ -215,12 +215,12 @@ export default {
     saved: "{amount} d'économie par an",
     ownLines: [
       "Votre propre clé API Anthropic ou OpenAI ; ce fournisseur vous facture l'IA directement",
-      "Brain, Plays, leads, séquences LinkedIn et email",
+      "Prospects trouvés et notés pour vous, messages LinkedIn et email écrits pour vous",
       "Slack, HubSpot, Attio, Pipedrive et MCP pour votre IA",
     ],
     allLines: [
       "L'IA est incluse, décomptée de vos crédits",
-      "Brain, Plays, leads, séquences LinkedIn et email",
+      "Prospects trouvés et notés pour vous, messages LinkedIn et email écrits pour vous",
       "Slack, HubSpot, Attio, Pipedrive et MCP pour votre IA",
     ],
     cta: "Commencer",
@@ -252,6 +252,10 @@ export default {
   faq: {
     heading: "Avant de commencer",
     items: [
+      [
+        "Qu'est-ce que j'ai à faire, moi ?",
+        "Presque rien. Donnez votre site à Pluton, dites qui vous voulez atteindre, puis validez les messages qu'il prépare. Chercher, noter, écrire et relancer, c'est son travail.",
+      ],
       [
         "Est-ce que quelque chose part sans moi ?",
         "Non. Chaque message attend votre relecture, et ce que vous validez peut encore être annulé pendant dix minutes. Une réponse de la personne arrête sa séquence.",

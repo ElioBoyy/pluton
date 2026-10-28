@@ -54,6 +54,24 @@ The database is created in `data/` on first start, along with `data/secret.key`,
 
 Want to try the interface without spending Claude credits? Set `PLUTON_SIMULATE_AGENT=1` in `.env` to replay a sample Brain.
 
+## Update
+
+Pluton is released as versions (`v1.2.0`), published as GitHub releases. When a newer release is out, the sidebar says so (`v1.1.0 → v1.2.0`), and Settings → What's new shows its notes. Click **Update**: the server fetches the release, fast-forwards `main` to it, runs `pnpm install` and, under `pnpm dev`, restarts itself on the new version (under `pnpm start`, restart it yourself). The database migrates itself on start.
+
+It won't run by itself when the folder isn't on `main` or has edited files; the app then gives the command to run by hand:
+
+```bash
+git pull && pnpm install
+```
+
+To check, the server asks GitHub's public API for the latest release, at most every six hours: GitHub sees the request, nothing from your workspace. Set `PLUTON_UPDATE_CHECK=off` in `.env` to turn it off.
+
+### Releasing a version
+
+1. Bump `version` in the root `package.json` (`1.1.0`), and add its entry on top of `VERSIONS` in `apps/web/src/lib/releases.ts` with the notes in five languages.
+2. Commit on `main` and push.
+3. Publish a GitHub release on that commit, tagged `v1.1.0`, with the notes in its description. Installs on an older version see it within six hours.
+
 ## How it works
 
 ### Layout

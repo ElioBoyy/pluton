@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowSquareOut, Browsers, Link as LinkIcon, type Icon } from "@phosphor-icons/react";
 import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
+import { EXIT_MS, POPOVER_EXIT_MS } from "../lib/use-closing.ts";
 
 /**
  * Right-click menus: an opaque plate at the pointer, items highlighted in ultramarine, destructive
@@ -81,7 +82,12 @@ function Menu({ state }: { state: NonNullable<MenuState> }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: state.x, top: state.y, origin: "top left" });
   const [active, setActive] = useState(-1);
-  const close = () => setMenu(null);
+  // Appears at once, fades as it goes, as macOS menus do; a menu opened meanwhile isn't touched.
+  const [closing, setClosing] = useState(false);
+  const close = () => {
+    setClosing(true);
+    window.setTimeout(() => menu === state && setMenu(null), POPOVER_EXIT_MS);
+  };
   const selectable = state.items.map((item, i) => (item !== "gap" && !item.disabled ? i : -1)).filter((i) => i >= 0);
 
   // Open toward the side with room, as macOS does near the screen edges.
@@ -156,7 +162,7 @@ function Menu({ state }: { state: NonNullable<MenuState> }) {
       role="menu"
       tabIndex={-1}
       onContextMenu={(e) => e.preventDefault()}
-      className="glass fixed z-[60] min-w-52 p-1.5 text-sm outline-none select-none"
+      className={cn("glass fixed z-[60] min-w-52 p-1.5 text-sm outline-none select-none", closing && "popover-out pointer-events-none")}
       style={{ left: pos.left, top: pos.top, transformOrigin: pos.origin }}
     >
       {state.items.map((item, i) =>
@@ -213,34 +219,44 @@ export function ConfirmHost() {
     () => pending,
   );
   const confirmRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => confirmRef.current?.focus(), [state]);
+  // The answer is given at once; the dialog then plays its exit before it goes.
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    confirmRef.current?.focus();
+    setClosing(false);
+  }, [state]);
   if (!state) return null;
   const done = (ok: boolean) => {
-    pending = null;
-    confirmListeners.forEach((l) => l());
+    if (closing) return;
     state.resolve(ok);
+    setClosing(true);
+    window.setTimeout(() => {
+      pending = null;
+      confirmListeners.forEach((l) => l());
+    }, EXIT_MS);
   };
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/25 p-6 motion-safe:animate-[fadeIn_150ms_ease-out]"
+      className={cn("fixed inset-0 z-[70] flex items-center justify-center bg-black/25 p-6 motion-safe:animate-[fadeIn_150ms_ease-out]", closing && "fade-out")}
       onClick={(e) => e.target === e.currentTarget && done(false)}
       onKeyDown={(e) => e.key === "Escape" && done(false)}
     >
-      <div role="alertdialog" aria-modal="true" aria-label={state.title} className="glass modal-in w-full max-w-[280px] p-5 text-center">
+      <div role="alertdialog" aria-modal="true" aria-label={state.title} className={cn("glass modal-in w-full max-w-[280px] p-5 text-center", closing && "modal-out")}>
         <p className="text-[15px] leading-5 font-semibold text-balance">{state.title}</p>
         {state.message && <p className="mt-1.5 text-xs text-muted text-pretty">{state.message}</p>}
         <div className="mt-5 flex flex-col gap-2">
           <button
             ref={confirmRef}
             onClick={() => done(true)}
+            // Capsules, as every button in the app; red when the action can't be undone.
             className={cn(
-              "h-8 text-sm font-medium text-white outline-none focus-visible:focus-ring motion-safe:active:scale-[0.98]",
+              "h-8 rounded-full text-sm font-medium text-white outline-none transition-[filter,scale] duration-150 hover:brightness-110 focus-visible:focus-ring motion-safe:active:scale-[0.98]",
               state.destructive ? "bg-system-red" : "bg-accent",
             )}
           >
             {state.confirmLabel}
           </button>
-          <button onClick={() => done(false)} className="capsule h-8 text-sm font-medium motion-safe:active:scale-[0.98]">
+          <button onClick={() => done(false)} className="capsule h-8 rounded-full text-sm font-medium transition-[background-color,scale] duration-150 hover:bg-(--capsule-bg-hover) motion-safe:active:scale-[0.98]">
             {tc("cancel")}
           </button>
         </div>

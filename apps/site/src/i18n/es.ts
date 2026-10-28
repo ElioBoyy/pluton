@@ -2,9 +2,9 @@ import type { Strings } from "./index.ts";
 
 export default {
   meta: {
-    title: "Pluton: tus próximos clientes, encontrados por IA",
+    title: "Pluton: tus próximos clientes, los encontramos por ti",
     description:
-      "Pluton vigila tu mercado, detecta a las personas cuya empresa acaba de empezar a contratar, a publicar o a levantar fondos, y les escribe con tu voz. No sale nada hasta que tú lo digas.",
+      "Pluton encuentra a tus próximos clientes por ti: vigila tu mercado, detecta las empresas que contratan, publican o levantan una ronda, y les escribe con tu voz. Tú solo apruebas.",
   },
   nav: {
     how: "Cómo funciona",
@@ -16,8 +16,8 @@ export default {
     language: "Idioma",
   },
   hero: {
-    title: "Tus próximos clientes, encontrados por IA.",
-    sub: "Pluton es un agente de IA para fundadores que venden. Lee tu web, vigila las empresas de tu mercado que acaban de contratar, publicar o levantar una ronda, y les escribe con tu voz. No sale nada hasta que tú lo dices.",
+    title: "Tus próximos clientes, los encontramos por ti.",
+    sub: "Pluton lee tu web, detecta las empresas de tu mercado que contratan, publican o levantan una ronda, y les escribe con tu voz. Tú solo apruebas.",
     cta: "Empieza con tu web",
     code: "Alójalo tú",
     price: "Desde 24,99\u00a0€ al mes. Gratis en tu propio equipo.",
@@ -75,28 +75,28 @@ export default {
     caption: "Las placas en las que Clyde Tombaugh encontró Plutón, Observatorio Lowell.",
   },
   how: {
-    heading: "Cómo funciona Pluton",
+    heading: "Lo que Pluton hace por ti",
     stagesLabel: "Etapa",
     stages: [
       {
         name: "Brain",
-        clause: "Primero, lee tu web",
-        text: "Dale tu web, o dos frases. Pluton investiga tu empresa, tu mercado, tus clientes ideales, tus personas, tus competidores y tu tono, y te lo muestra todo para que lo edites.",
+        clause: "Aprende tu empresa",
+        text: "Dale tu web, o dos frases: es todo lo que necesita. Pluton saca de ahí tu mercado, tus clientes ideales, tus buyer personas, tus competidores y tu tono. Corrige lo que quieras.",
       },
       {
         name: "Play",
-        clause: "Luego dices a quién llegar",
-        text: "Descríbelos con palabras sencillas. Pluton pregunta lo que necesita y propone un Play: quién, cómo encontrarlos, cuántos y con qué frecuencia.",
+        clause: "Prepara la búsqueda",
+        text: "Di en una frase a quién quieres llegar. Pluton hace sus preguntas y luego lo organiza todo: a quién buscar, dónde, cuántos y a qué ritmo.",
       },
       {
         name: "Leads",
-        clause: "Puntúa a cada persona",
-        text: "Primero las fuentes gratuitas: registros mercantiles, páginas de empleo, detección de tecnologías, búsqueda web. Cada puntuación de 0 a 100 llega con las pruebas que la respaldan.",
+        clause: "Encuentra tus leads",
+        text: "Pluton rastrea por su cuenta registros mercantiles, páginas de empleo, tecnologías de las webs y la web, y puntúa a cada persona de 0 a 100, con las pruebas. Tú dejas de buscar.",
       },
       {
         name: "Message",
-        clause: "Por último, escribe con tu voz",
-        text: "Hasta tres mensajes por persona, escritos a partir de su señal y del tono de tu Brain. Los lees todos, y una respuesta detiene la secuencia.",
+        clause: "Escribe por ti",
+        text: "Hasta tres mensajes por persona, escritos a partir de lo que la hizo destacar y con tu tono. Apruebas con un clic, y en cuanto responde, Pluton deja de escribirle.",
       },
     ],
     brain: {
@@ -142,12 +142,12 @@ export default {
     sample: "Espacio de ejemplo. Los nombres son inventados.",
   },
   trust: {
-    heading: "Pregunta antes de actuar.",
-    text: "El agente prepara, tú decides. Las búsquedas enseñan antes su coste, los mensajes esperan tu revisión y una respuesta detiene la secuencia sola.",
+    heading: "Él trabaja, tú decides.",
+    text: "Pluton lo prepara todo; tú solo dices que sí. Antes de buscar, te dice cuánto va a costar. Antes de enviar un mensaje, espera tu visto bueno. Y en cuanto alguien responde, deja de escribirle.",
     points: [
-      ["Aprobaciones", "No se envía, gasta ni exporta nada sin tu aprobación, y lo que apruebas se puede deshacer durante diez minutos."],
-      ["Topes de presupuesto", "Fija un presupuesto mensual y un tope por búsqueda. Una búsqueda se detiene en su tope y devuelve lo que no usó."],
-      ["Cada paso a la vista", "Cada búsqueda muestra lo que consumió, en créditos, y lo que queda, y todo lo que hace el agente aparece en Actividad."],
+      ["Un clic para aprobar", "Pluton no envía ningún mensaje, no gasta nada y no manda nada a tus herramientas sin tu visto bueno. Si cambias de idea, tienes diez minutos para deshacerlo."],
+      ["Un presupuesto que respeta", "Decides una vez cuánto puede gastar Pluton al mes y por búsqueda. Nunca lo supera, y lo que no usa sigue siendo tuyo."],
+      ["Nada oculto", "Ves lo que costó cada búsqueda, lo que te queda y el historial de todo lo que Pluton ha hecho por ti."],
     ],
     search: { time: "07:00", title: "Búsqueda lista para lanzar", body: "Estudios que contratan: unas 15 personas, hasta 300 créditos. Quedan 1290 créditos este mes.", run: "Lanzar búsqueda", later: "Ahora no" },
     cap: { time: "07:04", title: "Búsqueda terminada bajo su tope", body: "230 de 300 créditos usados. Los otros 70 siguen en tu mes." },
@@ -165,23 +165,23 @@ export default {
     token: "La dirección del servidor y tu token ya vienen rellenos en Ajustes → Conecta tu IA.",
   },
   compose: {
-    heading: "Cada palabra pasa por ti",
+    heading: "Él escribe, tú apruebas",
     blocks: [
       {
         title: "LinkedIn o email",
-        text: "Pluton escribe las dos versiones de cada mensaje y pasa al email cuando una invitación queda sin respuesta.",
+        text: "Pluton escribe las dos versiones de cada mensaje, y pasa solo al email cuando una invitación se queda sin respuesta.",
       },
       {
         title: "En su idioma",
-        text: "Cinco idiomas, el de tu Brain o uno elegido para cada secuencia.",
+        text: "Pluton escribe en español, inglés, francés, italiano o alemán, según las personas a las que quieras llegar.",
       },
       {
-        title: "Tú eliges quién envía",
-        text: "Envía desde tu cuenta conectada dentro de una franja horaria entre semana, o recibe una lista de tareas con el texto listo para copiar.",
+        title: "Envía por ti",
+        text: "Desde tu cuenta conectada, entre semana, en las horas que elijas. O, si lo prefieres, una lista de tareas con el texto listo para copiar.",
       },
       {
-        title: "Nada sale sin que lo veas",
-        text: "Cada mensaje espera tu revisión. Una respuesta detiene la secuencia por sí sola.",
+        title: "No sale nada sin ti",
+        text: "Cada mensaje espera tu clic. En cuanto alguien responde, Pluton deja de escribirle.",
       },
     ],
     channelLabel: "Canal",
@@ -215,12 +215,12 @@ export default {
     saved: "{amount} de ahorro al año",
     ownLines: [
       "Usa tu propia clave API de Anthropic u OpenAI; ese proveedor te factura la IA directamente",
-      "Brain, Plays, leads, secuencias de LinkedIn y email",
+      "Prospectos encontrados y puntuados para ti, mensajes de LinkedIn y email escritos para ti",
       "Slack, HubSpot, Attio, Pipedrive y MCP para tu IA",
     ],
     allLines: [
       "La IA está incluida y se descuenta de tus créditos",
-      "Brain, Plays, leads, secuencias de LinkedIn y email",
+      "Prospectos encontrados y puntuados para ti, mensajes de LinkedIn y email escritos para ti",
       "Slack, HubSpot, Attio, Pipedrive y MCP para tu IA",
     ],
     cta: "Empezar",
@@ -252,6 +252,10 @@ export default {
   faq: {
     heading: "Antes de empezar",
     items: [
+      [
+        "¿Qué tengo que hacer yo?",
+        "Casi nada. Dale tu web a Pluton, di a quién quieres llegar y aprueba los mensajes que prepara. Buscar, puntuar, escribir y hacer el seguimiento es cosa suya.",
+      ],
       [
         "¿Se envía algo sin mí?",
         "No. Cada mensaje espera tu revisión, y lo que apruebas aún se puede deshacer durante diez minutos. Una respuesta de la persona detiene su secuencia.",

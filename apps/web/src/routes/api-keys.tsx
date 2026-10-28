@@ -81,7 +81,7 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
             {s.configured ? (
               <CheckCircle size={14} weight="fill" className="shrink-0 text-system-green" aria-label={t("apiKeys.set")} />
             ) : (
-              <span className="bg-control px-1.5 py-px text-xs font-medium text-muted">{t("apiKeys.notSet")}</span>
+              <span className="inline-flex h-5 shrink-0 items-center rounded-full bg-control px-2 text-xs font-medium whitespace-nowrap text-muted">{t("apiKeys.notSet")}</span>
             )}
           </p>
           <p className="mt-0.5 text-xs text-muted">{s.description}</p>
@@ -98,7 +98,6 @@ export function SettingItem({ setting: s }: { setting: Setting }) {
         {s.options ? (
           <Segmented
             label={s.label}
-            size="sm"
             options={s.options.map((o) => ({ value: o.value, label: o.label }))}
             value={s.value ?? ""}
             onChange={(value) => save.mutate({ key: s.key, value })}

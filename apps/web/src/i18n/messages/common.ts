@@ -3,6 +3,9 @@ import { defineMessages } from "../define.ts";
 /** Words every area uses. Area-specific strings live in that area's namespace, even when they repeat one of these. */
 export default defineMessages({
   en: {
+    time: "Time",
+    hours: "Hours",
+    minutes: "Minutes",
     save: "Save",
     saved: "Saved",
     cancel: "Cancel",
@@ -36,6 +39,9 @@ export default defineMessages({
     somethingWentWrong: "Something went wrong.",
   },
   fr: {
+    time: "Heure",
+    hours: "Heures",
+    minutes: "Minutes",
     save: "Enregistrer",
     saved: "Enregistré",
     cancel: "Annuler",
@@ -69,6 +75,9 @@ export default defineMessages({
     somethingWentWrong: "Une erreur s’est produite.",
   },
   it: {
+    time: "Ora",
+    hours: "Ore",
+    minutes: "Minuti",
     save: "Salva",
     saved: "Salvato",
     cancel: "Annulla",
@@ -102,6 +111,9 @@ export default defineMessages({
     somethingWentWrong: "Si è verificato un errore.",
   },
   es: {
+    time: "Hora",
+    hours: "Horas",
+    minutes: "Minutos",
     save: "Guardar",
     saved: "Guardado",
     cancel: "Cancelar",
@@ -135,6 +147,9 @@ export default defineMessages({
     somethingWentWrong: "Algo ha salido mal.",
   },
   de: {
+    time: "Uhrzeit",
+    hours: "Stunden",
+    minutes: "Minuten",
     save: "Sichern",
     saved: "Gesichert",
     cancel: "Abbrechen",

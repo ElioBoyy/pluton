@@ -149,7 +149,6 @@ export function BudgetPage() {
               <Row label={t("budget.atLimit")} description={t(`mode.${form.mode}.hint`)}>
                 <Segmented
                   label={t("budget.atLimit")}
-                  size="sm"
                   options={MODES.map((value) => ({ value, label: t(`mode.${value}`) }))}
                   value={form.mode}
                   onChange={(mode) => setForm({ ...form, mode })}

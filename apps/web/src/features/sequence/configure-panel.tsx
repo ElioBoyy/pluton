@@ -11,16 +11,18 @@ import { useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { CAMPAIGN_LANGUAGES, dayName, languageName } from "./labels.ts";
+import { useClosing } from "../../lib/use-closing.ts";
 
 type Data = inferRouterOutputs<AppRouter>["campaigns"]["get"];
 
 /** Campaign settings: objective, tone (saved to the Brain), language, send window and accounts. */
 export function ConfigurePanel({ data, onClose, onSaved, focus }: { data: Data; onClose: () => void; onSaved: () => void; focus?: "tone" }) {
   const t = useT("sequence");
+  const [closing, close] = useClosing(onClose);
   return (
-    <Inspector>
+    <Inspector closing={closing}>
       <section className="flex h-full w-full flex-col" aria-label={t("configure.label")}>
-        <PanelHeader title={t("configure.title")} onClose={onClose} />
+        <PanelHeader title={t("configure.title")} onClose={close} />
         <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 pt-1 pb-6 [&>*]:shrink-0">
           {focus === "tone" ? (
             <>
@@ -119,7 +121,7 @@ function Objective({ data, onSaved }: { data: Data; onSaved: () => void }) {
       {kind !== "none" && (
         <Group className="mt-3">
           <Block>
-            <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://cal.com/you/20min" aria-label={t("objective.link")} />
+            <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder={kind === "share_app" ? "https://scruti.fr" : "https://cal.com/you/20min"} aria-label={t("objective.link")} />
           </Block>
           <Row label={t("objective.autoReply")} description={t("objective.autoReplyHint")}>
             <Switch checked={autoReply} onChange={setAutoReply} label={t("objective.autoReplyShort")} />

@@ -3,7 +3,7 @@ import {
   Segmented as GlassSegmented,
   Switch as GlassSwitch,
 } from "@pluton/glass";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn.ts";
 
 /*
@@ -203,9 +203,10 @@ export function Segmented<T extends string>({
   label: string;
   size?: "sm" | "md";
 }) {
+  const strip = useStrip(value);
   return (
     // Wider than the room it has (a phone, a pane beside it), it scrolls sideways instead of widening the page.
-    <div className="-m-1 max-w-full min-w-0 overflow-x-auto p-1 [scrollbar-width:none]">
+    <div {...strip} className={cn(strip.className, "-m-1 max-w-full min-w-0 p-1")}>
       <GlassSegmented
         options={options}
         value={value}
@@ -218,6 +219,120 @@ export function Segmented<T extends string>({
       />
     </div>
   );
+}
+
+/** Pixels a press must travel before it counts as a drag rather than a click. */
+const DRAG_SLOP = 4;
+/** How far the edge fade reaches, where more options hide past the edge. */
+const FADE = "28px";
+
+/**
+ * A row that scrolls sideways when it doesn't fit, and says so: the edge with more past it fades
+ * out, a mouse can grab and drag it, a vertical wheel moves it sideways, and the chosen option is
+ * always brought into view. Touch scrolls natively.
+ */
+export function useStrip(value: string, chosenSelector = '[aria-checked="true"]', enabled = true) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      setEdges({ start: el.scrollLeft > 1, end: el.scrollLeft < max - 1 });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    if (el.firstElementChild) observer.observe(el.firstElementChild);
+    el.addEventListener("scroll", measure, { passive: true });
+    // A plain wheel scrolls the page; over a strip that overflows it moves the strip until its end.
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if ((e.deltaY < 0 && el.scrollLeft <= 0) || (e.deltaY > 0 && el.scrollLeft >= max)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("scroll", measure);
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
+  // The chosen option comes into view, clear of the edge fade: at once when the strip appears (a
+  // page reopened on a far tab), smoothly when the choice changes.
+  const shown = useRef(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const smooth = shown.current && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    shown.current = true;
+    // After layout: the labels' widths are only right once the strip is laid out.
+    const frame = requestAnimationFrame(() => {
+      const chosen = el.querySelector<HTMLElement>(chosenSelector);
+      if (!chosen || el.scrollWidth <= el.clientWidth) return;
+      const room = 36;
+      const left = chosen.offsetLeft - room;
+      const right = chosen.offsetLeft + chosen.offsetWidth + room - el.clientWidth;
+      const target = el.scrollLeft > left ? left : el.scrollLeft < right ? right : null;
+      if (target !== null) el.scrollTo({ left: target, behavior: smooth ? "smooth" : "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [value, chosenSelector]);
+
+  const mask =
+    enabled && (edges.start || edges.end)
+      ? `linear-gradient(to right, ${edges.start ? "transparent" : "#000"} 0, #000 ${edges.start ? FADE : "0"}, #000 calc(100% - ${edges.end ? FADE : "0px"}), ${edges.end ? "transparent" : "#000"} 100%)`
+      : undefined;
+
+  return {
+    ref,
+    // While it overflows: an open hand between the options (which keep their pointer), a closed one
+    // over everything while it is held.
+    className: cn(
+      "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+      (edges.start || edges.end) && "cursor-grab select-none active:cursor-grabbing [&:active_*]:cursor-grabbing",
+    ),
+    style: { maskImage: mask, WebkitMaskImage: mask },
+    // Mouse only: touch and pens already scroll the strip themselves.
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      const el = ref.current;
+      if (e.pointerType !== "mouse" || e.button !== 0 || !el || el.scrollWidth <= el.clientWidth) return;
+      drag.current = { x: e.clientX, left: el.scrollLeft, moved: false };
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = drag.current;
+      const el = ref.current;
+      if (!d || !el) return;
+      const dx = e.clientX - d.x;
+      if (!d.moved && Math.abs(dx) < DRAG_SLOP) return;
+      // Keep the drag while the pointer leaves the strip; a pointer the browser no longer tracks just isn't captured.
+      if (!d.moved && el.hasPointerCapture && !el.hasPointerCapture(e.pointerId)) {
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch {}
+      }
+      d.moved = true;
+      el.scrollLeft = d.left - dx;
+    },
+    onPointerUp: () => {
+      // A drag that moved ends without choosing the option it was released over.
+      if (drag.current?.moved) {
+        const swallow = (ev: MouseEvent) => (ev.stopPropagation(), ev.preventDefault());
+        window.addEventListener("click", swallow, { capture: true, once: true });
+        setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 0);
+      }
+      drag.current = null;
+    },
+    onPointerCancel: () => (drag.current = null),
+    // Links in a strip (Settings' sections) would start the browser's own link drag instead.
+    onDragStart: (e: React.DragEvent<HTMLDivElement>) => e.preventDefault(),
+  };
 }
 
 /** The kit's meter: a thin capsule filled in ultramarine (or a status colour); `value` is 0–1. */
@@ -236,11 +351,31 @@ export function Progress({ value, tone = "accent", className }: { value: number;
 /** A figure with its label in a card, the number set like the landing's price: bold, tight, tabular. */
 export function Stat({ label, value, detail, className }: { label: ReactNode; value: ReactNode; detail?: ReactNode; className?: string }) {
   return (
-    <div className={cn("gg-card px-4 py-4", className)}>
+    <div className={cn("gg-card @container min-w-0 px-4 py-4", className)}>
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-2 text-[34px] leading-[30px] font-bold tracking-[-0.04em] tabular-nums">{value}</p>
+      {/* Sized by the card, not the window: a long amount ("1 234,56 $US") shrinks to fit on one line, never past it. */}
+      <p className="mt-2 text-[clamp(1rem,15cqi,34px)] leading-[0.9] font-bold tracking-[-0.04em] whitespace-nowrap tabular-nums">
+        {typeof value === "string" ? <Amount text={value} /> : value}
+      </p>
       {detail && <p className="mt-0.5 text-xs text-muted">{detail}</p>}
     </div>
+  );
+}
+
+/** The figure at full size, its currency ("$US", "$", "€") smaller beside it, so the number carries the card. */
+function Amount({ text }: { text: string }) {
+  const m = /^(\D*?)([-−]?\d[\d\s.,\u00a0\u202f]*)(\D*)$/.exec(text);
+  const [, before = "", figure = "", after = ""] = m ?? [];
+  if (!m || (!before.trim() && !after.trim())) return text;
+  const unit = (u: string) => u.trim() && <span className="text-[0.5em] font-semibold tracking-normal text-muted">{u.trim()}</span>;
+  return (
+    <>
+      {unit(before)}
+      {before.trim() && "\u2009"}
+      {figure.trim()}
+      {after.trim() && "\u2009"}
+      {unit(after)}
+    </>
   );
 }
 

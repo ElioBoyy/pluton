@@ -33,12 +33,14 @@ import { formatDate } from "../../lib/format.ts";
 import { translate, useT } from "../../i18n/index.ts";
 import { PIPELINE_LABELS } from "../plays/labels.ts";
 import { COLUMNS, LEAD_TABS, STATUS, type ColumnKey, type LeadTabKey, type RejectReason } from "./labels.ts";
+import { ProofLink } from "./proof-link.tsx";
 import { LeadDrawer } from "./lead-drawer.tsx";
 import { RejectPopover } from "./reject-popover.tsx";
 import { downloadText, useRefreshLeads, useReviewLeads } from "./use-lead-actions.ts";
 import { AddToCampaignModal } from "../sequence/add-to-campaign.tsx";
 import { ENROLLMENT } from "../sequence/labels.ts";
 import { BulkCrmExport } from "../integrations/crm-export.tsx";
+import { POPOVER_EXIT_MS, useClosing } from "../../lib/use-closing.ts";
 
 /** "Add N to campaign": opens the message review before they join their Play's sequence. */
 function BulkAddToCampaign({ resolveIds, count, onDone }: { resolveIds: () => Promise<string[]>; count: number; onDone: () => void }) {
@@ -136,6 +138,7 @@ export function LeadsView({
   }, [searchInput]);
 
   const filter = { playId, tab, search: search || undefined, pipeline: (pipeline || undefined) as LeadRow["pipeline"] & {} | undefined };
+  const pinActions = tab === "to_review" || tab === "new";
   // A new filter starts a new page and a new selection.
   const filterKey = JSON.stringify(filter);
   useEffect(() => {
@@ -287,6 +290,7 @@ export function LeadsView({
       ) : (
         <Group className="overflow-x-auto">
           {/* NSTableView: small secondary headers that never wrap, zebra rows instead of separators. */}
+          {/* Where a verdict is the job, the buttons for it are always in view, not only on hover. */}
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs whitespace-nowrap text-muted">
@@ -297,7 +301,7 @@ export function LeadsView({
                 {COLUMNS.filter((c) => has(c)).map((c) => (
                   <SortHeader key={c} label={t(`column.${c}`)} sortKey={COLUMN_SORT[c]} sort={sort} onSort={sortBy} alignRight={c === "fit" || c === "warmness"} />
                 ))}
-                <th className="w-0 p-0 [@media(hover:none)]:w-auto">
+                <th className={pinActions ? "w-auto" : "w-0 p-0 [@media(hover:none)]:w-auto"}>
                   <span className="sr-only">{t("table.actions")}</span>
                 </th>
               </tr>
@@ -308,6 +312,7 @@ export function LeadsView({
                   key={l.id}
                   lead={l}
                   has={has}
+                  pinActions={pinActions}
                   selected={allMatching || selected.has(l.id)}
                   open={l.id === openLeadId}
                   onToggle={() => toggle(l.id)}
@@ -369,6 +374,7 @@ function SortHeader({
 function Row({
   lead: l,
   has,
+  pinActions,
   selected,
   open,
   onToggle,
@@ -376,6 +382,7 @@ function Row({
 }: {
   lead: LeadRow;
   has: (c: ColumnKey) => boolean;
+  pinActions: boolean;
   selected: boolean;
   open: boolean;
   onToggle: () => void;
@@ -476,6 +483,7 @@ function Row({
         <td className="max-w-72 min-w-48 px-3 py-2" title={`${l.reason}\n\n${l.signal}`}>
           <p className="line-clamp-1 text-sm">{l.signalLabel}</p>
           <p className="line-clamp-2 text-xs text-muted">{l.reason}</p>
+          <ProofLink evidence={l.evidence} className="mt-0.5 text-xs" />
         </td>
       )}
       {has("fit") && <td className="px-3 py-2 text-right tabular-nums text-muted">{l.fit}</td>}
@@ -505,12 +513,21 @@ function Row({
         * With a pointer, the actions float over the row's trailing edge in a small block, on hover or
         * keyboard focus, as in Mail, so they take no column. On touch screens they sit in their own column.
         */}
-      <td className="sticky right-0 w-0 p-0 [@media(hover:none)]:static [@media(hover:none)]:w-auto [@media(hover:none)]:py-1.5 [@media(hover:none)]:pr-3" onClick={stop}>
+      <td
+        className={
+          pinActions
+            ? "w-auto py-1.5 pr-3"
+            : "sticky right-0 w-0 p-0 [@media(hover:none)]:static [@media(hover:none)]:w-auto [@media(hover:none)]:py-1.5 [@media(hover:none)]:pr-3"
+        }
+        onClick={stop}
+      >
         <div
           className={cn(
             "flex justify-end gap-0.5 transition-opacity duration-150",
-            "[@media(hover:hover)]:absolute [@media(hover:hover)]:rounded-full [@media(hover:hover)]:bg-float [@media(hover:hover)]:shadow-control [@media(hover:hover)]:backdrop-blur-xl [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
-            !rejecting &&
+            !pinActions &&
+              "[@media(hover:hover)]:absolute [@media(hover:hover)]:rounded-full [@media(hover:hover)]:bg-float [@media(hover:hover)]:shadow-control [@media(hover:hover)]:backdrop-blur-xl [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
+            !pinActions &&
+              !rejecting &&
               "[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:pointer-events-auto [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
           )}
         >
@@ -526,14 +543,17 @@ function Row({
           <RowAction ref={rejectRef} label={t("action.notFit")} active={l.status === "rejected"} onClick={() => setRejecting(true)} disabled={review.isPending}>
             <ThumbsDown size={15} weight={l.status === "rejected" ? "fill" : "regular"} />
           </RowAction>
-          {!l.sequenceStatus && l.status !== "rejected" && (
+          {/* Pinned, the row keeps only the verdict; the rest is in the lead's drawer and its menu. */}
+          {!pinActions && !l.sequenceStatus && l.status !== "rejected" && (
             <RowAction label={t("action.addToCampaign")} onClick={() => setAdding(true)}>
               <PaperPlaneTilt size={15} />
             </RowAction>
           )}
-          <RowAction label={t("action.addNote")} onClick={() => onOpen(true)}>
-            <ChatCircle size={15} />
-          </RowAction>
+          {!pinActions && (
+            <RowAction label={t("action.addNote")} onClick={() => onOpen(true)}>
+              <ChatCircle size={15} />
+            </RowAction>
+          )}
           {adding && <AddToCampaignModal leadIds={[l.id]} onClose={() => setAdding(false)} />}
           {rejecting && (
             <RejectPopover
@@ -768,6 +788,8 @@ function ExportButton({ filter, count }: { filter: Filter; count: number }) {
 function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c: ColumnKey[]) => void }) {
   const t = useT("leads");
   const [open, setOpen] = useState(false);
+  // Closing lets the menu fade back toward the button before it goes.
+  const [closing, dismiss] = useClosing(() => setOpen(false), POPOVER_EXIT_MS);
   const ref = useRef<HTMLDivElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
@@ -775,9 +797,9 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
     if (!open) return;
     const a = ref.current?.getBoundingClientRect();
     if (a) setPos({ top: a.bottom + 8, right: window.innerWidth - a.right });
-    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && !menu.current?.contains(e.target as Node) && setOpen(false);
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    const close = () => setOpen(false);
+    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && !menu.current?.contains(e.target as Node) && dismiss();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && dismiss();
+    const close = () => dismiss();
     document.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey);
     window.addEventListener("resize", close);
@@ -789,8 +811,9 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
   }, [open]);
   const ordered = useMemo(() => (c: ColumnKey[]) => COLUMNS.filter((k) => c.includes(k)), []);
   return (
-    <div ref={ref} className="relative">
-      <GroupButton className="gap-1.5 px-3 text-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+    // A flex box, so the button fills the group's height and its label sits in the middle like Export's.
+    <div ref={ref} className="relative flex">
+      <GroupButton className="gap-1.5 px-3 text-sm" onClick={() => (open ? dismiss() : setOpen(true))} aria-expanded={open && !closing}>
         <GearSix size={14} /> {t("columns")}
       </GroupButton>
       {open &&
@@ -802,7 +825,7 @@ function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onChange: (c
             role="menu"
             aria-label={t("columns")}
             style={{ top: pos.top, right: pos.right }}
-            className="popover fixed z-50 w-48 origin-top-right p-1.5"
+            className={cn("popover fixed z-50 w-48 origin-top-right p-1.5", closing && "popover-out pointer-events-none")}
           >
             {/* A menu: checkmarks in the leading gutter, square highlights inset from the edge. */}
             {COLUMNS.map((c) => {
