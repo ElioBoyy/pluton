@@ -488,6 +488,17 @@ function platformValue(key: string, workspaceId: string | undefined) {
   return platformKey(key);
 }
 
+/**
+ * Hosted: whether the workspace's plan covers `key` with Pluton's own, so the workspace has nothing
+ * to enter. OpenAI only stands in for Claude, so a plan that includes Claude covers it too.
+ */
+function includedInPlan(key: string, workspaceId: string | undefined) {
+  if (!HOSTED || !workspaceId) return false;
+  const plan = plans.get(workspaceId)?.plan;
+  const covering = key === "openai_api_key" ? "anthropic_api_key" : key;
+  return Boolean(plan && PLATFORM_KEYS[covering]?.plans.includes(plan));
+}
+
 /** Whether a cost from `source` (the ledger's "claude", "hunter"…) is paid through a platform key. */
 export function paidByPlatform(source: string, workspaceId?: string | null) {
   const key = Object.keys(PLATFORM_KEYS).find((k) => PLATFORM_KEYS[k]!.source === source);
@@ -599,6 +610,8 @@ export async function saveSetting(db: Db, key: string, value: string | null, wor
   if (def.options && value !== null && !def.options.some((o) => o.value === value)) throw new Error(`Invalid value for ${key}`);
   const ws = scopedWorkspace(workspaceId);
   if (!ws) throw new Error("No workspace to save the setting in");
+  // A key the plan includes is Pluton's to provide; a key saved before can still be removed.
+  if (value !== null && value.trim() !== "" && includedInPlan(key, ws)) throw new Error(`${key} is included in the plan`);
   if (value === null || value.trim() === "") {
     await db.delete(workspaceSettings).where(and(eq(workspaceSettings.workspaceId, ws), eq(workspaceSettings.key, key)));
   } else {
@@ -645,6 +658,7 @@ export function describeSettings(workspaceId?: string) {
       value: def.secret ? undefined : value,
       preview: def.secret && value && source === "app" ? `••••${value.slice(-4)}` : undefined,
       configured: Boolean(value),
+      included: includedInPlan(def.key, ws),
     };
   });
 }
