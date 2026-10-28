@@ -2,7 +2,7 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Button, Group, Input, PageHeader, Row, Section, Segmented } from "../components/ui.tsx";
+import { Button, Group, Input, PageHeader, Row, Section, Segmented, Switch } from "../components/ui.tsx";
 import { toast } from "../components/toast.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
@@ -10,7 +10,6 @@ import { credits, CREDITS_PER_USD, formatDate, usd } from "../lib/format.ts";
 import { getLocale } from "../i18n/locale.ts";
 import { useTRPC } from "../lib/trpc.ts";
 import { authStateQuery, get, post } from "../features/account/auth-state.ts";
-import { Stepper } from "../features/account/account-pages.tsx";
 import { euros, PRICES, type BillingSummary, type Interval, type PlanId } from "../lib/pricing.ts";
 import { useResetOnReturn } from "../lib/redirect.ts";
 
@@ -286,6 +285,9 @@ function IncludedUsage({ quota: q }: { quota: Quota }) {
   );
 }
 
+type LinkedinWorkspace = { id: string; name: string; state: "off" | "waiting" | "connected" | "disconnected"; account: string | null };
+const linkedinWorkspacesQuery = { queryKey: ["billing", "linkedin-workspaces"], queryFn: () => get<LinkedinWorkspace[]>("/api/billing/linkedin/workspaces") };
+
 export const billingQuery = { queryKey: ["billing"], queryFn: () => get<BillingSummary>("/api/billing/subscription") };
 
 /**
@@ -310,12 +312,21 @@ function Subscription() {
     mutationFn: (to: { plan: PlanId; interval: Interval }) => post<BillingSummary>("/api/billing/plan", to),
     onSuccess: settled,
   });
+  // One LinkedIn account per workspace, switched on or off from here.
+  const linkedin = useQuery({ ...linkedinWorkspacesQuery, enabled: Boolean(user?.plan) });
   const seats = useMutation({
-    mutationFn: (n: number) => post<BillingSummary>("/api/billing/linkedin", { seats: n }),
-    onSuccess: settled,
-    // Fewer than the accounts connected would leave one unpaid: the account goes first, from its page.
-    onError: (e) => toast(e.message === "seats_in_use" ? t("manage.seatsInUse") : t("manage.seatsFailed"), { tone: "error" }),
+    mutationFn: (to: { workspaceId: string; on: boolean }) => post<BillingSummary>("/api/billing/linkedin/workspace", to),
+    onSuccess: async (next) => {
+      await settled(next);
+      await queryClient.invalidateQueries({ queryKey: linkedinWorkspacesQuery.queryKey });
+    },
+    onError: () => toast(t("manage.seatsFailed"), { tone: "error" }),
   });
+  const toggle = (w: LinkedinWorkspace, on: boolean) => {
+    // Off unlinks the account and stops its sequences: asked first when one is there.
+    if (!on && w.state !== "waiting" && !window.confirm(t("manage.linkedinOffConfirm", { workspace: w.name }))) return;
+    seats.mutate({ workspaceId: w.id, on });
+  };
   const b = billing.data;
   if (!user?.plan) return null;
   const plan = b?.plan ?? user.plan;
@@ -343,9 +354,25 @@ function Subscription() {
             )}
           </div>
         </Row>
-        <Row label={t("manage.linkedin")} description={t("manage.linkedinHint", { price: per(PRICES.linkedin[interval], interval) })}>
-          <Stepper value={b?.linkedinSeats ?? 0} onChange={(n) => seats.mutate(n)} max={20} label={t("manage.linkedin")} />
-        </Row>
+        <Row label={t("manage.linkedin")} description={t("manage.linkedinHint", { price: per(PRICES.linkedin[interval], interval) })} />
+        {linkedin.data?.map((w) => (
+          <Row
+            key={w.id}
+            className="pl-8"
+            label={w.name}
+            description={
+              w.state === "off"
+                ? t("manage.linkedinOff")
+                : w.state === "waiting"
+                  ? t("manage.linkedinWaiting")
+                  : w.state === "connected"
+                    ? w.account
+                    : t("manage.linkedinDisconnected", { account: w.account ?? "" })
+            }
+          >
+            <Switch checked={w.state !== "off"} onChange={(on) => toggle(w, on)} disabled={seats.isPending} label={`${t("manage.linkedin")} · ${w.name}`} />
+          </Row>
+        ))}
         <Row label={t("manage.open")} description={t("manage.hint")}>
           <Button type="button" variant="ghost" onClick={() => portal.mutate()} disabled={portal.isPending}>
             {t("manage.open")}

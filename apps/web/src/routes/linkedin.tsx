@@ -67,6 +67,8 @@ export function LinkedinPage() {
     },
     onError: () => toast(translate("settings", "linkedin.seatFailed"), { tone: "error" }),
   });
+  // One LinkedIn account per workspace on Pluton's Unipile: once one is there, no second one.
+  const taken = platform && senders.some((s) => s.provider === "unipile" && s.status !== "connecting");
   const price = t(interval === "year" ? "linkedin.pricePerYear" : "linkedin.pricePerMonth", { price: euros(PRICES.linkedin[interval]) });
   // Connecting is where a LinkedIn account is bought: one more option on the subscription in
   // progress, charged pro rata now, ending with it.
@@ -114,13 +116,13 @@ export function LinkedinPage() {
             ) : (
               <Row
                 label={t(platform ? "linkedin.platformExplainer" : "linkedin.unipileExplainer")}
-                description={platform ? t("linkedin.seats", { used, seats, price }) : undefined}
+                description={taken ? t("linkedin.onePerWorkspace") : platform ? t("linkedin.seats", { used, seats, price }) : undefined}
               >
                 <div className="flex shrink-0 gap-2">
                   <Button variant="ghost" disabled={sync.isPending} onClick={() => sync.mutate()}>
                     {sync.isPending ? <CircleNotch size={13} className="animate-spin" /> : <ArrowsClockwise size={13} />} {t("linkedin.refresh")}
                   </Button>
-                  <Button disabled={connect.isPending || addSeat.isPending} onClick={startConnect}>
+                  <Button disabled={taken || connect.isPending || addSeat.isPending} onClick={startConnect}>
                     <LinkedinLogo size={14} weight="fill" /> {t("linkedin.connect")}
                   </Button>
                 </div>

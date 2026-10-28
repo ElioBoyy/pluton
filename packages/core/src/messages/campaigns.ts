@@ -36,6 +36,7 @@ export default defineMessages({
     goneFromUnipile: "No longer on Unipile",
     seatNeeded: "Each LinkedIn account connected through Pluton is an option on your plan. Add one to connect another account.",
     connectingLinkedin: "LinkedIn account being connected",
+    onePerWorkspace: "A workspace has one LinkedIn account. Remove this one to connect another.",
   },
   fr: {
     "step.visit_profile": "Visiter son profil",
@@ -72,6 +73,7 @@ export default defineMessages({
     goneFromUnipile: "N’est plus sur Unipile",
     seatNeeded: "Chaque compte LinkedIn connecté via Pluton est une option de votre offre. Ajoutez-en une pour connecter un autre compte.",
     connectingLinkedin: "Compte LinkedIn en cours de connexion",
+    onePerWorkspace: "Un workspace a un seul compte LinkedIn. Retirez celui-ci pour en connecter un autre.",
   },
   it: {
     "step.visit_profile": "Visita il suo profilo",
@@ -108,6 +110,7 @@ export default defineMessages({
     goneFromUnipile: "Non più su Unipile",
     seatNeeded: "Ogni account LinkedIn collegato tramite Pluton è un'opzione del tuo piano. Aggiungine una per collegare un altro account.",
     connectingLinkedin: "Account LinkedIn in fase di collegamento",
+    onePerWorkspace: "Un workspace ha un solo account LinkedIn. Rimuovi questo per collegarne un altro.",
   },
   es: {
     "step.visit_profile": "Visitar su perfil",
@@ -144,6 +147,7 @@ export default defineMessages({
     goneFromUnipile: "Ya no está en Unipile",
     seatNeeded: "Cada cuenta de LinkedIn conectada a través de Pluton es una opción de tu plan. Añade una para conectar otra cuenta.",
     connectingLinkedin: "Cuenta de LinkedIn conectándose",
+    onePerWorkspace: "Un workspace tiene una sola cuenta de LinkedIn. Quita esta para conectar otra.",
   },
   de: {
     "step.visit_profile": "Profil besuchen",
@@ -180,5 +184,6 @@ export default defineMessages({
     goneFromUnipile: "Nicht mehr bei Unipile",
     seatNeeded: "Jedes über Pluton verbundene LinkedIn-Konto ist eine Option Ihres Tarifs. Fügen Sie eine hinzu, um ein weiteres Konto zu verbinden.",
     connectingLinkedin: "LinkedIn-Konto wird verbunden",
+    onePerWorkspace: "Ein Workspace hat ein LinkedIn-Konto. Entfernen Sie dieses, um ein anderes zu verbinden.",
   },
 });

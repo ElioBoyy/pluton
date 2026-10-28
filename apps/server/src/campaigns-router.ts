@@ -277,6 +277,8 @@ export const linkedinRouter = router({
       // this workspace through a one-time token Unipile sends back once it is connected.
       const mine = await ctx.db.select().from(senders).where(and(eq(senders.workspaceId, workspace.id), eq(senders.provider, "unipile")));
       const pending = mine.find((s) => s.externalId?.startsWith(PENDING_PREFIX));
+      // One LinkedIn account per workspace: a second one means removing the first.
+      if (mine.some((s) => !s.externalId?.startsWith(PENDING_PREFIX))) throw new TRPCError({ code: "PRECONDITION_FAILED", message: campaignsText("onePerWorkspace") });
       const used = await seatsInUse(ctx.db, ctx.userId, workspace.id);
       const user = await signedInUser(ctx.db, ctx.userId);
       const seats = user ? (await billingSummary(user, true)).linkedinSeats : 0;

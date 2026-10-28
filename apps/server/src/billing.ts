@@ -1,6 +1,6 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Context, Hono } from "hono";
-import { removeSender } from "@pluton/core";
+import { campaignsText, createSender, removeSender } from "@pluton/core";
 import { and, creditPacks, eq, forgetPlans, inArray, senders, TOP_UP_PACKS, topUpPriceCents, users, workspaces, type Db, type SubscriptionPlan } from "@pluton/db";
 import { deletePlatformUnipileAccount } from "@pluton/providers";
 import { APP_URL, currentUser, HOSTED, isPaid, type User } from "./auth.ts";
@@ -138,6 +138,28 @@ export async function linkedinSeatsInUse(db: Db, userId: string, connecting?: st
   ]);
   const own = new Set(ownKeys.filter((k) => k.value).map((k) => k.workspaceId));
   return rows.filter((r) => !own.has(r.workspaceId) && !(r.workspaceId === connecting && r.externalId?.startsWith("pending:"))).length;
+}
+
+/**
+ * The account's workspaces that can take a LinkedIn account on Pluton's Unipile (not those with
+ * their own Unipile key), each with the one it has: one at most per workspace.
+ */
+async function linkedinByWorkspace(db: Db, userId: string) {
+  const owned = await db.select({ id: workspaces.id, name: workspaces.name }).from(workspaces).where(eq(workspaces.userId, userId));
+  if (!owned.length) return [];
+  const ids = owned.map((w) => w.id);
+  const [rows, ownKeys] = await Promise.all([
+    db.select().from(senders).where(and(inArray(senders.workspaceId, ids), eq(senders.provider, "unipile"))),
+    db.query.workspaceSettings.findMany({ where: (s, { and: all, eq: is, inArray: among }) => all(among(s.workspaceId, ids), is(s.key, "unipile_api_key")) }),
+  ]);
+  const own = new Set(ownKeys.filter((k) => k.value).map((k) => k.workspaceId));
+  return owned
+    .filter((w) => !own.has(w.id))
+    .map((w) => {
+      const sender = rows.find((r) => r.workspaceId === w.id);
+      const waiting = sender?.externalId?.startsWith("pending:");
+      return { id: w.id, name: w.name, sender: sender ?? null, state: !sender ? "off" : waiting ? "waiting" : sender.status === "connected" ? "connected" : "disconnected" } as const;
+    });
 }
 
 /**
@@ -331,6 +353,44 @@ export function mountBilling(app: Hono, db: Db) {
     return c.json({ added: await recordPack(db, session) });
   }));
 
+  /** Each workspace of the account and its LinkedIn account, if it has one (one at most). */
+  app.get("/api/billing/linkedin/workspaces", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const list = await linkedinByWorkspace(db, user.id);
+    return c.json(list.map((w) => ({ id: w.id, name: w.name, state: w.state, account: w.state === "connected" || w.state === "disconnected" ? w.sender!.name : null })));
+  }));
+
+  /**
+   * Turns a workspace's LinkedIn account on or off. On buys one more option (pro rata) unless one is
+   * free, and holds it for that workspace until its account is connected from its LinkedIn page. Off
+   * unlinks the account, stops its sequences, and the option ends at the next renewal.
+   */
+  app.post("/api/billing/linkedin/workspace", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const { workspaceId, on } = await c.req.json<{ workspaceId?: string; on?: boolean }>();
+    const target = (await linkedinByWorkspace(db, user.id)).find((w) => w.id === workspaceId);
+    if (!target || typeof on !== "boolean") return c.json({ error: "unknown_workspace" }, 400);
+    const summary = await billingSummary(user, true);
+    if (!summary.plan) return c.json({ error: "not_paid" }, 402);
+    if (on && !target.sender) {
+      const used = await linkedinSeatsInUse(db, user.id);
+      if (used >= summary.linkedinSeats && !(await setLinkedinSeats(user, summary.linkedinSeats + 1))) return c.json({ error: "not_paid" }, 402);
+      await createSender(db, target.id, {
+        provider: "unipile",
+        name: campaignsText("connectingLinkedin"),
+        externalId: `pending:${randomBytes(24).toString("base64url")}`,
+        status: "connecting",
+      });
+    } else if (!on && target.sender) {
+      if (target.sender.externalId && !target.sender.externalId.startsWith("pending:")) await deletePlatformUnipileAccount(target.sender.externalId);
+      await removeSender(db, target.sender.id);
+      if (summary.linkedinSeats > 0) await setLinkedinSeats(user, summary.linkedinSeats - 1);
+    }
+    return c.json(await billingSummary(user, true));
+  }));
+
   app.get("/api/billing/subscription", guarded(async (c) => {
     const user = HOSTED ? await currentUser(db, c) : null;
     if (!user) return c.json({ error: "signed_out" }, 401);
@@ -383,6 +443,8 @@ export function mountBilling(app: Hono, db: Db) {
     // Fewer options than connected accounts would leave one unpaid: remove the account instead.
     const used = await linkedinSeatsInUse(db, user.id);
     if (seats! < used) return c.json({ error: "seats_in_use", used }, 409);
+    // One LinkedIn account per workspace: never more options than workspaces that can use one.
+    if (seats! > (await linkedinByWorkspace(db, user.id)).length) return c.json({ error: "one_per_workspace" }, 409);
     const summary = await setLinkedinSeats(user, seats!);
     return summary ? c.json(summary) : c.json({ error: "not_paid" }, 402);
   }));
