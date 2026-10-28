@@ -254,7 +254,7 @@ export async function usageToday(db: Db, senderId: string, timeZone: string, now
     .where(
       and(
         eq(outreachActions.senderId, senderId),
-        inArray(outreachActions.status, ["done", "pending_manual"]),
+        inArray(outreachActions.status, ["done", "pending_manual", "queued", "sending"]),
         gte(outreachActions.createdAt, localDayStart(now, timeZone)),
       ),
     )
@@ -542,7 +542,7 @@ export async function removeFromCampaign(db: Db, enrollmentIds: string[]) {
       undone++;
     } else {
       await db.update(enrollments).set({ status: "stopped", note: t("removedByYou"), nextActionAt: null, endedAt: now }).where(eq(enrollments.id, e.id));
-      await db.delete(outreachActions).where(and(eq(outreachActions.enrollmentId, e.id), eq(outreachActions.status, "pending_manual")));
+      await db.delete(outreachActions).where(and(eq(outreachActions.enrollmentId, e.id), inArray(outreachActions.status, ["pending_manual", "queued"])));
     }
     const lead = await db.query.leads.findFirst({ where: eq(leads.id, e.leadId) });
     if (lead?.status === "in_campaign") await db.update(leads).set({ status: "approved" }).where(eq(leads.id, e.leadId));
@@ -638,7 +638,7 @@ export async function listManualTasks(db: Db, workspaceId: string) {
     .innerJoin(campaigns, eq(campaigns.id, enrollments.campaignId))
     .innerJoin(plays, eq(plays.id, campaigns.playId))
     .innerJoin(senders, eq(senders.id, enrollments.senderId))
-    .where(and(eq(enrollments.workspaceId, workspaceId), eq(senders.provider, "manual"), eq(enrollments.status, "invite_sent")))
+    .where(and(eq(enrollments.workspaceId, workspaceId), inArray(senders.provider, ["manual", "extension"]), eq(enrollments.status, "invite_sent")))
     .orderBy(asc(enrollments.inviteSentAt));
   return { tasks: rows, waiting };
 }
@@ -649,7 +649,7 @@ export async function listManualTasks(db: Db, workspaceId: string) {
  */
 export async function completeManualAction(db: Db, actionId: string, outcome: { done: boolean; connected?: boolean }) {
   const action = await db.query.outreachActions.findFirst({ where: eq(outreachActions.id, actionId) });
-  if (!action || action.status !== "pending_manual") throw new Error(t("taskClosed"));
+  if (!action || !["pending_manual", "sending"].includes(action.status)) throw new Error(t("taskClosed"));
   const e = (await db.query.enrollments.findFirst({ where: eq(enrollments.id, action.enrollmentId) }))!;
   const campaign = (await getCampaign(db, e.campaignId))!;
   await db.update(outreachActions).set({ status: outcome.done ? "done" : "skipped", doneAt: new Date() }).where(eq(outreachActions.id, actionId));
@@ -832,25 +832,5 @@ export async function dueEnrollments(db: Db, now = new Date(), limit = 25) {
     .innerJoin(campaigns, eq(campaigns.id, enrollments.campaignId))
     .where(and(eq(campaigns.status, "active"), ACTIVE(), lte(enrollments.nextActionAt, now), lte(enrollments.undoUntil, now)))
     .orderBy(asc(enrollments.nextActionAt))
-    .limit(limit);
-}
-
-/** Conversations to check for replies: a chat exists and the sequence is live or ended in the last 14 days. */
-export async function enrollmentsToPoll(db: Db, now = new Date(), limit = 20) {
-  const staleBefore = new Date(now.getTime() - 30 * 60_000);
-  return db
-    .select({ enrollment: enrollments, sender: senders })
-    .from(enrollments)
-    .innerJoin(senders, eq(senders.id, enrollments.senderId))
-    .where(
-      and(
-        eq(senders.provider, "unipile"),
-        eq(senders.status, "connected"),
-        isNotNull(enrollments.chatId),
-        inArray(enrollments.status, ["message_sent", "invite_accepted", "completed"]),
-        or(isNull(enrollments.lastReplyCheckAt), lt(enrollments.lastReplyCheckAt, staleBefore)),
-        or(isNull(enrollments.endedAt), gt(enrollments.endedAt, new Date(now.getTime() - 14 * 24 * HOUR))),
-      ),
-    )
     .limit(limit);
 }

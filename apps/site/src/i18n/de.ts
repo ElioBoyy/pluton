@@ -231,16 +231,12 @@ export default {
     both: "In beiden Tarifen",
     bothLines: [
       "Interessenten für Sie gefunden und bewertet, LinkedIn- und E-Mail-Nachrichten für Sie geschrieben",
+      "LinkedIn inklusive: Die Pluton-Erweiterung sendet Besuche und Einladungen aus Ihrem eigenen Chrome, solange es geöffnet ist. Bis zu 3× mehr Antworten als per E-Mail*",
       "Slack, HubSpot, Attio, Pipedrive und MCP für Ihre KI",
       "Von Pluton gehostet: läuft weiter, auch wenn Ihr Laptop zugeklappt ist",
     ],
     cta: "Starten",
     options: "Optionen, in beiden Tarifen",
-    linkedin: "LinkedIn-Versandkonto",
-    linkedinMonth: "{price} pro Monat und Konto",
-    linkedinYear: "{price} pro Jahr und Konto",
-    linkedinNote: "Pluton stellt die Verbindung zu LinkedIn bereit, Sie brauchen kein separates Automatisierungstool.",
-    linkedinKey: "Bis zu 3× mehr Antworten als per E-Mail*",
     linkedinSource: "Pin, Recruiting Outreach Benchmarks 2026",
     linkedinFootnote: "* 17,08\u00a0% gegenüber 4,96\u00a0% Antwortquote bei über 4 Millionen Recruiting-Nachrichten, versendet von Juni 2025 bis Mai 2026 ({source}). Recruiting, nicht Vertrieb: Ihre Ergebnisse hängen von Ihrem Markt und Ihren Nachrichten ab.",
     packs: "Credit-Pakete",
@@ -251,10 +247,9 @@ export default {
     facts: [
       ["Credits messen die Arbeit", "Unternehmen recherchieren, Personen und ihre E-Mail-Adressen finden; mit Alles inklusive auch bewerten und Nachrichten schreiben. Eine schwierigere Suche braucht mehr."],
       ["Sie sehen, was jede Suche verbraucht hat", "Und was diesen Monat übrig ist. Sind sie aufgebraucht, pausiert Pluton bis zum nächsten Monat, außer Sie fügen ein Paket hinzu."],
-      ["Jederzeit wechseln, anteilig", "Höherer Tarif, jährliche Zahlung oder ein LinkedIn-Konto dazu, wann Sie wollen: Sie zahlen nur die restlichen Tage des Zeitraums."],
+      ["Jederzeit wechseln, anteilig", "Höherer Tarif oder jährliche Zahlung, wann Sie wollen: Sie zahlen nur die restlichen Tage des Zeitraums."],
       ["Verlängert sich bis zur Kündigung", "Monatlich oder jährlich. Kündigen beendet die Verlängerung; der bezahlte Zeitraum bleibt Ihnen."],
       ["Jährlich heißt ein Jahr", "Zurück zu monatlich erst bei der Verlängerung. Früher aussteigen oder während des Jahres herabstufen wird weder erstattet noch gutgeschrieben."],
-      ["Ein LinkedIn-Konto entfernen", "Es bleibt bis zur nächsten Verlängerung aktiv."],
     ],
     vat: "Preise in Euro. Keine Umsatzsteuer gemäß Artikel 293 B des französischen Steuergesetzbuchs (CGI).",
     onPremise: "Pluton auf Ihren eigenen Servern? Eine On-Premise-Installation gibt es auf Anfrage. Schreiben Sie an",
@@ -276,7 +271,7 @@ export default {
       ],
       [
         "Wie geht es mit meinem LinkedIn-Konto um?",
-        "Es handelt nur in einem Versandfenster an Werktagen, innerhalb täglicher Limits pro Konto (standardmäßig 80 Besuche, 20 Einladungen, 50 Nachrichten) und mit zufälligen Pausen zwischen den Aktionen. Sie können alles ändern oder alles von Hand senden.",
+        "Alles läuft über die Pluton-Erweiterung in Ihrem eigenen Chrome, mit Ihrer LinkedIn-Sitzung, und nur solange Chrome geöffnet ist. Es handelt nur in einem Versandfenster an Werktagen, innerhalb täglicher Limits pro Konto (standardmäßig 80 Besuche, 20 Einladungen, 50 Nachrichten) und mit zufälligen Pausen zwischen den Aktionen. Sie können alles ändern oder alles von Hand senden.",
       ],
       [
         "Brauche ich ein eigenes Claude- oder OpenAI-Konto?",

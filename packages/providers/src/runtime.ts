@@ -153,12 +153,6 @@ export async function checkProviderKey(settingKey: string): Promise<string> {
     const { verifyMailer } = await import("./mailer.ts");
     return verifyMailer();
   }
-  if (settingKey === "unipile_api_key" || settingKey === "unipile_dsn") {
-    // Loaded lazily: the Unipile adapter itself builds on this module.
-    const { unipileAccounts } = await import("./unipile.ts");
-    const accounts = await unipileAccounts();
-    return t("check.unipile", { count: accounts.length });
-  }
   // Pluton's own key: a check would show its account with the provider to the workspace.
   if (settingSource(settingKey) === "platform") return t("check.saved");
   const key = requireKey(settingKey, settingKey);

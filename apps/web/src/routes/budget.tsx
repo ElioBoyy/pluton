@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button, Group, Input, PageHeader, Row, Section, Segmented, Switch } from "../components/ui.tsx";
-import { toast } from "../components/toast.tsx";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { credits, CREDITS_PER_USD, formatDate, usd } from "../lib/format.ts";
@@ -400,12 +399,6 @@ function Subscription() {
     mutationFn: (to: { plan: PlanId; interval: Interval }) => post<BillingSummary>("/api/billing/plan", to),
     onSuccess: settled,
   });
-  const seats = useMutation({
-    mutationFn: (n: number) => post<BillingSummary>("/api/billing/linkedin", { seats: n }),
-    onSuccess: settled,
-    // Fewer than the accounts connected would leave one unpaid: the account goes first, from its page.
-    onError: (e) => toast(e.message === "seats_in_use" ? t("manage.seatsInUse") : t("manage.seatsFailed"), { tone: "error" }),
-  });
   const b = billing.data;
   if (!user?.plan) return null;
   const plan = b?.plan ?? user.plan;
@@ -433,16 +426,13 @@ function Subscription() {
             )}
           </div>
         </Row>
-        <Row label={t("manage.linkedin")} description={t("manage.linkedinHint", { price: per(PRICES.linkedin[interval], interval) })}>
-          <Stepper value={b?.linkedinSeats ?? 0} onChange={(n) => seats.mutate(n)} max={20} label={t("manage.linkedin")} />
-        </Row>
         <Row label={t("manage.open")} description={t("manage.hint")}>
           <Button type="button" variant="ghost" onClick={() => portal.mutate()} disabled={portal.isPending}>
             {t("manage.open")}
           </Button>
         </Row>
       </Group>
-      {(change.isError || seats.isError) && <p className="mt-2 text-sm text-system-orange">{t("manage.failed")}</p>}
+      {change.isError && <p className="mt-2 text-sm text-system-orange">{t("manage.failed")}</p>}
     </Section>
   );
 }

@@ -12,7 +12,7 @@ Designed and built by **Mathis Sportiello**. To run Pluton on your own servers (
 - **Turns ideas into Plays.** Describe who you want to reach in plain words ("heads of digital at French hospital groups"). Pluton asks what it needs, proposes a Play (who, how to find them, how many, how often) and runs it on a schedule.
 - **Finds and qualifies leads.** Each run collects candidates from free sources first (company registries, careers pages, tech detection, web search), checks them, looks up their LinkedIn profile and scores their fit against your ideal customer, with the evidence behind every score.
 - **Learns from your verdicts.** Approve or reject leads with a reason. Later runs score similar people the same way, rejected people never come back, and repeated rejections trigger a Brain review.
-- **Runs LinkedIn sequences.** Visit, follow, like, connect, then up to three messages written in your voice for each person, all reviewed by you before anything is sent. Sends automatically through Unipile, or gives you a ready-to-copy to-do list if you prefer to send by hand. A reply stops the sequence.
+- **Runs LinkedIn sequences.** Visit, follow, like, connect, then up to three messages written in your voice for each person, all reviewed by you before anything is sent. Visits and invitations go out from your own Chrome through the Pluton LinkedIn extension; the rest is a ready-to-copy to-do list. A reply stops the sequence.
 - **Finds emails and exports.** Free sources first, then Hunter (provided by Pluton on both plans, or your own key on a local install); CSV export of any lead list.
 - **Keeps spend in check.** Every paid call is logged at its real cost, per Play and per lead. Set a monthly budget; a search holds its cap, stops at it and gives back what it didn't use.
 - **Tells you what needs you.** One activity feed, a notification bell and a morning digest (in the app, or by email through your own SMTP).
@@ -33,7 +33,9 @@ Both plans are hosted by Pluton, billed monthly or yearly (1-year commitment, on
 - The AI is included: nothing to connect, no API key.
 - 2,000 credits a month cover both the AI's work (research, scoring, writing, the agent) and the data sources Pluton provides.
 
-**Options, on either plan**: a LinkedIn sending account, 15 € per account per month (165 € a year), through Pluton's own Unipile account; credit packs of 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
+**LinkedIn**: included on both plans, at no extra cost: the Pluton LinkedIn extension sends visits and invitations from your own Chrome, while it is open, for one LinkedIn account per Pluton account.
+
+**Options, on either plan**: credit packs of 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
 
 **On-premise**: by arrangement, write to mathis.sportiello@gmail.com.
 
@@ -47,7 +49,7 @@ Access to the code is by arrangement with Mathis Sportiello. To work on it:
   - your Claude subscription through [Claude Code](https://claude.com/claude-code), installed and signed in on this machine (the default; personal use only), or
   - an Anthropic API key, added in the app under Settings → API keys.
 
-Optional keys unlock more sources and automation on a local install, all added in the app (Settings → API keys, stored encrypted): **TheirStack** (market-wide job search), **Apify** (LinkedIn engagement and posts), **Hunter** (email finding), **Unipile** (automated LinkedIn sending).
+Optional keys unlock more sources on a local install, all added in the app (Settings → API keys, stored encrypted): **TheirStack** (market-wide job search), **Apify** (LinkedIn engagement and posts), **Hunter** (email finding). LinkedIn sending needs no key: it's the Pluton LinkedIn extension, in your own Chrome.
 
 ```bash
 corepack enable
@@ -141,7 +143,7 @@ Each Play has a sequence (Play → Sequence tab): visit → follow → like a re
 Add leads from the Leads table (row ✈ or bulk "Add N to campaign"): each person's messages are written first (Claude, from their signal, recent posts when Apify is set, and the Brain's voice), shown as Not reviewed / Being written / Reviewed and editable, then they join. Nothing runs for 10 minutes (undo). One person is in one live sequence at a time.
 
 Accounts (Settings → LinkedIn accounts):
-- **Unipile** (API key + DSN in Settings → API keys): hosted LinkedIn login, then Pluton visits, invites, likes and messages from the account, detects acceptance and reads replies. Unipile can't follow, so that step is skipped.
+- **Chrome extension** (download it from Settings → LinkedIn accounts, load it in developer mode, paste its token): visits and invitations are done in a background tab of your own Chrome, with your LinkedIn session, while it is open. Follows, likes and messages come to you as tasks. Guide at `/docs/linkedin`.
 - **Manual**: nothing automated. Due steps land in the Play's to-do with the text ready to copy; tick Done (and say whether you were already connected, or when they accepted).
 
 The engine is a `campaigns.tick` job every 30 s (one per slot even with several workers; each lead is claimed before acting): only inside the send window (Mon–Fri 9–18 in the workspace timezone by default), within each account's daily limits (80 visits/follows/likes, 20 invitations, 50 messages), with random gaps, round-robin across accounts with a sticky account per person.

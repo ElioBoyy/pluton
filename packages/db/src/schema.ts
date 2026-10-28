@@ -591,10 +591,11 @@ export type LeadEvent = typeof leadEvents.$inferSelect;
 // ── LinkedIn sequences ───────────────────────────────────────────────────────
 
 /**
- * How a LinkedIn account sends. `unipile`: Unipile's API acts on the account (real sending).
- * `manual`: Pluton prepares each action and its text when it's due, and you do it on LinkedIn.
+ * How a LinkedIn account sends. `extension`: the Pluton LinkedIn extension does the visits and
+ * invitations in the founder's Chrome; the rest comes to them as tasks. `manual`: Pluton prepares
+ * each action and its text when it's due, and you do it on LinkedIn.
  */
-export const SENDER_PROVIDERS = ["unipile", "manual"] as const;
+export const SENDER_PROVIDERS = ["manual", "extension"] as const;
 export const SENDER_STATUSES = ["connecting", "connected", "disconnected", "error"] as const;
 export type SenderLimits = { visits: number; invites: number; messages: number };
 
@@ -606,7 +607,7 @@ export const senders = sqliteTable("sender", {
   provider: text("provider", { enum: SENDER_PROVIDERS }).notNull(),
   name: text("name").notNull(),
   profileUrl: text("profile_url"),
-  /** Unipile account id. */
+  /** For the Chrome extension, the SHA-256 of the token it was paired with. */
   externalId: text("external_id"),
   status: text("status", { enum: SENDER_STATUSES }).notNull().default("connected"),
   error: text("error"),
@@ -770,7 +771,8 @@ export const messageDrafts = sqliteTable(
 );
 
 export const ACTION_KINDS = ["visit_profile", "follow_profile", "like_post", "invite", "message", "auto_reply"] as const;
-export const ACTION_STATUSES = ["pending_manual", "done", "skipped", "failed"] as const;
+/** `queued` waits for the Chrome extension to take it; `sending` is being done in its browser. */
+export const ACTION_STATUSES = ["pending_manual", "queued", "sending", "done", "skipped", "failed"] as const;
 
 /** Every action taken (or to take by hand) on LinkedIn or by email: the journey, the to-do list and the daily quotas. */
 export const outreachActions = sqliteTable(
@@ -810,6 +812,7 @@ export const replies = sqliteTable(
     text: text("text").notNull(),
     label: text("label", { enum: REPLY_LABELS }),
     summary: text("summary"),
+    /** `unipile`: read through Unipile, before Pluton dropped it; kept for the replies it brought. */
     source: text("source", { enum: ["unipile", "email", "manual"] }).notNull(),
     receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
     handledAt: integer("handled_at", { mode: "timestamp_ms" }),

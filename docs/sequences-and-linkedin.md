@@ -24,7 +24,7 @@ Key rules that apply to every sequence:
 - **Actions only happen inside the send window** (Monday to Friday, 9:00 to 18:00 in your workspace timezone by default), within each LinkedIn account's daily limits, and spaced out with random gaps.
 - **One person is in one live sequence at a time**, whichever Play found them.
 
-Every step can be switched off or re-timed, and every message can be AI-written or a fixed template. The sequence sends from the LinkedIn accounts you set up in **Settings → LinkedIn accounts**, either automatically through a LinkedIn sending account (the paid LinkedIn option, connected through Unipile) or by hand through a to-do list (manual accounts, free). Message steps can also go by email from your own mailbox (see "Sending by email"). See the sections below for each part.
+Every step can be switched off or re-timed, and every message can be AI-written or a fixed template. The sequence sends from the LinkedIn accounts you set up in **Settings → LinkedIn accounts**, either through the Pluton LinkedIn extension in your own Chrome (visits and invitations done for you) or by hand through a to-do list (manual accounts). See the sections below for each part.
 
 ## The Sequence tab, at a glance
 
@@ -60,7 +60,7 @@ Clicking a step card opens a side panel. Its small heading says **Campaign messa
 
 Step-specific settings:
 
-- **Follow them**: "With Unipile accounts this step is skipped (their API can't follow). Manual accounts get it as a task."
+- **Follow them**: "Always a task for you: the Chrome extension doesn't follow people."
 - **Send a connection request**: an **Invitation** section with **Note with the invitation** (empty means no note; "Empty sends it without a note, which tends to get accepted more. Variables work here."), limited to 300 characters (LinkedIn's limit), and **Give up after (days)**, from 1 to 30, default 7. Save with **Save invitation settings** (toast "Invitation settings saved"). These two settings apply to the whole sequence.
 - **Message steps**: choose **AI** ("I write it for each lead from their activity, following your guidelines.") or **Template** ("Your exact words for everyone, with details like their first name filled in."). See the next two sections. Under **Sent on**, choose **LinkedIn** or **Email** (see "Sending by email").
 
@@ -178,23 +178,21 @@ With the first two, enter a **Link** (it must start with http:// or https://) an
 
 **When it sends** ("Actions only happen inside this window, in your timezone ({timezone}), spread out with random gaps."): pick **Days** (Mon to Sun) and **Hours** "From X to Y h" (start 0–23, end 1–24, end after start). **Save window**. Default: Monday to Friday, 9 to 18. The timezone is the workspace's (Settings → General → Timezone, default Europe/Paris).
 
-**LinkedIn accounts**: a switch **Send from {name}** per account (shown with "manual" or "Unipile" and its status). By default every connected account is used. "New people are shared between these accounts in turn. Each person keeps the same account for the whole sequence. Changes apply to people you add from now on." With no account at all: **Connect a LinkedIn account →**.
+**LinkedIn accounts**: a switch **Send from {name}** per account (shown with "manual" or "Chrome extension" and its status). By default every connected account is used. "New people are shared between these accounts in turn. Each person keeps the same account for the whole sequence. Changes apply to people you add from now on." With no account at all: **Connect a LinkedIn account →**.
 
 ## LinkedIn accounts settings page
 
 **Settings → LinkedIn accounts** ("The accounts your sequences send from.") starts with a warning: "Automating LinkedIn is against its terms and can get an account restricted. Keep the daily limits low, use an account you accept to risk, and start with a few leads."
 
-**Send through Unipile**: "LinkedIn connects through Pluton: log in on the secure page that opens (codes and captchas handled there). Pluton then visits, invites, likes and messages from that account, and reads replies." This is the **LinkedIn option**: each LinkedIn account you connect this way costs 15 € a month (165 € a year on a yearly plan) and runs on Pluton's own Unipile account, so there is nothing to set up with Unipile and no key to enter. Under the explainer, "{used} of {seats} LinkedIn accounts on your plan in use · {price} each" shows where you stand.
+**Chrome extension**: "Visits and invitations go out from your own Chrome, with your LinkedIn session, while it is open. Messages still come to you." **Download the extension** gets a zip already set to talk to this Pluton; **Installation guide** opens [the guide](/docs/linkedin).
 
-1. Click **Connect LinkedIn**. If every account on your plan is already in use, Pluton first asks "Add a LinkedIn account to your plan for {price}? Today you only pay for the days left in this period." Confirm to add one; if that fails: "The account couldn't be added to your plan. Try again, or check your card in Settings → Budget."
-2. A new tab opens the secure LinkedIn login page (the link is valid for one hour). Toast: "Log in to LinkedIn in the new tab, then come back and click Refresh". Meanwhile, an account card "LinkedIn account being connected" appears with the status **Connecting**.
-3. Once you've logged in, the card takes your LinkedIn name and becomes **Connected**. Click **Refresh** to update the statuses of your accounts.
-
-Removing an account connected this way also removes it from your plan: the option stops at your next renewal. If your Pluton subscription ends, these accounts are removed and their people's sequences stop.
+1. Install the extension in Chrome in developer mode (chrome://extensions → Developer mode → Load unpacked, on the unzipped folder) and sign in to LinkedIn in that Chrome.
+2. Open the extension's popup and copy its token.
+3. Back on this page, enter a name and paste the token, then click **Pair** (toast "Extension paired: it takes its first steps within 30 seconds"). A token already paired is refused with "This extension is already paired with a workspace".
 
 **Or send by hand**: enter **Your name** and optionally a **LinkedIn profile URL**, then **Add manual account**. "No service, nothing automated: when a step is due, Pluton puts it in the Play's to-do with the message ready to copy, and the sequence waits until you tick it."
 
-Each account card shows its name, a **profile** link, "Unipile · {count} leads in sequences" or "Manual: you do each action · …", its status (**Connected**, **Connecting**, **Disconnected**, **Error**), any error text, **Reconnect** (Unipile accounts not connected; it opens the login page again, at no extra cost) and a bin icon (**Remove account**, confirm "Remove {name}? Its leads' sequences stop."). Removing stops those people's sequences ("Removed; {count} sequences stopped"); you can restart them later on another account.
+Each account card shows its name, a **profile** link, "Chrome extension · {count} leads in sequences" or "Manual: you do each action · …", its status (**Connected**, **Connecting**, **Disconnected**, **Error**), any error text and a bin icon (**Remove account**, confirm "Remove {name}? Its leads' sequences stop."). Removing stops those people's sequences ("Removed; {count} sequences stopped"); you can restart them later on another account.
 
 ## Daily limits and pacing
 
@@ -206,31 +204,29 @@ Each account has three daily limits, set on its card in **Settings → LinkedIn 
 | **Invitations per day** | 20 | 40 | connection requests |
 | **Messages per day** | 50 | 150 | sequence messages and automatic answers |
 
-Under each limit, "today {count}" shows what's been used. The day is your workspace's local day, reset at midnight. Tasks handed to you for manual accounts count as soon as they're created, even before you tick them.
+Under each limit, "today {count}" shows what's been used. The day is your workspace's local day, reset at midnight. Tasks handed to you, and actions queued for the extension, count as soon as they're created, even before they're done.
 
 When an account reaches a limit, its people wait until the next day's send window (note: "{name} reached today's … limit"). The defaults are deliberately prudent: LinkedIn restricts accounts that invite too much.
 
 How Pluton paces things:
 
 - The sequence engine runs every 30 seconds and handles up to 25 due people per pass.
-- An automated (Unipile) account does at most one action per pass and waits at least 3 minutes between two actions; when busy, the next action is pushed back 3 to 9 minutes.
+- The extension takes one action at a time and waits at least 3 minutes after an action before taking the next.
 - Every delay gets a random 3 to 20 extra minutes; the first action after the window opens gets 2 to 35.
 - Outside the send window nothing runs; people wait for the next opening.
 - Accounts are shared in turn: the account with the fewest people in live sequences takes the next person, and a person who already had an account (from any sequence) keeps it.
 
-## Sending automatically through Unipile
+## Sending through the Chrome extension
 
-With a connected Unipile account, here is what each step really does:
+With a paired extension, the account's steps go like this:
 
-- **Visit their profile**: opens their profile through the account (a real visit, which they may see), and records whether you're already connected.
-- **Follow them**: always skipped, with "Following isn't available through Unipile". It doesn't count toward limits.
-- **Like a recent post**: likes their most recent original post (reposts ignored, among their last five). With no post: skipped, "No recent post".
-- **Send a connection request**: if already connected, skipped ("Already connected") and messages start. If an invitation is already pending, Pluton doesn't send another. Otherwise it sends it, with your note if you set one. The lead becomes **Contacted**.
-- **Messages**: only once connected. If not yet connected, Pluton re-checks about every 4 hours (inside the send window). If the invitation isn't accepted after the give-up delay (default 7 days), the person becomes **Lost** ("Invitation not accepted in 7 days"). The first message waits its delay (default 6 hours) from the moment Pluton notices the acceptance. Before each message, Pluton checks the conversation for a reply and stops if there is one.
+- **Visit their profile**: queued for the extension, which opens the profile in a background tab of your Chrome, scrolls a little and closes it (a real visit, which they may see).
+- **Send a connection request**: queued for the extension, which opens the profile, presses Connect (or finds it under More), adds your note if you set one, and sends. If an invitation is already pending it counts as sent; if you're already connected, messages start. If LinkedIn asks for the person's email, or a button can't be found, the step comes to you as a task with the reason ("The extension couldn't do it (…): do it yourself").
+- **Follow them**, **Like a recent post** and **Messages**: tasks for you, as with a manual account.
 
-**Reply detection**: for Unipile accounts Pluton reads the LinkedIn conversation about every 30 minutes per person, once a conversation exists (that is, after Pluton has sent a message), and keeps checking for 14 days after a sequence ends. Replies sent before your first message are picked up at the first check after it; to stop sooner, use **Log a reply**. A reply is read even if the sequence is paused.
+The extension checks in with Pluton every 30 seconds while Chrome is open. While Chrome is closed, or LinkedIn is signed out there (the account shows **Disconnected**, "LinkedIn is signed out in this account's browser: sign back in there"), queued steps wait. An action taken by a browser that never answered goes back to the queue after 5 minutes.
 
-Unipile requests that write to LinkedIn are never retried automatically, so a timeout can't send the same invitation or message twice.
+Pluton doesn't see when an invitation is accepted, nor read LinkedIn conversations: mark acceptances and log replies yourself, as with a manual account.
 
 ## Sending by hand with a manual account
 
@@ -244,7 +240,7 @@ Each task shows the action (**Visit their profile**, **Follow them**, **Like a r
 
 After you mark an invitation done, the person appears as **Waiting for {name} to accept** ("Invited {when}. Tell me when they accept.") with **Accepted** (starts the message timer from now) and **Give up** (person becomes **Lost**, "Invitation not accepted"). The give-up delay still applies: after 7 days by default they're marked Lost automatically.
 
-Manual accounts can't read replies: when someone answers, use **Log a reply** in Enrolled leads so the sequence stops and the reply is classified. Positive replies answered automatically become an **Answer their positive reply** task with the text ready.
+Pluton doesn't read LinkedIn conversations: when someone answers, use **Log a reply** in Enrolled leads so the sequence stops and the reply is classified. Positive replies answered automatically become an **Answer their positive reply** task with the text ready.
 
 The morning digest counts these as "{count} LinkedIn steps to do by hand".
 
@@ -266,7 +262,7 @@ With a mailbox set up:
 
 ## Replies, classification and automatic answers
 
-When a reply arrives (read through Unipile, read from your mailbox for email, or logged by you), Pluton:
+When a reply arrives (an email read from your mailbox, or a LinkedIn reply you logged), Pluton:
 
 1. Stops the sequence immediately and deletes any message tasks you hadn't done yet.
 2. Classifies it with the AI: **Positive** (interested, wants to talk, asks for the link or a time), **Not interested** (declines, asks to stop, wrong person with no lead) or **In your hands** (a question, a referral, an out-of-office, anything ambiguous; the default when unsure). It also writes a one-line summary. If classification fails: In your hands, "Couldn't classify; read it yourself".
@@ -274,7 +270,7 @@ When a reply arrives (read through Unipile, read from your mailbox for email, or
 
 Then:
 
-- **Positive**, with an objective of Book a meeting or Share your app, a link, and automatic answers on, on the person's first reply: Pluton writes one short answer (one or two sentences, a warm thanks then the link, no pitch, in the sequence's language) and sends it through Unipile, or by email when the person is reached by email; status **Replied · link sent**. With a manual account, or if the Unipile account isn't connected, it becomes an **Answer their positive reply** task instead. This happens at most once per person.
+- **Positive**, with an objective of Book a meeting or Share your app, a link, and automatic answers on, on the person's first reply: Pluton writes one short answer (one or two sentences, a warm thanks then the link, no pitch, in the sequence's language) and sends it by email when the reply came by email; status **Replied · link sent**. A LinkedIn reply gets it as an **Answer their positive reply** task instead. This happens at most once per person.
 - **Not interested**: status **Lost**, nothing waits for you.
 - **Everything else** (positive without automatic answer, In your hands, or an automatic answer that failed): status **Needs you**, and the reply appears in **Replies waiting for you** on the Sequence tab with the text, label, summary, **Answer on LinkedIn ↗** (opens their profile) and **Mark handled**. Empty state: "None. Positive replies get your link automatically when the objective allows it."
 
@@ -285,15 +281,10 @@ The digest lists "{count} replies waiting for your answer".
 Notes shown in orange on a person (Enrolled leads, lead drawer) explain what's happening:
 
 - **"Waiting for a connected LinkedIn account"**: no usable account. Retries every hour. Connect or switch on an account.
-- **"{name} is disconnected"** / "is connecting" / "has an error": the assigned account isn't connected. Retries every hour. Reconnect it in Settings → LinkedIn accounts.
-- **"LinkedIn account disconnected; reconnect it in Settings → LinkedIn"**: Unipile refused the account's session. The account is marked **Disconnected**, you get a notification "{name} disconnected" ("Sending from this account is paused until you reconnect it.", category **LinkedIn accounts**), and people wait. Click **Reconnect**, log in again on Unipile's page, then **Refresh**.
-- **"LinkedIn asked to slow down"**: rate limit or LinkedIn's weekly invitation limit. Pluton waits for the time LinkedIn gives, or 6 hours. Consider lowering the account's limits.
-- **"LinkedIn won't let this account reach this person"**: Failed; LinkedIn refuses the invitation or message.
-- **"No LinkedIn profile for this person"**: Failed; the lead has no LinkedIn URL. Use **Find LinkedIn** in the lead drawer, then restart.
+- **"{name} is disconnected"** / "is connecting" / "has an error": the assigned account isn't connected. Retries every hour. For an extension, open Chrome and sign in to LinkedIn there.
 - **"{step} couldn't be written"**: the message couldn't be generated at send time. Status Needs you. Open the add dialog again or restart after fixing (on Your own AI, check your Anthropic or OpenAI key in Settings → API keys; on All included, check your credits in Settings → Budget).
 - **"Writing was interrupted; generate again"**: writing stopped on Pluton's side for more than 5 minutes. Click **Generate messages**.
 - **"Not connected, and the sequence has no connection request step"**: you switched off the invitation step and the person isn't a connection.
-- **"Unipile status {status}"** or **"No longer on Unipile"** on an account: its Unipile session needs attention or it was removed there.
 
 Any other error is retried after 1 hour, then 2 hours; after three failures on the same step the person is **Failed** with the error text. Settings errors include "The window must end after it starts".
 
@@ -302,7 +293,7 @@ Any other error is retried after 1 hour, then 2 hours; after three failures on t
 Pluton's guardrails around LinkedIn:
 
 - Prudent daily limits per account (80 / 20 / 50 by default), hard maximums of 150 / 40 / 150.
-- One action at a time per automated account, at least 3 minutes apart, with random gaps, only during working hours.
+- One action at a time per extension, at least 3 minutes apart, with random gaps, only during working hours.
 - No note on invitations by default, and invitations given up after 7 days.
 - A 10-minute undo after adding people; nothing goes out before you can review the messages.
 - One live sequence per person, and every reply stops everything.
@@ -322,11 +313,11 @@ A: No. Reviewing is optional; the dialog just shows how many are reviewed. If yo
 **Q: Will Pluton message someone who hasn't accepted my invitation?**
 A: No. Messages wait for the connection. People who are already first-degree connections skip the invitation and go straight to the messages.
 
-**Q: Why is the Follow step always skipped?**
-A: Unipile's API can't follow people on LinkedIn, so with Unipile accounts the step is recorded as skipped. Manual accounts get it as a task.
+**Q: Why is the Follow step always a task?**
+A: It isn't skipped: the extension doesn't follow people, so it always comes to you as a task.
 
 **Q: How do I stop a sequence for one person?**
-A: In **Enrolled leads** or the lead drawer, click **Remove from campaign** (or **Undo (nothing sent yet)** in the first 10 minutes). A reply also stops it automatically; for manual accounts, use **Log a reply**.
+A: In **Enrolled leads** or the lead drawer, click **Remove from campaign** (or **Undo (nothing sent yet)** in the first 10 minutes). A reply also stops it automatically; for LinkedIn replies, use **Log a reply**.
 
 **Q: I changed a message's guidelines. Do people already in the sequence get the new version?**
 A: Not unless you tick "Also rewrite the unsent messages of leads already in" when saving. That rewrites their unsent messages and replaces your edits; sent messages never change.
@@ -340,11 +331,8 @@ A: The sequence stops, the reply is classified Positive, and if your objective i
 **Q: What does "Lost" mean?**
 A: The person said they're not interested, or the invitation wasn't accepted within the give-up delay (7 days by default), or you clicked **Give up** on a manual invitation.
 
-**Q: Can I send without the LinkedIn option?**
-A: Yes. Add a manual account in Settings → LinkedIn accounts; it needs nothing and costs nothing. Pluton prepares each step with the text ready to copy in the Play's to-do list, and you tick it when done. Message steps can also go by email from your own mailbox.
-
-**Q: What does the LinkedIn option cost?**
-A: 15 € a month per connected LinkedIn account (165 € a year on a yearly plan), on either plan. Adding one mid-period charges only the days left; removing one takes effect at your next renewal.
+**Q: Can I send without the extension?**
+A: Yes. Add a manual account in Settings → LinkedIn accounts. Pluton prepares each step with the text ready to copy in the Play's to-do list, and you tick it when done.
 
 **Q: How do I change the sending hours or days?**
 A: Sequence tab → **Configure** → **When it sends**. Each Play's sequence has its own window. The timezone is set in Settings → General.

@@ -33,7 +33,6 @@ const TAX_CODE = "txcd_10103001";
 const PRODUCTS = [
   { key: "byo", name: "Pluton · Your own AI", env: "BYO", month: 2499, year: 27489 },
   { key: "all", name: "Pluton · All included", env: "ALL", month: 5900, year: 64900 },
-  { key: "linkedin", name: "Pluton · LinkedIn account", env: "LINKEDIN", month: 1500, year: 16500 },
 ];
 
 const products = stripe("get", "/v1/products", { limit: 100, active: true }).data;

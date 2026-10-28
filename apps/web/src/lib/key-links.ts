@@ -5,7 +5,6 @@ const LINKS = {
   hunter: "https://hunter.io/api-keys",
   theirstack: "https://app.theirstack.com",
   apify: "https://console.apify.com/settings/integrations",
-  unipile: "https://dashboard.unipile.com",
   anthropic: "https://console.anthropic.com/settings/keys",
 } as const;
 
@@ -13,7 +12,6 @@ const BY_SETTING: Record<string, keyof typeof LINKS> = {
   hunter_api_key: "hunter",
   theirstack_api_key: "theirstack",
   apify_token: "apify",
-  unipile_api_key: "unipile",
   anthropic_api_key: "anthropic",
 };
 

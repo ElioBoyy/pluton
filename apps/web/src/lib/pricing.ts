@@ -11,7 +11,6 @@ export type Interval = "month" | "year";
 export const PRICES = {
   byo: { month: 24.99, year: 274.89, credits: 600 },
   all: { month: 59, year: 649, credits: 2000 },
-  linkedin: { month: 15, year: 165 },
 } as const;
 
 /** Leads ready to contact a month on All included, from measured searches; the landing says the same. */
@@ -24,4 +23,4 @@ export const euros = (amount: number) =>
   new Intl.NumberFormat(getLocale(), { style: "currency", currency: "EUR", minimumFractionDigits: Number.isInteger(amount) ? 0 : 2 }).format(amount);
 
 /** What the subscription billing summary says (GET /api/billing/subscription). */
-export type BillingSummary = { plan: PlanId | null; interval: Interval; linkedinSeats: number; periodEnd: string | null };
+export type BillingSummary = { plan: PlanId | null; interval: Interval; periodEnd: string | null };

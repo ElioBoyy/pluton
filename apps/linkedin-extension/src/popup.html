@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Pluton LinkedIn</title>
+<style>
+  :root { color-scheme: dark; --bg: #0e0e12; --panel: #1b1b22; --ink: #f4f4f7; --muted: #9a9aa6; --accent: #4f5bff; --ok: #34c759; --warn: #ff9f0a; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { width: 340px; margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  h1 { margin: 0 0 2px; font-size: 15px; }
+  h2 { margin: 16px 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .state { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--panel); }
+  .state + .state { margin-top: 6px; }
+  .states { margin-top: 12px; }
+  .dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--warn); }
+  .dot.ok { background: var(--ok); }
+  a { color: #9ba3ff; }
+  .token { display: flex; gap: 6px; }
+  code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 10px; border-radius: 8px; background: var(--panel); font: 12px ui-monospace, Menlo, monospace; }
+  button { flex: none; height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  ul { margin: 0; padding: 0; list-style: none; }
+  li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid #ffffff14; font-size: 12px; }
+  li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  li span:last-child { text-align: right; }
+</style>
+</head>
+<body>
+  <h1>Pluton LinkedIn</h1>
+  <p class="muted">Fait les étapes LinkedIn que Pluton lui confie, depuis ce navigateur, tant qu'il est ouvert.</p>
+
+  <div class="states">
+    <div class="state"><span class="dot" id="pluton-dot"></span><span id="pluton">Vérification…</span></div>
+    <div class="state"><span class="dot" id="linkedin-dot"></span><span id="linkedin">Vérification…</span></div>
+  </div>
+
+  <section id="pairing" hidden>
+    <h2>Token de cette extension</h2>
+    <div class="token"><code id="token"></code><button id="copy" type="button">Copier</button></div>
+    <p class="muted" style="margin-top: 6px">Collez-le dans Pluton, page LinkedIn, section « Extension Chrome ».</p>
+  </section>
+
+  <section id="recent" hidden>
+    <h2>Dernières actions</h2>
+    <ul id="history"></ul>
+  </section>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

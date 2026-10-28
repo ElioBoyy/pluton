@@ -7,7 +7,6 @@ import {
   emailThread,
   emailsToday,
   endEnrollment,
-  enrollmentsToPoll,
   inSendWindow,
   jitterMs,
   lastEmailAt,
@@ -24,7 +23,6 @@ import {
   usageToday,
 } from "@pluton/core";
 import {
-  ENDED_ENROLLMENT,
   and,
   campaigns,
   desc,
@@ -33,7 +31,6 @@ import {
   getSetting,
   leads,
   messageDrafts,
-  ne,
   outreachActions,
   people,
   replies,
@@ -49,22 +46,13 @@ import {
   type Sender,
 } from "@pluton/db";
 import {
-  UnipileError,
   inboxConfigured,
   isBounceSender,
-  linkedinPublicId,
   mailerConfigured,
   readInbox,
   isNetworkError,
   sendOutreachEmail,
   stripQuoted,
-  unipileFindChat,
-  unipileInvite,
-  unipileLatestPost,
-  unipileLike,
-  unipileMessages,
-  unipileProfile,
-  unipileSendMessage,
 } from "@pluton/providers";
 import { currentLocale, localized, withLocale } from "@pluton/i18n/server";
 import { byEmail, campaignLanguage, classifyReply, writeAutoReply, writeDrafts, writeEmailSubject } from "./outreach-writer.ts";
@@ -97,12 +85,7 @@ export async function runSequenceTick(db: Db, now = new Date()) {
     withLocale(languages.get(workspaceId) ?? "en", () =>
       withinCostScope({ db, workspaceId }, () => fn({ db, now, timeZone: zones.get(workspaceId) ?? "Europe/Paris", busy })),
     );
-  let polled = 0;
-  for (const { enrollment } of await enrollmentsToPoll(db, now)) {
-    await inWorkspace(enrollment.workspaceId, () => pollReplies(db, enrollment)).catch((error) => console.error("[sequence] reply check failed", (error as Error).message));
-    polled++;
-  }
-  polled += await readInboxes(db, now, inWorkspace);
+  const polled = await readInboxes(db, now, inWorkspace);
   let acted = 0;
   for (const { enrollment, campaign } of await dueEnrollments(db, now)) {
     // Claim it: only the pass that moves next_action_at from the value it read may act.
@@ -159,11 +142,6 @@ async function runStep(ctx: Ctx, e: Enrollment, campaign: Campaign): Promise<boo
     await defer(db, e.id, nextWindowStart(now, campaign.sendWindow, ctx.timeZone));
     return false;
   }
-  // Automated accounts act like a person: one action at a time, minutes apart. Manual tasks just queue up.
-  if (sender.provider === "unipile" && (ctx.busy.has(sender.id) || (await recentlyActive(db, sender.id, now)))) {
-    await defer(db, e.id, new Date(now.getTime() + jitterMs(3, 9)));
-    return false;
-  }
 
   const step = campaign.steps[e.stepIndex];
   if (!step) {
@@ -181,17 +159,9 @@ async function runStep(ctx: Ctx, e: Enrollment, campaign: Campaign): Promise<boo
     return false;
   }
 
-  const acted = sender.provider === "manual" ? await manualStep(ctx, e, campaign, step, sender, person) : await unipileStep(ctx, e, campaign, step, sender, person);
+  const acted = await manualStep(ctx, e, campaign, step, sender, person);
   if (acted) ctx.busy.add(sender.id);
   return acted;
-}
-
-async function recentlyActive(db: Db, senderId: string, now: Date) {
-  const last = await db.query.outreachActions.findFirst({
-    where: and(eq(outreachActions.senderId, senderId), eq(outreachActions.status, "done")),
-    orderBy: desc(outreachActions.createdAt),
-  });
-  return Boolean(last && now.getTime() - last.createdAt.getTime() < MIN_GAP_MS);
 }
 
 /** The message text for a step, written now if it's missing. null with a reason when it can't be sent. */
@@ -263,115 +233,17 @@ function tooEarly(e: Enrollment, step: CampaignStep, now: Date) {
   return at > now.getTime() && e.status === "invite_accepted" ? new Date(at + jitterMs(1, 10)) : null;
 }
 
-// ── Unipile ──────────────────────────────────────────────────────────────────
-
-async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: CampaignStep, sender: Sender, person: Person) {
-  const { db, now } = ctx;
-  const account = sender.externalId!;
-  const identifier = e.providerUserId ?? (person.linkedinUrl ? linkedinPublicId(person.linkedinUrl) : null);
-  if (!identifier) {
-    await endEnrollment(db, e.id, "failed", person.email ? t("noProfile") : t("noChannel"));
-    return false;
-  }
-  const base = { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, stepId: step.id };
-  const profile = async (notify: boolean) => {
-    const p = await unipileProfile(account, identifier, notify);
-    await db.update(enrollments).set({ providerUserId: p.providerId, connected: p.connected }).where(eq(enrollments.id, e.id));
-    e = { ...e, providerUserId: p.providerId, connected: p.connected };
-    return p;
-  };
-
-  switch (step.kind) {
-    case "visit_profile": {
-      await profile(true);
-      await logAction(db, { ...base, kind: "visit_profile", status: "done" });
-      await advance(db, e, campaign, { status: "profile_visited" }, now);
-      return true;
-    }
-    case "follow_profile": {
-      // Unipile has no follow endpoint for LinkedIn: recorded as skipped so the journey says so.
-      await logAction(db, { ...base, kind: "follow_profile", status: "skipped", detail: t("followUnavailable") });
-      await advance(db, e, campaign, {}, now);
-      return false;
-    }
-    case "like_post": {
-      const providerId = e.providerUserId ?? (await profile(false)).providerId;
-      const post = await unipileLatestPost(account, providerId);
-      if (!post) {
-        await logAction(db, { ...base, kind: "like_post", status: "skipped", detail: t("noRecentPost") });
-        await advance(db, e, campaign, {}, now);
-        return false;
-      }
-      await unipileLike(account, post.social_id);
-      await logAction(db, { ...base, kind: "like_post", status: "done", detail: post.text?.slice(0, 200) });
-      await advance(db, e, campaign, { status: "post_liked" }, now);
-      return true;
-    }
-    case "invite": {
-      const p = await profile(false);
-      if (p.connected) {
-        await logAction(db, { ...base, kind: "invite", status: "skipped", detail: t("alreadyConnected") });
-        await advance(db, e, campaign, { status: "invite_accepted", acceptedAt: now }, now);
-        return false;
-      }
-      if (!p.invitationPending) {
-        const note = campaign.inviteNote ? renderTemplate(campaign.inviteNote, templateVars(person, sender, campaign.objective.link), {}).text : undefined;
-        try {
-          await unipileInvite(account, p.providerId, note);
-        } catch (error) {
-          if (error instanceof UnipileError && error.type === "errors/already_connected") {
-            await advance(db, e, campaign, { status: "invite_accepted", connected: true, acceptedAt: now }, now);
-            return false;
-          }
-          if (!(error instanceof UnipileError && error.type === "errors/already_invited_recently")) throw error;
-        }
-        await logAction(db, { ...base, kind: "invite", status: "done", text: note ?? null });
-      }
-      await markContacted(db, e.leadId);
-      await addLeadEvent(db, e.leadId, "outreach", { kind: "invite", sender: sender.name });
-      await advance(db, e, campaign, { status: "invite_sent", inviteSentAt: e.inviteSentAt ?? now }, now);
-      return true;
-    }
-    case "message": {
-      if (e.connected !== true) {
-        await waitForConnection(ctx, e, campaign, async () => (await profile(false)).connected);
-        return false;
-      }
-      const wait = tooEarly(e, step, now);
-      if (wait) {
-        await defer(db, e.id, wait);
-        return false;
-      }
-      // A reply since the last message stops the sequence before the next one goes out.
-      if (e.chatId) {
-        await pollReplies(db, e);
-        const fresh = await db.query.enrollments.findFirst({ where: eq(enrollments.id, e.id) });
-        if (!fresh || ENDED_ENROLLMENT.includes(fresh.status)) return false;
-      }
-      const { text, skipped, reason } = await messageFor(db, e, campaign, step, "linkedin");
-      if (!text) {
-        await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
-        return false;
-      }
-      const providerId = e.providerUserId ?? (await profile(false)).providerId;
-      const chatId = e.chatId ?? (await unipileFindChat(account, providerId));
-      const sent = await unipileSendMessage(account, { chatId, providerId, text });
-      await logAction(db, { ...base, kind: "message", status: "done", text });
-      await markSent(db, campaign, e, step, "linkedin");
-      await markContacted(db, e.leadId);
-      await addLeadEvent(db, e.leadId, "outreach", { kind: "message", step: stepLabel(campaign.steps, step), sender: sender.name });
-      await advance(db, e, campaign, { status: "message_sent", chatId: sent.chatId ?? chatId }, now);
-      return true;
-    }
-  }
-}
-
 // ── Manual ───────────────────────────────────────────────────────────────────
 
-/** Manual accounts: the action lands in your task list with its text; the sequence waits for "Done". */
+/**
+ * Manual accounts: the action lands in your task list with its text; the sequence waits for "Done".
+ * Through the Chrome extension, visits and invitations are queued for it instead, and done in your
+ * browser; the other steps still come to you.
+ */
 async function manualStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: CampaignStep, sender: Sender, person: Person) {
   const { db, now } = ctx;
-  const base = { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, stepId: step.id, status: "pending_manual" as const };
+  const byExtension = sender.provider === "extension" && (step.kind === "invite" || step.kind === "visit_profile");
+  const base = { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, stepId: step.id, status: byExtension ? ("queued" as const) : ("pending_manual" as const) };
   if (step.kind === "message") {
     if (e.connected !== true) {
       // You mark the invitation accepted from the task list; until then this only checks expiry.
@@ -464,12 +336,6 @@ async function emailStep(ctx: Ctx, e: Enrollment, campaign: Campaign, person: Pe
     return false;
   }
 
-  // A LinkedIn reply since the last message stops the sequence before this email goes out.
-  if (e.chatId) {
-    await pollReplies(db, e);
-    const fresh = await db.query.enrollments.findFirst({ where: eq(enrollments.id, e.id) });
-    if (!fresh || ENDED_ENROLLMENT.includes(fresh.status)) return false;
-  }
   const { text, subject: written, skipped, reason } = await messageFor(db, e, campaign, step, "email");
   if (!text) {
     await endEnrollment(db, e.id, skipped ? "stopped" : "needs_you", reason!);
@@ -548,24 +414,15 @@ async function readWorkspaceInbox(db: Db, sent: Awaited<ReturnType<typeof sentEm
 
 // ── Replies ──────────────────────────────────────────────────────────────────
 
-async function pollReplies(db: Db, e: Enrollment) {
-  if (!e.chatId) return;
-  const messages = await unipileMessages(e.chatId, e.inviteSentAt ?? e.createdAt);
-  await db.update(enrollments).set({ lastReplyCheckAt: new Date() }).where(eq(enrollments.id, e.id));
-  for (const m of messages.filter((m) => m.fromThem && m.text.trim()).sort((a, b) => a.at.getTime() - b.at.getTime())) {
-    await handleReply(db, e.id, { text: m.text, source: "unipile", externalId: m.id, at: m.at });
-  }
-}
-
 /**
  * A reply stops the sequence, is classified, and gets the one automatic answer when it's positive
  * and the objective has a link (and auto-reply is on). Otherwise it waits for you.
  */
-export async function handleReply(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "email" | "manual"; externalId?: string; at?: Date }) {
+export async function handleReply(db: Db, enrollmentId: string, reply: { text: string; source: "email" | "manual"; externalId?: string; at?: Date }) {
   return withinCostScope({ db, purpose: "replies" }, () => handleReplyInScope(db, enrollmentId, reply));
 }
 
-async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: string; source: "unipile" | "email" | "manual"; externalId?: string; at?: Date }) {
+async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: string; source: "email" | "manual"; externalId?: string; at?: Date }) {
   const e = await db.query.enrollments.findFirst({ where: eq(enrollments.id, enrollmentId) });
   if (!e) throw new Error(campaignsText("notInSequence"));
   const [row] = await db
@@ -617,10 +474,6 @@ async function handleReplyInScope(db: Db, enrollmentId: string, reply: { text: s
         });
         await logAction(db, { workspaceId: e.workspaceId, enrollmentId: e.id, kind: "auto_reply", status: "done", text, externalId: messageId, detail: person.email });
         await db.update(enrollments).set({ status: "auto_reply_sent" }).where(eq(enrollments.id, e.id));
-      } else if (sender?.provider === "unipile" && sender.status === "connected" && e.providerUserId) {
-        const sent = await unipileSendMessage(sender.externalId!, { chatId: e.chatId, providerId: e.providerUserId, text });
-        await logAction(db, { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, kind: "auto_reply", status: "done", text });
-        await db.update(enrollments).set({ status: "auto_reply_sent", chatId: sent.chatId ?? e.chatId }).where(eq(enrollments.id, e.id));
       } else {
         await logAction(db, { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender?.id ?? null, kind: "auto_reply", status: "pending_manual", text, detail: t("answerPositive") });
       }
@@ -653,29 +506,6 @@ async function onError(ctx: Ctx, e: Enrollment, campaign: Campaign, error: Error
     status: "failed",
     detail: error.message.slice(0, 300),
   });
-  if (error instanceof UnipileError) {
-    if (error.status === 401 && e.senderId) {
-      const [was] = await db
-        .update(senders)
-        .set({ status: "disconnected", error: error.message.slice(0, 300) })
-        .where(and(eq(senders.id, e.senderId), ne(senders.status, "disconnected")))
-        .returning();
-      if (was) await recordActivity(db, e.workspaceId, "campaigns", "sender.disconnected", { senderId: was.id, name: was.name });
-      await defer(db, e.id, new Date(now.getTime() + HOUR), "LinkedIn account disconnected; reconnect it in Settings → LinkedIn");
-      return;
-    }
-    if (error.status === 429 || error.type === "errors/cannot_resend_yet" || error.type === "errors/connection_limit_reached") {
-      await defer(db, e.id, new Date(now.getTime() + (error.retryAfter ? error.retryAfter * 1000 : 6 * HOUR)), "LinkedIn asked to slow down");
-      return;
-    }
-    // LinkedIn can't find or reach this person: their email takes over when it's known.
-    if (error.status === 404 || (error.status === 422 && ["errors/invalid_recipient", "errors/cannot_invite_attendee"].includes(error.type ?? ""))) {
-      const why = error.status === 404 ? t("profileNotFound") : t("unreachableOnLinkedin");
-      if (await continueByEmail(ctx, e, why)) return;
-      await endEnrollment(db, e.id, "failed", why);
-      return;
-    }
-  }
   const failed = await db
     .select({ detail: outreachActions.detail, createdAt: outreachActions.createdAt })
     .from(outreachActions)

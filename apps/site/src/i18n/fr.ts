@@ -231,16 +231,12 @@ export default {
     both: "Sur les deux formules",
     bothLines: [
       "Prospects trouvés et notés pour vous, messages LinkedIn et email écrits pour vous",
+      "LinkedIn inclus : l’extension Pluton envoie visites et invitations depuis votre propre Chrome, tant qu’il est ouvert. Jusqu’à 3× plus de réponses que l’email*",
       "Slack, HubSpot, Attio, Pipedrive et MCP pour votre IA",
       "Hébergé par Pluton : tourne même ordinateur fermé",
     ],
     cta: "Commencer",
     options: "Options, sur les deux formules",
-    linkedin: "Compte LinkedIn d'envoi",
-    linkedinMonth: "{price} par mois et par compte",
-    linkedinYear: "{price} par an et par compte",
-    linkedinNote: "Pluton fournit la connexion à LinkedIn : pas besoin d'un outil d'automatisation à part.",
-    linkedinKey: "Jusqu'à 3× plus de réponses que l'email*",
     linkedinSource: "Pin, Recruiting Outreach Benchmarks 2026",
     linkedinFootnote: "* 17,08\u00a0% contre 4,96\u00a0% de taux de réponse sur plus de 4 millions de messages de recrutement envoyés de juin 2025 à mai 2026 ({source}). Du recrutement, pas de la vente : vos résultats dépendent de votre marché et de vos messages.",
     packs: "Packs de crédits",
@@ -251,10 +247,9 @@ export default {
     facts: [
       ["Les crédits mesurent le travail", "Rechercher des entreprises, trouver des personnes et leurs adresses e-mail ; avec Tout compris, aussi les noter et écrire les messages. Une recherche plus difficile en consomme davantage."],
       ["Vous voyez ce que chaque recherche a consommé", "Et ce qu’il reste ce mois-ci. Une fois épuisés, Pluton se met en pause jusqu’au mois suivant, sauf si vous ajoutez un pack."],
-      ["Changez quand vous voulez, au prorata", "Montez en gamme, passez à l’annuel ou ajoutez un compte LinkedIn à tout moment : vous ne payez que les jours restants de la période."],
+      ["Changez quand vous voulez, au prorata", "Montez en gamme ou passez à l’annuel à tout moment : vous ne payez que les jours restants de la période."],
       ["Renouvelé jusqu’à résiliation", "Chaque mois ou chaque année. Résilier arrête le renouvellement ; la période déjà payée reste à vous."],
       ["L’annuel engage pour un an", "Le retour au mensuel se fait au renouvellement. Partir plus tôt ou baisser de formule en cours d’année n’est ni remboursé ni crédité."],
-      ["Retirer un compte LinkedIn", "Il reste actif jusqu’au prochain renouvellement."],
     ],
     vat: "Prix en euros. TVA non applicable, article 293 B du Code général des impôts.",
     onPremise: "Besoin de Pluton sur vos propres serveurs ? L'installation sur site (on-premise) se fait sur demande. Écrivez à",
@@ -276,7 +271,7 @@ export default {
       ],
       [
         "Comment traite-t-il mon compte LinkedIn ?",
-        "Il n'agit que dans une plage d'envoi en semaine, sous des limites quotidiennes par compte (80 visites, 20 invitations, 50 messages par défaut) et avec des pauses aléatoires entre les actions. Tout se règle, et vous pouvez tout envoyer à la main.",
+        "Tout passe par l’extension Pluton, dans votre propre Chrome et avec votre session LinkedIn, seulement quand Chrome est ouvert. Il n'agit que dans une plage d'envoi en semaine, sous des limites quotidiennes par compte (80 visites, 20 invitations, 50 messages par défaut) et avec des pauses aléatoires entre les actions. Tout se règle, et vous pouvez tout envoyer à la main.",
       ],
       [
         "Ai-je besoin de mon propre compte Claude ou OpenAI ?",

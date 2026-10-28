@@ -10,7 +10,7 @@ import { useTRPC } from "../../lib/trpc.ts";
 import { AddToCampaignModal, useRefreshSequences } from "./add-to-campaign.tsx";
 import { ENROLLMENT, REPLY_LABEL, actionLabel, when } from "./labels.ts";
 
-const ACTION_STATUS = { pending_manual: "actionStatus.pending_manual", done: "actionStatus.done", skipped: "actionStatus.skipped", failed: "actionStatus.failed" } as const;
+const ACTION_STATUS = { pending_manual: "actionStatus.pending_manual", queued: "actionStatus.queued", sending: "actionStatus.sending", done: "actionStatus.done", skipped: "actionStatus.skipped", failed: "actionStatus.failed" } as const;
 
 /** The lead drawer's Campaign block: where they are, what's next, every message and reply. */
 export function LeadCampaignBlock({ leadId, status }: { leadId: string; status: string }) {

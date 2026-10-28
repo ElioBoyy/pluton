@@ -287,7 +287,7 @@ function Accounts({ data, onSaved }: { data: Data; onSaved: () => void }) {
         {data.senders.map((s) => {
           const on = chosen.length === 0 || chosen.includes(s.id);
           return (
-            <Row key={s.id} label={<span className="block truncate">{s.name}</span>} description={`${s.provider === "manual" ? t("accounts.manual") : "Unipile"} · ${s.status in SENDER_STATUS ? t(SENDER_STATUS[s.status as keyof typeof SENDER_STATUS]) : s.status}`}>
+            <Row key={s.id} label={<span className="block truncate">{s.name}</span>} description={`${s.provider === "extension" ? t("accounts.extension") : t("accounts.manual")} · ${s.status in SENDER_STATUS ? t(SENDER_STATUS[s.status as keyof typeof SENDER_STATUS]) : s.status}`}>
               <Switch
                 checked={on}
                 label={t("accounts.sendFrom", { name: s.name })}

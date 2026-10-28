@@ -329,7 +329,6 @@ function PlanPicker() {
   const total = PRICES[plan][interval];
 
   const checkout = useMutation({
-    // LinkedIn accounts aren't bought here: each one is added to this subscription when it is connected.
     mutationFn: () => post<{ url: string }>("/api/billing/checkout", { plan, interval }),
     onSuccess: ({ url }) => window.location.assign(url),
   });
@@ -390,8 +389,6 @@ function PlanPicker() {
         })}
       </div>
 
-      <p className="mt-3 px-1 text-xs text-muted">{t("subscribe.linkedinLater", { price: per(PRICES.linkedin[interval]) })}</p>
-
       <p className="mt-6 flex items-baseline justify-between text-sm">
         <span className="text-muted">{t("subscribe.total")}</span>
         <span className="font-semibold tabular-nums">{per(total)}</span>
@@ -411,7 +408,7 @@ function PlanPicker() {
   );
 }
 
-/** − n + for a small count, e.g. LinkedIn accounts. */
+/** − n + for a small count, e.g. automatic packs a month. */
 export function Stepper({ value, onChange, max, label }: { value: number; onChange: (n: number) => void; max: number; label: string }) {
   return (
     <span className="inline-flex items-center gap-2" role="group" aria-label={label}>

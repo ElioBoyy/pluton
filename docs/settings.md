@@ -9,7 +9,7 @@ At the top of the left column is your **Profile**: your avatar, name and the ema
 1. **General**: workspace name, website, timezone, and your list of workspaces.
 2. **Appearance**: wallpapers for the light and dark appearances and how they look.
 3. **Notifications**: what reaches the bell in the sidebar, and the morning digest.
-4. **LinkedIn accounts**: the accounts your sequences send from (automated through Pluton, or manual) and their daily limits.
+4. **LinkedIn accounts**: the accounts your sequences send from (Chrome extension or manual) and their daily limits.
 5. **Connect your AI**: Pluton's MCP server for Claude Code, Claude Desktop or Codex.
 6. **API keys**: the research model, your own AI key, your own data source keys, SMTP email and automation switches.
 7. **Data sources**: every source Plays search, its status, its usage and a "Try it" box.
@@ -156,14 +156,6 @@ On both plans, Pluton provides these three sources with its own keys: each row s
 
 Free sources always work too (French company registry, careers pages, website tech detection, company website emails), and web search runs on your plan's AI. Each source's status is on Settings → Data sources. How each one is charged is in "Costs and budget".
 
-## LinkedIn sending
-
-The **LinkedIn sending** group is used by the **LinkedIn sending account** option: automated sending goes through Pluton's own Unipile account, so there is nothing to enter on this page.
-
-The option costs 15 € per LinkedIn account per month (165 € a year), billed with your plan. You add accounts at checkout, in Settings → Budget → Subscription (**LinkedIn accounts**), or directly from **Settings → LinkedIn accounts** with **Connect LinkedIn**: when every account on your plan is in use, Pluton asks "Add a LinkedIn account to your plan for {price}? Today you only pay for the days left in this period." Removing one stops at the next renewal.
-
-Without the option, sequences run in manual mode: Pluton puts each step in the Play's to-do with the message ready to copy. Connecting accounts, daily limits and sending behaviour are covered in "LinkedIn sequences and outreach".
-
 ## Email: SMTP and IMAP
 
 The **Email** group: "Sends the morning digest from your own mailbox. Optional: the digest is always in the app." Mail leaves from your own mail server.
@@ -221,7 +213,7 @@ Details of notifications, the bell and Activity are in the activity documentatio
 
 **Settings → Budget** starts with your plan, then the workspace's own spending limits.
 
-- **Subscription**: your plan and price, with "Billed monthly, renews on {date}." or "Billed yearly (1-year commitment), renews on {date}." Buttons **Switch to {other plan}** and, on a monthly plan, **Pay yearly, 1 month free**: Pluton asks "Switch now? The difference for the days left in this period is charged or credited at once." **LinkedIn accounts** is a stepper for the LinkedIn sending account option ("Adding one is charged now for the days left in the period; removing one stops at the next renewal."). **Manage subscription** opens Stripe to change card, see invoices or cancel. Footnote: "Plan changes apply now, settled pro rata for the days left in the period."
+- **Subscription**: your plan and price, with "Billed monthly, renews on {date}." or "Billed yearly (1-year commitment), renews on {date}." Buttons **Switch to {other plan}** and, on a monthly plan, **Pay yearly, 1 month free**: Pluton asks "Switch now? The difference for the days left in this period is charged or credited at once." **Manage subscription** opens Stripe to change card, see invoices or cancel. Footnote: "Plan changes apply now, settled pro rata for the days left in the period."
 - **Included in your plan**: the credits spent this period out of what you have, with **Available**, **This month's** and, once you bought some, **Bought, carried over**. **Buy credits** offers the packs (1,000, 2,500 or 5,000 credits for 22 €, 55 € or 109 €), paid on Stripe and counted as soon as the payment is confirmed. The footnote explains that once the credits are spent, calls through Pluton's own keys stop until the next period, while your own keys in Settings → API keys keep going.
 - Below: this period's spend and the **Limits** (monthly budget, period start day, daily cap, the most one search may spend, and what happens at the limit). See "Costs and budget".
 
@@ -231,7 +223,7 @@ The amounts are in US dollars on both plans.
 
 These panes are explained in other parts of the documentation; here is what each is for.
 
-- **LinkedIn accounts**: the accounts sequences send from. Under **Send through Unipile**, **Connect LinkedIn** opens a secure page to log in to LinkedIn (codes and captchas handled there), then **Refresh**; the line under it shows how many of your plan's LinkedIn accounts are in use. Or add a **manual account** (you do each action by hand). Per account: status (Connected, Connecting, Disconnected, Error), **Reconnect**, daily limits (visits/follows/likes, invitations, messages) with **Save limits**, and **Remove account** (its leads' sequences stop). Shows the warning that automating LinkedIn is against its terms. See "LinkedIn sequences and outreach".
+- **LinkedIn accounts**: the accounts sequences send from. Pair the **Chrome extension** (download it, paste its token, **Pair**) or add a **manual account** (you do each action by hand). Per account: status (Connected, Connecting, Disconnected, Error), daily limits (visits/follows/likes, invitations, messages) with **Save limits**, and **Remove account** (its leads' sequences stop). Shows the warning that automating LinkedIn is against its terms. See "LinkedIn sequences and outreach".
 - **Connect your AI**: the MCP server address (https://app.plut0n.com/api/mcp) and this workspace's token (**Show token**, **Copy token**, **New token**), setup lines for Claude Code, Claude Desktop and Codex, the guardrail "Pause searches started from AI clients", connected clients with **Forget**, and **Download SKILL.md**. See the MCP documentation.
 - **Integrations**: Slack (new leads with Approve/Reject buttons) and HubSpot, Attio, Pipedrive (create-only export with field mapping). See the integrations documentation.
 - **Usage** and **Budget**: see "Costs and budget".

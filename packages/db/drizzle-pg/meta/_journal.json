@@ -50,6 +50,13 @@
       "when": 1793225131624,
       "tag": "0006_auto_top_up",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793228147008,
+      "tag": "0007_unipile_to_manual",
+      "breakpoints": true
     }
   ]
 }
