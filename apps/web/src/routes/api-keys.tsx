@@ -27,17 +27,29 @@ export function ApiKeysPage() {
         description={t("apiKeys.description")}
       />
       <div className="flex flex-col gap-8">
-        {GROUPS.map((g) => (
-          <Section key={g} title={t(`apiKeys.group.${g}.title`)} description={t(`apiKeys.group.${g}.description`)}>
-            <Group>
-              {(list.data ?? [])
-                .filter((s) => s.group === g)
-                .map((s) => (
+        {GROUPS.map((g) => {
+          const inGroup = (list.data ?? []).filter((s) => s.group === g);
+          // What the plan includes is Pluton's to provide: named in one line, with no field to fill.
+          // A key the workspace saved before still shows, so it can be removed.
+          const included = inGroup.filter((s) => s.included && s.source !== "app");
+          const shown = inGroup.filter((s) => !included.includes(s));
+          if (inGroup.length === 0) return null;
+          return (
+            <Section key={g} title={t(`apiKeys.group.${g}.title`)} description={t(`apiKeys.group.${g}.description`)}>
+              <Group>
+                {shown.map((s) => (
                   <SettingItem key={s.key} setting={s} />
                 ))}
-            </Group>
-          </Section>
-        ))}
+                {included.length > 0 && (
+                  <p className="flex items-center gap-2 px-4 py-3.5 text-sm text-muted">
+                    <CheckCircle size={14} weight="fill" className="shrink-0 text-system-green" />
+                    {t("apiKeys.included", { names: included.map((s) => s.label).join(", ") })}
+                  </p>
+                )}
+              </Group>
+            </Section>
+          );
+        })}
       </div>
     </>
   );
