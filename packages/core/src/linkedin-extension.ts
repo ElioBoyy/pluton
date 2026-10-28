@@ -15,7 +15,7 @@ const t = localized(messages);
 
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
 
-/** Same pace as an account through Unipile: an action, then minutes before the next one. */
+/** Paced like a person: an action, then minutes before the next one. */
 const MIN_GAP_MS = 3 * 60_000;
 /** An action taken by a browser that never answered goes back to the queue. */
 const STALE_MS = 5 * 60_000;

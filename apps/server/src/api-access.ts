@@ -188,8 +188,6 @@ export const PROCEDURE_PERMISSIONS: Record<ProcedurePath, ApiPermission | "app">
   "linkedin.pairExtension": "linkedin:manage",
   "linkedin.update": "linkedin:manage",
   "linkedin.remove": "linkedin:manage",
-  "linkedin.connectLink": "linkedin:manage",
-  "linkedin.sync": "linkedin:manage",
 
   "copilot.list": "agent:read",
   "copilot.get": "agent:read",

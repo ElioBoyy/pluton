@@ -384,7 +384,7 @@ export const senders = pgTable("sender", {
   provider: text("provider", { enum: SENDER_PROVIDERS }).notNull(),
   name: text("name").notNull(),
   profileUrl: text("profile_url"),
-  /** Unipile account id. */
+  /** For the Chrome extension, the SHA-256 of the token it was paired with. */
   externalId: text("external_id"),
   status: text("status", { enum: SENDER_STATUSES }).notNull().default("connected"),
   error: text("error"),
@@ -530,6 +530,7 @@ export const replies = pgTable(
     text: text("text").notNull(),
     label: text("label", { enum: REPLY_LABELS }),
     summary: text("summary"),
+    /** `unipile`: read through Unipile, before Pluton dropped it; kept for the replies it brought. */
     source: text("source", { enum: ["unipile", "email", "manual"] }).notNull(),
     receivedAt: timestamp("received_at", { mode: "date", precision: 3, withTimezone: true }).notNull(),
     handledAt: timestamp("handled_at", { mode: "date", precision: 3, withTimezone: true }),

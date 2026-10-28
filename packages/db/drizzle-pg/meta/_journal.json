@@ -43,6 +43,13 @@
       "when": 1793108542398,
       "tag": "0005_api_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793197870644,
+      "tag": "0006_unipile_to_manual",
+      "breakpoints": true
     }
   ]
 }

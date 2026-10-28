@@ -1,6 +1,5 @@
-import { ArrowsClockwise, ArrowUpRight, CircleNotch, LinkedinLogo, Trash, Warning } from "@phosphor-icons/react";
+import { ArrowUpRight, DownloadSimple, LinkedinLogo, Trash, Warning } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
@@ -10,9 +9,9 @@ import { askConfirm } from "../components/context-menu.tsx";
 import { translate, useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
-import { post } from "../features/account/auth-state.ts";
-import { euros, PRICES, type BillingSummary } from "../lib/pricing.ts";
-import { billingQuery } from "./budget.tsx";
+
+/** The extension as a zip, made by the server for this Pluton (it pairs with the address it was downloaded from). */
+const EXTENSION_ZIP = "/api/extension/linkedin/download";
 
 type Sender = inferRouterOutputs<AppRouter>["linkedin"]["senders"]["senders"][number];
 
@@ -26,55 +25,14 @@ const STATUS = {
 type Status = keyof typeof STATUS;
 const isStatus = (s: string): s is Status => Object.hasOwn(STATUS, s);
 
-/** The LinkedIn accounts sequences send from. */
+/** The LinkedIn accounts sequences send from: Chrome extensions, or accounts you work by hand. */
 export function LinkedinPage() {
   const t = useT("settings");
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const list = useQuery(trpc.linkedin.senders.queryOptions());
   const refresh = () => queryClient.invalidateQueries({ queryKey: trpc.linkedin.pathKey() });
-  const sync = useMutation(
-    trpc.linkedin.sync.mutationOptions({
-      onSuccess: (r) => {
-        toast(r.added ? translate("settings", "linkedin.added", { count: r.added }) : translate("settings", "linkedin.upToDate", { total: r.total }));
-        void refresh();
-      },
-      onError: (e) => toast(e.message, { tone: "error" }),
-    }),
-  );
-  const connect = useMutation(
-    trpc.linkedin.connectLink.mutationOptions({
-      onSuccess: ({ url }) => {
-        window.open(url, "_blank", "noopener");
-        toast(translate("settings", "linkedin.loginInNewTab"));
-      },
-      onError: (e) => toast(e.message, { tone: "error" }),
-    }),
-  );
   const senders = list.data?.senders ?? [];
-  const platform = Boolean(list.data?.platform);
-  const billing = useQuery({ ...billingQuery, enabled: platform });
-  // The paid options are the subscription's: accounts connected in the account's other workspaces use them too.
-  const used = list.data?.seatsUsed ?? 0;
-  const seats = billing.data?.linkedinSeats ?? 0;
-  const interval = billing.data?.interval ?? "month";
-  // On Pluton's Unipile account each LinkedIn account is an option: one more is bought, pro rata, before connecting.
-  const addSeat = useMutation({
-    mutationFn: () => post<BillingSummary>("/api/billing/linkedin", { seats: seats + 1 }),
-    onSuccess: (next) => {
-      queryClient.setQueryData(billingQuery.queryKey, next);
-      connect.mutate({});
-    },
-    onError: () => toast(translate("settings", "linkedin.seatFailed"), { tone: "error" }),
-  });
-  const price = t(interval === "year" ? "linkedin.pricePerYear" : "linkedin.pricePerMonth", { price: euros(PRICES.linkedin[interval]) });
-  // Connecting is where a LinkedIn account is bought: one more option on the subscription in
-  // progress, charged pro rata now, ending with it.
-  const startConnect = async () => {
-    if (!platform || used < seats) return connect.mutate({});
-    const ok = await askConfirm({ title: t("linkedin.seatTitle"), message: t("linkedin.seatMessage", { price }), confirmLabel: t("linkedin.seatConfirm") });
-    if (ok) addSeat.mutate();
-  };
 
   return (
     <>
@@ -92,42 +50,11 @@ export function LinkedinPage() {
           <Section title={t("linkedin.accounts")}>
             <ul className="flex flex-col gap-3">
               {senders.map((s) => (
-                <SenderRow key={s.id} sender={s} onChanged={refresh} onReconnect={() => connect.mutate({ reconnectSenderId: s.id })} />
+                <SenderRow key={s.id} sender={s} onChanged={refresh} />
               ))}
             </ul>
           </Section>
         )}
-
-        <Section title={t("linkedin.unipileTitle")}>
-          <Group>
-            {list.data && !list.data.unipile ? (
-              <Row
-                label={t("linkedin.unipileExplainer")}
-                description={t.rich("linkedin.unipileSetup", {
-                  link: (
-                    <Link to="/workspace/api-keys" className="text-accent hover:underline">
-                      {t("linkedin.unipileSetupLink")}
-                    </Link>
-                  ),
-                })}
-              />
-            ) : (
-              <Row
-                label={t(platform ? "linkedin.platformExplainer" : "linkedin.unipileExplainer")}
-                description={platform ? t("linkedin.seats", { used, seats, price }) : undefined}
-              >
-                <div className="flex shrink-0 gap-2">
-                  <Button variant="ghost" disabled={sync.isPending} onClick={() => sync.mutate()}>
-                    {sync.isPending ? <CircleNotch size={13} className="animate-spin" /> : <ArrowsClockwise size={13} />} {t("linkedin.refresh")}
-                  </Button>
-                  <Button disabled={connect.isPending || addSeat.isPending} onClick={startConnect}>
-                    <LinkedinLogo size={14} weight="fill" /> {t("linkedin.connect")}
-                  </Button>
-                </div>
-              </Row>
-            )}
-          </Group>
-        </Section>
 
         <ExtensionAccount onPaired={refresh} />
 
@@ -157,7 +84,16 @@ function ExtensionAccount({ onPaired }: { onPaired: () => void }) {
   return (
     <Section title={t("linkedin.extensionTitle")} footnote={t("linkedin.extensionFootnote")}>
       <Group>
-        <Row label={t("linkedin.extensionExplainer")} />
+        <Row label={t("linkedin.extensionExplainer")}>
+          <div className="flex shrink-0 gap-2">
+            <a href="/docs#linkedin-extension" target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1 px-2 text-sm text-accent hover:underline">
+              {t("linkedin.extensionGuide")} <ArrowUpRight size={11} weight="bold" />
+            </a>
+            <Button variant="ghost" type="button" onClick={() => window.location.assign(EXTENSION_ZIP)}>
+              <DownloadSimple size={14} /> {t("linkedin.extensionDownload")}
+            </Button>
+          </div>
+        </Row>
         <form
           className="flex flex-wrap items-center gap-2 px-4 py-3"
           onSubmit={(e) => {
@@ -235,7 +171,7 @@ const LIMITS = [
   ["messages", 150],
 ] as const;
 
-function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onChanged: () => void; onReconnect: () => void }) {
+function SenderRow({ sender: s, onChanged }: { sender: Sender; onChanged: () => void }) {
   const t = useT("settings");
   const trpc = useTRPC();
   const [limits, setLimits] = useState(s.limits);
@@ -258,7 +194,7 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
             </span>
           }
           description={t("linkedin.inSequences", {
-            provider: s.provider === "manual" ? t("linkedin.manualProvider") : s.provider === "extension" ? t("linkedin.extensionProvider") : "Unipile",
+            provider: s.provider === "extension" ? t("linkedin.extensionProvider") : t("linkedin.manualProvider"),
             count: s.activeLeads,
           })}
           className="py-3"
@@ -271,11 +207,6 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
               <span className="size-1.5 rounded-full bg-current" aria-hidden />
               {isStatus(s.status) ? t(`linkedin.status.${s.status}`) : s.status}
             </span>
-            {s.provider === "unipile" && s.status !== "connected" && (
-              <Button variant="ghost" onClick={onReconnect}>
-                {t("linkedin.reconnect")}
-              </Button>
-            )}
             <button
               type="button"
               onClick={async () => {

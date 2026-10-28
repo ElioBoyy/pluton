@@ -1,8 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Context, Hono } from "hono";
-import { removeSender } from "@pluton/core";
-import { and, creditPacks, eq, forgetPlans, inArray, senders, TOP_UP_PACKS, topUpPriceCents, users, workspaces, type Db, type SubscriptionPlan } from "@pluton/db";
-import { deletePlatformUnipileAccount } from "@pluton/providers";
+import { and, creditPacks, eq, forgetPlans, TOP_UP_PACKS, topUpPriceCents, users, type Db, type SubscriptionPlan } from "@pluton/db";
 import { APP_URL, currentUser, HOSTED, isPaid, type User } from "./auth.ts";
 
 /**
@@ -123,24 +121,6 @@ export async function billingSummary(user: User, fresh = false): Promise<Billing
 export const MAX_LINKEDIN_SEATS = 20;
 
 /**
- * LinkedIn accounts on Pluton's Unipile account that use one of the subscription's paid options:
- * the options are the account's, so every workspace of it counts. A workspace with its own Unipile
- * key uses none (its accounts are the customer's). `connecting` is the workspace about to connect:
- * the account it is still connecting doesn't count, connecting again reuses it.
- */
-export async function linkedinSeatsInUse(db: Db, userId: string, connecting?: string) {
-  const owned = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.userId, userId));
-  if (!owned.length) return 0;
-  const ids = owned.map((w) => w.id);
-  const [rows, ownKeys] = await Promise.all([
-    db.select({ workspaceId: senders.workspaceId, externalId: senders.externalId }).from(senders).where(and(inArray(senders.workspaceId, ids), eq(senders.provider, "unipile"))),
-    db.query.workspaceSettings.findMany({ where: (s, { and: all, eq: is, inArray: among }) => all(among(s.workspaceId, ids), is(s.key, "unipile_api_key")) }),
-  ]);
-  const own = new Set(ownKeys.filter((k) => k.value).map((k) => k.workspaceId));
-  return rows.filter((r) => !own.has(r.workspaceId) && !(r.workspaceId === connecting && r.externalId?.startsWith("pending:"))).length;
-}
-
-/**
  * Sets how many LinkedIn accounts the subscription pays for. More is charged now, pro rata for the
  * days left in the period; fewer stops at the next renewal, without a refund. Null without a plan.
  */
@@ -160,38 +140,6 @@ export async function setLinkedinSeats(user: User, seats: number): Promise<Billi
   }
   seatsCache.delete(user.id);
   return billingSummary(user, true);
-}
-
-/**
- * A subscription that ended (cancelled at the end of its period, or unpaid): its LinkedIn accounts
- * on Pluton's Unipile account are unlinked there and removed from its workspaces, their sequences
- * stopped. The customer's own Unipile accounts (their key) are left alone. Returns how many went.
- */
-export async function endLinkedinAccounts(db: Db, customerId: string) {
-  const user = await db.query.users.findFirst({ where: eq(users.stripeCustomerId, customerId) });
-  if (!user) return 0;
-  const owned = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.userId, user.id));
-  if (!owned.length) return 0;
-  const accounts = await db
-    .select()
-    .from(senders)
-    .where(and(inArray(senders.workspaceId, owned.map((w) => w.id)), eq(senders.provider, "unipile")));
-  let removed = 0;
-  for (const sender of accounts) {
-    // Own key: the account is the customer's, on their Unipile; only Pluton's own are unlinked.
-    const own = await db.query.workspaceSettings.findFirst({
-      where: (s, { and: all, eq: is }) => all(is(s.workspaceId, sender.workspaceId), is(s.key, "unipile_api_key")),
-    });
-    if (own?.value) continue;
-    try {
-      if (sender.externalId && !sender.externalId.startsWith("pending:")) await deletePlatformUnipileAccount(sender.externalId);
-      await removeSender(db, sender.id);
-      removed++;
-    } catch (error) {
-      console.error(`[billing] couldn't unlink LinkedIn account ${sender.id}`, error);
-    }
-  }
-  return removed;
 }
 
 type StripeCheckoutSession = {
@@ -371,18 +319,16 @@ export function mountBilling(app: Hono, db: Db) {
   }));
 
   /**
-   * How many LinkedIn sending accounts the subscription pays for. Adding one is charged now, pro
-   * rata for the days left in the period, then renews with the plan; removing one stops at the next
-   * renewal, without a refund for the current period.
+   * LinkedIn now sends through the free Chrome extension: the paid LinkedIn accounts of older
+   * subscriptions can only go down. Removing one stops at the next renewal, without a refund for
+   * the current period.
    */
   app.post("/api/billing/linkedin", guarded(async (c) => {
     const user = HOSTED ? await currentUser(db, c) : null;
     if (!user) return c.json({ error: "signed_out" }, 401);
     const { seats } = await c.req.json<{ seats?: number }>();
-    if (!Number.isInteger(seats) || seats! < 0 || seats! > MAX_LINKEDIN_SEATS) return c.json({ error: "unknown_quantity" }, 400);
-    // Fewer options than connected accounts would leave one unpaid: remove the account instead.
-    const used = await linkedinSeatsInUse(db, user.id);
-    if (seats! < used) return c.json({ error: "seats_in_use", used }, 409);
+    const current = (await billingSummary(user, true))?.linkedinSeats ?? 0;
+    if (!Number.isInteger(seats) || seats! < 0 || seats! > current) return c.json({ error: "unknown_quantity" }, 400);
     const summary = await setLinkedinSeats(user, seats!);
     return summary ? c.json(summary) : c.json({ error: "not_paid" }, 402);
   }));
@@ -413,7 +359,6 @@ export function mountBilling(app: Hono, db: Db) {
       await syncSubscription(db, await call<StripeSubscription>("GET", `subscriptions/${object.subscription}`));
     } else if (event.type.startsWith("customer.subscription.")) {
       await syncSubscription(db, object as unknown as StripeSubscription);
-      if (event.type === "customer.subscription.deleted") await endLinkedinAccounts(db, (object as unknown as StripeSubscription).customer);
     }
     return c.json({ received: true });
   });

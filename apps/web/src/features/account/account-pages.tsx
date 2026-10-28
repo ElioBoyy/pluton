@@ -390,8 +390,6 @@ function PlanPicker() {
         })}
       </div>
 
-      <p className="mt-3 px-1 text-xs text-muted">{t("subscribe.linkedinLater", { price: per(PRICES.linkedin[interval]) })}</p>
-
       <p className="mt-6 flex items-baseline justify-between text-sm">
         <span className="text-muted">{t("subscribe.total")}</span>
         <span className="font-semibold tabular-nums">{per(total)}</span>

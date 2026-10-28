@@ -18,7 +18,7 @@ export type SettingDef = {
   secret: boolean;
   options?: Array<{ value: string; label: string }>;
   defaultValue?: string;
-  group: "claude" | "data" | "outreach" | "email" | "integrations" | "mcp" | "automation";
+  group: "claude" | "data" | "email" | "integrations" | "mcp" | "automation";
 };
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -57,20 +57,6 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: "apify_token", label: "Apify token", description: "LinkedIn posts, engagers and profile search.", secret: true, group: "data" },
   { key: "theirstack_api_key", label: "TheirStack API key", description: "Market-wide job posts and tech stacks.", secret: true, group: "data" },
   { key: "hunter_api_key", label: "Hunter API key", description: "Finds work emails (free plan: 50 searches/month).", secret: true, group: "data" },
-  {
-    key: "unipile_api_key",
-    label: "Unipile API key",
-    description: "Sends from your LinkedIn accounts (visit, invite, message, like) and reads replies. Without it, accounts run in manual mode.",
-    secret: true,
-    group: "outreach",
-  },
-  {
-    key: "unipile_dsn",
-    label: "Unipile DSN",
-    description: "Your Unipile API address, shown in their dashboard, e.g. api8.unipile.com:13851.",
-    secret: false,
-    group: "outreach",
-  },
   { key: "smtp_host", label: "SMTP host", description: "Mail server for the morning digest and outreach emails, e.g. smtp.gmail.com or smtp.fastmail.com.", secret: false, group: "email" },
   { key: "smtp_port", label: "SMTP port", description: "465 (TLS) or 587 (STARTTLS).", secret: false, defaultValue: "465", group: "email" },
   { key: "smtp_user", label: "SMTP user", description: "Usually your email address.", secret: false, group: "email" },
@@ -192,16 +178,13 @@ export function watchSettings(db: Db, intervalMs = 3000) {
  * Hosted: keys Pluton pays for, read from PLATFORM_<SETTING KEY> in the environment (e.g.
  * PLATFORM_ANTHROPIC_API_KEY). A workspace whose plan includes one uses it until it saves its own,
  * and what it spends through it counts against the plan's monthly quota. `source` is the cost
- * ledger's name for what the key pays for. Unipile is the LinkedIn option, paid per account: the
- * server ties each connected account to its workspace, which sees only its own.
+ * ledger's name for what the key pays for.
  */
 export const PLATFORM_KEYS: Record<string, { source: string; plans: SubscriptionPlan[] }> = {
   anthropic_api_key: { source: "claude", plans: ["all"] },
   apify_token: { source: "apify", plans: ["byo", "all"] },
   theirstack_api_key: { source: "theirstack", plans: ["byo", "all"] },
   hunter_api_key: { source: "hunter", plans: ["byo", "all"] },
-  unipile_api_key: { source: "unipile", plans: ["byo", "all"] },
-  unipile_dsn: { source: "unipile", plans: ["byo", "all"] },
 };
 
 const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`]?.trim() || undefined;

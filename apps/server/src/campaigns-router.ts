@@ -38,11 +38,7 @@ import {
   pairExtension,
 } from "@pluton/core";
 import { campaignLanguage, handleReply, sharpenGuidelines } from "@pluton/agent";
-import { randomBytes } from "node:crypto";
-import { and, ENDED_ENROLLMENT, STEP_KINDS, enrollments, eq, inArray, senders, users, type Db } from "@pluton/db";
-import { deleteUnipileAccount, unipileAccount, unipileAccounts, unipileConfigured, unipileConnectLink, unipileOnPlatform, type UnipileAccount } from "@pluton/providers";
-import { APP_URL } from "./auth.ts";
-import { billingSummary, linkedinSeatsInUse, setLinkedinSeats } from "./billing.ts";
+import { and, ENDED_ENROLLMENT, STEP_KINDS, enrollments, eq, senders, type Db } from "@pluton/db";
 import { publicProcedure, router } from "./trpc.ts";
 
 const ws = async (db: Db) => getCurrentWorkspace(db);
@@ -193,7 +189,7 @@ export const campaignsRouter = router({
     invitationAnswer: publicProcedure
       .input(z.object({ enrollmentId: z.string(), accepted: z.boolean() }))
       .mutation(({ ctx, input }) => conflicts(() => markInvitationAnswer(ctx.db, input.enrollmentId, input.accepted))),
-    /** A reply you saw on LinkedIn (manual accounts, or anything Unipile missed). */
+    /** A reply you saw on LinkedIn: Pluton doesn't read LinkedIn conversations. */
     logReply: publicProcedure
       .input(z.object({ enrollmentId: z.string(), text: z.string().trim().min(1).max(4000) }))
       .mutation(({ ctx, input }) => conflicts(() => handleReply(ctx.db, input.enrollmentId, { text: input.text, source: "manual" }))),
@@ -212,30 +208,8 @@ export const campaignsRouter = router({
   }),
 });
 
-/** A sender waiting for Unipile to say which account was connected: its external id until then. */
-export const PENDING_PREFIX = "pending:";
-
-const senderStatus = (a: UnipileAccount) =>
-  a.status === "OK" ? "connected" : a.status === "CONNECTING" ? "connecting" : a.status === "CREDENTIALS" || a.status === "STOPPED" ? "disconnected" : "error";
-
-const signedInUser = async (db: Db, userId: string | null) => (userId ? db.query.users.findFirst({ where: eq(users.id, userId) }) : undefined);
-
-/** Paid LinkedIn options already used by the signed-in account (none outside hosted). */
-const seatsInUse = async (db: Db, userId: string | null, workspaceId: string) => (userId ? linkedinSeatsInUse(db, userId, workspaceId) : 0);
-
 export const linkedinRouter = router({
-  senders: publicProcedure.query(async ({ ctx }) => {
-    const workspace = await ws(ctx.db);
-    const platform = unipileConfigured() && unipileOnPlatform();
-    return {
-      senders: await listSenders(ctx.db, workspace.id),
-      unipile: unipileConfigured(),
-      /** LinkedIn through Pluton's own Unipile account: each account is a paid option. */
-      platform,
-      /** Paid options already used, across every workspace of the account. */
-      seatsUsed: platform ? await seatsInUse(ctx.db, ctx.userId, workspace.id) : 0,
-    };
-  }),
+  senders: publicProcedure.query(async ({ ctx }) => ({ senders: await listSenders(ctx.db, (await ws(ctx.db)).id) })),
   /** The Chrome extension: the token it shows, pasted here, ties it to this workspace. */
   pairExtension: publicProcedure
     .input(z.object({ token: z.string().trim().min(32).max(200), name: z.string().trim().min(1).max(80) }))
@@ -258,87 +232,10 @@ export const linkedinRouter = router({
       }),
     )
     .mutation(({ ctx, input }) => updateSender(ctx.db, input.id, { name: input.name, limits: input.limits })),
-  /**
-   * On Pluton's Unipile account the LinkedIn account is unlinked from Unipile too, and the option it
-   * used stops at the next renewal.
-   */
   remove: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
     const workspace = await ws(ctx.db);
     const sender = await ctx.db.query.senders.findFirst({ where: and(eq(senders.id, input.id), eq(senders.workspaceId, workspace.id)) });
-    if (sender?.provider === "unipile" && unipileOnPlatform()) {
-      if (sender.externalId && !sender.externalId.startsWith(PENDING_PREFIX)) await deleteUnipileAccount(sender.externalId);
-      const user = await signedInUser(ctx.db, ctx.userId);
-      const summary = user && (await billingSummary(user, true));
-      if (user && summary && summary.linkedinSeats > 0) await setLinkedinSeats(user, summary.linkedinSeats - 1);
-    }
-    return removeSender(ctx.db, input.id);
-  }),
-  /** Unipile's hosted login page for a new (or disconnected) LinkedIn account. */
-  connectLink: publicProcedure.input(z.object({ reconnectSenderId: z.string().optional() })).mutation(async ({ ctx, input }) => {
-    if (!unipileConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: campaignsText("unipileFirst") });
-    const workspace = await ws(ctx.db);
-    const sender = input.reconnectSenderId
-      ? await ctx.db.query.senders.findFirst({ where: and(eq(senders.id, input.reconnectSenderId), eq(senders.workspaceId, workspace.id)) })
-      : null;
-    try {
-      if (!unipileOnPlatform() || sender?.externalId) {
-        return { url: await unipileConnectLink({ name: `pluton-${Date.now()}`, reconnectAccountId: sender?.externalId ?? undefined }) };
-      }
-      // Pluton's Unipile account: one paid option per connected account, and the account is tied to
-      // this workspace through a one-time token Unipile sends back once it is connected.
-      const mine = await ctx.db.select().from(senders).where(and(eq(senders.workspaceId, workspace.id), eq(senders.provider, "unipile")));
-      const pending = mine.find((s) => s.externalId?.startsWith(PENDING_PREFIX));
-      const used = await seatsInUse(ctx.db, ctx.userId, workspace.id);
-      const user = await signedInUser(ctx.db, ctx.userId);
-      const seats = user ? (await billingSummary(user, true)).linkedinSeats : 0;
-      if (used >= seats) throw new TRPCError({ code: "PRECONDITION_FAILED", message: campaignsText("seatNeeded"), cause: { seatNeeded: true } });
-      const token = randomBytes(24).toString("base64url");
-      if (pending) await ctx.db.update(senders).set({ externalId: `${PENDING_PREFIX}${token}` }).where(eq(senders.id, pending.id));
-      else await createSender(ctx.db, workspace.id, { provider: "unipile", name: campaignsText("connectingLinkedin"), externalId: `${PENDING_PREFIX}${token}`, status: "connecting" });
-      return { url: await unipileConnectLink({ name: workspace.id, notifyUrl: `${APP_URL}/api/unipile/notify?token=${token}` }) };
-    } catch (error) {
-      if (error instanceof TRPCError) throw error;
-      throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
-    }
-  }),
-  /** Brings in LinkedIn accounts connected on Unipile and refreshes their status. */
-  sync: publicProcedure.mutation(async ({ ctx }) => {
-    const workspace = await ws(ctx.db);
-    if (unipileOnPlatform()) {
-      // Pluton's Unipile account holds every workspace's accounts: refresh only this one's, never list.
-      const mine = await ctx.db.select().from(senders).where(and(eq(senders.workspaceId, workspace.id), eq(senders.provider, "unipile")));
-      for (const s of mine) {
-        if (!s.externalId || s.externalId.startsWith(PENDING_PREFIX)) continue;
-        const a = await unipileAccount(s.externalId).catch(() => undefined);
-        if (a === undefined) continue;
-        if (a === null) await updateSender(ctx.db, s.id, { status: "disconnected", error: campaignsText("goneFromUnipile") });
-        else {
-          const status = senderStatus(a);
-          await updateSender(ctx.db, s.id, { status, error: status === "connected" ? null : campaignsText("unipileStatus", { status: a.status }) });
-        }
-      }
-      return { added: 0, total: mine.length };
-    }
-    let accounts;
-    try {
-      accounts = await unipileAccounts();
-    } catch (error) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
-    }
-    const existing = await ctx.db.select().from(senders).where(and(eq(senders.workspaceId, workspace.id), eq(senders.provider, "unipile")));
-    let added = 0;
-    for (const a of accounts) {
-      const status = senderStatus(a);
-      const profileUrl = a.publicIdentifier ? `https://www.linkedin.com/in/${a.publicIdentifier}` : undefined;
-      const known = existing.find((s) => s.externalId === a.id);
-      if (known) await updateSender(ctx.db, known.id, { status, profileUrl, error: status === "connected" ? null : campaignsText("unipileStatus", { status: a.status }) });
-      else {
-        await createSender(ctx.db, workspace.id, { provider: "unipile", name: a.name, externalId: a.id, profileUrl, status });
-        added++;
-      }
-    }
-    const gone = existing.filter((s) => !accounts.some((a) => a.id === s.externalId));
-    if (gone.length) await ctx.db.update(senders).set({ status: "disconnected", error: campaignsText("goneFromUnipile") }).where(inArray(senders.id, gone.map((s) => s.id)));
-    return { added, total: accounts.length };
+    if (!sender) throw new TRPCError({ code: "NOT_FOUND" });
+    return removeSender(ctx.db, sender.id);
   }),
 });

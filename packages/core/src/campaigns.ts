@@ -834,23 +834,3 @@ export async function dueEnrollments(db: Db, now = new Date(), limit = 25) {
     .orderBy(asc(enrollments.nextActionAt))
     .limit(limit);
 }
-
-/** Conversations to check for replies: a chat exists and the sequence is live or ended in the last 14 days. */
-export async function enrollmentsToPoll(db: Db, now = new Date(), limit = 20) {
-  const staleBefore = new Date(now.getTime() - 30 * 60_000);
-  return db
-    .select({ enrollment: enrollments, sender: senders })
-    .from(enrollments)
-    .innerJoin(senders, eq(senders.id, enrollments.senderId))
-    .where(
-      and(
-        eq(senders.provider, "unipile"),
-        eq(senders.status, "connected"),
-        isNotNull(enrollments.chatId),
-        inArray(enrollments.status, ["message_sent", "invite_accepted", "completed"]),
-        or(isNull(enrollments.lastReplyCheckAt), lt(enrollments.lastReplyCheckAt, staleBefore)),
-        or(isNull(enrollments.endedAt), gt(enrollments.endedAt, new Date(now.getTime() - 14 * 24 * HOUR))),
-      ),
-    )
-    .limit(limit);
-}

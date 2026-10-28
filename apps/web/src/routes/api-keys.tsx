@@ -14,7 +14,7 @@ import { useTRPC } from "../lib/trpc.ts";
 type Setting = inferRouterOutputs<AppRouter>["settings"]["list"][number];
 
 /** Each group's title and description are the settings namespace's `apiKeys.group.<id>.*` strings. */
-const GROUPS = ["claude", "data", "outreach", "email", "automation"] as const;
+const GROUPS = ["claude", "data", "email", "automation"] as const;
 
 /** Keys live in the app's database (encrypted), not in .env; changes reach the worker within seconds. */
 export function ApiKeysPage() {

@@ -315,8 +315,7 @@ function Subscription() {
   const seats = useMutation({
     mutationFn: (n: number) => post<BillingSummary>("/api/billing/linkedin", { seats: n }),
     onSuccess: settled,
-    // Fewer than the accounts connected would leave one unpaid: the account goes first, from its page.
-    onError: (e) => toast(e.message === "seats_in_use" ? t("manage.seatsInUse") : t("manage.seatsFailed"), { tone: "error" }),
+    onError: () => toast(t("manage.seatsFailed"), { tone: "error" }),
   });
   const b = billing.data;
   if (!user?.plan) return null;
@@ -345,9 +344,12 @@ function Subscription() {
             )}
           </div>
         </Row>
-        <Row label={t("manage.linkedin")} description={t("manage.linkedinHint", { price: per(PRICES.linkedin[interval], interval) })}>
-          <Stepper value={b?.linkedinSeats ?? 0} onChange={(n) => seats.mutate(n)} max={20} label={t("manage.linkedin")} />
-        </Row>
+        {/* LinkedIn sends through the free Chrome extension now: older subscriptions can only drop their paid accounts. */}
+        {(b?.linkedinSeats ?? 0) > 0 && (
+          <Row label={t("manage.linkedin")} description={t("manage.linkedinHint", { price: per(PRICES.linkedin[interval], interval) })}>
+            <Stepper value={b!.linkedinSeats} onChange={(n) => seats.mutate(n)} max={b!.linkedinSeats} label={t("manage.linkedin")} />
+          </Row>
+        )}
         <Row label={t("manage.open")} description={t("manage.hint")}>
           <Button type="button" variant="ghost" onClick={() => portal.mutate()} disabled={portal.isPending}>
             {t("manage.open")}
