@@ -41,7 +41,7 @@ import { randomBytes } from "node:crypto";
 import { and, ENDED_ENROLLMENT, STEP_KINDS, enrollments, eq, inArray, senders, users, type Db } from "@pluton/db";
 import { deleteUnipileAccount, unipileAccount, unipileAccounts, unipileConfigured, unipileConnectLink, unipileOnPlatform, type UnipileAccount } from "@pluton/providers";
 import { APP_URL } from "./auth.ts";
-import { billingSummary, setLinkedinSeats } from "./billing.ts";
+import { billingSummary, linkedinSeatsInUse, setLinkedinSeats } from "./billing.ts";
 import { publicProcedure, router } from "./trpc.ts";
 
 const ws = async (db: Db) => getCurrentWorkspace(db);
@@ -219,13 +219,22 @@ const senderStatus = (a: UnipileAccount) =>
 
 const signedInUser = async (db: Db, userId: string | null) => (userId ? db.query.users.findFirst({ where: eq(users.id, userId) }) : undefined);
 
+/** Paid LinkedIn options already used by the signed-in account (none outside hosted). */
+const seatsInUse = async (db: Db, userId: string | null, workspaceId: string) => (userId ? linkedinSeatsInUse(db, userId, workspaceId) : 0);
+
 export const linkedinRouter = router({
-  senders: publicProcedure.query(async ({ ctx }) => ({
-    senders: await listSenders(ctx.db, (await ws(ctx.db)).id),
-    unipile: unipileConfigured(),
-    /** LinkedIn through Pluton's own Unipile account: each account is a paid option. */
-    platform: unipileConfigured() && unipileOnPlatform(),
-  })),
+  senders: publicProcedure.query(async ({ ctx }) => {
+    const workspace = await ws(ctx.db);
+    const platform = unipileConfigured() && unipileOnPlatform();
+    return {
+      senders: await listSenders(ctx.db, workspace.id),
+      unipile: unipileConfigured(),
+      /** LinkedIn through Pluton's own Unipile account: each account is a paid option. */
+      platform,
+      /** Paid options already used, across every workspace of the account. */
+      seatsUsed: platform ? await seatsInUse(ctx.db, ctx.userId, workspace.id) : 0,
+    };
+  }),
   addManual: publicProcedure
     .input(z.object({ name: z.string().trim().min(1).max(80), profileUrl: z.string().trim().url().max(300).optional() }))
     .mutation(async ({ ctx, input }) => createSender(ctx.db, (await ws(ctx.db)).id, { provider: "manual", ...input })),
@@ -268,7 +277,7 @@ export const linkedinRouter = router({
       // this workspace through a one-time token Unipile sends back once it is connected.
       const mine = await ctx.db.select().from(senders).where(and(eq(senders.workspaceId, workspace.id), eq(senders.provider, "unipile")));
       const pending = mine.find((s) => s.externalId?.startsWith(PENDING_PREFIX));
-      const used = mine.filter((s) => s !== pending).length;
+      const used = await seatsInUse(ctx.db, ctx.userId, workspace.id);
       const user = await signedInUser(ctx.db, ctx.userId);
       const seats = user ? (await billingSummary(user, true)).linkedinSeats : 0;
       if (used >= seats) throw new TRPCError({ code: "PRECONDITION_FAILED", message: campaignsText("seatNeeded"), cause: { seatNeeded: true } });

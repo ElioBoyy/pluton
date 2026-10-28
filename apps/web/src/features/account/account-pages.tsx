@@ -325,12 +325,12 @@ function PlanPicker() {
   const t = useT("account");
   const [plan, setPlan] = useState<PlanId>("byo");
   const [interval, setInterval] = useState<Interval>("month");
-  const [linkedin, setLinkedin] = useState(0);
   const per = (amount: number) => t(interval === "year" ? "plan.perYear" : "plan.perMonth", { price: euros(amount) });
-  const total = PRICES[plan][interval] + linkedin * PRICES.linkedin[interval];
+  const total = PRICES[plan][interval];
 
   const checkout = useMutation({
-    mutationFn: () => post<{ url: string }>("/api/billing/checkout", { plan, interval, linkedin }),
+    // LinkedIn accounts aren't bought here: each one is added to this subscription when it is connected.
+    mutationFn: () => post<{ url: string }>("/api/billing/checkout", { plan, interval }),
     onSuccess: ({ url }) => window.location.assign(url),
   });
   useResetOnReturn(checkout.reset);
@@ -390,14 +390,7 @@ function PlanPicker() {
         })}
       </div>
 
-      <div className="gg-card mt-2.5 flex items-center gap-3 p-4">
-        <span className="flex-1">
-          <span className="block text-sm font-semibold">{t("linkedin.label")}</span>
-          <span className="mt-1.5 block text-xs font-semibold text-accent">{t("linkedin.highlight")}</span>
-          <span className="mt-1 block text-xs text-muted">{t(interval === "year" ? "linkedin.hintYear" : "linkedin.hint", { price: euros(PRICES.linkedin[interval]) })}</span>
-        </span>
-        <Stepper value={linkedin} onChange={setLinkedin} max={10} label={t("linkedin.label")} />
-      </div>
+      <p className="mt-3 px-1 text-xs text-muted">{t("subscribe.linkedinLater", { price: per(PRICES.linkedin[interval]) })}</p>
 
       <p className="mt-6 flex items-baseline justify-between text-sm">
         <span className="text-muted">{t("subscribe.total")}</span>
@@ -414,15 +407,6 @@ function PlanPicker() {
         </p>
       )}
       <p className="mt-4 text-xs text-muted">{t("subscribe.stripe")}</p>
-      <p className="mt-2 text-[11px] text-muted">
-        {t.rich("linkedin.source", {
-          link: (
-            <a href="https://www.pin.com/blog/recruiting-outreach-benchmark-report/" target="_blank" rel="noopener noreferrer" className="underline">
-              Pin, Recruiting Outreach Benchmarks 2026
-            </a>
-          ),
-        })}
-      </p>
     </>
   );
 }
