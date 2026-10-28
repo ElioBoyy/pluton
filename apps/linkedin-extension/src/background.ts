@@ -111,7 +111,7 @@ async function run(action: Action): Promise<Result> {
       return { status: "visited" as const };
     });
   }
-  const step = (fn: "__plutonInvite" | "__plutonInviteFromLink") => async (tabId: number) => {
+  const step = (fn: "__plutonInviteState" | "__plutonInviteFromLink") => async (tabId: number) => {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["invite.js"] });
     const [done] = await chrome.scripting.executeScript({
       target: { tabId },
@@ -120,14 +120,13 @@ async function run(action: Action): Promise<Result> {
     });
     return done?.result as InviteResult;
   };
-  // The invitation link first; the profile, where pending and connected show, when it has no dialog.
+  // The profile first: the invitation link opens its dialog even for someone pending or connected.
+  const state = await inProfileTab(action.profileUrl, step("__plutonInviteState"));
+  if (state.status !== "connectable") return state;
   const link = inviteLink(action.profileUrl);
-  if (link) {
-    const direct = await inProfileTab(action.profileUrl, step("__plutonInviteFromLink"), link);
-    if (direct.status !== "not_available") return direct;
-    await pause(4000, 9000);
-  }
-  return inProfileTab(action.profileUrl, step("__plutonInvite"));
+  if (!link) return { status: "not_available", detail: "no invitation link for this profile" };
+  await pause(3000, 8000);
+  return inProfileTab(action.profileUrl, step("__plutonInviteFromLink"), link);
 }
 
 async function remember(entry: HistoryEntry) {
