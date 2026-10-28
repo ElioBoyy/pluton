@@ -63,6 +63,11 @@ export default {
       spent: "710 of 2,000",
     },
   },
+  film: {
+    heading: "See it in under a minute.",
+    window: "Pluton, the launch film",
+    note: "",
+  },
   story: {
     heading: "What moved is worth a look.",
     text: "Pluto was found in 1930 by flicking between two photographs of the same sky. The stars stayed put; one dot moved. Pluton watches your market the same way: the companies that just started hiring, posting or raising are the dots that moved.",

@@ -64,6 +64,11 @@ export default {
       spent: "710 su 2.000",
     },
   },
+  film: {
+    heading: "Guardalo in meno di un minuto.",
+    window: "Pluton, il video di lancio",
+    note: "Il video è in inglese.",
+  },
   story: {
     heading: "Ciò che si muove merita uno sguardo.",
     text: "Plutone fu trovato nel 1930 passando da una fotografia all'altra dello stesso cielo. Le stelle restavano ferme, un punto si muoveva. Pluton osserva il tuo mercato allo stesso modo: le aziende che hanno appena iniziato ad assumere, pubblicare o raccogliere fondi sono i punti che si sono mossi.",

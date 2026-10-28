@@ -64,6 +64,11 @@ export default {
       spent: "710 de 2000",
     },
   },
+  film: {
+    heading: "Míralo en menos de un minuto.",
+    window: "Pluton, el vídeo de lanzamiento",
+    note: "El vídeo está en inglés.",
+  },
   story: {
     heading: "Lo que se mueve merece una mirada.",
     text: "Plutón se encontró en 1930 alternando dos fotografías del mismo cielo. Las estrellas seguían en su sitio; un punto se movía. Pluton vigila tu mercado igual: las empresas que acaban de contratar, publicar o levantar una ronda son los puntos que se han movido.",

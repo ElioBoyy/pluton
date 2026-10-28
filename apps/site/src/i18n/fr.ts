@@ -64,6 +64,11 @@ export default {
       spent: "710 sur 2\u00a0000",
     },
   },
+  film: {
+    heading: "Voyez-le en moins d'une minute.",
+    window: "Pluton, le film de lancement",
+    note: "Le film est en anglais.",
+  },
   story: {
     heading: "Ce qui bouge mérite un regard.",
     text: "Pluton a été trouvée en 1930 en passant d'une photographie à l'autre du même coin de ciel. Les étoiles restaient en place, un point bougeait. Pluton observe votre marché de la même façon : les entreprises qui viennent de recruter, de publier ou de lever des fonds sont les points qui ont bougé.",
