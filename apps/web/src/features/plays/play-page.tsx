@@ -66,7 +66,8 @@ export function PlayPage({
   const latest = runs[0];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10">
+    // The prospects table gets more room on large screens; the overview's text keeps its measure.
+    <div className={cn("mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10", tab === "leads" && "2xl:max-w-[96rem]")}>
       <Link to="/plays" className="mb-3 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-ink">
         <CaretLeft size={12} weight="bold" /> {t("list.title")}
       </Link>

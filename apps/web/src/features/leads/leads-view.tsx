@@ -525,10 +525,13 @@ function Row({
           className={cn(
             "flex justify-end gap-0.5 transition-opacity duration-150",
             !pinActions &&
-              "[@media(hover:hover)]:absolute [@media(hover:hover)]:rounded-full [@media(hover:hover)]:bg-float [@media(hover:hover)]:shadow-control [@media(hover:hover)]:backdrop-blur-xl [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
+              "[@media(hover:hover)]:absolute [@media(hover:hover)]:rounded-full [@media(hover:hover)]:bg-float [@media(hover:hover)]:shadow-control [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-3 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:p-0.5",
+            // The blur only on the row in use: one backdrop filter per row, even hidden, is a layer the
+            // browser composites on every scroll, and a long table on a large screen leaves areas unpainted.
+            !pinActions && rejecting && "[@media(hover:hover)]:backdrop-blur-xl",
             !pinActions &&
               !rejecting &&
-              "[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:pointer-events-auto [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100",
+              "[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:pointer-events-auto [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-focus-within/row:backdrop-blur-xl [@media(hover:hover)]:group-hover/row:pointer-events-auto [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:group-hover/row:backdrop-blur-xl",
           )}
         >
           <RowAction

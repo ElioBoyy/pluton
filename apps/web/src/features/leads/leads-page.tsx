@@ -15,7 +15,7 @@ export function LeadsPage({
 }) {
   const t = useT("leads");
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10">
+    <div className="mx-auto max-w-7xl px-4 2xl:max-w-[96rem] py-6 sm:px-8 sm:py-10">
       <PageHeader title={t("page.title")} description={t("page.description")} />
       <LeadsView tab={tab} onTab={(next) => onChange({ tab: next })} openLeadId={leadId} onOpenLead={(id) => onChange({ tab, lead: id })} />
     </div>
