@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import type { PlanStep } from "@pluton/core";
+import { Bubble as GlassBubble } from "@pluton/glass";
 import { Button } from "../../components/ui.tsx";
 import { getLocale, translate, useT } from "../../i18n/index.ts";
 import { cn } from "../../lib/cn.ts";
@@ -86,9 +87,8 @@ export function ChatPanel({
 function Bubble({ role, text }: { role: "assistant" | "user"; text: string }) {
   if (role === "user") {
     return (
-      <div className="self-end bg-accent px-3 py-2 text-sm text-on-accent" style={{ maxWidth: "85%" }}>
-        {text}
-      </div>
+      // The kit's sent bubble, as in the agent's chat, at the panel's text size.
+      <GlassBubble className="text-sm!">{text}</GlassBubble>
     );
   }
   return <div className="bg-raised px-3 py-2 text-sm leading-relaxed">{text}</div>;

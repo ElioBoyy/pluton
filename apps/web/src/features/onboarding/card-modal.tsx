@@ -188,16 +188,18 @@ function Tile({ checked, round, onClick, label, detail }: { checked: boolean; ro
       role={round ? "radio" : undefined}
       aria-checked={round ? checked : undefined}
       className={cn(
-        // A tinted tile when picked, a plain raised one otherwise: no outlines.
-        "flex items-start gap-2.5 px-3 py-3 text-left text-sm transition-[background-color,box-shadow] duration-150",
+        // A tinted tile when picked, a plain raised one otherwise: no outlines. The tint has no
+        // automatic corner like bg-canvas, so the tile names its own.
+        "flex items-start gap-2.5 rounded-lg px-3 py-3 text-left text-sm transition-[background-color,box-shadow] duration-150",
         checked ? "bg-accent/12" : "bg-canvas hover:bg-panel-hover",
       )}
     >
       <span
         className={cn(
-          "mt-px flex size-4 rounded-xs shrink-0 items-center justify-center transition-colors duration-150",
-          round ? "rounded-full" : "",
-          checked ? "bg-accent text-on-accent" : "bg-canvas",
+          "mt-px flex size-4 shrink-0 items-center justify-center transition-[background-color,box-shadow] duration-150",
+          round ? "rounded-full" : "rounded-xs",
+          // Unpicked, a ring: a filled dot the tile's own colour disappears into it.
+          checked ? "bg-accent text-on-accent" : "shadow-[inset_0_0_0_1.5px_var(--color-line-strong)]",
         )}
       >
         {checked && <Check size={11} weight="bold" />}
