@@ -137,11 +137,16 @@ function toInputSchema(schema: z.ZodType): Anthropic.Beta.BetaTool.InputSchema {
  */
 export async function runAgentWithApiKey(opts: RunAgentOptions, meter: AgentMeter = newMeter()): Promise<RunAgentResult> {
   const byName = new Map(opts.tools.map((t) => [t.name, t]));
+  const searchUses = opts.webSearchUses ?? 6;
+  const fetchUses = opts.webFetchUses ?? 6;
+  // A use count of 0 means the tool is left out: the API refuses max_uses below 1.
   const webTools: Anthropic.Beta.BetaToolUnion[] = opts.noWeb
     ? []
     : [
-        { type: "web_search_20260209", name: "web_search", max_uses: opts.webSearchUses ?? 6 },
-        { type: "web_fetch_20260209", name: "web_fetch", max_uses: opts.webFetchUses ?? 6, max_content_tokens: WEB_FETCH_MAX_TOKENS },
+        ...(searchUses > 0 ? [{ type: "web_search_20260209", name: "web_search", max_uses: searchUses } as const] : []),
+        ...(fetchUses > 0
+          ? [{ type: "web_fetch_20260209", name: "web_fetch", max_uses: fetchUses, max_content_tokens: WEB_FETCH_MAX_TOKENS } as const]
+          : []),
       ];
   const tools: Anthropic.Beta.BetaToolUnion[] = [
     ...webTools,
