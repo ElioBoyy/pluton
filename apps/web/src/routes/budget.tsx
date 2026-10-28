@@ -349,10 +349,10 @@ function AutoTopUp({ packs }: { packs: Quota["packs"] }) {
                   />
                 </div>
               </Row>
-              <Row label={t("auto.pack")}>
+              <Row label={t("auto.pack")} description={t("auto.packHint")}>
                 <Segmented
                   label={t("auto.pack")}
-                  options={packs.map((pack) => ({ value: String(pack.credits), label: `${credits((pack.credits / CREDITS_PER_USD) * 1_000_000)} · ${euros(pack.priceCents / 100)}` }))}
+                  options={packs.map((pack) => ({ value: String(pack.credits), label: `${pack.credits.toLocaleString(getLocale())} · ${euros(pack.priceCents / 100)}` }))}
                   value={String(form.credits)}
                   onChange={(value) => setForm({ ...form, credits: Number(value) })}
                 />
