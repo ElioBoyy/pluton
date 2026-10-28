@@ -87,7 +87,7 @@ const portal = stripe("post", `/v1/billing_portal/configurations${existingPortal
 lines.push(`STRIPE_PORTAL_CONFIGURATION=${portal.id}`);
 
 if (webhookUrl) {
-  const events = ["checkout.session.completed", "checkout.session.async_payment_succeeded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"];
+  const events = ["checkout.session.completed", "checkout.session.async_payment_succeeded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid"];
   const existing = stripe("get", "/v1/webhook_endpoints", { limit: 100 }).data.find((w) => w.url === webhookUrl);
   if (existing) console.error(`webhook ${webhookUrl} already exists (${existing.id}): its signing secret is in the Dashboard`);
   else {

@@ -1,7 +1,28 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Context, Hono } from "hono";
 import { removeSender } from "@pluton/core";
-import { and, creditPacks, eq, forgetPlans, inArray, senders, TOP_UP_PACKS, topUpPriceCents, users, workspaces, type Db, type SubscriptionPlan } from "@pluton/db";
+import {
+  and,
+  CREDITS_PER_USD,
+  creditPacks,
+  eq,
+  forgetPlans,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  like,
+  lt,
+  or,
+  platformQuota,
+  senders,
+  TOP_UP_PACKS,
+  topUpPriceCents,
+  users,
+  workspaces,
+  type Db,
+  type SubscriptionPlan,
+} from "@pluton/db";
 import { deletePlatformUnipileAccount } from "@pluton/providers";
 import { APP_URL, currentUser, HOSTED, isPaid, type User } from "./auth.ts";
 
@@ -217,6 +238,130 @@ async function recordPack(db: Db, session: StripeCheckoutSession) {
   return credits;
 }
 
+// ── Automatic top-up ─────────────────────────────────────────────────────────
+
+/** How often accounts are checked, and how long an attempt stays claimed before another may run. */
+const AUTO_TOP_UP_EVERY_MS = 30_000;
+const AUTO_TOP_UP_CLAIM_MS = 10 * 60_000;
+export const AUTO_TOP_UP_MAX_PER_MONTH = 10;
+
+type StripeInvoice = { id: string; status: string; amount_paid: number; currency: string; metadata?: Record<string, string> };
+
+/** Records an automatic top-up's pack once its invoice is paid, whichever of the charge or the webhook gets there first. */
+async function recordInvoicePack(db: Db, invoice: StripeInvoice) {
+  const credits = Number(invoice.metadata?.credits);
+  const userId = invoice.metadata?.user_id;
+  if (invoice.metadata?.auto_top_up !== "1" || invoice.status !== "paid" || !userId || !credits) return 0;
+  await db
+    .insert(creditPacks)
+    .values({ userId, credits, amountCents: invoice.amount_paid, currency: invoice.currency, stripeSessionId: invoice.id })
+    .onConflictDoNothing({ target: creditPacks.stripeSessionId });
+  forgetPlans();
+  return credits;
+}
+
+/** What is left of the account's credits this billing month, and when that month started; null without a plan. */
+async function creditsLeft(db: Db, userId: string) {
+  const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.userId, userId), columns: { id: true } });
+  const quota = ws && platformQuota(ws.id);
+  if (!quota) return null;
+  return { left: (quota.leftMicroUsd / 1_000_000) * CREDITS_PER_USD, periodStart: quota.periodStart };
+}
+
+/** Automatic packs bought since `since`: their invoices (in_…) tell them from packs bought through Checkout (cs_…). */
+async function automaticPacksSince(db: Db, userId: string, since: Date) {
+  const rows = await db
+    .select({ id: creditPacks.id })
+    .from(creditPacks)
+    .where(and(eq(creditPacks.userId, userId), like(creditPacks.stripeSessionId, "in_%"), gte(creditPacks.createdAt, since)));
+  return rows.length;
+}
+
+export type AutoTopUp = { below: number | null; credits: number; maxPerMonth: number; boughtThisMonth: number; error: string | null };
+
+async function autoTopUpOf(db: Db, user: User): Promise<AutoTopUp> {
+  const left = await creditsLeft(db, user.id);
+  return {
+    below: user.autoTopUpBelow,
+    credits: user.autoTopUpCredits,
+    maxPerMonth: user.autoTopUpMaxPerMonth,
+    boughtThisMonth: left ? await automaticPacksSince(db, user.id, left.periodStart) : 0,
+    error: user.autoTopUpError,
+  };
+}
+
+/**
+ * Buys one pack on the subscription's own payment method: an invoice item on the subscription, then
+ * an invoice for it, paid at once (Managed Payments allows both on a subscription in its period).
+ * A refused payment voids the invoice and turns the top-up off, with Stripe's reason kept to show.
+ */
+async function chargeTopUp(db: Db, user: User) {
+  const credits = user.autoTopUpCredits;
+  const metadata = { user_id: user.id, credits: String(credits), auto_top_up: "1" };
+  const target = { customer: user.stripeCustomerId!, subscription: user.stripeSubscriptionId! };
+  const item = await call<{ id: string }>("POST", "invoiceitems", {
+    ...target,
+    amount: topUpPriceCents(credits as (typeof TOP_UP_PACKS)[number]),
+    currency: "eur",
+    description: `Pluton · ${credits} credits, automatic top-up`,
+    tax_code: SAAS_TAX_CODE,
+    metadata,
+  });
+  let invoice: StripeInvoice;
+  try {
+    invoice = await call<StripeInvoice>("POST", "invoices", {
+      ...target,
+      pending_invoice_items_behavior: "include",
+      collection_method: "charge_automatically",
+      auto_advance: false,
+      metadata,
+    });
+  } catch (error) {
+    // Left pending, the item would ride on the next renewal: take it back.
+    await call("DELETE", `invoiceitems/${item.id}`).catch(() => undefined);
+    throw error;
+  }
+  try {
+    const paid = await call<StripeInvoice>("POST", `invoices/${invoice.id}/pay`);
+    return await recordInvoicePack(db, paid);
+  } catch (error) {
+    await call("POST", `invoices/${invoice.id}/void`).catch(() => undefined);
+    const message = error instanceof Error ? error.message.replace(/^Stripe [^:]+: /, "") : String(error);
+    await db.update(users).set({ autoTopUpBelow: null, autoTopUpError: message }).where(eq(users.id, user.id));
+    console.error("[billing] automatic top-up failed", user.id, message);
+    return 0;
+  }
+}
+
+/** One pass: every paying account with the top-up on, below its threshold and under its monthly cap, buys its pack. */
+async function checkAutoTopUps(db: Db) {
+  const candidates = await db.query.users.findMany({
+    where: and(isNotNull(users.autoTopUpBelow), isNotNull(users.stripeSubscriptionId), isNotNull(users.plan)),
+  });
+  for (const user of candidates) {
+    if (!isPaid(user) || user.autoTopUpBelow === null) continue;
+    const left = await creditsLeft(db, user.id);
+    if (!left || left.left >= user.autoTopUpBelow) continue;
+    if ((await automaticPacksSince(db, user.id, left.periodStart)) >= user.autoTopUpMaxPerMonth) continue;
+    // Claimed first: a second pass (or server) finds it taken and moves on.
+    const now = new Date();
+    const claimed = await db
+      .update(users)
+      .set({ autoTopUpAttemptAt: now })
+      .where(and(eq(users.id, user.id), or(isNull(users.autoTopUpAttemptAt), lt(users.autoTopUpAttemptAt, new Date(now.getTime() - AUTO_TOP_UP_CLAIM_MS)))))
+      .returning({ id: users.id });
+    if (!claimed.length) continue;
+    await chargeTopUp(db, user).catch((error) => console.error("[billing] automatic top-up", user.id, error));
+  }
+}
+
+/** Hosted with Stripe set up: checks the accounts every 30 seconds. */
+export function startAutoTopUps(db: Db) {
+  if (!HOSTED || !stripe.secretKey) return;
+  const timer = setInterval(() => void checkAutoTopUps(db).catch((error) => console.error("[billing] automatic top-up check", error)), AUTO_TOP_UP_EVERY_MS);
+  timer.unref();
+}
+
 async function ensureCustomer(db: Db, user: User) {
   if (user.stripeCustomerId) return user.stripeCustomerId;
   const customer = await call<{ id: string }>("POST", "customers", {
@@ -331,6 +476,34 @@ export function mountBilling(app: Hono, db: Db) {
     return c.json({ added: await recordPack(db, session) });
   }));
 
+  /** The automatic top-up: when it buys, which pack, at most how often, and what went wrong last. */
+  app.get("/api/billing/auto-top-up", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    return c.json(await autoTopUpOf(db, user));
+  }));
+
+  app.post("/api/billing/auto-top-up", guarded(async (c) => {
+    const user = HOSTED ? await currentUser(db, c) : null;
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    if (!isPaid(user)) return c.json({ error: "not_paid" }, 402);
+    const { below, credits, maxPerMonth } = await c.req.json<{ below?: number | null; credits?: number; maxPerMonth?: number }>();
+    const valid =
+      (below === null || (Number.isInteger(below) && below! >= 1 && below! <= 100_000)) &&
+      TOP_UP_PACKS.includes(credits as (typeof TOP_UP_PACKS)[number]) &&
+      Number.isInteger(maxPerMonth) &&
+      maxPerMonth! >= 1 &&
+      maxPerMonth! <= AUTO_TOP_UP_MAX_PER_MONTH;
+    if (!valid) return c.json({ error: "invalid" }, 400);
+    // Saving again starts afresh: the last error goes, and the next check may buy at once.
+    await db
+      .update(users)
+      .set({ autoTopUpBelow: below ?? null, autoTopUpCredits: credits!, autoTopUpMaxPerMonth: maxPerMonth!, autoTopUpError: null, autoTopUpAttemptAt: null })
+      .where(eq(users.id, user.id));
+    const fresh = await db.query.users.findFirst({ where: eq(users.id, user.id) });
+    return c.json(await autoTopUpOf(db, fresh!));
+  }));
+
   app.get("/api/billing/subscription", guarded(async (c) => {
     const user = HOSTED ? await currentUser(db, c) : null;
     if (!user) return c.json({ error: "signed_out" }, 401);
@@ -411,6 +584,8 @@ export function mountBilling(app: Hono, db: Db) {
       await recordPack(db, object as unknown as StripeCheckoutSession);
     } else if (event.type === "checkout.session.completed" && typeof object.subscription === "string") {
       await syncSubscription(db, await call<StripeSubscription>("GET", `subscriptions/${object.subscription}`));
+    } else if (event.type === "invoice.paid") {
+      await recordInvoicePack(db, object as unknown as StripeInvoice);
     } else if (event.type.startsWith("customer.subscription.")) {
       await syncSubscription(db, object as unknown as StripeSubscription);
       if (event.type === "customer.subscription.deleted") await endLinkedinAccounts(db, (object as unknown as StripeSubscription).customer);
