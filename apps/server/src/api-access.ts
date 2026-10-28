@@ -185,6 +185,7 @@ export const PROCEDURE_PERMISSIONS: Record<ProcedurePath, ApiPermission | "app">
 
   "linkedin.senders": "linkedin:read",
   "linkedin.addManual": "linkedin:manage",
+  "linkedin.pairExtension": "linkedin:manage",
   "linkedin.update": "linkedin:manage",
   "linkedin.remove": "linkedin:manage",
   "linkedin.connectLink": "linkedin:manage",

@@ -1,17 +1,18 @@
 import type { HistoryEntry, Message, Status } from "./background.ts";
 
-/** The toolbar popup: whether LinkedIn is signed in here, a test invitation, and the latest results. */
+/** The toolbar popup: read-only. Its token for pairing, whether Pluton and LinkedIn are reached, and what was done. */
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const RESULT: Record<string, string> = {
-  sent: "Invitation envoyée.",
-  already_pending: "Une invitation est déjà en attente pour ce profil.",
-  already_connected: "Vous êtes déjà en relation.",
-  email_required: "LinkedIn demande l'e-mail de la personne : invitation non envoyée.",
-  not_available: "Bouton d'invitation introuvable sur ce profil.",
-  disconnected: "LinkedIn n'est pas connecté dans ce navigateur.",
-  error: "L'invitation a échoué.",
+  sent: "invitation envoyée",
+  visited: "profil visité",
+  already_pending: "invitation déjà en attente",
+  already_connected: "déjà en relation",
+  email_required: "e-mail demandé : à faire vous-même",
+  not_available: "impossible : à faire vous-même",
+  disconnected: "LinkedIn déconnecté",
+  error: "échec",
 };
 
 const send = <T>(message: Message) => chrome.runtime.sendMessage(message) as Promise<T>;
@@ -21,15 +22,24 @@ function label(r: HistoryEntry["result"]) {
   return "detail" in r && r.detail ? `${base} (${r.detail})` : base;
 }
 
+function state(id: string, ok: boolean, text: string) {
+  $(`${id}-dot`).classList.toggle("ok", ok);
+  $(id).textContent = text;
+}
+
 async function refresh() {
-  const status = await send<Status>({ type: "status" });
-  $("dot").classList.toggle("ok", status.linkedin);
-  $("state").innerHTML = status.linkedin
-    ? "LinkedIn est connecté dans ce navigateur."
-    : 'LinkedIn n\'est pas connecté. <a href="https://www.linkedin.com/login" target="_blank">Se connecter</a>';
-  const list = $("history");
-  list.replaceChildren(
-    ...status.history.slice(0, 5).map((h) => {
+  const s = await send<Status>({ type: "status" });
+  state(
+    "pluton",
+    s.paired === true,
+    s.paired === true ? `Associée à Pluton : ${s.name}` : s.paired === false ? "Pas encore associée à Pluton." : (s.error ?? "Pluton injoignable."),
+  );
+  state("linkedin", s.linkedin, s.linkedin ? "LinkedIn est connecté dans ce navigateur." : "LinkedIn n'est pas connecté dans ce navigateur.");
+  $("pairing").hidden = s.paired === true;
+  $("token").textContent = s.token;
+  $("recent").hidden = s.history.length === 0;
+  $("history").replaceChildren(
+    ...s.history.slice(0, 5).map((h) => {
       const li = document.createElement("li");
       const who = document.createElement("span");
       who.textContent = h.profileUrl.replace(/^https?:\/\/[^/]+\/in\//, "").replace(/\/$/, "");
@@ -42,15 +52,12 @@ async function refresh() {
   );
 }
 
-$("test").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const button = $<HTMLButtonElement>("send");
-  button.disabled = true;
-  $("result").textContent = "Envoi en cours, dans un onglet en arrière-plan…";
-  const result = await send<HistoryEntry["result"]>({ type: "invite", profileUrl: $<HTMLInputElement>("url").value.trim(), note: $<HTMLTextAreaElement>("note").value });
-  $("result").textContent = label(result);
-  button.disabled = false;
-  await refresh();
+$("copy").addEventListener("click", async () => {
+  await navigator.clipboard.writeText($("token").textContent ?? "");
+  $("copy").textContent = "Copié";
+  setTimeout(() => ($("copy").textContent = "Copier"), 1500);
 });
 
 void refresh();
+// The check-in the popup started may pair it in a moment.
+setTimeout(() => void refresh(), 1500);

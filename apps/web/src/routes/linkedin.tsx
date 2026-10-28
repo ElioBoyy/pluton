@@ -129,9 +129,60 @@ export function LinkedinPage() {
           </Group>
         </Section>
 
+        <ExtensionAccount onPaired={refresh} />
+
         <ManualAccount onAdded={refresh} />
       </div>
     </>
+  );
+}
+
+/** The Chrome extension: its token, pasted here, pairs it; then the sequences drive it from Pluton. */
+function ExtensionAccount({ onPaired }: { onPaired: () => void }) {
+  const t = useT("settings");
+  const trpc = useTRPC();
+  const [name, setName] = useState("");
+  const [token, setToken] = useState("");
+  const pair = useMutation(
+    trpc.linkedin.pairExtension.mutationOptions({
+      onSuccess: () => {
+        setName("");
+        setToken("");
+        toast(translate("settings", "linkedin.extensionPaired"));
+        onPaired();
+      },
+      onError: (e) => toast(e.message, { tone: "error" }),
+    }),
+  );
+  return (
+    <Section title={t("linkedin.extensionTitle")} footnote={t("linkedin.extensionFootnote")}>
+      <Group>
+        <Row label={t("linkedin.extensionExplainer")} />
+        <form
+          className="flex flex-wrap items-center gap-2 px-4 py-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            pair.mutate({ name, token });
+          }}
+        >
+          <div className="w-44 max-sm:w-full">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("linkedin.yourName")} aria-label={t("linkedin.yourName")} required />
+          </div>
+          <div className="min-w-56 flex-1">
+            <Input
+              value={token}
+              onChange={(e) => setToken(e.target.value.trim())}
+              placeholder={t("linkedin.extensionTokenPlaceholder")}
+              aria-label={t("linkedin.extensionToken")}
+              autoComplete="off"
+              spellCheck={false}
+              className="font-mono"
+            />
+          </div>
+          <Button disabled={!name.trim() || token.length < 32 || pair.isPending}>{t("linkedin.extensionPair")}</Button>
+        </form>
+      </Group>
+    </Section>
   );
 }
 
@@ -206,7 +257,10 @@ function SenderRow({ sender: s, onChanged, onReconnect }: { sender: Sender; onCh
               )}
             </span>
           }
-          description={t("linkedin.inSequences", { provider: s.provider === "manual" ? t("linkedin.manualProvider") : "Unipile", count: s.activeLeads })}
+          description={t("linkedin.inSequences", {
+            provider: s.provider === "manual" ? t("linkedin.manualProvider") : s.provider === "extension" ? t("linkedin.extensionProvider") : "Unipile",
+            count: s.activeLeads,
+          })}
           className="py-3"
         >
           <span className="order-first flex size-8 rounded-lg shrink-0 items-center justify-center bg-system-blue text-white">

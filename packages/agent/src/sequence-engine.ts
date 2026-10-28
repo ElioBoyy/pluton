@@ -181,7 +181,7 @@ async function runStep(ctx: Ctx, e: Enrollment, campaign: Campaign): Promise<boo
     return false;
   }
 
-  const acted = sender.provider === "manual" ? await manualStep(ctx, e, campaign, step, sender, person) : await unipileStep(ctx, e, campaign, step, sender, person);
+  const acted = sender.provider !== "unipile" ? await manualStep(ctx, e, campaign, step, sender, person) : await unipileStep(ctx, e, campaign, step, sender, person);
   if (acted) ctx.busy.add(sender.id);
   return acted;
 }
@@ -368,10 +368,15 @@ async function unipileStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: Ca
 
 // ── Manual ───────────────────────────────────────────────────────────────────
 
-/** Manual accounts: the action lands in your task list with its text; the sequence waits for "Done". */
+/**
+ * Manual accounts: the action lands in your task list with its text; the sequence waits for "Done".
+ * Through the Chrome extension, visits and invitations are queued for it instead, and done in your
+ * browser; the other steps still come to you.
+ */
 async function manualStep(ctx: Ctx, e: Enrollment, campaign: Campaign, step: CampaignStep, sender: Sender, person: Person) {
   const { db, now } = ctx;
-  const base = { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, stepId: step.id, status: "pending_manual" as const };
+  const byExtension = sender.provider === "extension" && (step.kind === "invite" || step.kind === "visit_profile");
+  const base = { workspaceId: e.workspaceId, enrollmentId: e.id, senderId: sender.id, stepId: step.id, status: byExtension ? ("queued" as const) : ("pending_manual" as const) };
   if (step.kind === "message") {
     if (e.connected !== true) {
       // You mark the invitation accepted from the task list; until then this only checks expiry.

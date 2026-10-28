@@ -35,6 +35,7 @@ import {
   updateCampaign,
   updateSender,
   updateStep,
+  pairExtension,
 } from "@pluton/core";
 import { campaignLanguage, handleReply, sharpenGuidelines } from "@pluton/agent";
 import { randomBytes } from "node:crypto";
@@ -235,6 +236,16 @@ export const linkedinRouter = router({
       seatsUsed: platform ? await seatsInUse(ctx.db, ctx.userId, workspace.id) : 0,
     };
   }),
+  /** The Chrome extension: the token it shows, pasted here, ties it to this workspace. */
+  pairExtension: publicProcedure
+    .input(z.object({ token: z.string().trim().min(32).max(200), name: z.string().trim().min(1).max(80) }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await pairExtension(ctx.db, (await ws(ctx.db)).id, input);
+      } catch (error) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
+      }
+    }),
   addManual: publicProcedure
     .input(z.object({ name: z.string().trim().min(1).max(80), profileUrl: z.string().trim().url().max(300).optional() }))
     .mutation(async ({ ctx, input }) => createSender(ctx.db, (await ws(ctx.db)).id, { provider: "manual", ...input })),
