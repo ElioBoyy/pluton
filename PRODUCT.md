@@ -32,7 +32,8 @@ Prices in euros, VAT not applicable (article 293 B CGI). Monthly, or yearly with
 
 - Hosted, Your own AI: 24.99 € a month (274.89 € a year), 600 credits a month for the data sources Pluton provides. The AI runs on the customer's own Anthropic or OpenAI API key (never a Claude or Codex subscription token: Anthropic doesn't allow it for third-party products).
 - Hosted, All included: 59 € a month (649 € a year), 2,000 credits a month covering the AI and the data sources.
-- Options on both, any time: LinkedIn sending account 15 € per account per month (165 € a year), through Pluton's own Unipile account; added mid-period pro rata, removed at the next renewal. Credit packs 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
+- LinkedIn is included on both plans (decided 2026-10-29): the Pluton Chrome extension, one LinkedIn account per Pluton account, no extra price. Unipile is gone.
+- Options on both, any time: Credit packs 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
 - Plan and interval changes apply at once, settled pro rata for the days left in the period.
 - Plans, packs and the monthly allowance count in credits. Spend, budgets and costs are shown in US dollars at API prices on both plans (decided 2026-10-28).
 - On-premise: by arrangement only, contact mathis.sportiello@gmail.com. No public download, no GitHub link anywhere on the site or in the app.

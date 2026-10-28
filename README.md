@@ -33,7 +33,9 @@ Both plans are hosted by Pluton, billed monthly or yearly (1-year commitment, on
 - The AI is included: nothing to connect, no API key.
 - 2,000 credits a month cover both the AI's work (research, scoring, writing, the agent) and the data sources Pluton provides.
 
-**Options, on either plan**: a LinkedIn sending account, 15 € per account per month (165 € a year), through Pluton's own Unipile account; credit packs of 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
+**LinkedIn**: included on both plans, at no extra cost: the Pluton LinkedIn extension sends visits and invitations from your own Chrome, while it is open, for one LinkedIn account per Pluton account.
+
+**Options, on either plan**: credit packs of 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
 
 **On-premise**: by arrangement, write to mathis.sportiello@gmail.com.
 

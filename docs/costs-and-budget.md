@@ -42,7 +42,7 @@ There are two plans. Both are paid monthly or yearly; yearly is a 1-year commitm
 - **Hunter and TheirStack caps**: each also has a monthly cap within your credits, Your own AI 400 credits for Hunter and 200 for TheirStack, All included 550 and 300. A pack raises both caps in proportion. Past a cap, that source stops with "This month's {source} allowance on your plan is used up until {date}. A credit pack raises it, or add your own {source} key in Settings → API keys."
 - **One allowance per account**: all the workspaces of one account share the same credits; a second workspace doesn't double them.
 - **Your own data-source keys**: you can still save your own Apify, TheirStack or Hunter key in **Settings → API keys**. Pluton then uses your key instead of its own for that source, and that spend doesn't use your credits (it still appears in Usage and counts against your workspace budget). On All included, the same goes for your own Anthropic key.
-- **LinkedIn sending**: automated LinkedIn sending is an option, **LinkedIn accounts**, at 15 € per account a month (165 € a year), on Pluton's own Unipile account. Add or remove accounts in **Settings → Budget → Subscription**: adding one is charged now for the days left in the period; removing one stops at the next renewal. It records nothing in the ledger.
+- **LinkedIn sending**: included on both plans, at no extra cost: the Pluton LinkedIn extension sends visits and invitations from your own Chrome, while it is open, for one LinkedIn account per Pluton account. It records nothing in the ledger.
 
 ### Changing or cancelling your plan
 

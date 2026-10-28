@@ -7,7 +7,7 @@ related_targets: []
 
 # Landing page (apps/site)
 
-Mode: Persuade. Audience: B2B founders who do their own sales, small sales teams, GTM engineers. Action: start the hosted plan (24.99 € Your own AI / 59 € All included, monthly or yearly with one month free, LinkedIn option 15 € an account); on-premise by email only, no GitHub link. Proof: the product's own interface and mechanism, plus the real 1930 discovery plates of Pluto. No invented customers, quotes or numbers. Languages: en, fr, it, es, de.
+Mode: Persuade. Audience: B2B founders who do their own sales, small sales teams, GTM engineers. Action: start the hosted plan (24.99 € Your own AI / 59 € All included, monthly or yearly with one month free, LinkedIn included through the Chrome extension); on-premise by email only, no GitHub link. Proof: the product's own interface and mechanism, plus the real 1930 discovery plates of Pluto. No invented customers, quotes or numbers. Languages: en, fr, it, es, de.
 
 ## Direction contract
 

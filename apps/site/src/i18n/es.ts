@@ -231,16 +231,12 @@ export default {
     both: "En los dos planes",
     bothLines: [
       "Prospectos encontrados y puntuados para ti, mensajes de LinkedIn y email escritos para ti",
+      "LinkedIn incluido: la extensión de Pluton envía visitas e invitaciones desde tu propio Chrome, mientras esté abierto. Hasta 3× más respuestas que el email*",
       "Slack, HubSpot, Attio, Pipedrive y MCP para tu IA",
       "Alojado por Pluton: sigue funcionando con el portátil cerrado",
     ],
     cta: "Empezar",
     options: "Opciones, en los dos planes",
-    linkedin: "Cuenta de envío de LinkedIn",
-    linkedinMonth: "{price} al mes por cuenta",
-    linkedinYear: "{price} al año por cuenta",
-    linkedinNote: "Pluton pone la conexión con LinkedIn, así que no necesitas otra herramienta de automatización.",
-    linkedinKey: "Hasta 3× más respuestas que el email*",
     linkedinSource: "Pin, Recruiting Outreach Benchmarks 2026",
     linkedinFootnote: "* 17,08\u00a0% frente a 4,96\u00a0% de tasa de respuesta en más de 4 millones de mensajes de reclutamiento enviados de junio de 2025 a mayo de 2026 ({source}). Reclutamiento, no ventas: tus resultados dependen de tu mercado y de tus mensajes.",
     packs: "Packs de créditos",
@@ -251,10 +247,9 @@ export default {
     facts: [
       ["Los créditos miden el trabajo", "Buscar empresas, encontrar personas y sus correos; con Todo incluido, también puntuarlas y escribir los mensajes. Una búsqueda más difícil gasta más."],
       ["Ves lo que gastó cada búsqueda", "Y lo que queda este mes. Cuando se acaban, Pluton se pausa hasta el mes siguiente, salvo que añadas un paquete."],
-      ["Cambia cuando quieras, prorrateado", "Sube de plan, pasa a anual o añade una cuenta de LinkedIn en cualquier momento: solo pagas los días que quedan del periodo."],
+      ["Cambia cuando quieras, prorrateado", "Sube de plan o pasa a anual en cualquier momento: solo pagas los días que quedan del periodo."],
       ["Se renueva hasta que canceles", "Cada mes o cada año. Cancelar detiene la renovación; el periodo ya pagado sigue siendo tuyo."],
       ["El anual es un compromiso de un año", "La vuelta al mensual se hace en la renovación. Salir antes o bajar de plan durante el año no se reembolsa ni se abona."],
-      ["Quitar una cuenta de LinkedIn", "Sigue activa hasta la próxima renovación."],
     ],
     vat: "Precios en euros. IVA no aplicable, artículo 293 B del Código General de Impuestos francés.",
     onPremise: "¿Necesitas Pluton en tus propios servidores? La instalación on-premise se hace bajo petición. Escribe a",
@@ -276,7 +271,7 @@ export default {
       ],
       [
         "¿Cómo trata mi cuenta de LinkedIn?",
-        "Solo actúa dentro de una franja de envío entre semana, con límites diarios por cuenta (80 visitas, 20 invitaciones, 50 mensajes por defecto) y con pausas aleatorias entre acciones. Puedes cambiarlo todo, o enviarlo todo a mano.",
+        "Todo pasa por la extensión de Pluton, en tu propio Chrome y con tu sesión de LinkedIn, solo mientras Chrome está abierto. Solo actúa dentro de una franja de envío entre semana, con límites diarios por cuenta (80 visitas, 20 invitaciones, 50 mensajes por defecto) y con pausas aleatorias entre acciones. Puedes cambiarlo todo, o enviarlo todo a mano.",
       ],
       [
         "¿Necesito mi propia cuenta de Claude u OpenAI?",

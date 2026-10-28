@@ -1150,23 +1150,6 @@ a {
   height: 18px;
   color: var(--gg-ink);
 }
-.price-option-price > span {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 8px;
-}
-.price-option-price strong {
-  font-size: clamp(2.25rem, 1.15rem + 2.9vw, 4rem);
-  font-weight: 700;
-  line-height: 0.95;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-}
-.price-option-price small {
-  font-size: 15px;
-  color: var(--gg-ink-2);
-}
 .price-option-key {
   align-self: end;
   font-size: clamp(1.1875rem, 1.05rem + 0.4vw, 1.4375rem);
@@ -1259,7 +1242,7 @@ a {
 }
 .price-both .price-lines {
   grid-area: auto;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 24px;
   font-size: 15px;
 }

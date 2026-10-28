@@ -549,7 +549,6 @@ const PLANS = {
   own: { month: 24.99, year: 274.89, credits: 600 },
   all: { month: 59, year: 649, credits: 2000 },
 } as const;
-const LINKEDIN = { month: 15, year: 165 };
 const PACKS = [
   [1000, 22],
   [2500, 55],
@@ -672,18 +671,6 @@ function Pricing({ t, locale }: Props) {
             <div className="price-options">
               <Card className="price-option">
                 <p className="price-option-name">
-                  <LinkedinLogo weight="fill" aria-hidden />
-                  {p.linkedin}
-                </p>
-                <p className="price-option-price">
-                  <PriceAmount text={p.linkedinMonth} amount={euros(locale, LINKEDIN.month)} className="bill-month" />
-                  <PriceAmount text={p.linkedinYear} amount={euros(locale, LINKEDIN.year)} className="bill-year" />
-                </p>
-                <p className="price-option-key">{p.linkedinKey}</p>
-                <p className="price-option-note">{p.linkedinNote}</p>
-              </Card>
-              <Card className="price-option">
-                <p className="price-option-name">
                   <Stack weight="fill" aria-hidden />
                   {p.packs}
                 </p>
@@ -739,18 +726,6 @@ function Pricing({ t, locale }: Props) {
           </a>
         </p>
     </section>
-  );
-}
-
-/** "{price} a month per account" with the amount set large and the rest of the sentence beside it. */
-function PriceAmount({ text, amount, className }: { text: string; amount: string; className: string }) {
-  const [before, after] = text.split("{price}");
-  return (
-    <span className={className}>
-      {before && <small>{before}</small>}
-      <strong>{amount}</strong>
-      {after && <small>{after}</small>}
-    </span>
   );
 }
 

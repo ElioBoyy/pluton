@@ -230,16 +230,12 @@ export default {
     both: "On both plans",
     bothLines: [
       "Prospects found and scored for you, LinkedIn and email messages written for you",
+      "LinkedIn included: the Pluton extension sends visits and invitations from your own Chrome, while it's open. Up to 3× more replies than email*",
       "Slack, HubSpot, Attio, Pipedrive and MCP for your AI",
       "Hosted by Pluton: it keeps running while your laptop is closed",
     ],
     cta: "Start",
     options: "Options, on either plan",
-    linkedin: "LinkedIn sending account",
-    linkedinMonth: "{price} a month per account",
-    linkedinYear: "{price} a year per account",
-    linkedinNote: "Pluton provides the LinkedIn connection, so you need no separate automation tool.",
-    linkedinKey: "Up to 3× more replies than email*",
     linkedinSource: "Pin, Recruiting Outreach Benchmarks 2026",
     linkedinFootnote: "* 17.08% against 4.96% reply rate over 4 million+ recruiting messages sent from June 2025 to May 2026 ({source}). Recruiting, not sales: your results depend on your market and your messages.",
     packs: "Credit packs",
@@ -250,10 +246,9 @@ export default {
     facts: [
       ["Credits measure the work", "Researching companies, finding people and their email addresses; on All included, scoring them and writing messages too. A harder search uses more."],
       ["You see what each search used", "And what is left this month. Once it runs out, Pluton pauses until next month, unless you add a pack."],
-      ["Change at any time, pro rata", "Upgrade, go yearly or add a LinkedIn account whenever you like: you pay only for the days left in the period."],
+      ["Change at any time, pro rata", "Upgrade or go yearly whenever you like: you pay only for the days left in the period."],
       ["Renews until you cancel", "Every month or every year. Cancelling stops the renewal; the period already paid stays yours."],
       ["Yearly is a one-year commitment", "It goes back to monthly at renewal. Leaving early or moving down a plan during the year is not refunded or credited."],
-      ["Removing a LinkedIn account", "It stays active until the next renewal."],
     ],
     vat: "Prices in euros. VAT not applicable, article 293 B of the French General Tax Code.",
     onPremise: "Need Pluton on your own servers? On-premise installs are by arrangement. Write to",
@@ -275,7 +270,7 @@ export default {
       ],
       [
         "How does it treat my LinkedIn account?",
-        "It acts only inside a weekday sending window, within daily limits per account (80 visits, 20 invitations, 50 messages by default) and with random gaps between actions. You can change all of it, or send everything by hand.",
+        "It works from your own Chrome, through the Pluton extension and your own LinkedIn session, only while Chrome is open. It acts only inside a weekday sending window, within daily limits per account (80 visits, 20 invitations, 50 messages by default) and with random gaps between actions. You can change all of it, or send everything by hand.",
       ],
       [
         "Do I need my own Claude or OpenAI account?",

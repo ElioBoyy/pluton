@@ -48,7 +48,7 @@ Both plans have the same features. They differ in who pays the AI and what the c
 - **Credit packs**: 1,000, 2,500 or 5,000 credits for 22 €, 55 € or 109 €, bought from Settings → Budget. Bought credits carry over until used.
 - **When the month's credits are used up**, calls that go through Pluton's own keys stop with an error until the next period or until you buy a pack. Hunter and TheirStack also each have a monthly cap (Your own AI: 400 and 200 credits; All included: 550 and 300 credits), raised in proportion by packs.
 - **One account, several workspaces**: your allowance is shared by all the workspaces of your account; a second workspace doesn't double it.
-- **LinkedIn automated sending** is the **LinkedIn sending account** option: 15 € per account per month (165 € a year), through Pluton's own Unipile account. Add accounts at checkout or later (see "Settings"). Removing one takes effect at the next renewal. Sending by hand (a to-do list with the message ready to copy) needs nothing.
+- **LinkedIn sending** is included on both plans, at no extra cost: the Pluton LinkedIn extension sends visits and invitations from your own Chrome, while it is open, for one LinkedIn account per Pluton account. Sending by hand (a to-do list with the message ready to copy) needs nothing.
 - **Changing plan** applies at once, settled pro rata for the days left in the period. Card, invoices and cancellation are in Settings → Budget → **Manage subscription** (Stripe).
 
 ## Signing in and subscribing
@@ -56,7 +56,7 @@ Both plans have the same features. They differ in who pays the AI and what the c
 1. Open **https://app.plut0n.com**. The page "Sign in to Pluton" offers **Continue with Google**, **Continue with Apple**, or an email and password. New here? The same button creates your account.
    - With email: click **New to Pluton? Create an account**, enter your email and a password (at least 10 characters), then open the link Pluton emails you ("Check your inbox: we sent a link to … Open it to finish.").
    - Forgot your password: **Forgot password?**, then **Send the link**.
-2. **Choose your plan**: pick **Monthly** or **Yearly, 1 month free**, then **Your own AI** or **All included**. Below, the **LinkedIn sending accounts** stepper adds that option; it starts at 0, so leave it there if you don't need it. The total is shown before you pay.
+2. **Choose your plan**: pick **Monthly** or **Yearly, 1 month free**, then **Your own AI** or **All included**. The total is shown before you pay.
 3. Click **Continue to payment** and pay on Stripe's page. Back in Pluton, "Confirming your payment…" shows while Stripe confirms; if it takes a while, click **Check again**.
 4. Once paid, Pluton opens the onboarding.
 
