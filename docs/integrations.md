@@ -20,7 +20,7 @@ Click an integration to open its page. Every page has the same first section, **
 
 **Disconnect** asks "Disconnect {name} and forget its tokens?". It deletes the tokens and marks the integration not connected; the export history stays. Connecting and disconnecting are logged in Activity ("You connected HubSpot").
 
-There are no outgoing webhooks in Pluton: Slack and the CRMs are the only places it sends leads, and LinkedIn replies are read by polling Unipile (see the sequences documentation).
+There are no outgoing webhooks in Pluton: Slack and the CRMs are the only places it sends leads, and Pluton doesn't read LinkedIn conversations (see the sequences documentation).
 
 When you create a new workspace by copying an existing one, the integrations' settings are copied too.
 

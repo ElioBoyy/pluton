@@ -141,7 +141,7 @@ What the skill teaches Claude:
 - **Network**: the server only listens on this computer's own loopback address (localhost), so other devices on your Wi-Fi or office network can't reach it at all, token or not. Treat the token like a password anyway; if it may have leaked, click **New token**.
 - **Config files**: the token sits in plain text in your AI clients' config files. As the page says, anything that can read those files can use it.
 - **Sessions**: a client's session ends after an hour of inactivity; clients reconnect on their own. After a token change, an old session gets "Session expired; reconnect".
-- **Outside services**: the MCP server itself sends nothing anywhere. A client's actions only reach outside services the same way the app does (Claude, data sources, Unipile, CRMs), and the risky ones need confirmation.
+- **Outside services**: the MCP server itself sends nothing anywhere. A client's actions only reach outside services the same way the app does (Claude, data sources, CRMs), and the risky ones need confirmation.
 - **Kill switches**: **Pause searches started from AI clients** stops new searches from clients; **New token** cuts every client off at once; **Forget** only tidies the list (it doesn't block a client).
 
 ## Troubleshooting

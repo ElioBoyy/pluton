@@ -6,13 +6,13 @@ import { build } from "esbuild";
  * → Load unpacked). `--dev` also lets it act on http://localhost, for the fake LinkedIn test pages.
  */
 const dev = process.argv.includes("--dev");
-// The Pluton it pairs with: the hosted app, or the local server in dev; `--api=<origin>` for another.
+// The Pluton it pairs with by default: the hosted app, or the local server in dev; `--api=<origin>` for another.
 const api = process.argv.find((a) => a.startsWith("--api="))?.slice(6) ?? (dev ? "http://localhost:8787" : "https://app.plut0n.com");
 
 await rm("dist", { recursive: true, force: true });
 await mkdir("dist", { recursive: true });
 
-const common = { bundle: true, target: "chrome120", outdir: "dist", minify: !dev, define: { __DEV__: String(dev), __API__: JSON.stringify(api) } };
+const common = { bundle: true, target: "chrome120", outdir: "dist", minify: !dev, define: { __DEV__: String(dev) } };
 // The worker and the popup load as modules; the tab script is injected as a classic script.
 await build({ ...common, entryPoints: { background: "src/background.ts", popup: "src/popup.ts" }, format: "esm" });
 await build({ ...common, entryPoints: { invite: "src/invite.ts" }, format: "iife" });
@@ -33,4 +33,7 @@ const manifest = {
 };
 await writeFile("dist/manifest.json", JSON.stringify(manifest, null, 2));
 await copyFile("src/popup.html", "dist/popup.html");
+// The Pluton it talks to. A zip downloaded from a Pluton server gets that server's address here and
+// in host_permissions (apps/server/src/linkedin-extension.ts).
+await writeFile("dist/config.json", JSON.stringify({ api }));
 console.log(`built dist/ (${dev ? "dev" : "prod"}, pairs with ${api})`);

@@ -86,7 +86,7 @@ function ExtensionAccount({ onPaired }: { onPaired: () => void }) {
       <Group>
         <Row label={t("linkedin.extensionExplainer")}>
           <div className="flex shrink-0 gap-2">
-            <a href="/docs#linkedin-extension" target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1 px-2 text-sm text-accent hover:underline">
+            <a href="/docs/linkedin" target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1 px-2 text-sm text-accent hover:underline">
               {t("linkedin.extensionGuide")} <ArrowUpRight size={11} weight="bold" />
             </a>
             <Button variant="ghost" type="button" onClick={() => window.location.assign(EXTENSION_ZIP)}>

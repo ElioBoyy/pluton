@@ -1,7 +1,7 @@
 import { createRootRoute, createRoute, createRouter, Link, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell.tsx";
 import { AgentPage } from "./features/agent/agent-page.tsx";
-import { DocsApiPage, DocsEmailPage, DocsHomePage, DocsReferencePage } from "./features/docs/docs-page.tsx";
+import { DocsApiPage, DocsEmailPage, DocsHomePage, DocsLinkedinPage, DocsReferencePage } from "./features/docs/docs-page.tsx";
 import { BRAIN_TAB_SLUGS, BrainPage, type BrainTabSlug } from "./features/brain/brain-page.tsx";
 import { OnboardingPage } from "./features/onboarding/onboarding-page.tsx";
 import { NewPlayPage } from "./features/plays/new-play-page.tsx";
@@ -127,6 +127,7 @@ const subscribeRoute = createRoute({
 const docsRoutes = [
   createRoute({ getParentRoute: () => rootRoute, path: "/docs", component: DocsHomePage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/docs/email", component: DocsEmailPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/docs/linkedin", component: DocsLinkedinPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/docs/api", component: DocsApiPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/docs/reference", component: DocsReferencePage }),
 ];

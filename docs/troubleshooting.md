@@ -21,7 +21,7 @@ Pluton only talks to the outside world for the work you ask it to do:
 - **Claude**: through Claude Code (subscription) or the Anthropic API (API key). Prompts include what the task needs: your Brain, a Play's audience, candidates being scored, a lead's profile and posts when writing messages, your question to the agent. Claude's web search and page reading go out from Anthropic's side.
 - **Free sources**: the French company registry API (recherche-entreprises.api.gouv.fr), public job boards (Greenhouse, Lever, Ashby, Recruitee), and companies' own websites (homepage for tech detection, contact, legal and team pages for emails, careers pages).
 - **Paid sources you configured**: Apify, TheirStack, Hunter (names and company domain for an email search).
-- **Unipile**, if set: the LinkedIn actions of your sequences and reading replies.
+- **The Pluton LinkedIn extension**, if you paired one: it checks in with your Pluton from your Chrome and does visits and invitations on LinkedIn.
 - **Your SMTP server**, if set: the digest email.
 - **Slack, HubSpot, Attio, Pipedrive**, if connected: leads you post or export.
 - **Codex** (OpenAI), only when you generate wallpapers: your description.
@@ -31,7 +31,7 @@ Nothing is sent to the Pluton author. The local MCP server answers AI clients yo
 
 ## API key encryption and secret.key
 
-Secret settings (Anthropic key, Apify, TheirStack, Hunter, Unipile key, SMTP password, Slack and CRM tokens, the MCP token) are encrypted with AES-256-GCM before they are written to the database. The encryption key is in **data/secret.key**, unique to your installation. The Settings pages never send a saved secret back to the browser: you only see "Saved here · ••••" with its last four characters.
+Secret settings (Anthropic key, Apify, TheirStack, Hunter, SMTP password, Slack and CRM tokens, the MCP token) are encrypted with AES-256-GCM before they are written to the database. The encryption key is in **data/secret.key**, unique to your installation. The Settings pages never send a saved secret back to the browser: you only see "Saved here · ••••" with its last four characters.
 
 Consequences:
 
@@ -39,7 +39,7 @@ Consequences:
 - If **secret.key is lost or replaced**, keys saved before can't be decrypted. Pluton doesn't crash: those keys simply show as **Not set**, and you paste them again in Settings → API keys (and Integrations, and Connect your AI for the MCP token if needed).
 - Anyone with both files (or access to your user account) can read your keys. Protect your backups like you protect the keys themselves.
 
-Non-secret settings (Claude access mode, Unipile DSN, SMTP host, port, user and From address, switches) are stored as plain text.
+Non-secret settings (Claude access mode, SMTP host, port, user and From address, switches) are stored as plain text.
 
 Never put API keys in the `.env` file: Pluton reads them from Settings only.
 
@@ -155,10 +155,11 @@ Fix: reload the page (or wait: most screens fetch the latest version right after
 
 Related messages that are not conflicts: "Not found in this workspace" means the link or item belongs to another workspace (switch workspace first); "Codex is already drawing a wallpaper." and a still-running email lookup or agent reply mean one is already in progress.
 
-## LinkedIn and Unipile problems
+## LinkedIn problems
 
-- **"Unipile DSN missing; add it in Settings → API keys"**: both the Unipile API key and the DSN are needed.
-- **Account shows Disconnected**: Unipile refused the account's session (LinkedIn signed it out, password changed, checkpoint). Pending steps wait and are retried every hour with "LinkedIn account disconnected; reconnect it in Settings → LinkedIn". Click **Reconnect** in Settings → LinkedIn accounts. You get a notification (category LinkedIn accounts).
+- **Account shows Disconnected** (Chrome extension): LinkedIn is signed out in that Chrome ("LinkedIn is signed out in this account's browser: sign back in there"). Sign back in to LinkedIn there; queued steps go on at the next check-in.
+- **Nothing happens on an extension account**: Chrome must be open on that computer with the extension loaded; its popup should show two green dots (paired with Pluton, LinkedIn signed in). See the [extension guide](/docs/linkedin).
+- **A step came back to you as a task**: the extension couldn't do it (LinkedIn asked for the person's email, or a button wasn't found); the task says why.
 - **"LinkedIn asked to slow down"**: LinkedIn rate-limited or reached its invitation limit. The step waits for the time LinkedIn asked, or 6 hours, then continues. Consider lower daily limits.
 - **"LinkedIn won't let this account reach this person"**: that person can't be invited or messaged from this account; their sequence ends as failed.
 - **Other errors**: a step is retried after an hour, then two hours; after 3 failures on the same step, that person's sequence ends as failed with the error.

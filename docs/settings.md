@@ -9,9 +9,9 @@ The left column is titled **Workspace** and lists twelve panes, in this order:
 1. **General**: workspace name, website, timezone, the app's language, and your list of workspaces.
 2. **Appearance**: wallpapers for the light and dark appearances, how they look, and generating them with Codex.
 3. **Notifications**: what reaches the bell in the sidebar, and the morning digest.
-4. **LinkedIn accounts**: the accounts your sequences send from (Unipile or manual) and their daily limits.
+4. **LinkedIn accounts**: the accounts your sequences send from (Chrome extension or manual) and their daily limits.
 5. **Connect your AI**: Pluton's local MCP server for Claude Code, Claude Desktop or Codex.
-6. **API keys**: how Pluton reaches Claude, paid data source keys, Unipile, SMTP email and automation switches.
+6. **API keys**: how Pluton reaches Claude, paid data source keys, SMTP email and automation switches.
 7. **Data sources**: every source Plays search, its status, its usage and a "Try it" box.
 8. **Integrations**: Slack, HubSpot, Attio and Pipedrive.
 9. **Usage**: what Pluton spent, per day, per Play, per type and per source, plus the full ledger.
@@ -27,7 +27,7 @@ Most panes save with a **Save** button that is only active once you change somet
 
 Pluton can hold several workspaces (one per company). Settings don't all live in the same place, which matters when you switch workspace or open Pluton in another browser:
 
-- **Per workspace** (stored in the local database, travel with the workspace): name, website, timezone, budget, notification and digest settings, every key on the API keys page (Claude access mode, Anthropic key, Apify, TheirStack, Hunter, Unipile, SMTP, Daily Brain review), integrations tokens (Slack, CRMs), the MCP token and its guardrail, LinkedIn accounts. The General page says it plainly: "Settings, API keys and integrations on these pages apply to the open workspace only."
+- **Per workspace** (stored in the local database, travel with the workspace): name, website, timezone, budget, notification and digest settings, every key on the API keys page (Claude access mode, Anthropic key, Apify, TheirStack, Hunter, SMTP, Daily Brain review), integrations tokens (Slack, CRMs), the MCP token and its guardrail, LinkedIn accounts. The General page says it plainly: "Settings, API keys and integrations on these pages apply to the open workspace only."
 - **Per browser** (kept in the browser, not in the database): the app's **Language** and the **Light/Dark/System** appearance. A different browser, or a private window, starts back on Automatic and System.
 - **Per install** (shared by every workspace on this computer): the two **wallpapers** and the **Wallpaper look** sliders. They are files in the `data/backgrounds` folder next to the database.
 
@@ -123,7 +123,7 @@ Each row shows the setting's name, a green check when it is set or a grey "Not s
 - **Choices** (such as the Claude access mode) are a segmented control that saves as soon as you click.
 - **Test** appears under some rows once they are set: How Pluton reaches Claude, Anthropic API key, Apify token, Hunter API key and SMTP password. It makes a cheap call and shows a green or orange result line.
 
-Secret values are encrypted with AES-256-GCM using a key that is unique to this installation, kept in the file `data/secret.key`. A copy of the database alone does not reveal your keys. Non-secret values (access mode, Unipile DSN, SMTP host, port, user and From address, switches) are stored as plain text. Keys belong to the open workspace; a new workspace created with "Copy from…" starts with the same keys.
+Secret values are encrypted with AES-256-GCM using a key that is unique to this installation, kept in the file `data/secret.key`. A copy of the database alone does not reveal your keys. Non-secret values (access mode, SMTP host, port, user and From address, switches) are stored as plain text. Keys belong to the open workspace; a new workspace created with "Copy from…" starts with the same keys.
 
 A saved key reaches the background worker within about 3 seconds.
 
@@ -151,15 +151,6 @@ The **Data sources** group: "Optional paid sources. Free sources work without an
 - **Hunter API key**: "Finds work emails (free plan: 50 searches/month)." Used by Find email after the free sources. Link: **Create a Hunter key**. **Test** shows "Hunter key works ({count} searches left this month)".
 
 Without these keys Pluton still works on free sources (French company registry, careers pages, website tech detection, company website emails, and web search through Claude). Each source's status is on Settings → Data sources. How each one is charged is in "Costs and budget".
-
-## LinkedIn sending keys: Unipile
-
-The **LinkedIn sending** group: "Unipile sends from your LinkedIn accounts. Without it, sequences run in manual mode."
-
-- **Unipile API key**: "Sends from your LinkedIn accounts (visit, invite, message, like) and reads replies. Without it, accounts run in manual mode." Link: **Get your Unipile key** (Unipile dashboard).
-- **Unipile DSN**: "Your Unipile API address, shown in their dashboard, e.g. api8.unipile.com:13851." Not secret, shown in full. Both are needed: with a key but no DSN, sending fails with "Unipile DSN missing; add it in Settings → API keys".
-
-There is no Test button on this page for Unipile; after saving both, go to **Settings → LinkedIn accounts** and click **Refresh** or **Connect LinkedIn** to see whether Pluton reaches your Unipile account. Connecting accounts, daily limits and sending behaviour are covered in "LinkedIn sequences and outreach". Unipile's own subscription is not seen by Pluton; you can add it by hand on the Usage page.
 
 ## Email: SMTP for the morning digest
 
@@ -215,7 +206,7 @@ Details of notifications, the bell and Activity are in the activity documentatio
 
 These panes are explained in other parts of the documentation; here is what each is for.
 
-- **LinkedIn accounts**: the accounts sequences send from. Connect through Unipile (**Connect LinkedIn**, then **Refresh**) or add a **manual account** (you do each action by hand). Per account: status (Connected, Connecting, Disconnected, Error), **Reconnect**, daily limits (visits/follows/likes, invitations, messages) with **Save limits**, and **Remove account** (its leads' sequences stop). Shows the warning that automating LinkedIn is against its terms. See "LinkedIn sequences and outreach".
+- **LinkedIn accounts**: the accounts sequences send from. Pair the **Chrome extension** (download it, paste its token, **Pair**) or add a **manual account** (you do each action by hand). Per account: status (Connected, Connecting, Disconnected, Error), daily limits (visits/follows/likes, invitations, messages) with **Save limits**, and **Remove account** (its leads' sequences stop). Shows the warning that automating LinkedIn is against its terms. See "LinkedIn sequences and outreach".
 - **Connect your AI**: the local MCP server address and token (**Show token**, **Copy token**, **New token**), setup lines for Claude Code, Claude Desktop and Codex, the guardrail "Pause searches started from AI clients", connected clients with **Forget**, and **Download SKILL.md**. See the MCP documentation.
 - **Integrations**: Slack (new leads with Approve/Reject buttons) and HubSpot, Attio, Pipedrive (create-only export with field mapping). See the integrations documentation.
 - **Usage** and **Budget**: see "Costs and budget".

@@ -1,4 +1,4 @@
-import { ArrowSquareOut, ArrowUpRight, BookOpen, Code, EnvelopeSimple, ListMagnifyingGlass, MagnifyingGlass, WarningCircle } from "@phosphor-icons/react";
+import { ArrowSquareOut, ArrowUpRight, BookOpen, Code, DownloadSimple, EnvelopeSimple, LinkedinLogo, ListMagnifyingGlass, MagnifyingGlass, WarningCircle } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
@@ -16,7 +16,7 @@ import { CodeBlock } from "../../routes/mcp.tsx";
  */
 
 const NAV = [
-  { group: "nav.guides", items: [{ to: "/docs", key: "nav.home", icon: BookOpen }, { to: "/docs/email", key: "nav.email", icon: EnvelopeSimple }] },
+  { group: "nav.guides", items: [{ to: "/docs", key: "nav.home", icon: BookOpen }, { to: "/docs/email", key: "nav.email", icon: EnvelopeSimple }, { to: "/docs/linkedin", key: "nav.linkedin", icon: LinkedinLogo }] },
   { group: "nav.api", items: [{ to: "/docs/api", key: "nav.apiStart", icon: Code }, { to: "/docs/reference", key: "nav.reference", icon: ListMagnifyingGlass }] },
 ] as const;
 
@@ -83,13 +83,14 @@ export function DocsHomePage() {
   const t = useT("docs");
   const cards = [
     { to: "/docs/email", title: t("nav.email"), body: t("home.email"), icon: EnvelopeSimple },
+    { to: "/docs/linkedin", title: t("nav.linkedin"), body: t("home.linkedin"), icon: LinkedinLogo },
     { to: "/docs/api", title: t("nav.apiStart"), body: t("home.api"), icon: Code },
     { to: "/docs/reference", title: t("ref.title"), body: t("home.reference"), icon: ListMagnifyingGlass },
   ] as const;
   return (
     <DocsLayout>
       <PageHeader title={t("home.title")} description={t("home.description")} />
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {cards.map(({ to, title, body, icon: Icon }) => (
           <Link key={to} to={to} className="gg-card flex flex-col gap-2 p-4 transition-colors duration-150 hover:bg-panel-hover">
             <Icon size={20} className="text-accent" />
@@ -97,6 +98,70 @@ export function DocsHomePage() {
             <span className="text-sm text-muted">{body}</span>
           </Link>
         ))}
+      </div>
+    </DocsLayout>
+  );
+}
+
+// ── LinkedIn extension guide ───────────────────────────────────────────────
+
+/** Made by this server, set to talk to it (apps/server/src/linkedin-extension.ts). */
+const EXTENSION_ZIP = "/api/extension/linkedin/download";
+
+export function DocsLinkedinPage() {
+  const t = useT("docs");
+  const steps = [1, 2, 3, 4, 5, 6] as const;
+  return (
+    <DocsLayout>
+      <PageHeader title={t("li.title")} description={t("li.description")} />
+      <div className="flex flex-col gap-10">
+        <Section title={t("li.what.title")}>
+          <Prose>
+            <ul className="flex list-disc flex-col gap-1.5 pl-5">
+              <li>{t("li.what.steps")}</li>
+              <li>{t("li.what.tasks")}</li>
+              <li>{t("li.what.open")}</li>
+            </ul>
+          </Prose>
+        </Section>
+
+        <Section title={t("li.install.title")} description={t("li.install.description")}>
+          <a href={EXTENSION_ZIP} download className="mb-5 inline-flex h-9 w-fit self-start items-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-white hover:opacity-90">
+            <DownloadSimple size={16} /> {t("li.download")}
+          </a>
+          <ol className="flex flex-col gap-4">
+            {steps.map((n) => (
+              <li key={n} className="flex gap-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-selected text-xs font-semibold text-accent tabular-nums">{n}</span>
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold">{t(`li.step${n}.title`)}</p>
+                  <p className="mt-0.5 text-[15px] leading-relaxed text-muted">{t(`li.step${n}.body`)}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <Link to="/workspace/linkedin" className="mt-4 inline-flex items-center gap-1 text-sm text-accent hover:underline">
+            {t("li.openSettings")} <ArrowUpRight size={12} />
+          </Link>
+        </Section>
+
+        <Section title={t("li.update.title")}>
+          <Prose>
+            <p>{t("li.update.body")}</p>
+          </Prose>
+        </Section>
+
+        <Section title={t("li.limits.title")}>
+          <Prose>
+            <ul className="flex list-disc flex-col gap-1.5 pl-5">
+              <li>{t("li.limits.chrome")}</li>
+              <li>{t("li.limits.accepted")}</li>
+              <li>
+                {t("li.limits.risk")} <External href="https://www.linkedin.com/help/linkedin/answer/a1341387">{t("li.limits.riskLink")}</External>
+              </li>
+            </ul>
+          </Prose>
+        </Section>
       </div>
     </DocsLayout>
   );

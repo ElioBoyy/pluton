@@ -11,7 +11,7 @@ Two kinds of line exist:
 
 Calls that cost nothing are never in the ledger: free sources (French company registry, careers pages, website tech detection, company website emails) and any answer Pluton reuses from its local cache.
 
-Some costs are invisible to Pluton because the provider charges a subscription rather than per call (Unipile's subscription, the part of a Hunter or Apify plan you don't use). You can add those by hand on the Usage page so the budget reflects them.
+Some costs are invisible to Pluton because the provider charges a subscription rather than per call (the part of a Hunter or Apify plan you don't use). You can add those by hand on the Usage page so the budget reflects them.
 
 Where to look:
 - **Home**: the "Spend this period" card (spent, of your monthly budget, what's left until the period ends, and the subscription equivalent), with links to **Usage** and **Budget**.
@@ -64,7 +64,7 @@ You can switch at any time; lines already recorded keep how they were billed. Us
 - **Apify** (LinkedIn engagement and posts): each Apify actor run reports its total cost to Pluton (platform usage plus pay-per-event charges), read back once the run has settled, and that exact amount is recorded. Operations appear in the ledger as "Apify profile posts" (recent posts of tracked profiles), "Apify post engagers" (people who reacted to and commented on a post; two actor runs added together) and "Apify keyword posts" (posts matching keywords). Results are reused for 6 hours (posts) or 24 hours (engagers), with no new charge.
 - **Hunter** (email finding): Hunter takes one credit for each search that returns an email, and nothing when it finds none. Pluton records what a credit costs on your Hunter plan, from Hunter's monthly prices in euros turned into dollars at the fixed rate (1.12 $ per €): Starter (49 € for 2,000) about **$0.027**, Growth (149 € for 10,000) about $0.017, Scale (299 € for 25,000) about $0.013. A plan it doesn't recognise, an annual plan included, counts at Starter's price. On Hunter's free plan (50 searches a month) Pluton records $0. It checks your plan with a free call, at most every 6 hours; if Hunter can't be reached for that check, the search is recorded at Starter's price, so spend is never under-counted. A person's result is reused for 30 days.
 - **TheirStack** (market-wide job posts): TheirStack takes 1 credit per job returned, and nothing for a search that returns none. Pluton records **$0.0327** per job, a credit's price on TheirStack's smallest paid plan ($49 for 1,500 credits), because TheirStack doesn't say which plan a key is on. On a larger plan or the free credits this counts more than you pay; correct it with a negative expense if you want. Companies hiring and Tech stack searches call it once per search for up to 20 job posts (about $0.65 at most) when a key is set; see the Plays documentation. Results are reused for 24 hours, by every workspace on the same Pluton: the same search made again within a day costs nothing.
-- **Unipile** (LinkedIn sending): billed by Unipile per connected account on your Unipile plan; Pluton records nothing per action. Add it by hand (the expense box even suggests "Unipile account, October").
+- **LinkedIn sending**: the Chrome extension is free; Pluton records nothing per action.
 - **Free sources**: the French company registry, careers boards (Greenhouse, Lever, Ashby, Recruitee), website tech detection and company website emails cost nothing.
 - **Web search (Claude)** and **LinkedIn profile lookup (Claude)** cost whatever Claude costs (see above). Web search answers are reused for a day.
 - **SMTP, Slack, HubSpot, Attio, Pipedrive** and **Codex wallpapers**: nothing recorded.
@@ -100,7 +100,7 @@ Every ledger line has a **type**, used by the Usage breakdown and the ledger fil
 
 **By Play**: a table with **Play** (with "draft", "paused" or "archived" when not active), **Searches** (searches that recorded a cost), **Leads** (leads found in the range, disqualified excluded), **Spent**, **Per lead** (spent divided by leads, "—" when there are none) and **Via subscription**. Plays with no spend and no leads in the range are hidden. Sorted by spend.
 
-**By type** and **By source** (Claude, Apify, Hunter, TheirStack, Unipile, Manual): each row shows its spend, "+ {amount} via subscription" when there is some, and a bar. "Nothing yet." when empty.
+**By type** and **By source** (Claude, Apify, Hunter, TheirStack, Manual; Unipile on older entries): each row shows its spend, "+ {amount} via subscription" when there is some, and a bar. "Nothing yet." when empty.
 
 **Ledger**: every line, newest first, 50 at a time (**Show more** for older). Columns **When**, **What** (source, model or operation, type; or your note with "expense added by you"), **Play** ("—" when none) and **Cost** (with "sub." for subscription lines). **Filter by type** narrows it (it ignores the range above). Your own expenses have a trash icon (**Delete expense**); other lines can't be deleted.
 
@@ -109,11 +109,11 @@ Every ledger line has a **type**, used by the Usage breakdown and the ledger fil
 At the bottom of the ledger, **Add an expense Pluton can't see (a plan, a subscription)** opens two fields:
 
 - **Amount in USD**: a positive amount adds spend; a **negative** amount gives money back (a refund, or cancelling a cost Pluton over-counted). Between −10,000 and 10,000, and not zero ("Amount can't be zero").
-- **Note**: what it was for, 2 to 200 characters (placeholder "What for, e.g. Unipile account, October").
+- **Note**: what it was for, 2 to 200 characters (placeholder "What for, e.g. Apify plan, October").
 
 Click **Add** (or **Cancel**). The expense is recorded now, counts as **Spent** under type **Other** and source **Manual**, and appears in Activity. It counts against the budget like any other cost and can trigger the 80 % and 100 % alerts. Remove it with its trash icon in the ledger.
 
-Typical uses: your Unipile plan, TheirStack credits, a Hunter or Apify subscription fee, or a negative line to correct an entry.
+Typical uses: TheirStack credits, a Hunter or Apify subscription fee, or a negative line to correct an entry.
 
 ## Budget page: settings
 
@@ -196,7 +196,7 @@ Raise "Most one search may spend" on the Budget page (applies to every Play with
 **Hunter is on the free plan but Usage shows a cost per email. Is that real?**
 It shouldn't any more: Pluton checks your Hunter plan and records $0 on the free plan. Entries from before that check (older ones at $0.049), or from a moment Hunter couldn't be reached, can be cancelled with a negative expense.
 
-**How do I count my Unipile plan?**
+**How do I count a subscription Pluton can't see?**
 Usage → "Add an expense Pluton can't see", enter the amount and a note.
 
 **When does a budget period start?**

@@ -8,7 +8,6 @@ import type { InviteResult } from "./invite.ts";
  */
 
 declare const __DEV__: boolean;
-declare const __API__: string;
 
 export type Message = { type: "status" };
 
@@ -44,8 +43,12 @@ async function linkedinSignedIn() {
   return Boolean(cookie?.value);
 }
 
+/** The Pluton this copy talks to: written in config.json by the build, or by the Pluton it was downloaded from. */
+let apiOrigin: Promise<string> | undefined;
+const origin = () => (apiOrigin ??= fetch(chrome.runtime.getURL("config.json")).then((r) => r.json() as Promise<{ api: string }>).then((c) => c.api));
+
 async function api<T>(path: string, body: unknown): Promise<{ status: number; data: T }> {
-  const res = await fetch(`${__API__}${path}`, {
+  const res = await fetch(`${await origin()}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` },
     body: JSON.stringify(body),

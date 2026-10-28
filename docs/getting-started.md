@@ -12,7 +12,7 @@ Pluton is a go-to-market app that runs entirely on your own computer. You give i
 - **Tells you what needs you**: an activity feed, a notification bell and a morning digest.
 - **Has an agent you can talk to**: ask questions about your leads, Plays, Brain or spend from the Agent page or ⌘K; it asks for your approval before changing anything.
 
-Everything lives in a local database on your machine. Nothing leaves your computer except the calls Pluton makes to the services you connect (Claude, and optional data providers such as Apify, TheirStack, Hunter or Unipile).
+Everything lives in a local database on your machine. Nothing leaves your computer except the calls Pluton makes to the services you connect (Claude, and optional data providers such as Apify, TheirStack or Hunter, and LinkedIn itself through the extension in your own Chrome).
 
 The app is organised in a sidebar with five main pages (Home, Brain, Agent, Plays, Leads), a Settings area, a floating "Ask Pluton anything" bar and a ⌘K search palette. The interface follows Apple's macOS design, has light and dark appearances, works on a phone, and is available in five languages: English, French, Italian, Spanish and German.
 
@@ -29,7 +29,7 @@ Optional keys unlock more sources and automation. They are all added inside the 
 - **TheirStack**: market-wide job post and tech stack search.
 - **Apify**: LinkedIn posts, people engaging with posts, and profile lookups.
 - **Hunter**: work email finding (its free plan gives 50 searches a month).
-- **Unipile**: automated LinkedIn sending. Without it, sequences run in manual mode (Pluton prepares the steps and you send them by hand).
+- **The Pluton LinkedIn extension** (not a key: Settings → LinkedIn accounts): visits and invitations sent from your own Chrome. Without it, sequences run in manual mode (Pluton prepares the steps and you send them by hand).
 - **SMTP** (your own mail server): only needed if you want the morning digest by email.
 
 Free sources work with no key at all: the French company registry, company careers pages (Greenhouse, Lever, Ashby, Recruitee), website tech detection and Claude's web search.
