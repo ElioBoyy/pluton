@@ -17,6 +17,11 @@ const SEND_WITHOUT_NOTE = /send without a note|envoyer sans note/i;
 const SEND = /^(send|envoyer)( invitation| l.invitation)?$/i;
 const MESSAGE = /^message$/i;
 
+/** The document and the open shadow roots under it: LinkedIn renders its dialogs inside #interop-outlet's. */
+function roots(): ParentNode[] {
+  return [document, ...[...document.querySelectorAll("*")].flatMap((el) => (el.shadowRoot ? [el.shadowRoot] : []))];
+}
+
 /** LinkedIn caps a note at 300 characters for free accounts. */
 const NOTE_MAX = 300;
 
@@ -27,7 +32,7 @@ const shown = (el: Element) => el.getClientRects().length > 0 && getComputedStyl
 
 /** The first visible control under `root` whose accessible name matches. */
 function control(root: ParentNode, name: RegExp) {
-  const all = root.querySelectorAll("button, [role=button], [role=menuitem], a[role=link][aria-label]");
+  const all = root.querySelectorAll("button, a, [role=button], [role=menuitem]");
   return [...all].find((el) => shown(el) && name.test(nameOf(el))) as HTMLElement | undefined;
 }
 
@@ -75,13 +80,13 @@ async function invite(note?: string): Promise<InviteResult> {
     if (!more) return { status: "not_available", detail: "no Connect or More button" };
     press(more);
     await pause();
-    connect = await waitFor(() => control(document, CONNECT), 2500);
+    connect = await waitFor(() => roots().map((r) => control(r, CONNECT)).find(Boolean), 2500);
     if (!connect) return control(main, MESSAGE) ? { status: "already_connected" } : { status: "not_available", detail: "no Connect under More" };
   }
   press(connect);
   await pause();
 
-  const dialog = await waitFor(() => [...document.querySelectorAll("[role=dialog]")].find(shown), 5000);
+  const dialog = await waitFor(() => roots().flatMap((r) => [...r.querySelectorAll("[role=dialog]")]).find((d) => shown(d) && (control(d, ADD_NOTE) || control(d, SEND_WITHOUT_NOTE) || d.querySelector("input[type=email]"))), 5000);
   if (!dialog) return { status: "not_available", detail: "no invitation dialog" };
   if (dialog.querySelector("input[type=email]")) return { status: "email_required" };
 
