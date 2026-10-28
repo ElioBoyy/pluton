@@ -85,7 +85,7 @@ When you reject leads with the reason "wrong role" or "wrong seniority", Brain r
 How competitors are used:
 
 - Lead searches **exclude** people working at a competitor (and at your own company).
-- When Apify is set up, people who react to or comment on a competitor's LinkedIn posts (from the competitor's LinkedIn page) can be found as warm leads.
+- People who react to or comment on a competitor's LinkedIn posts (from the competitor's LinkedIn page) can be found as warm leads, through Apify (provided by Pluton on both plans, drawn from your credits).
 - Tools you "replace" in the Stack signal (often competitors' products) help find companies using them.
 - Rejecting leads with the reason "competitor or partner" leads reviews to propose new competitors.
 
@@ -99,7 +99,7 @@ Onboarding saves up to 8 real competitors, each with its website.
 - **LinkedIn URL** (optional, up to 200): only filled by research when the URL was actually seen.
 - **Why buyers follow them** (required, up to 200).
 
-With an Apify token, people engaging with these influencers' posts become warm leads, so adding the LinkedIn URL matters. An influencer without a LinkedIn URL is context only.
+People engaging with these influencers' posts become warm leads (through Apify), so adding the LinkedIn URL matters. An influencer without a LinkedIn URL is context only.
 
 Onboarding saves up to 8 real people it found. If you want a profile watched without listing it as an influencer (for example your CEO), use **Tracked LinkedIn profiles** on the Market research tab.
 
@@ -128,7 +128,7 @@ The sequence's **Tone** settings and the Voice are the same thing: saving the to
 - **LinkedIn URL** (required, up to 300): must be a LinkedIn profile or company page (containing linkedin.com/in/ or linkedin.com/company/), otherwise saving fails with "A LinkedIn profile or company page URL".
 - **Who it is**: **Competitor**, **Influencer / expert** or **Your own brand or team**.
 
-**Keywords** (list): "Topics your buyers post about." Each has a **Phrase** (required, up to 80; specific phrases buyers really post about on LinkedIn, not generic SEO terms) and **What it signals** (required, up to 160). With Apify, Plays can find people posting about these phrases.
+**Keywords** (list): "Topics your buyers post about." Each has a **Phrase** (required, up to 80; specific phrases buyers really post about on LinkedIn, not generic SEO terms) and **What it signals** (required, up to 160). Through Apify, Plays can find people posting about these phrases.
 
 **Hiring signal** (single item): **Roles to watch in job offers**, up to 8 job titles. A company opening one of these roles is likely entering a buying window. Used by hiring-based searches (careers pages, TheirStack).
 
@@ -230,7 +230,7 @@ What the reviewer reads: the whole active Brain; the suggestions still pending (
 
 Rules it follows: at most 8 suggestions per review, best first, and zero is fine if the Brain is solid; every Add, Edit or Remove must cite sources it actually read, and it never invents people, companies or URLs; an Edit carries the complete new item; job titles and keywords stay in your market's language while rationales and questions are written in your app language.
 
-Cost: a review uses Claude (and web searches); it is logged on the Usage page as "Brain review". Through the Claude subscription it is shown at API prices but not billed.
+Cost: a review uses the AI (and web searches); it is logged on the Usage page as "Brain review". On Your own AI your AI provider bills it to your key; on All included it is drawn from your plan's credits.
 
 When it finishes, the activity feed records "The Brain review left N suggestions" or "The Brain review found nothing to change" (or "The Brain review stopped on an error"), and when there is at least one suggestion you get a "The Brain has N suggestions" notification (category Brain suggestions).
 
@@ -238,7 +238,7 @@ When it finishes, the activity feed records "The Brain review left N suggestions
 
 Besides the button, reviews start on their own in two cases:
 
-**Daily review.** Setting: Settings → API keys → Automation → **Daily Brain review**: "Each morning Pluton reviews the Brain against what your Plays found and leaves suggestions." Options **On** (default) and **Off**. When on, the worker queues one review per workspace per local day, after 06:00 in the workspace timezone, but only if the workspace has a Company item. It runs only while Pluton (the worker) is running; if it was off at 06:00, the review runs when Pluton starts later that day. The setting is per workspace.
+**Daily review.** Setting: Settings → API keys → Automation → **Daily Brain review**: "Each morning Pluton reviews the Brain against what your Plays found and leaves suggestions." Options **On** (default) and **Off**. When on, Pluton queues one review per workspace per local day, after 06:00 in the workspace timezone, but only if the workspace has a Company item. The setting is per workspace.
 
 **After lead rejections.** When you have rejected **5 leads** (verdicts not undone) since the last review started, Pluton queues a review focused on them: "The founder just rejected several leads. Read their reasons and fix what in the Brain led the search there." It doesn't start if a review is already running. Its suggestions wait for you on the Brain page like any other.
 
@@ -293,8 +293,8 @@ Your answers don't change the Brain directly. They are stored and given to every
 - **A field is required / too long**: the message under the form names the field. Limits: names 80, one-liner 120, statement 1,200, ICP summary 400, why they buy 300, overlap and why-follow 200, pillar 120 and detail 300, keyword phrase 80 and meaning 160, seniority 40, outreach language 40; lists hold at most 6 to 8 entries.
 - **"This suggestion was already handled"**: it was accepted, rejected or answered elsewhere; refresh the page.
 - **"Review failed: The Brain has no company profile yet; run onboarding first"**: add a Company item (Company tab → Add) or run onboarding.
-- **"Review failed: …" mentioning Claude**: check Settings → API keys → How Pluton reaches Claude (subscription logged in through Claude Code, or a valid API key) and use Test.
-- **The review never starts**: the background worker must be running (Home → System shows queued jobs).
+- **"Review failed: …" about your AI key** (Your own AI): check your Anthropic or OpenAI key in Settings → API keys and use Test.
+- **"Review failed: Your plan's included usage is used up …"** (All included): the month's credits are spent. Buy a pack in Settings → Budget, wait for the next month, or save your own Anthropic key in Settings → API keys.
 - **"Your Brain is empty"**: onboarding was never run in this workspace (or all items are archived). Click Start onboarding.
 
 ## FAQ
@@ -321,7 +321,7 @@ At most 8, best first. It may make none if the Brain is solid.
 Searches look for people holding those exact job titles inside your ideal companies. Write them as people write them on LinkedIn, in your market's language.
 
 **What does "Tracked LinkedIn profiles" do?**
-With an Apify token, people who react to or comment on these profiles' posts are found as warm leads. Without Apify it has no effect.
+People who react to or comment on these profiles' posts are found as warm leads, through Apify (provided by Pluton on both plans).
 
 **Can I delete a Brain item permanently?**
 The page archives items rather than deleting them; archived items are ignored everywhere and can be restored from Show archived.
@@ -330,7 +330,7 @@ The page archives items rather than deleting them; archived items are ignored ev
 Onboarding archives the active Brain before rebuilding it. List items can be restored from Show archived under each list section.
 
 **Does a review cost money?**
-It uses Claude and web searches, logged as "Brain review" on the Usage page. With an API key it is billed and counted in your budget; through the Claude subscription it is shown at API prices but not billed.
+It uses the AI and web searches, logged as "Brain review" on the Usage page, and counted in your workspace budget. On Your own AI your AI provider bills it to your key; on All included it is drawn from your plan's credits.
 
 **Can the agent change my Brain?**
 It can accept, reject or answer suggestions and start reviews, each only after you approve its card. It cannot edit Brain items directly.

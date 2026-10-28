@@ -19,7 +19,7 @@ export const HOST = {
 };
 
 /** The date shown under every title; change it with the texts. */
-export const LEGAL_UPDATED = new Date("2026-10-27T00:00:00Z");
+export const LEGAL_UPDATED = new Date("2026-10-28T00:00:00Z");
 
 /** A paragraph, or a bulleted list. */
 export type Block = string | { list: string[] };

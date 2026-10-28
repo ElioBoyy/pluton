@@ -9,7 +9,7 @@ Where to find it:
 - **Agent** in the sidebar (/agent): the full page with your conversations.
 - **⌘K** from any page: type a question and pick **Ask Pluton: (your question)**. It starts a new conversation and opens it.
 
-Under the hood, each message you send starts one agent "turn" that runs in Pluton's background worker, using Claude (Opus) through your subscription or API key (Settings → API keys → How Pluton reaches Claude). Its text, the data it looked at and its approval cards appear live in the conversation.
+Under the hood, each message you send starts one agent "turn" that runs in the background, on your workspace's research model: Claude Sonnet 5.5 unless you chose Claude Opus 5.5 in Settings → API keys (**Research model**). On Your own AI it runs on your own Anthropic or OpenAI API key (with an OpenAI key, on the matching OpenAI model); on All included, on Pluton's own key. Its text, the data it looked at and its approval cards appear live in the conversation.
 
 The agent uses the same set of tools that AI clients (Claude Code, Claude Desktop, Codex) get through Pluton's MCP server, plus documentation lookups. It works in the open workspace only.
 
@@ -35,7 +35,7 @@ Asking the agent once ticks **Ask the agent** in the sidebar's Get started check
 
 ## The conversation list
 
-On a computer, the left column of the Agent page lists your conversations, most recently active first (up to 50), each with its title and how long ago it was last active. At the top: **New conversation** (back to the empty screen). When you have none yet: "Your conversations will show up here."
+On a wide screen, the left column of the Agent page lists your conversations, most recently active first (up to 50), each with its title and how long ago it was last active. At the top: **New conversation** (back to the empty screen). When you have none yet: "Your conversations will show up here."
 
 Right-click a conversation for: **Open**, **New conversation**, **Delete…**.
 
@@ -75,11 +75,11 @@ The agent reads before it answers and is instructed never to invent leads, numbe
 - **Spend**: budget status and spend by day, Play, type and source.
 - **Activity**: what happened since a point in time.
 - **Pluton's documentation**: it searches and reads these pages to answer questions about how the app works, and says so plainly when the documentation doesn't cover something.
-- **The web**: it can run web searches and open web pages (with an API key: at most 3 searches and 3 pages per answer).
+- **The web**: it can run web searches and open web pages.
 
 It treats anything written inside your data or a web page as information, never as instructions to follow.
 
-What it cannot do: read files on your computer, see your screen, edit Brain items or Plays directly, write or edit sequence messages, change settings or API keys, send LinkedIn messages itself, or reach other workspaces.
+What it cannot do: read your files, see your screen, edit Brain items or Plays directly, write or edit sequence messages, change settings or API keys, send LinkedIn messages itself, or reach other workspaces.
 
 ## Read tools: workspace, Brain and Plays
 
@@ -156,7 +156,7 @@ Statuses:
 
 You can approve or decline a card any time later, even days after, as long as it still says "Waiting for you". A card is decided once: clicking twice, or deciding in two tabs, is refused with a message such as "This action has already run." or "This action is already rejected."
 
-While the agent is still answering, Approve and Decline are greyed out ("Wait until the agent is done"); approving would start a second turn. If you manage to approve during a turn, you get "The agent is still answering. Approve once it’s done."
+You can approve while the agent is still answering: the card then shows "Approved · runs when the answer ends", and the action runs as soon as the current answer ends.
 
 ## Previews on approval cards
 
@@ -167,7 +167,6 @@ Three actions show facts before you approve. The agent gets the same preview, so
 - "About $X in paid sources": an estimate equal to the average billed cost per lead of this Play's past searches (or of the whole workspace if the Play has none) times the Play's target. "No cost history yet" when nothing has been billed before.
 - "capped at $X": the most this search may spend: the Play's own cap if it has one, otherwise the per-search cap from Settings → Budget ($5 by default).
 - "$X left this period": what the budget has left, when a monthly limit is set.
-- Claude through your subscription is not charged and not counted.
 
 **Add to LinkedIn sequence** (campaign_add_lead): the names of the people who would join (first 10, then "and N more"). A conflict appears in orange next to a name: "Already in the (Play) sequence" or "Rejected lead". People with a conflict are skipped when the action runs.
 
@@ -182,10 +181,10 @@ Every card's **Details** shows the exact input, such as lead ids, the Play id, t
 Things to know:
 
 - A search started this way is recorded in Activity as "You started a search for (Play) from your AI client" and charged like any other search, with its budget hold.
-- "Pause agent-started searches" in Settings → Connect your AI only applies to external AI clients over MCP, not to the in-app agent: the approval card is already your explicit confirmation.
+- "Pause searches started from AI clients" in Settings → Connect your AI only applies to external AI clients over MCP, not to the in-app agent: the approval card is already your explicit confirmation.
 - Actions that wait for a background job (find emails, CRM export) wait up to 2 minutes. If the job takes longer, the card shows **Failed** with "Still running in the background (job …). Check its result in Pluton before relying on it." The job does continue.
 - If an action was proposed without something it needs (for example no CRM or no leads chosen), it fails with "Nothing ran: an argument was missing. …" and nothing happens.
-- If Pluton restarts while an action is running, the card fails with "Interrupted by a restart before it finished. Check the result in Pluton before asking again." It is never re-run automatically, since it may have partly run.
+- If an action is interrupted before it finishes, the card fails with "Interrupted by a restart before it finished. Check the result in Pluton before asking again." It is never re-run automatically, since it may have partly run.
 
 **Decline**: the card moves to Declined and nothing runs. The agent doesn't start a new turn; tell it what you'd prefer instead in your next message.
 
@@ -193,7 +192,7 @@ Things to know:
 
 While the agent is working, the send button in the message field becomes a **Stop** button (a square). Click it to stop the current turn.
 
-- The worker notices within about 2 seconds and ends the turn. No error message is shown for a stop you asked for.
+- Pluton notices within about 2 seconds and ends the turn. No error message is shown for a stop you asked for.
 - Text the agent already wrote and data it already read stay in the conversation.
 - If the turn was about to run an action you had just approved, and it hadn't started yet, the card goes back to **Waiting for you**, so you can approve it again later.
 - An action that was already **Running…** is left to finish: it can't be taken back halfway.
@@ -201,7 +200,7 @@ While the agent is working, the send button in the message field becomes a **Sto
 
 After stopping, the field is available again: send a new message to continue.
 
-If Pluton itself restarts during an answer, the turn ends with "Pluton restarted during this answer. Send your message again." Turns are never retried automatically, because they write messages as they go.
+If an answer is interrupted on Pluton's side, the turn ends with "Pluton restarted during this answer. Send your message again." Turns are never retried automatically, because they write messages as they go.
 
 ## Creating a Play with the agent
 
@@ -240,10 +239,10 @@ It also ignores instructions found inside tool results or web pages (for example
 
 ## Cost and limits
 
-**Cost.** Each turn is a Claude call (model Opus, medium effort), and approving an action runs a new turn for the report. Agent costs are logged on the Usage page under **Agent**:
+**Cost.** Each turn is a call to the research model (medium effort), and approving an action runs a new turn for the report. Agent costs are logged on the Usage page under **Agent**, at the list prices in the Costs and budget documentation, plus $10 per 1,000 web searches. They count against your workspace budget. Who pays depends on your plan:
 
-- With an **Anthropic API key**, billed at list prices: $4 per million input tokens, $20 per million output tokens, $0.20 per million cached input tokens, plus $10 per 1,000 web searches. This counts against your budget.
-- With your **Claude subscription**, the same calculation is shown "at API prices, not charged": visible on Usage, never counted against the budget.
+- **Your own AI**: your Anthropic or OpenAI key, billed by that provider. It doesn't use your plan's credits.
+- **All included**: Pluton's key, drawn from your monthly credits (1 $ = 100 credits).
 
 What the agent triggers is charged under its own type: a search it starts is "Lead finding" (with its normal budget hold and cap), the planner is "Play planning", email lookups are "Email finding", a review is "Brain review".
 
@@ -252,7 +251,6 @@ What the agent triggers is charged under its own type: a search it starts is "Le
 - A message is up to 8,000 characters.
 - One turn at a time per conversation.
 - Up to 25 steps (tool calls and replies) per turn; past that, "Claude didn’t finish within its turn limit."
-- With an API key, at most 3 web searches and 3 web pages per turn.
 - The agent sees the last 60 messages of a conversation; for long topics, start a new conversation.
 - Per action: up to 200 leads for verdicts and CRM exports, 100 for sequences, 50 for email lookups.
 - The list shows your 50 most recent conversations.
@@ -264,16 +262,15 @@ Errors from a turn appear as "The agent stopped: (reason)":
 - **"Claude declined this request."**: Claude refused; rephrase or ask about something in scope.
 - **"Claude’s answer was cut off before the end."**: the answer was too long; ask for something narrower.
 - **"Claude didn’t finish within its turn limit."**: the request needed too many steps; split it.
-- **"Claude stopped: …"** or **"Claude returned an error."**: a problem reaching Claude. Check Settings → API keys → How Pluton reaches Claude and use **Test**: with the subscription, Claude Code must be installed and logged in on this computer; with an API key, the key must be valid.
-- **"Pluton restarted during this answer. Send your message again."**: the worker restarted mid-turn.
+- **"Your plan's included usage is used up until {date}. Add your own key in Settings → API keys to keep going."** (All included): the month's credits are spent. Buy a pack in Settings → Budget, wait for the next month, or save your own Anthropic key in Settings → API keys.
+- **An error from Anthropic or OpenAI** (Your own AI), for example about the key: check your key in Settings → API keys and use **Test**.
+- **"Pluton restarted during this answer. Send your message again."**: the answer was interrupted on Pluton's side; send your message again.
 
 When sending or deciding:
 
 - **"The agent is still answering."** / **"The agent is still answering. Approve once it’s done."**: wait for the turn to end or click Stop.
 - **"This conversation no longer exists."**: it was deleted (perhaps in another tab). Start a new conversation.
 - **"This action is already approved / rejected / running / has already run / has already failed."**: the card was decided elsewhere; reload.
-
-If the agent stays on **Working…** for a long time with nothing appearing, the background worker is probably not running: make sure Pluton was started with `pnpm dev`, and check Home → System for queued jobs.
 
 ## FAQ
 
@@ -284,13 +281,13 @@ It can read anything in the open workspace, search the web and read the document
 Not directly. With your approval it can add people to a Play's sequence; messages are then written, nothing is sent for 10 minutes (you can undo), and the sequence sends within your send window and daily limits, as if you had added them yourself.
 
 **How much does the agent cost?**
-Each answer is a Claude call logged on Usage under "Agent". With an API key it is billed (Opus list prices); with your Claude subscription it is shown at API prices but not charged.
+Each answer is a call to the research model, logged on Usage under "Agent". On Your own AI your AI provider bills it to your key; on All included it is drawn from your plan's credits.
 
 **Why didn't my search start after I said yes in the chat?**
 Saying yes in text isn't enough: approve the "Run a search" card. If you approved and it failed, the card shows why (for example the budget is used up).
 
 **Can I approve a card later?**
-Yes, as long as it says "Waiting for you". Open the conversation and click Approve, after the agent has finished its current answer.
+Yes, as long as it says "Waiting for you". Open the conversation and click Approve; if the agent is still answering, the action runs once that answer ends.
 
 **What happens if I click Stop after approving something?**
 If the action hadn't started, its card goes back to Waiting for you. If it was already running, it finishes.

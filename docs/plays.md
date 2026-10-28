@@ -62,17 +62,17 @@ A pipeline is a Play's search strategy. The planner picks one when it proposes a
 | **Web evidence** | Organizations matching a plain-language criterion verified on the web with a source ("hotel groups that publish a sustainability report"). | Matches your criteria | 35 | A written criterion |
 | **Lookalikes of your customers** | French organizations with the same sector code and headcount band as reference customers you name. | Looks like your best customers | 25 | At least one reference customer |
 | **Recently funded** | Organizations that announced a funding round, grant or capital raise within the freshness window (press and their own news pages). | Their company just raised | 55 | Nothing extra |
-| **Engagement on tracked profiles** | People who reacted to or commented on recent posts by the LinkedIn profiles tracked in your Brain (competitors, influencers, your own brand). | Engaged with a post you track | 85 | An Apify token |
-| **People posting about keywords** | People who recently posted on LinkedIn about your keywords. | Posted about your topics | 70 | An Apify token |
+| **Engagement on tracked profiles** | People who reacted to or commented on recent posts by the LinkedIn profiles tracked in your Brain (competitors, influencers, your own brand). | Engaged with a post you track | 85 | Nothing extra (Apify, provided by Pluton) |
+| **People posting about keywords** | People who recently posted on LinkedIn about your keywords. | Posted about your topics | 70 | Nothing extra (Apify, provided by Pluton) |
 | **Main Play (every signal in turn)** | Chains six of the above; only the Main Play uses it. | Each lead shows the label of the stage that found it | per stage | — |
 
 Availability rules:
 
-- The two LinkedIn pipelines (Engagement on tracked profiles, People posting about keywords) are only available with an Apify token in Settings → API keys. Without it the planner won't propose them, and creating one is refused with "Needs an Apify token (Settings → API keys)".
+- The two LinkedIn pipelines (Engagement on tracked profiles, People posting about keywords) read LinkedIn through Apify, which Pluton provides on both plans. They are available out of the box; their Apify runs are paid from your plan's credits.
 - Web evidence is refused without a criterion; Lookalikes is refused without a reference customer ("Lookalikes needs at least one reference customer").
 - The Main Play pipeline is reserved: you can't create a second one through the planner.
 
-The six research pipelines (Role match, Companies hiring, Tech stack, Web evidence, Lookalikes, Recently funded) are run by a Claude research agent that searches the web and uses Pluton's free data sources. The two LinkedIn pipelines read LinkedIn through Apify instead. See "Data sources used by Plays".
+The six research pipelines (Role match, Companies hiring, Tech stack, Web evidence, Lookalikes, Recently funded) are run by an AI research agent that searches the web and uses Pluton's free data sources (and TheirStack for Companies hiring and Tech stack). The two LinkedIn pipelines read LinkedIn through Apify instead. See "Data sources used by Plays".
 
 ## How the Main Play chains signals
 
@@ -90,19 +90,18 @@ Web evidence and Lookalikes are not part of the waterfall (they need inputs the 
 Before each stage, Pluton checks how many leads are still missing to reach the target (10 by default; a worth-a-look lead counts as half):
 
 - **Target already met**: the stage is skipped and shown as **not needed**.
-- **Stage not available** (the two LinkedIn stages without an Apify token): skipped and shown as **needs a key**.
 - **Time limit or spend cap already reached**: the stage is skipped.
 - Otherwise the stage runs, asking its source for about twice the number of leads still missing, at most 30 candidates per stage. The live narration says, for example, "Main Play: Tech stack (7 still to find)".
 
 Each strong match counts as one toward the target, and each "Worth a look" lead as half of one (two make one, rounded down): both reach your review, so a cautious judge no longer sends the Main Play through every stage. A Main Play stage also gets a smaller research budget than a single-pipeline Play (at most 8 web searches and 20 steps, and no nudge to try new angles: the next stage is the new angle).
 
-After a run, the Sourcing tab's **Main Play, latest run** section lists each stage with its outcome: "needs a key", "not needed", "out of time" (shown when the spend cap stopped the run before that stage), or "N found · M qualified" (stages skipped because the time limit was reached also appear here, with 0 found).
+After a run, the Sourcing tab's **Main Play, latest run** section lists each stage with its outcome: "not needed", "out of time" (shown when the spend cap stopped the run before that stage), or "N found · M qualified" (stages skipped because the time limit was reached also appear here, with 0 found).
 
 Each Main Play lead remembers which stage found it, so the Signal filter on the Leads page and the warmness score reflect the actual signal (for example a Main Play lead found through hiring shows "Their company is hiring" and warmness 60).
 
-## Data sources used by Plays: free and paid
+## Data sources used by Plays
 
-Plays only use free sources unless you add keys. Every source call is cached so the same lookup isn't paid twice, and every real call is logged.
+Plays combine free sources, the AI, and the paid data sources Pluton provides on both plans. Every source call is cached so the same lookup isn't paid twice, and every real call is logged.
 
 **Free, no key needed**
 
@@ -110,22 +109,29 @@ Plays only use free sources unless you add keys. Every source call is cached so 
 - **Company careers pages**: a company's open roles read from its Greenhouse, Lever, Ashby or Recruitee board, found from its website. Used by Companies hiring. Cached 12 hours (1 hour when no board was found).
 - **Website tech detection**: around 45 marketing and front-end tools recognised from a company's homepage (HubSpot, Salesforce Pardot, Marketo, Brevo, Mailchimp, Intercom, Crisp, Zendesk, Calendly, Google Analytics, Matomo, Segment, Hotjar, Stripe, WordPress, Webflow, Shopify, Next.js, Cloudflare, Lemlist, and more). Used by Tech stack to confirm a tool. Cached 7 days.
 
-**Claude (your Claude access)**
+**The AI**
 
-- **Web search (Claude)**: Claude searches the web and reads pages to find companies, people, public evidence and funding news. Each research stage may use up to 15 web searches (8 when TheirStack already listed at least 5 organizations) and 5 page reads, each page cut to about 10,000 tokens, over at most 30 turns.
-- **LinkedIn profile lookup (Claude)**: finds each kept person's LinkedIn profile URL through web search.
-- **The judge**: Claude Haiku 5.5 scores every candidate against your ICP (no web access).
-- **The planner**: Claude asks questions and proposes Plays (no web access).
+- **Web search**: the AI searches the web and reads pages to find companies, people, public evidence and funding news. Each research stage may use up to 15 web searches (8 when TheirStack already listed at least 5 organizations) and 5 page reads, each page cut to about 10,000 tokens, over at most 30 turns.
+- **LinkedIn profile lookup**: finds each kept person's LinkedIn profile URL through web search.
+- **The judge**: a fast model (Claude Haiku 5.5, or its OpenAI counterpart when the workspace runs on an OpenAI key) scores every candidate against your ICP (no web access).
+- **The planner**: the AI asks questions and proposes Plays (no web access).
 
-With your Claude subscription (the default), these calls are recorded at API prices as "not billed": they show on Usage but never count against your budget or a search's cap. With an Anthropic API key, they are billed from tokens and list prices.
+Who pays for these calls depends on your plan:
 
-**Paid, needs a key (Settings → API keys)**
+- **Your own AI**: they run on your workspace's own Anthropic or OpenAI API key, and that provider bills you directly. Pluton records their cost at API prices on Usage, in US dollars; they count against your own monthly budget and a search's cap, not against your plan's credits.
+- **All included**: the AI is included, nothing to connect. Its cost is paid from your plan's credits (1 $ at API prices = 100 credits) and also counts against your monthly budget and a search's cap.
 
-- **Apify (LinkedIn)**: recent posts of tracked profiles, the people who react to or comment on them, and posts matching keywords. No LinkedIn cookies are used, so your own LinkedIn account is never used for scraping. Billed by Apify at each actor run's real cost, which Pluton reads back and records. Posts are cached 6 hours, engagers 24 hours. Required for the two LinkedIn pipelines and the first two Main Play stages.
+**Paid sources Pluton provides (both plans)**
+
+- **Apify (LinkedIn)**: recent posts of tracked profiles, the people who react to or comment on them, and posts matching keywords. No LinkedIn cookies are used, so your own LinkedIn account is never used for scraping. Pluton records each actor run's real cost. Posts are cached 6 hours, engagers 24 hours. Used by the two LinkedIn pipelines and the first two Main Play stages.
 - **Hunter**: used to find emails on leads, not by searches (see the Leads documentation).
-- **TheirStack**: market-wide job and stack search. With a key, a Companies hiring or Tech stack search first asks it for up to 20 recent job posts in the Play's countries (the hiring roles, or the personas when none are set; or the technologies), and hands the organizations it finds to the research agent, which then only has to find the right person at each. This needs at least one geography that is a country ("France", "Allemagne", "Spain"…); cities and regions alone skip it. Billed per job returned (see Costs and budget). Without a key, or if TheirStack fails, the agent searches the open web as before.
+- **TheirStack**: market-wide job and stack search. A Companies hiring or Tech stack search first asks it for up to 20 recent job posts in the Play's countries (the hiring roles, or the personas when none are set; or the technologies), and hands the organizations it finds to the research agent, which then only has to find the right person at each. This needs at least one geography that is a country ("France", "Allemagne", "Spain"…); cities and regions alone skip it. Its cost is recorded per job returned (see Costs and budget). If TheirStack fails or its allowance is used up, the agent searches the open web instead.
 
-The "What to expect" box on a new proposal lists the paid sources a Play will use: "Uses your Claude access, plus Apify actor runs (billed by Apify)." for the LinkedIn pipelines and the Main Play, otherwise "Uses your Claude access, no paid data source." Settings → Data sources shows each source's status and a "Try it" box.
+These sources are paid from your plan's credits: 600 a month on Your own AI, 2,000 a month on All included. Hunter and TheirStack also each have a monthly cap within those credits: 400 and 200 credits on Your own AI, 550 and 300 on All included. When the month's credits are used up, calls through Pluton's own keys stop with "Your plan's included usage is used up until (date). Add your own key in Settings → API keys to keep going." until the next period or a credit pack. When only the Hunter or TheirStack cap is reached, the message is "This month's (source) allowance on your plan is used up until (date). A credit pack raises it, or add your own (source) key in Settings → API keys."
+
+You can save your own Apify, TheirStack or Hunter key in Settings → API keys. Pluton then uses your key instead of its own, and that spend doesn't count against your credits.
+
+The "What to expect" box on a new proposal lists the paid sources a Play will use: "Uses your Claude access, plus Apify actor runs (billed by Apify)." for the LinkedIn pipelines and the Main Play, otherwise "Uses your Claude access, no paid data source." Despite the wording, these Apify runs are paid from your plan's credits unless you saved your own Apify token. Settings → Data sources shows each source's status and a "Try it" box.
 
 ## Creating a Play: the New Play page
 
@@ -151,18 +157,18 @@ Limits and edge cases:
 - A conversation holds at most 20 messages (yours and the planner's together), each up to 8,000 characters. Start a new Play page if you need more.
 - The conversation is not saved: leaving or reloading the page loses it. Nothing is created until you press a create button.
 - If the planner fails, the error appears in orange under the chat. "The planner stopped without a question or a proposal. Try again." means it ended its turn without answering; send your message again.
-- Planning is free of data-source costs; only Claude is used, recorded under "Play planning" on Usage.
+- Planning is free of data-source costs; only the AI is used, recorded under "Play planning" on Usage.
 
 ## The planner's questions
 
-The planner is a Claude agent that knows your Brain and which pipelines are available. It follows strict rules:
+The planner is an AI agent that knows your Brain and which pipelines are available. It follows strict rules:
 
 - It asks **only what changes who gets found**, **one question at a time**.
 - Each question comes with **2 to 6 short clickable options**, preferably drawn from your Brain (your personas, sizes, regions).
 - It proposes as soon as it can, and **after 3 questions it always proposes**.
 - It fills the Play from your words first, the Brain second.
 - It keeps job titles and keywords in the market's language (as people write them on LinkedIn and job boards), even if you chat in another language. Questions, options, the Play's name and summary are in your app language.
-- It never proposes a pipeline that isn't available (for example the LinkedIn ones without an Apify token) and never proposes the Main Play pipeline.
+- It never proposes the Main Play pipeline.
 - Unless you say otherwise, it uses a target of **10 leads per run**, a schedule of **Run on demand**, **15 minutes** of research per run and **60 days** of freshness.
 
 Answering a question:
@@ -173,7 +179,7 @@ Answering a question:
 
 Typical questions are about company size, region, seniority, which hiring roles signal a buying window, which reference customers to copy (for Lookalikes, which needs at least one), or how many leads you want per run.
 
-If you ask for something the planner can't do (a pipeline that needs a missing key, Web evidence without a criterion, Lookalikes without a customer), it is told why and picks another approach or asks you for the missing piece.
+If you ask for something the planner can't do (Web evidence without a criterion, Lookalikes without a customer), it is told why and picks another approach or asks you for the missing piece.
 
 ## The proposal card: every field
 
@@ -208,7 +214,7 @@ Where the numbers come from:
 - **From history**: when this workspace has at least 2 completed runs of the same pipeline, Pluton uses the most recent 20 of them. The low figure is the 25th percentile of qualified leads, the high figure the 80th percentile; the same for minutes. The note says "From your last run of this kind." or "From your last N runs of this kind."
 - **Rough guess**: with fewer than 2 completed runs, the range is 20% to 70% of the target (at least 1) and 4 to 10 minutes. The note says "Rough guess until a few runs have completed."
 
-The note continues with what the Play uses: "Uses your Claude access, no paid data source." or "Uses your Claude access, plus Apify actor runs (billed by Apify)." (LinkedIn pipelines and the Main Play).
+The note continues with what the Play uses: "Uses your Claude access, no paid data source." or "Uses your Claude access, plus Apify actor runs (billed by Apify)." (LinkedIn pipelines and the Main Play). Those Apify runs are paid from your plan's credits, unless you saved your own Apify token.
 
 This estimate is about yield and duration. The cost estimate appears on the Play page itself, under the **Run search** button (see "The Play page header").
 
@@ -220,15 +226,15 @@ This estimate is about yield and duration. The cost estimate appears on the Play
 
 What happens on creation:
 
-1. Pluton checks the pipeline is available (Apify token for the LinkedIn ones) and that Lookalikes has a reference customer.
+1. Pluton checks that Web evidence has a criterion and Lookalikes has a reference customer.
 2. It takes a snapshot of your whole Brain and stores it with the Play.
 3. The Play is saved as **Active**, with the schedule you chose.
 4. "You created the Play {name}" is added to Activity.
 5. With Create and run search, a search is queued with a budget hold (see "Spend caps and budget holds").
 
-Edge case: if the search can't start because your budget is used up, the Play **is still created**, but the page stays on the proposal and shows the refusal in orange, for example "The monthly budget is used up until 1 November. Raise it in Settings → Budget." or "The daily budget is used up for today. Raise it in Settings → Budget." Don't press the button again (that would create a second Play): go to the Plays page, open the new Play and press Run search once you have budget.
+Edge case: if the search can't start because your budget is used up, the Play **is still created**, but the page stays on the proposal and shows the refusal in orange, for example "The monthly budget is used up until 1 November. Raise it in Settings → Budget." or "The daily budget is used up for today. Raise it in Settings → Budget." On All included, the same happens when the plan's credits are used up ("The credits included in your plan are used up until (date). Add credits in Settings → Budget, or your own Anthropic key in Settings → API keys, to keep searching."). Don't press the button again (that would create a second Play): go to the Plays page, open the new Play and press Run search once you have budget or credits.
 
-Other errors you might see: "{pipeline}: Needs an Apify token (Settings → API keys)" and "Lookalikes needs at least one reference customer".
+Another error you might see: "Lookalikes needs at least one reference customer".
 
 ## The Plays page
 
@@ -297,10 +303,10 @@ On the right:
 - **Schedule** menu: **Run on demand**, **Every day**, **Every weekday**, **Every Monday**. Changing it saves immediately.
 - **Pause** / **Resume** button.
 - **Run search** (starts a search now) or, while a search is queued or running, **Stop search**. Run search is disabled unless the Play is Active, so a paused Play must be resumed first here (or use "Run a search now" in the menu).
-- **Cost estimate line** under the buttons, shown when no search is running. Its parts:
-  - "About $X per run": billed spend per lead in this Play's past runs, times its target; or "About $X per run (workspace average)" when the Play has no history yet but other Plays do; "No cost history yet" when nothing has run; "Past runs cost nothing billed" when past runs cost $0 billed (typical with a Claude subscription and no Apify).
+- **Cost estimate line** under the buttons, shown when no search is running. Amounts are in US dollars. Its parts:
+  - "About $X per run": spend per lead in this Play's past runs (the AI and the data sources), times its target; or "About $X per run (workspace average)" when the Play has no history yet but other Plays do; "No cost history yet" when nothing has run; "Past runs cost nothing billed" when past runs recorded no cost.
   - "cap $X": the most one search of this Play may spend.
-  - "$X left this period": shown only when you set a monthly or daily budget. The line turns orange when less than $0.01 is left.
+  - "$X left this period": what is left of the monthly or daily budget you set in Settings → Budget; shown only when you set one. The line turns orange when less than $0.01 (1 credit) is left.
 
 Below the header, a **needs attention** banner may appear (see "When a search needs attention"), and any error from the last button you pressed shows in orange.
 
@@ -322,7 +328,7 @@ The Overview tab is the Play's dashboard. From top to bottom:
 
 **Newest leads**: the five most recent leads with their status pill. Click one to open it in the Leads tab. **Review all N** (shown when leads are waiting) opens the Leads tab on To review.
 
-**Activity**: the Play's last 30 activity events ("Nothing yet." if none). Under it, when the Play has spent anything: "Spent $X this period, $Y in all · $Z per lead", plus "+ $W of Claude covered by your subscription" when applicable, and a **Usage** link.
+**Activity**: the Play's last 30 activity events ("Nothing yet." if none). Under it, when the Play has spent anything: "Spent $X this period, $Y in all · $Z per lead", and a **Usage** link.
 
 **Past runs**: every earlier search (up to the 20 most recent searches in total), each with its date, a "scheduled" tag if the schedule started it, "N qualified · M to review" and its stop reason or status.
 
@@ -336,7 +342,7 @@ The Sourcing tab shows exactly how the Play searches and what its latest search 
 - **Criteria**: the plain-language criterion (Web evidence).
 - **Limits**: for example "15 min of research per run · signals from the last 60 days".
 
-**Main Play, latest run** (Main Play only): each waterfall stage with its outcome: "needs a key", "not needed", "out of time", or "N found · M qualified".
+**Main Play, latest run** (Main Play only): each waterfall stage with its outcome: "not needed", "out of time", or "N found · M qualified".
 
 **Set aside in the latest completed run**: why candidates were dropped, most frequent reason first, with the count and up to five examples each. "Nothing set aside." if none. Only completed runs are used; a cancelled or failed run is skipped. The reasons:
 
@@ -361,12 +367,12 @@ The judge-disqualified people listed here never appear in the Leads tabs: the So
 
 A run is one search of one Play. Step by step:
 
-1. **Start**: a run is created with the Play's target, a budget hold is set aside, and a background job is queued. Activity: "You started a search for {play}" (or "A scheduled search started for {play}"). Only one run per Play can be queued or running; asking again returns the one already in flight.
-2. **Collect**: depending on the pipeline, either the Claude research agent searches (web search, the French registry, careers boards, tech detection) and submits candidates in batches, or Apify reads LinkedIn posts and their engagers. The agent is told how many more it needs after each batch. For Companies hiring and Tech stack, TheirStack's job posts give it a starting list of organizations when a key is set ("Found {count} organizations in recent job posts; looking for the right person at each…"). If it stops short, a single-pipeline Play nudges it once to try new angles (adjacent titles, other sources, older signals within the freshness window); a Main Play stage just hands over to the next stage.
+1. **Start**: a run is created with the Play's target, a budget hold is set aside, and the search is queued. Activity: "You started a search for {play}" (or "A scheduled search started for {play}"). Only one run per Play can be queued or running; asking again returns the one already in flight.
+2. **Collect**: depending on the pipeline, either the AI research agent searches (web search, the French registry, careers boards, tech detection) and submits candidates in batches, or Apify reads LinkedIn posts and their engagers. The agent is told how many more it needs after each batch. For Companies hiring and Tech stack, TheirStack's job posts give it a starting list of organizations when the Play has a country among its geographies ("Found {count} organizations in recent job posts; looking for the right person at each…"). If it stops short, a single-pipeline Play nudges it once to try new angles (adjacent titles, other sources, older signals within the freshness window); a Main Play stage just hands over to the next stage.
 3. **Check** (code, no AI): each candidate is dropped if the title is missing (or both company and LinkedIn are missing), if they work at your company or a competitor, if they match an exclusion, or if you rejected them before. People already in this Play are skipped as duplicates.
 4. **Score**: the judge scores candidates in batches of 10 against your company, ICP and personas (from the Play's Brain snapshot) and your recent verdicts: Strong match (fit 70+), Worth a look (45–69), set aside (below 45).
 5. **Save**: strong matches and worth-a-look leads are added with status To review. Set-aside people go to the Sourcing report only.
-6. **LinkedIn lookup**: once collecting and scoring are done, the leads the judge kept that have no LinkedIn URL get one looked up through Claude web search, all together (people set aside are never looked up).
+6. **LinkedIn lookup**: once collecting and scoring are done, the leads the judge kept that have no LinkedIn URL get one looked up through the AI's web search, all together (people set aside are never looked up).
 7. **Finish**: the run gets its stop reason, Activity records the result ("Pluton found {count} leads for {play}" or "A search for {play} found no new leads"), the hold is settled and unused budget goes back.
 
 Afterwards, Slack posting (if set up) and notifications ("{count} new leads for {play}") follow; those are covered with integrations and settings.
@@ -397,15 +403,16 @@ Every search sets money aside before it starts, so several searches can't oversp
 When a search starts:
 
 - Its **cap** is the Play's own cap if it has one, otherwise **Most one search may spend (USD)** from Settings → Budget (default **$5**).
-- If you set a monthly budget or a daily cap and the mode is **Stop** (the default mode), the hold is the cap trimmed to what is left this period. "Left" means budget minus billed spend minus what other running searches still hold.
-- If less than **$0.01** is left, the search is **refused**: "The monthly budget is used up until {date}. Raise it in Settings → Budget." or "The daily budget is used up for today. Raise it in Settings → Budget." Activity says "A search for {play} was not started: the monthly budget is used up" (or daily), and a notification "Search for {play} not started" links to Settings → Budget (at most one per Play per day).
-- With no monthly or daily limit, or in **Only track** mode, the hold is simply the cap and nothing is refused.
+- If you set a monthly budget or a daily cap and the mode is **Stop** (the default mode), the hold is the cap trimmed to what is left this period. "Left" means budget minus spend minus what other running searches still hold.
+- On All included, where the AI is paid from your plan's credits, the hold is also trimmed to the credits left this billing period, whatever the budget mode.
+- If less than **$0.01** (1 credit) is left, the search is **refused**: "The monthly budget is used up until {date}. Raise it in Settings → Budget." or "The daily budget is used up for today. Raise it in Settings → Budget.", or on All included "The credits included in your plan are used up until {date}. Add credits in Settings → Budget, or your own Anthropic key in Settings → API keys, to keep searching." Activity says "A search for {play} was not started: the monthly budget is used up" (or daily), and a notification "Search for {play} not started" links to Settings → Budget (at most one per Play per day).
+- With no monthly or daily limit, or in **Only track** mode, the hold is simply the cap (on All included, at most the credits left) and nothing is refused for budget.
 
-While the search runs (mode **Stop** only), Pluton watches its billed spend. When it reaches the hold, the narration says "This search reached its spend cap; scoring what it found so far.", research stops and the run ends with "Spend cap reached".
+While the search runs (mode **Stop** only), Pluton watches its spend. When it reaches the hold, the narration says "This search reached its spend cap; scoring what it found so far.", research stops and the run ends with "Spend cap reached".
 
-When the search ends, for any reason, the hold is **settled**: the actual spend is recorded and the rest goes back to the budget. Activity: "The search for {play} cost {spent}; {returned} of its hold went back to the budget". A hold left open because a search ended without settling it (for example after the worker stopped abruptly) is settled automatically by the worker within about a minute.
+When the search ends, for any reason, the hold is **settled**: the actual spend is recorded and the rest goes back to the budget. Activity: "The search for {play} cost {spent}; {returned} of its hold went back to the budget". A hold left open because a search ended without settling it is settled automatically within about a minute.
 
-What counts: Apify runs (real cost), and Claude only when you use an Anthropic API key. Claude through your subscription is recorded at API prices as not billed and never consumes a hold. Budget settings and the Usage page are documented with settings and costs.
+What counts: every paid call the search makes, the AI included. On Your own AI, the AI is billed to you by Anthropic or OpenAI and still counts here; the data sources Pluton provides (Apify, TheirStack) are also paid from your credits. On All included, the AI and the data sources are paid from your credits. Budget settings and the Usage page are documented with settings and costs.
 
 ## Schedules
 
@@ -420,20 +427,19 @@ Set it on the proposal card ("When") or anytime with the **Schedule** menu on th
 
 How scheduling works:
 
-- The worker checks every minute. A scheduled Play is due when it is **Active**, its schedule isn't "Run on demand", the local time in your workspace timezone is **07:00 or later**, it is the right day, and the Play **hasn't run yet today** (local date).
+- Pluton checks every minute. A scheduled Play is due when it is **Active**, its schedule isn't "Run on demand", the local time in your workspace timezone is **07:00 or later**, it is the right day, and the Play **hasn't run yet today** (local date).
 - "Hasn't run yet today" counts any search: if you press Run search at 09:00, today's scheduled search is skipped. A run refused for budget also counts as today's: the schedule tries again on the next due day, not every minute.
-- If the computer or the worker is off at 07:00, the search starts as soon as the worker is running again the same day.
 - Paused, archived and draft Plays are never scheduled.
 - A Play already searching is not started twice.
 - Scheduled runs are marked "scheduled" in Past runs, and Activity says "A scheduled search started for {play}".
 
-The workspace timezone is set in Settings → General. The worker must be running (it starts with the app) for schedules to fire.
+The workspace timezone is set in Settings → General. Schedules run on Pluton's side: you don't need to have the app open.
 
 ## Run statuses and stop reasons
 
 A run has a **status**:
 
-- **Queued**: waiting for the worker to pick it up.
+- **Queued**: waiting to start.
 - **Running**: searching now ("Searching now" on the Overview, "Searching" on the Plays page).
 - **Completed**: finished normally (even if it found nothing).
 - **Failed**: stopped by an error.
@@ -450,21 +456,22 @@ And, once finished, a **stop reason** (shown next to the date):
 
 Except for Failed and Cancelled runs, everything found was checked and scored before the run ended. Leads already saved when a run fails or is cancelled are kept.
 
-A special failure: if the worker is stopped or restarted during a search (for example you quit the app), the run fails with "Interrupted because the worker restarted. Run it again." Press Run search again; people already saved won't be duplicated.
+A special failure: if the search is interrupted on Pluton's side, the run fails with "Interrupted because the worker restarted. Run it again." Press Run search again; people already saved won't be duplicated. Closing your browser or the app's tab never interrupts a search.
 
 ## When a search needs attention
 
 When the latest search ended badly, the Play page shows an orange banner under the header, and the Plays page shows a **Needs attention** pill on the card. Three cases:
 
-**"The last search hit its spend cap"**: "Raise the cap per search or the monthly budget, then run it again." Button: **Budget** (Settings → Budget). Raise **Most one search may spend (USD)**, or the monthly/daily budget, or switch to Only track.
+**"The last search hit its spend cap"**: "Raise the cap per search or the monthly budget, then run it again." Button: **Budget** (Settings → Budget). Raise **Most one search may spend (USD)**, or the monthly/daily budget, or switch to Only track. On All included, the cap may also have been trimmed to the credits left: add credits on the same page.
 
-**"The last search ran out of people before the target"**: "Widen the audience (more titles, sizes or regions) or add a data source." Button: **Data sources**. Since a Play's audience can't be edited after creation, create a new Play with a wider description, raise the freshness window, or add an Apify token so the Main Play can use its LinkedIn stages.
+**"The last search ran out of people before the target"**: "Widen the audience (more titles, sizes or regions) or add a data source." Button: **Data sources**. Since a Play's audience can't be edited after creation, create a new Play with a wider description, or raise the freshness window.
 
 **"The last search stopped on an error"**: "Check the error below; a key that expired is the usual cause." The error text is shown under it. Button: **API keys**. Common errors:
-- A message containing "not configured: add its key in Settings → API keys": a paid source's key is missing.
-- An Apify message such as "actor … failed" or "still running after 5 minutes": an Apify problem or an exhausted Apify balance; check your Apify account.
+- "Your plan's included usage is used up until (date). Add your own key in Settings → API keys to keep going.": the month's credits are used up. Add credits in Settings → Budget, wait for the next period, or save your own key for that source.
+- "This month's TheirStack allowance on your plan is used up until (date)…" (or Hunter): that source's monthly cap is reached.
+- An Apify message such as "actor … failed" or "still running after 5 minutes": an Apify problem; run it again later. If you saved your own Apify token, check your Apify account and balance.
 - "Interrupted because the worker restarted. Run it again.": just run it again.
-- A Claude error: check Claude Code is signed in, or your Anthropic API key in Settings → API keys.
+- An AI error: on Your own AI, check your Anthropic or OpenAI key in Settings → API keys (and its balance with that provider).
 
 "Time limit reached" and "Cancelled" do not raise the banner. The banner disappears as soon as a new search starts and stays away if that search ends well. Failed searches also notify you (category "Searches that fail") unless you muted it.
 
@@ -472,7 +479,7 @@ When the latest search ended badly, the Play page shows an orange banner under t
 
 While a search is queued or running, the **Run search** button becomes **Stop search**.
 
-- Pressing it asks the worker to stop. The worker checks every 2 seconds, so a running search stops within about 2 seconds; a queued search is cancelled at once.
+- Pressing it asks the search to stop. Pluton checks every 2 seconds, so a running search stops within about 2 seconds; a queued search is cancelled at once.
 - The run ends with status **Cancelled** and stop reason **Cancelled**. Activity: "You stopped a search for {play}".
 - Leads already saved stay. Candidates collected but not yet scored are dropped.
 - The budget hold is settled: only what was really spent counts.
@@ -566,10 +573,11 @@ Messages you may see, what they mean and how to fix them:
 - **"This Play is archived"**: you tried to run an archived Play. Restore it from its menu first.
 - **"This Play changed since you opened it; reload and retry"**: someone or something (another tab, the Agent) changed it. Reload and repeat.
 - **"The Main Play can't be archived; pause it instead"** / **"The Main Play can't be deleted. Pause it instead."**: by design.
-- **"{pipeline}: Needs an Apify token (Settings → API keys)"**: add an Apify token, or pick another pipeline.
 - **"Lookalikes needs at least one reference customer"**: tell the planner your best customers.
 - **"The planner stopped without a question or a proposal. Try again."**: resend your message.
 - **"The monthly budget is used up until {date}. Raise it in Settings → Budget."** / **"The daily budget is used up for today. Raise it in Settings → Budget."**: the search was refused; raise the budget or wait.
+- **"The credits included in your plan are used up until {date}. …"** (All included): the search was refused; add credits in Settings → Budget or wait for the next period.
+- **"Your plan's included usage is used up until {date}. …"**: a data source Pluton provides stopped because the month's credits are used up (see "When a search needs attention").
 - **"This search reached its spend cap; scoring what it found so far."**: narration, not an error; the run will end with "Spend cap reached".
 - **"No tracked LinkedIn profiles in the Brain yet; skipping engagement."**: add tracked profiles (or competitors' and influencers' LinkedIn URLs) to the Brain, then create a new Play (existing Plays use their snapshot).
 - **"Interrupted because the worker restarted. Run it again."**: run it again.
@@ -588,7 +596,7 @@ It is the Play that uses every signal in your Brain and is created by onboarding
 Open the Sourcing tab: "Set aside in the latest completed run" shows why candidates were dropped. If the stop reason is "Sources ran dry before the target", the audience is probably too narrow; create a new Play with more titles, sizes or regions, or a longer freshness window. If most were "Wrong role" or "Organization outside the ICP", your description and your ICP disagree.
 
 **Does running a search cost money?**
-With your Claude subscription and no Apify, searches usually cost nothing billed (shown as "Past runs cost nothing billed"). Apify runs and Claude via an API key are billed and capped per search (default $5).
+Yes, every search uses the AI, and some use Apify or TheirStack. On Your own AI, the AI is billed to you by Anthropic or OpenAI, and Apify and TheirStack are paid from your 600 monthly credits. On All included, everything is paid from your 2,000 monthly credits. On both plans, each search is capped (default $5, or 500 credits) and the Play page shows an estimate under Run search.
 
 **I ran a Play by hand this morning. Will its daily schedule still run today?**
 No. A scheduled Play runs once per local day; any search that day counts.
@@ -600,7 +608,7 @@ Not from the app. Only the schedule and the status can change. Create a new Play
 Pausing only stops the schedule. The menu lets you run a one-off search; the Run search button on the page asks you to resume first.
 
 **Why did the Main Play skip "Engagement on tracked profiles"?**
-Either you have no Apify token ("needs a key"), the target was already met ("not needed"), or the run was out of time or budget. With a token but no tracked profiles in the Brain snapshot, the stage runs but finds nobody.
+Either the target was already met ("not needed"), or the run was out of time or budget. With no tracked profiles in the Brain snapshot, the stage runs but finds nobody.
 
 **I updated my Brain. Why do my Plays still search the old way?**
 Each Play uses a snapshot of the Brain taken when it was created. Create a new Play to use the updated Brain.
@@ -609,7 +617,7 @@ Each Play uses a snapshot of the Brain taken when it was created. Create a new P
 Qualified means the judge scored a strong match (fit 70 or more). To review in the funnel means "worth a look" (fit 45 to 69). Both kinds of leads wait for your verdict in the Leads tab.
 
 **What happens if I close the app during a search?**
-The run fails with "Interrupted because the worker restarted. Run it again." Leads already saved are kept and its budget hold is released. Run it again.
+Nothing: the search runs on Pluton's side and keeps going. Its results are there when you come back, and the bell tells you about new leads.
 
 **Can two searches of the same Play run at once?**
 No. One search per Play at a time; a second request returns the one already running. Different Plays can search in parallel.
@@ -618,7 +626,7 @@ No. One search per Play at a time; a second request returns the one already runn
 On its Overview tab, under Activity ("Spent $X this period, $Y in all · $Z per lead"), and on Settings → Usage per Play.
 
 **Does TheirStack make my "Companies hiring" Play better?**
-It makes it cheaper and more direct: with a key and a country in the Play's geographies, the search starts from organizations TheirStack found in recent job posts, each with its job post as evidence, instead of looking for them on the open web. The careers-board reader and Claude web search still find the people there, and take over when TheirStack has nothing.
+It makes it more direct: with a country in the Play's geographies, the search starts from organizations TheirStack found in recent job posts, each with its job post as evidence, instead of looking for them on the open web. TheirStack is provided on both plans. The careers-board reader and the AI's web search still find the people there, and take over when TheirStack has nothing or its monthly allowance is used up.
 
-**Can I create Plays from the Agent or Claude Code?**
+**Can I create Plays from the Agent or an AI client?**
 Yes: the Agent and connected AI clients can plan and create Plays and start searches, asking your approval before anything that spends or changes data. See the Agent and MCP documentation.

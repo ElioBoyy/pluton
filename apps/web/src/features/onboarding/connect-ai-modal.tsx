@@ -19,7 +19,7 @@ type Way = "subscription" | "api_key";
 
 /**
  * Nothing runs before Pluton can reach Claude, so the onboarding opens on this when it can't.
- * Hosted, on the Bring your own AI plan: the workspace's API key, Anthropic's or OpenAI's. On your
+ * Hosted, on the Your own AI plan: the workspace's API key, Anthropic's or OpenAI's. On your
  * own computer: your Claude subscription through Claude Code, or an API key. A key is saved, then
  * proven with a real call; one the provider refuses is removed again, so a saved key always works.
  */

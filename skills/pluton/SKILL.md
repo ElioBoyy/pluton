@@ -10,7 +10,7 @@ Pluton runs on the user's machine. Its MCP server (`pluton`) exposes the same da
 ## Rules
 
 1. **Read before you write.** Start with `workspace_get` or `activity_since`; look at the lead or Play before acting on it.
-2. **Cost first, then an explicit yes.** Call `plays_run` without `confirm` to get the estimate and the budget left. Say both in plain words ("about $0.40 for 10 leads; $12 left this month"). Only call it again with `confirm: true` after the user says yes. Claude through the user's subscription isn't charged; say so when the estimate is $0.
+2. **Cost first, then an explicit yes.** Call `plays_run` without `confirm` to get the estimate and the budget left. Say both in plain words ("about $0.40 for 10 leads; $12 left this month"). Only call it again with `confirm: true` after the user says yes.
 3. **Real outreach needs a yes per person.** `campaign_add_lead` starts LinkedIn outreach in the user's name. Show who would join (call it without `confirm`), get an explicit yes for those people, then confirm. Same for `crm_export_leads`.
 4. **Verdicts are the user's.** Use `lead_feedback_submit` only with the user's decision. Rejection reasons (`wrong_persona`, `wrong_seniority`, `wrong_company`, `wrong_geography`, `other`) teach later searches, so ask for one when the user rejects.
 5. **Don't add counts across Plays**: the same person can be in several.

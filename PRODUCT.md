@@ -24,18 +24,18 @@ Founders who do their own sales, small B2B teams, agencies and GTM engineers, of
 - Every lead carries a fit score with the evidence behind it.
 - The user stays in control: approvals before any message, budget caps on every search, an agent that asks before it acts.
 - Works with the user's own AI: local MCP server for Claude Code, Claude Desktop and Codex.
-- Runs hosted, or self-hosted from the GitHub repository (local SQLite, data stays on the user's machine).
+- Runs hosted at app.plut0n.com, on two plans. On-premise installs are by arrangement: contact mathis.sportiello@gmail.com. The code is not offered for download.
 
 ## Offer (confirmed by the founder, 2026-10-27)
 
 Prices in euros, VAT not applicable (article 293 B CGI). Monthly, or yearly with a 1-year commitment and one month free (eleven months paid).
 
-- Hosted, bring your own AI: 24.99 € a month (274.89 € a year), 600 credits a month for the data sources Pluton provides. The AI runs on the customer's own Anthropic or OpenAI API key (never a Claude or Codex subscription token: Anthropic doesn't allow it for third-party products).
-- Hosted, all included: 59 € a month (649 € a year), 2,000 credits a month covering the AI and the data sources.
+- Hosted, Your own AI: 24.99 € a month (274.89 € a year), 600 credits a month for the data sources Pluton provides. The AI runs on the customer's own Anthropic or OpenAI API key (never a Claude or Codex subscription token: Anthropic doesn't allow it for third-party products).
+- Hosted, All included: 59 € a month (649 € a year), 2,000 credits a month covering the AI and the data sources.
 - Options on both, any time: LinkedIn sending account 15 € per account per month (165 € a year), through Pluton's own Unipile account; added mid-period pro rata, removed at the next renewal. Credit packs 1,000 / 2,500 / 5,000 credits for 22 / 55 / 109 €, carried over until used.
 - Plan and interval changes apply at once, settled pro rata for the days left in the period.
-- Credits are shown to customers as a unit of work, never as a dollar amount.
-- Self-host: free for noncommercial use from GitHub (PolyForm Noncommercial); commercial use needs written permission.
+- Plans, packs and the monthly allowance count in credits. Spend, budgets and costs are shown in US dollars at API prices on both plans (decided 2026-10-28).
+- On-premise: by arrangement only, contact mathis.sportiello@gmail.com. No public download, no GitHub link anywhere on the site or in the app.
 
 ## Evidence
 
