@@ -1,6 +1,8 @@
 import type { Context, Hono } from "hono";
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import { deflateRawSync } from "node:zlib";
 import { z } from "zod";
 import { eq, repoRoot, workspaces, type Db } from "@pluton/db";
@@ -75,12 +77,31 @@ function zip(files: Array<{ name: string; data: Buffer }>) {
 }
 
 /**
+ * The built extension's files. A server whose deploy only builds the app (as on app.plut0n.com)
+ * builds it here, once, the first time someone downloads it.
+ */
+let building: Promise<void> | undefined;
+async function builtExtension() {
+  const list = () => fs.readdir(EXTENSION_DIST).then((n) => (n.includes("manifest.json") ? n : null), () => null);
+  const names = await list();
+  if (names) return names;
+  building ??= promisify(execFile)(process.execPath, ["build.mjs"], { cwd: path.dirname(EXTENSION_DIST) })
+    .then(() => undefined)
+    .catch((e: Error) => {
+      console.error("[linkedin-extension] build failed:", e.message);
+      building = undefined;
+    });
+  await building;
+  return list();
+}
+
+/**
  * The extension as a zip, set to talk to this Pluton: its address goes in config.json and in the
  * manifest's host permissions, in place of the one it was built with.
  */
 async function extensionZip() {
-  const names = await fs.readdir(EXTENSION_DIST).catch(() => null);
-  if (!names?.includes("manifest.json")) return null;
+  const names = await builtExtension();
+  if (!names) return null;
   const origin = new URL(APP_URL).origin;
   const files = await Promise.all(
     names.map(async (name) => {
