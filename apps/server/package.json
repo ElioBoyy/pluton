@@ -23,13 +23,13 @@
     "@pluton/db": "workspace:*",
     "@pluton/i18n": "workspace:*",
     "@pluton/providers": "workspace:*",
-    "@trpc/server": "^11.19.0",
-    "hono": "^4.13.13",
+    "@trpc/server": "^11.22.1",
+    "hono": "^4.13.14",
     "superjson": "^2.2.6",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
