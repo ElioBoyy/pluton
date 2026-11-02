@@ -17,6 +17,7 @@ import {
   people,
   type Pipeline,
   PIPELINES,
+  PRESENCE_GAPS,
   type Play,
   plays,
   type RunReport,
@@ -53,6 +54,18 @@ export const playDefinitionSchema = z.object({
   }),
   criteria: z.string().trim().max(600).optional().describe("Plain-language criteria, required for web_evidence"),
   referenceCompanies: terms(5).describe("Best customers to find lookalikes of, required for lookalikes"),
+  local: z
+    .object({
+      gaps: z.array(z.enum(PRESENCE_GAPS)).min(1).max(PRESENCE_GAPS.length).describe("What a business lacks online that the founder's service fixes"),
+      soleTradersOnly: z.boolean().default(false).describe("Only sole traders (micro-entrepreneurs), no companies"),
+      activityCodes: z
+        .array(z.string().trim().regex(/^\d{2}\.\d{2}[A-Z]?$/))
+        .max(10)
+        .default([])
+        .describe("French NAF codes of the trades, e.g. 43.22A for plombier: lists businesses that aren't on Google Maps"),
+    })
+    .optional()
+    .describe("Required for local_business: which small local businesses are prospects"),
   target: z.number().int().min(1).max(50).default(10).describe("Qualified leads wanted per run"),
   policy: z
     .object({
@@ -85,15 +98,17 @@ export const pipelineLabel = (p: Pipeline) => t(`pipeline.${p}`);
 /** Main Play order: warmest signals first, the broad role match last. */
 export const WATERFALL_ORDER: Pipeline[] = ["post_watchlist", "post_keyword", "company_stack", "company_hiring", "funding", "persona_sweep"];
 
-/** Which pipelines can run now. Post pipelines read LinkedIn engagement through Apify. */
+/**
+ * Which pipelines can run now. Post pipelines read LinkedIn engagement through Apify; small local
+ * businesses are checked on Google Maps.
+ */
 export function pipelineCapabilities() {
   const apify = Boolean(getSetting("apify_token"));
-  return PIPELINES.map((p) => ({
-    pipeline: p,
-    label: pipelineLabel(p),
-    available: p.startsWith("post_") ? apify : true,
-    reason: p.startsWith("post_") && !apify ? t("needsApify") : undefined,
-  }));
+  const maps = Boolean(getSetting("google_maps_api_key"));
+  return PIPELINES.map((p) => {
+    const missing = p.startsWith("post_") && !apify ? t("needsApify") : p === "local_business" && !maps ? t("needsGoogleMaps") : undefined;
+    return { pipeline: p, label: pipelineLabel(p), available: !missing, reason: missing };
+  });
 }
 
 export async function createPlay(db: Db, workspaceId: string, input: NewPlay) {
@@ -102,6 +117,9 @@ export async function createPlay(db: Db, workspaceId: string, input: NewPlay) {
   if (!capability.available) throw new Error(t("unavailable", { pipeline: capability.label, reason: capability.reason ?? "" }));
   if (parsed.pipeline === "lookalikes" && parsed.definition.referenceCompanies.length === 0) {
     throw new Error(t("lookalikesNeedsReference"));
+  }
+  if (parsed.pipeline === "local_business" && (!parsed.definition.local || !parsed.definition.audience.industries.length || !parsed.definition.audience.geographies.length)) {
+    throw new Error(t("localNeedsTradesAndPlaces"));
   }
   const brainSnapshot = await listBrain(db, workspaceId);
   const [play] = await db
@@ -391,7 +409,7 @@ export async function ensureMainPlay(db: Db, workspaceId: string, opts: { onboar
     .insert(plays)
     .values({
       workspaceId,
-      name: "Main",
+      name: t("main.name"),
       isMain: true,
       onboardingSessionId: opts.onboardingSessionId ?? null,
       // Written once, in the founder's language when the Main Play is created.
@@ -418,7 +436,7 @@ export async function ensureMainPlay(db: Db, workspaceId: string, opts: { onboar
       brainSnapshot: brain,
     })
     .returning();
-  await recordActivity(db, workspaceId, "leads", "play.created", { playId: play!.id, name: "Main" });
+  await recordActivity(db, workspaceId, "leads", "play.created", { playId: play!.id, name: play!.name });
   return play!;
 }
 
@@ -439,7 +457,7 @@ export async function estimatePlay(db: Db, workspaceId: string, pipeline: Pipeli
     .where(and(eq(leadFindingRuns.workspaceId, workspaceId), eq(plays.pipeline, pipeline), eq(leadFindingRuns.status, "completed")))
     .orderBy(desc(leadFindingRuns.createdAt))
     .limit(20);
-  const paid = pipeline.startsWith("post_") || pipeline === "waterfall" ? [t("paidApify")] : [];
+  const paid = pipeline.startsWith("post_") || pipeline === "waterfall" ? [t("paidApify")] : pipeline === "local_business" ? [t("paidGoogleMaps")] : [];
   if (past.length < 2) {
     return {
       basis: "default" as const,

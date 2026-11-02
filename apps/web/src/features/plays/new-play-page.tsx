@@ -1,6 +1,6 @@
-import { CircleNotch, Lightning, PencilSimple } from "@phosphor-icons/react";
+import { CircleNotch, Lightning, PencilSimple, Storefront } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { inferRouterInputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppRouter } from "@pluton/server/router";
@@ -10,7 +10,7 @@ import { cn } from "../../lib/cn.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
 import { getLocale, useT } from "../../i18n/index.ts";
-import { CHIP, PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
+import { CHIP, GAP_LABELS, PIPELINE_LABELS, SCHEDULE_LABELS } from "./labels.ts";
 
 type NewPlay = inferRouterInputs<AppRouter>["plays"]["create"]["play"];
 type Turn = { role: "user" | "assistant"; text: string };
@@ -139,19 +139,58 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
         <Section title={t("new.ideas")} className="mt-8">
           <div className="flex flex-col gap-2">
             {ideas.map((idea) => (
-              <button
-                key={idea}
-                onClick={() => onPick(idea)}
-                className="flex items-center gap-3 bg-panel px-3.5 py-3 text-left text-sm transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.99]"
-              >
-                <Lightning size={15} weight="fill" className="shrink-0 text-system-pink" />
-                <span className="min-w-0 flex-1">{idea}</span>
-              </button>
+              <Idea key={idea} text={idea} onPick={onPick} />
             ))}
           </div>
         </Section>
       )}
+      <LocalIdeas onPick={onPick} />
     </div>
+  );
+}
+
+/**
+ * Small local businesses and independents, for freelancers and studios selling to them: each idea
+ * starts the planner on a local_business Play, which then asks for the trades and the town.
+ */
+function LocalIdeas({ onPick }: { onPick: (text: string) => void }) {
+  const t = useT("plays");
+  const trpc = useTRPC();
+  const capabilities = useQuery(trpc.plays.capabilities.queryOptions());
+  const local = capabilities.data?.find((c) => c.pipeline === "local_business");
+  if (!local) return null;
+  return (
+    <Section title={t("local.title")} description={t("local.description")} className="mt-8">
+      <div className="flex flex-col gap-2">
+        {(["local.noWebsite", "local.noListing", "local.fewReviews", "local.fewPhotos"] as const).map((key) => (
+          <Idea key={key} text={t(key)} onPick={onPick} icon="local" disabled={!local.available} />
+        ))}
+      </div>
+      {!local.available && (
+        <p className="mt-2 text-xs text-muted">
+          <Link to="/workspace/api-keys" className="text-accent hover:underline">
+            {t("local.needsKey")}
+          </Link>
+        </p>
+      )}
+    </Section>
+  );
+}
+
+function Idea({ text, onPick, icon = "brain", disabled }: { text: string; onPick: (text: string) => void; icon?: "brain" | "local"; disabled?: boolean }) {
+  return (
+    <button
+      onClick={() => onPick(text)}
+      disabled={disabled}
+      className="flex items-center gap-3 bg-panel px-3.5 py-3 text-left text-sm transition-[background-color,scale] duration-150 ease-out hover:bg-panel-hover motion-safe:active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
+    >
+      {icon === "local" ? (
+        <Storefront size={15} weight="fill" className="shrink-0 text-system-blue" />
+      ) : (
+        <Lightning size={15} weight="fill" className="shrink-0 text-system-pink" />
+      )}
+      <span className="min-w-0 flex-1">{text}</span>
+    </button>
   );
 }
 
@@ -207,6 +246,8 @@ function ProposalCard({ proposal, onChange }: { proposal: NewPlay; onChange: (p:
     ...(a?.geographies ?? []),
     ...(a?.hiringRoles ?? []).map((role) => t("proposal.hiring", { role })),
     ...(a?.technologies ?? []).map((technology) => t("proposal.uses", { technology })),
+    ...(proposal.definition.local?.gaps ?? []).map((gap) => GAP_LABELS[gap]!),
+    ...(proposal.definition.local?.soleTradersOnly ? [t("sourcing.soleTraders")] : []),
   ];
 
   return (

@@ -100,8 +100,20 @@ export function LeadDrawer({
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // The panel floats over the page like a sheet: a click on the page beside it closes it, one on
+  // another lead's row opens that lead instead.
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"]')) return;
+      if (target.closest("main") && !target.closest("[data-lead-row]")) close();
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [close]);
+
   return (
-    <Inspector closing={closing}>
+    <Inspector closing={closing} over>
       <section className="flex h-full w-full flex-col" aria-label={t("drawer.label")}>
         <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4">
           <div className="flex min-w-0 items-center gap-3">

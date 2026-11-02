@@ -17,7 +17,7 @@ import { OUTREACH_CHANNELS, and, eq, getSetting, inArray, messageDrafts, senders
 import { APIFY_KEY, profilePosts } from "@pluton/providers";
 import { languageInstruction, localized } from "@pluton/i18n/server";
 import { runAgent } from "./backend.ts";
-import { SERVICES_OUTREACH } from "./offer.ts";
+import { LOCAL_OUTREACH, SERVICES_OUTREACH } from "./offer.ts";
 import { FAST_MODEL, WRITER_MODEL, localTool } from "./run-agent.ts";
 import messages from "./messages/sequence.ts";
 
@@ -178,7 +178,7 @@ Language: ${o.language}
 The person:
 ${JSON.stringify({ name: o.person.name, title: o.person.title, company: o.person.company, location: o.person.location })}
 Why they were picked: ${o.lead.reason}
-Signal: ${o.lead.signal}
+Signal: ${o.lead.signal}${o.lead.pipeline === "local_business" ? `\n${LOCAL_OUTREACH}` : ""}
 Evidence: ${o.lead.evidence.map((e) => e.label).join(" | ") || "none"}
 Their recent LinkedIn posts: ${activity.length ? `\n${activity.join("\n---\n")}` : "unknown"}
 

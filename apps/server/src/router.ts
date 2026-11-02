@@ -71,6 +71,7 @@ import {
   profilePosts,
   providerCatalog,
   searchJobs,
+  searchListings,
   searchRegistry,
 } from "@pluton/providers";
 import { campaignsRouter, linkedinRouter } from "./campaigns-router.ts";
@@ -341,6 +342,7 @@ const tryInput = z.discriminatedUnion("provider", [
   z.object({ provider: z.literal("web"), query: z.string().trim().min(2).max(200) }),
   z.object({ provider: z.literal("theirstack"), titles: z.array(z.string().min(1)).min(1), countries: z.array(z.string().length(2)).optional() }),
   z.object({ provider: z.literal("apify"), profileUrl: z.string().url() }),
+  z.object({ provider: z.literal("google_maps"), query: z.string().trim().min(2).max(200) }),
 ]);
 
 const providers = router({
@@ -376,6 +378,8 @@ const providers = router({
           return { provider: input.provider, result: await searchJobs(ctx.db, { titles: input.titles, countries: input.countries, limit: 10 }) };
         case "apify":
           return { provider: input.provider, result: await profilePosts(ctx.db, [input.profileUrl], { maxPosts: 3 }) };
+        case "google_maps":
+          return { provider: input.provider, result: await searchListings(ctx.db, { query: input.query }) };
       }
     } catch (error) {
       if (error instanceof MissingKeyError) throw new TRPCError({ code: "PRECONDITION_FAILED", message: error.message });

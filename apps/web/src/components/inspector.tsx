@@ -3,17 +3,20 @@ import { createPortal } from "react-dom";
 
 /**
  * The window's right-hand pane, the mirror of the sidebar: a page puts its inspector there (a
- * lead, the Brain's suggestions) and the content narrows beside it. The shell owns the pane,
- * pages fill it through <Inspector>.
+ * lead, the Brain's suggestions) and the content narrows beside it. The shell owns the panes,
+ * pages fill them through <Inspector>: `beside` narrows the content on wide screens, `over` always
+ * floats over it.
  */
-export const InspectorSlot = createContext<HTMLElement | null>(null);
+export const InspectorSlot = createContext<{ beside: HTMLElement | null; over: HTMLElement | null }>({ beside: null, over: null });
 
 /**
  * `closing` (from useClosing) lets the pane slide out before the page removes it: the shell reads it
- * from this wrapper, which takes no box of its own.
+ * from this wrapper, which takes no box of its own. `over` opens it over the page at every width, as
+ * a sheet, for an inspector that comes and goes over a table whose columns shouldn't reflow.
  */
-export function Inspector({ children, closing }: { children: ReactNode; closing?: boolean }) {
-  const slot = useContext(InspectorSlot);
+export function Inspector({ children, closing, over }: { children: ReactNode; closing?: boolean; over?: boolean }) {
+  const slots = useContext(InspectorSlot);
+  const slot = over ? slots.over : slots.beside;
   return slot
     ? createPortal(
         <div className="contents" data-closing={closing || undefined}>

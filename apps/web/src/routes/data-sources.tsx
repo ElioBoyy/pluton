@@ -23,7 +23,7 @@ const ACCESS = {
 } as const;
 
 /** Sample query per provider: one field, turned into the `try` input. Its placeholder is the integrations namespace's `sample.<id>`. */
-type SampleId = "registry" | "careers" | "stack" | "web" | "theirstack" | "apify";
+type SampleId = "registry" | "careers" | "stack" | "web" | "theirstack" | "apify" | "google_maps";
 const SAMPLES: Record<string, { initial: string; toInput: (v: string) => TryInput }> = {
   registry: { initial: "affaires publiques", toInput: (query) => ({ provider: "registry", query }) },
   careers: { initial: "doctolib.fr", toInput: (website) => ({ provider: "careers", website }) },
@@ -37,6 +37,7 @@ const SAMPLES: Record<string, { initial: string; toInput: (v: string) => TryInpu
     initial: "https://www.linkedin.com/company/anthropicresearch/",
     toInput: (profileUrl) => ({ provider: "apify", profileUrl }),
   },
+  google_maps: { initial: "plombier Lyon", toInput: (query) => ({ provider: "google_maps", query }) },
 };
 
 export function DataSourcesPage() {
@@ -212,6 +213,20 @@ function renderResult(out: TryOutput, t: Translate<"integrations">): ReactNode {
         <Results empty={out.result.posts.length === 0}>
           {out.result.posts.map((p) => (
             <ResultRow key={p.url} title={p.author.name} meta={t("result.engagement", { likes: p.likes ?? 0, comments: p.comments ?? 0 })} detail={p.text.slice(0, 200)} href={p.url} />
+          ))}
+        </Results>
+      );
+    case "google_maps":
+      return (
+        <Results empty={out.result.listings.length === 0}>
+          {out.result.listings.map((l) => (
+            <ResultRow
+              key={l.id}
+              title={l.name}
+              meta={[l.website ?? t("result.noWebsite"), t("result.reviews", { count: l.reviews }), t("result.photos", { count: l.photos }), l.phone].filter(Boolean).join(" · ")}
+              detail={l.address}
+              href={l.mapsUrl}
+            />
           ))}
         </Results>
       );
