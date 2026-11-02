@@ -56,6 +56,9 @@ export function warmnessFor(pipeline: Pipeline | null) {
       return 60;
     case "funding":
       return 55;
+    // A concrete gap they'd pay to fill, but no sign of when.
+    case "local_business":
+      return 45;
     case "company_stack":
       return 40;
     case "web_evidence":

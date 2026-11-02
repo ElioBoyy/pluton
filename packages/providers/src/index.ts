@@ -94,6 +94,15 @@ export function providerCatalog(): ProviderInfo[] {
       configured: has("theirstack_api_key"),
     },
     {
+      id: "google_maps",
+      label: t("google_maps.label"),
+      description: t("google_maps.description"),
+      powers: [t("power.localBusiness")],
+      access: "api_key",
+      settingKey: "google_maps_api_key",
+      configured: has("google_maps_api_key"),
+    },
+    {
       id: "apify",
       label: t("apify.label"),
       description: t("apify.description"),
@@ -107,6 +116,7 @@ export function providerCatalog(): ProviderInfo[] {
 export * from "./hunter.ts";
 export * from "./email.ts";
 export * from "./places.ts";
+export * from "./google-maps.ts";
 export * from "./mailer.ts";
 export * from "./imap.ts";
 export * from "./slack.ts";

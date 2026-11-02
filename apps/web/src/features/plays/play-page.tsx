@@ -13,7 +13,7 @@ import { cn } from "../../lib/cn.ts";
 import { usePlayMenu } from "./play-menu.ts";
 import { useTRPC } from "../../lib/trpc.ts";
 import { useChannel } from "../../lib/use-job-events.ts";
-import { CHIP, PILL, PILL_BASE, PIPELINE_LABELS, REJECTION_LABELS, SCHEDULE_LABELS, STOP_LABELS } from "./labels.ts";
+import { CHIP, GAP_LABELS, PILL, PILL_BASE, PIPELINE_LABELS, REJECTION_LABELS, SCHEDULE_LABELS, STOP_LABELS } from "./labels.ts";
 import { STATUS, type LeadTabKey } from "../leads/labels.ts";
 import { LeadsView } from "../leads/leads-view.tsx";
 import { SequenceTab } from "../sequence/sequence-tab.tsx";
@@ -462,6 +462,7 @@ function Sourcing({ data: { play, runs } }: { data: PlayData }) {
     [t("sourcing.hiringRoles"), a.hiringRoles],
     [t("sourcing.technologies"), a.technologies],
     [t("sourcing.referenceCustomers"), play.definition.referenceCompanies ?? []],
+    [t("sourcing.gaps"), [...(play.definition.local?.gaps ?? []).map((gap) => GAP_LABELS[gap]!), ...(play.definition.local?.soleTradersOnly ? [t("sourcing.soleTraders")] : [])]],
     [t("sourcing.excluded"), a.exclusions],
   ];
   const rejections = Object.entries(report?.rejections ?? {}).sort((x, y) => y[1].count - x[1].count);

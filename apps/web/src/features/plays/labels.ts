@@ -21,8 +21,11 @@ export const PIPELINE_LABELS = labels("pipeline", [
   "funding",
   "post_watchlist",
   "post_keyword",
+  "local_business",
   "waterfall",
 ]);
+
+export const GAP_LABELS = labels("gap", ["no_website", "no_google_listing", "few_reviews", "few_photos", "low_rating"]);
 
 export const SCHEDULE_LABELS = labels("schedule", ["off", "daily", "weekdays", "weekly"]);
 
@@ -33,6 +36,7 @@ export const REJECTION_LABELS = labels("rejection", [
   "own_company_or_competitor",
   "rejected_before",
   "excluded",
+  "presence_ok",
   "wrong_persona",
   "wrong_seniority",
   "wrong_company",

@@ -65,7 +65,7 @@ const fr: Record<LegalDocId, LegalDoc> = {
             list: [
               "Service : l'application Pluton hébergée par l'Éditeur, y compris son serveur MCP, accessible après abonnement.",
               "Utilisateur ou Client : le professionnel qui crée un compte et souscrit un abonnement.",
-              "Contenus Client : tout ce que le Client fournit ou que le Service produit pour lui (informations sur son entreprise, Brain, Plays, leads, messages, réglages).",
+              "Contenus Client : tout ce que le Client fournit ou que le Service produit pour lui (informations sur son entreprise, fiche entreprise, recherches, leads, messages, réglages).",
               "Données de prospects : les données personnelles des personnes que le Client recherche ou contacte avec le Service.",
             ],
           },
@@ -81,8 +81,8 @@ const fr: Record<LegalDocId, LegalDoc> = {
       {
         heading: "4. Le Service",
         body: [
-          "Pluton construit, à partir du site web du Client, un « Brain » de son entreprise (cible, personas, concurrents, ton), trouve et note des leads à partir de sources publiques et des services que le Client connecte, et prépare des séquences LinkedIn et e-mail rédigées dans son style.",
-          "Aucun message n'est envoyé sans que le Client l'ait relu ou ait lui-même activé l'envoi automatique d'une séquence. Les contenus produits par l'intelligence artificielle (textes, scores, analyses) peuvent comporter des erreurs : le Client les vérifie avant de s'en servir.",
+          "Pluton construit, à partir du site web du Client, une fiche de son entreprise (cible, profils d'acheteurs, concurrents, ton), trouve et note des leads à partir de sources publiques et des services que le Client connecte, et prépare des campagnes LinkedIn et e-mail rédigées dans son style.",
+          "Aucun message n'est envoyé sans que le Client l'ait relu ou ait lui-même activé l'envoi automatique d'une campagne. Les contenus produits par l'intelligence artificielle (textes, scores, analyses) peuvent comporter des erreurs : le Client les vérifie avant de s'en servir.",
           "L'Éditeur fait évoluer le Service et peut en modifier les fonctionnalités, sans en supprimer l'essentiel en cours d'abonnement.",
         ],
       },
@@ -326,9 +326,9 @@ const fr: Record<LegalDocId, LegalDoc> = {
           "Pour vous fournir le Service, Pluton héberge et traite pour votre compte :",
           {
             list: [
-              "les informations sur votre entreprise et votre Brain ;",
+              "les informations sur votre entreprise et votre fiche entreprise ;",
               "les données de vos prospects : nom, fonction, entreprise, profil LinkedIn, adresse e-mail professionnelle, signaux publics (offres d'emploi, technologies, publications) ;",
-              "vos messages, les réponses reçues et l'historique des séquences ;",
+              "vos messages, les réponses reçues et l'historique des campagnes ;",
               "les accès que vous connectez (messagerie, clés d'API), chiffrés en AES-256-GCM.",
             ],
           },

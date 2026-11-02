@@ -329,9 +329,17 @@ export const PIPELINES = [
   "funding",
   "post_watchlist",
   "post_keyword",
+  "local_business",
   "waterfall",
 ] as const;
 export type Pipeline = (typeof PIPELINES)[number];
+
+/**
+ * What a small local business lacks online, which makes it a prospect for a freelancer or studio
+ * selling that service (local_business): a website, a Google Maps listing, reviews, photos, a good rating.
+ */
+export const PRESENCE_GAPS = ["no_website", "no_google_listing", "few_reviews", "few_photos", "low_rating"] as const;
+export type PresenceGap = (typeof PRESENCE_GAPS)[number];
 
 export const PLAY_STATUSES = ["draft", "active", "paused", "archived"] as const;
 export const SCHEDULES = ["off", "daily", "weekdays", "weekly"] as const;
@@ -352,6 +360,17 @@ export type PlayDefinition = {
   criteria?: string;
   /** Best customers to find lookalikes of (lookalikes pipeline). */
   referenceCompanies?: string[];
+  /**
+   * Small local businesses and independents (local_business): trades are audience.industries, towns
+   * audience.geographies; these say which gaps make a business a prospect.
+   */
+  local?: {
+    gaps: PresenceGap[];
+    /** Sole traders only (micro-entrepreneurs, entreprises individuelles), no companies. */
+    soleTradersOnly: boolean;
+    /** French activity codes (NAF) of the trades: how the registry lists businesses that aren't on Google Maps. */
+    activityCodes: string[];
+  };
   /** Qualified leads wanted per run. */
   target: number;
   policy?: {

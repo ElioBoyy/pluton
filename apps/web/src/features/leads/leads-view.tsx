@@ -149,6 +149,11 @@ export function LeadsView({
 
   const list = useQuery(trpc.leads.list.queryOptions({ ...filter, sort: sort.key, dir: sort.dir, limit }, { placeholderData: keepPreviousData }));
   const counts = useQuery(trpc.leads.counts.queryOptions({ playId, search: filter.search, pipeline: filter.pipeline }));
+  // "New" is the part of "To review" not opened yet, and "Unreachable" is usually empty: neither earns
+  // a tab of its own, unless a link opened it.
+  const visibleTabs = LEAD_TABS.filter(
+    (t) => t.key === tab || (t.key !== "new" && (t.key !== "unreachable" || (counts.data?.counts.unreachable ?? 0) > 0)),
+  );
   const items = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
 
@@ -193,11 +198,11 @@ export function LeadsView({
         <div className="max-w-full min-w-0">
           {/* Keyed on the counts: Segmented measures its thumb only when the value changes, and the counts widen the labels. */}
           <Segmented
-            key={LEAD_TABS.map((tab) => counts.data?.counts[tab.key] ?? "").join(",")}
+            key={visibleTabs.map((tab) => counts.data?.counts[tab.key] ?? "").join(",")}
             label={t("view.statusLabel")}
             value={tab}
             onChange={onTab}
-            options={LEAD_TABS.map((tab) => ({
+            options={visibleTabs.map((tab) => ({
               value: tab.key,
               label: (
                 <>
@@ -409,6 +414,7 @@ function Row({
 
   return (
     <tr
+      data-lead-row
       onClick={() => onOpen()}
       onContextMenu={contextMenu(() => menu(l))}
       aria-selected={open || undefined}

@@ -18,7 +18,7 @@ type Purpose = Usage["byPurpose"][number]["purpose"];
 /** Each range's name is the usage namespace's `range.<key>`. */
 const RANGES: Array<NonNullable<Range>> = ["period", "previous", "30d", "90d"];
 
-const SOURCE_LABELS: Record<string, string> = { claude: "Claude", apify: "Apify", hunter: "Hunter", theirstack: "TheirStack", unipile: "Unipile" };
+const SOURCE_LABELS: Record<string, string> = { claude: "Claude", apify: "Apify", hunter: "Hunter", theirstack: "TheirStack", google_maps: "Google Maps", unipile: "Unipile" };
 const sourceLabel = (s: string, t: Translate<"usage">) => (s === "manual" ? t("source.manual") : (SOURCE_LABELS[s] ?? s));
 const shortDate = (d: Date | string | number) => formatDate(d, { day: "numeric", month: "short" });
 /** "claude-sonnet-5-5" → "Sonnet 5.5"; provider operations "keyword_posts" → "keyword posts". */

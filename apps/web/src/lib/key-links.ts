@@ -6,6 +6,7 @@ const LINKS = {
   theirstack: "https://app.theirstack.com",
   apify: "https://console.apify.com/settings/integrations",
   anthropic: "https://console.anthropic.com/settings/keys",
+  google_maps: "https://console.cloud.google.com/google/maps-apis/credentials",
 } as const;
 
 const BY_SETTING: Record<string, keyof typeof LINKS> = {
@@ -13,6 +14,7 @@ const BY_SETTING: Record<string, keyof typeof LINKS> = {
   theirstack_api_key: "theirstack",
   apify_token: "apify",
   anthropic_api_key: "anthropic",
+  google_maps_api_key: "google_maps",
 };
 
 export function keyLink(idOrSetting: string) {

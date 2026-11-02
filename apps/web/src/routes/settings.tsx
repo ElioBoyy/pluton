@@ -16,7 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Button, Group, Input, PageHeader, Row, Section, useStrip } from "../components/ui.tsx";
 import { authStateQuery } from "../features/account/auth-state.ts";
 import { WorkspacesSection } from "../features/workspaces/workspaces-section.tsx";
@@ -31,21 +31,26 @@ import { Identicon } from "../components/identicon.tsx";
 /** Each pane's name is the settings namespace's `section.<slug>` string. */
 export const SETTINGS_SECTIONS = [
   // The person, above the workspace: shown as its own card at the top of the list.
-  { slug: "profile" },
-  { slug: "settings" },
-  { slug: "appearance" },
-  { slug: "notifications" },
-  { slug: "linkedin" },
-  { slug: "mcp" },
-  { slug: "api-keys" },
-  { slug: "api" },
-  { slug: "data-sources" },
-  { slug: "integrations" },
-  { slug: "usage" },
-  { slug: "billing" },
-  { slug: "activity" },
-  { slug: "whats-new" },
+  { slug: "profile", group: "account" },
+  { slug: "settings", group: "workspace" },
+  { slug: "linkedin", group: "workspace" },
+  { slug: "notifications", group: "workspace" },
+  { slug: "appearance", group: "workspace" },
+  { slug: "usage", group: "money" },
+  { slug: "billing", group: "money" },
+  { slug: "mcp", group: "connections" },
+  { slug: "integrations", group: "connections" },
+  { slug: "data-sources", group: "connections" },
+  { slug: "api-keys", group: "connections" },
+  { slug: "api", group: "connections" },
+  { slug: "activity", group: "history" },
+  { slug: "whats-new", group: "history" },
 ] as const;
+
+/** The sidebar's headings, in order: what a section is for, so nobody has to open all fourteen to find one. */
+const SETTINGS_GROUPS = ["workspace", "money", "connections", "history"] as const;
+type Pane = Exclude<(typeof SETTINGS_SECTIONS)[number], { slug: "profile" }>;
+const PANES = SETTINGS_SECTIONS.filter((s): s is Pane => s.slug !== "profile");
 
 /** Each pane's icon, a white glyph on a colored rounded square as in the System Settings sidebar. */
 const SECTION_ICONS: Record<Exclude<(typeof SETTINGS_SECTIONS)[number]["slug"], "profile">, { icon: Icon; color: string }> = {
@@ -80,30 +85,34 @@ export function SettingsShell() {
         )}
       >
         <ProfileCard />
-        <p className="mb-1 px-2 text-xs font-semibold text-muted max-lg:hidden">{t("workspace")}</p>
-        {SETTINGS_SECTIONS.filter((s) => s.slug !== "profile").map((s) => {
-          const { icon: IconCmp, color } = SECTION_ICONS[s.slug];
-          return (
-            <Link
-              key={s.slug}
-              to={`/workspace/${s.slug}`}
-              className="flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-sm whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised"
-              activeProps={{ className: "!bg-selected" }}
-            >
-              <span
-                className={cn(
-                  "flex size-5 shrink-0 items-center justify-center rounded-[calc(5px*var(--gg-k))] text-white [corner-shape:squircle]",
-                  // A faint top light, as on the glossy Golden Gate settings icons.
-                  "shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]",
-                  color,
-                )}
-              >
-                <IconCmp size={13} weight="fill" />
-              </span>
-              {t(`section.${s.slug}`)}
-            </Link>
-          );
-        })}
+        {SETTINGS_GROUPS.map((group) => (
+          <Fragment key={group}>
+            <p className="mt-3 mb-1 px-2 text-xs font-semibold text-muted first-of-type:mt-0 max-lg:hidden">{t(`group.${group}`)}</p>
+            {PANES.filter((s) => s.group === group).map((s) => {
+              const { icon: IconCmp, color } = SECTION_ICONS[s.slug];
+              return (
+                <Link
+                  key={s.slug}
+                  to={`/workspace/${s.slug}`}
+                  className="flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-sm whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised"
+                  activeProps={{ className: "!bg-selected" }}
+                >
+                  <span
+                    className={cn(
+                      "flex size-5 shrink-0 items-center justify-center rounded-[calc(5px*var(--gg-k))] text-white [corner-shape:squircle]",
+                      // A faint top light, as on the glossy Golden Gate settings icons.
+                      "shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]",
+                      color,
+                    )}
+                  >
+                    <IconCmp size={13} weight="fill" />
+                  </span>
+                  {t(`section.${s.slug}`)}
+                </Link>
+              );
+            })}
+          </Fragment>
+        ))}
       </nav>
       <div className="min-w-0 flex-1">
         <Outlet />
@@ -144,6 +153,7 @@ export function GeneralSettingsPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const workspace = useQuery(trpc.workspace.current.queryOptions());
+  const hosted = useQuery(authStateQuery).data?.hosted ?? false;
   const [form, setForm] = useState({ name: "", website: "", timezone: "Europe/Paris" });
 
   useEffect(() => {
@@ -226,7 +236,8 @@ export function GeneralSettingsPage() {
           </Button>
         </Row>
       </Group>
-      <SystemSection />
+      {/* Server and job-queue checks are for whoever runs the install, not for a hosted customer. */}
+      {!hosted && <SystemSection />}
     </>
   );
 }

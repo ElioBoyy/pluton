@@ -22,6 +22,7 @@ Pipelines (how a Play finds people):
 - lookalikes: organizations similar (same sector and size) to named reference customers; needs definition.referenceCompanies.
 - funding: organizations that recently raised money (press), then the right person there.
 - post_watchlist / post_keyword: people engaging with tracked LinkedIn profiles or posting about keywords.
+- local_business: small local businesses and independents (sole traders, trades, shops, restaurants, practices) in given places whose online presence has a gap the founder's service fills, for freelancers, studios and agencies selling to them. audience.industries = the trades as people name them ("plombier", "restaurant", "salon de coiffure"); audience.geographies = towns, départements or postal codes; leave personas empty (the owner is the person). definition.local = { gaps, soleTradersOnly, activityCodes }. Pick gaps from what the founder sells: websites → no_website; Google Business Profile or local SEO → no_google_listing, few_reviews; photography or video → few_photos; reputation management → few_reviews, low_rating. activityCodes: the French NAF codes of those trades (e.g. 43.22A plombier, 96.02A coiffure, 56.10A restaurant), required for no_google_listing in France. soleTradersOnly when the founder targets auto-entrepreneurs or micro-entrepreneurs. Ask which trades and which places when the founder hasn't said; never private individuals (consumers): only businesses.
 Never propose "waterfall": that is the Main Play, created automatically.
 
 How you work:
@@ -83,6 +84,16 @@ ${opts.transcript.map((t) => `${t.role === "user" ? "Founder" : "You"}: ${t.text
           if (play.pipeline === "waterfall") throw new Error("waterfall is reserved for the Main Play; pick another pipeline");
           if (play.pipeline === "lookalikes" && !play.definition.referenceCompanies?.length) {
             throw new Error("lookalikes needs definition.referenceCompanies; ask the founder for their best customers");
+          }
+          if (play.pipeline === "local_business") {
+            const { local, audience } = play.definition;
+            if (!local?.gaps?.length) throw new Error("local_business needs definition.local.gaps");
+            if (!audience.industries?.length || !audience.geographies?.length) {
+              throw new Error("local_business needs audience.industries (trades) and audience.geographies (places); ask the founder");
+            }
+            if (local.gaps.includes("no_google_listing") && !local.activityCodes?.length) {
+              throw new Error("no_google_listing needs definition.local.activityCodes, the NAF codes of the trades");
+            }
           }
           result = { type: "proposal", play };
           return "Shown to the founder. Stop now.";

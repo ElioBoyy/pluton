@@ -28,7 +28,7 @@ type ApiEstablishment = {
 };
 type NominatimResult = { name?: string; lat: string; lon: string; extratags?: Record<string, string> | null };
 
-const fold = (s: string) =>
+export const fold = (s: string) =>
   s
     .toLowerCase()
     .normalize("NFD")
@@ -52,7 +52,7 @@ export function sameBusiness(a: string, b: string) {
 }
 
 /** Metres between two points (haversine). */
-function distance(lat1: number, lon1: number, lat2: number, lon2: number) {
+export function distance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const rad = Math.PI / 180;
   const a = Math.sin(((lat2 - lat1) * rad) / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(((lon2 - lon1) * rad) / 2) ** 2;
   return 2 * 6_371_000 * Math.asin(Math.sqrt(a));

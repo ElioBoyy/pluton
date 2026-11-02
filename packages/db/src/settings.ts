@@ -57,6 +57,13 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: "apify_token", label: "Apify token", description: "LinkedIn posts, engagers and profile search.", secret: true, group: "data" },
   { key: "theirstack_api_key", label: "TheirStack API key", description: "Market-wide job posts and tech stacks.", secret: true, group: "data" },
   { key: "hunter_api_key", label: "Hunter API key", description: "Finds work emails (free plan: 50 searches/month).", secret: true, group: "data" },
+  {
+    key: "google_maps_api_key",
+    label: "Google Maps API key",
+    description: "Small local businesses: their Google Maps listing, website, phone, reviews and photos (Places API).",
+    secret: true,
+    group: "data",
+  },
   { key: "smtp_host", label: "SMTP host", description: "Mail server for the morning digest and outreach emails, e.g. smtp.gmail.com or smtp.fastmail.com.", secret: false, group: "email" },
   { key: "smtp_port", label: "SMTP port", description: "465 (TLS) or 587 (STARTTLS).", secret: false, defaultValue: "465", group: "email" },
   { key: "smtp_user", label: "SMTP user", description: "Usually your email address.", secret: false, group: "email" },
@@ -185,6 +192,7 @@ export const PLATFORM_KEYS: Record<string, { source: string; plans: Subscription
   apify_token: { source: "apify", plans: ["byo", "all"] },
   theirstack_api_key: { source: "theirstack", plans: ["byo", "all"] },
   hunter_api_key: { source: "hunter", plans: ["byo", "all"] },
+  google_maps_api_key: { source: "google_maps", plans: ["byo", "all"] },
 };
 
 const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`]?.trim() || undefined;
@@ -543,7 +551,7 @@ export class SourceCapError extends PlatformQuotaError {
   }
 }
 
-const SOURCE_NAMES: Record<string, string> = { claude: "Claude", apify: "Apify", hunter: "Hunter", theirstack: "TheirStack", unipile: "Unipile" };
+const SOURCE_NAMES: Record<string, string> = { claude: "Claude", apify: "Apify", hunter: "Hunter", theirstack: "TheirStack", google_maps: "Google Maps", unipile: "Unipile" };
 
 /** Pluton's own key for a source has reached its platform-wide cap: paused for every customer until `until`. */
 export class PlatformPausedError extends PlatformQuotaError {

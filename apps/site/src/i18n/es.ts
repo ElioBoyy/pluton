@@ -8,7 +8,7 @@ export default {
   },
   nav: {
     how: "Cómo funciona",
-    agent: "El agente",
+    agent: "El asistente",
     ai: "Tu IA",
     pricing: "Precios",
     faq: "Preguntas",
@@ -23,9 +23,9 @@ export default {
     price: "Desde 24,99\u00a0€ al mes.",
   },
   agent: {
-    title: "Agente",
+    title: "Asistente",
     empty: "¿Qué puedo hacer por ti?",
-    emptySub: "Pregunta por tus leads, Plays, Brain o gasto. El agente lee lo que necesita.",
+    emptySub: "Pregunta por tus leads, búsquedas, la ficha de tu empresa o gastos. El asistente consulta lo que necesita.",
     placeholder: "Pregúntale lo que quieras a Pluton",
     send: "Enviar",
     working: "Trabajando…",
@@ -39,21 +39,21 @@ export default {
     declined: "Se queda como estaba. No se ha lanzado nada.",
     today: {
       q: "¿Qué debería mirar hoy?",
-      looked: "Ha consultado Leads, Plays, Secuencias",
-      a: "Tres cosas. Han llegado cuatro leads nuevos a Estudios que contratan, y el de mejor encaje es Camille Roux con 92. Hugo Lefèvre respondió en LinkedIn, así que su secuencia se detuvo sola. Dos mensajes esperan tu revisión.",
+      looked: "Ha consultado Leads, Búsquedas, Campañas",
+      a: "Tres cosas. Han llegado cuatro leads nuevos a Estudios que contratan, y la mejor coincidencia es Camille Roux, con 92. Hugo Lefèvre respondió en LinkedIn, así que la campaña se detuvo sola para él. Dos mensajes esperan tu revisión.",
     },
     best: {
       q: "¿Qué leads encajan mejor ahora mismo?",
       looked: "Ha consultado Leads",
-      a: "Estos cuatro, por encaje. Cada puntuación viene con las pruebas que la sostienen.",
+      a: "Estos cuatro, de mayor a menor coincidencia. Cada puntuación viene con las pruebas que la sostienen.",
       card: "Aprobar los dos primeros",
-      cardMeta: "Camille Roux y Hugo Lefèvre entran en tu secuencia de LinkedIn.",
+      cardMeta: "Camille Roux y Hugo Lefèvre entran en tu campaña de LinkedIn.",
     },
     plan: {
-      q: "Prepara un Play nuevo para mi ICP",
-      looked: "Ha consultado Brain, Plays",
-      a: "Tu Brain habla de estudios de arquitectura de 5 a 50 personas. Los que contratan sienten antes el peso de la facturación, así que aquí tienes un Play para ellos.",
-      card: "Crear este Play",
+      q: "Prepara una búsqueda nueva para mi cliente ideal",
+      looked: "Ha consultado Ficha de empresa, Búsquedas",
+      a: "La ficha de tu empresa habla de estudios de arquitectura de 5 a 50 personas. Los que contratan sienten antes el peso de la facturación, así que aquí tienes una búsqueda para ellos.",
+      card: "Crear esta búsqueda",
       cardMeta: "15 personas a la semana, los días laborables a las 7:00, hasta 300 créditos por búsqueda.",
     },
     spend: {
@@ -84,12 +84,12 @@ export default {
     stagesLabel: "Etapa",
     stages: [
       {
-        name: "Brain",
+        name: "Mi empresa",
         clause: "Aprende tu empresa",
-        text: "Dale tu web, o dos frases: es todo lo que necesita. Pluton saca de ahí tu mercado, tus clientes ideales, tus buyer personas, tus competidores y tu tono. Corrige lo que quieras.",
+        text: "Dale tu web, o dos frases: es todo lo que necesita. Pluton saca de ahí tu mercado, tus clientes ideales, tus perfiles de comprador, tus competidores y tu tono. Corrige lo que quieras.",
       },
       {
-        name: "Play",
+        name: "Búsquedas",
         clause: "Prepara la búsqueda",
         text: "Di en una frase a quién quieres llegar. Pluton hace sus preguntas y luego lo organiza todo: a quién buscar, dónde, cuántos y a qué ritmo.",
       },
@@ -99,18 +99,18 @@ export default {
         text: "Pluton rastrea por su cuenta registros mercantiles, páginas de empleo, tecnologías de las webs y la web, y puntúa a cada persona de 0 a 100, con las pruebas. Tú dejas de buscar.",
       },
       {
-        name: "Message",
+        name: "Mensajes",
         clause: "Escribe por ti",
         text: "Hasta tres mensajes por persona, escritos a partir de lo que la hizo destacar y con tu tono. Apruebas con un clic, y en cuanto responde, Pluton deja de escribirle.",
       },
     ],
     brain: {
-      title: "Brain",
+      title: "Mi empresa",
       company: "Atelier Kilo",
       rows: [
         ["Empresa", "Software de contabilidad para estudios de arquitectura."],
         ["Cliente ideal", "Estudios de 5 a 50 personas en Francia y Bélgica."],
-        ["Personas", "Fundador del estudio, office manager"],
+        ["Perfiles de comprador", "Fundador del estudio, office manager"],
         ["Competidores", "Hojas de cálculo, suites contables generalistas"],
         ["Tono", "Claro, breve, sin jerga."],
       ],
@@ -124,11 +124,11 @@ export default {
         ["Cuándo", "Entre semana a las 07:00"],
         ["Límite", "300 créditos por búsqueda"],
       ],
-      action: "Crear este Play",
+      action: "Crear esta búsqueda",
     },
     leads: {
-      title: "Leads, por encaje",
-      fit: "Encaje",
+      title: "Leads, de mayor a menor coincidencia",
+      fit: "Coincidencia",
       rows: [
         ["Camille Roux", "Fundadora, Atelier Roux", "Busca un arquitecto jefe de proyecto", "92"],
         ["Hugo Lefèvre", "Socio, Studio Brume", "Publicó sobre facturas impagadas", "87"],
@@ -157,12 +157,12 @@ export default {
     search: { time: "07:00", title: "Búsqueda lista para lanzar", body: "Estudios que contratan: unas 15 personas, hasta 300 créditos. Quedan 1290 créditos este mes.", run: "Lanzar búsqueda", later: "Ahora no" },
     cap: { time: "07:04", title: "Búsqueda terminada bajo su tope", body: "230 de 300 créditos usados. Los otros 70 siguen en tu mes." },
     review: { time: "07:12", title: "Un mensaje espera tu revisión", body: "Para Camille Roux en LinkedIn, escrito a partir de su página de empleo y con tu voz.", action: "Revisar" },
-    reply: { time: "09:41", title: "Hugo Lefèvre respondió", body: "Su secuencia se detuvo sola. La respuesta está en tu bandeja." },
+    reply: { time: "09:41", title: "Hugo Lefèvre respondió", body: "La campaña se detuvo sola para él. La respuesta está en tu bandeja." },
   },
   mcp: {
-    heading: "Lleva el agente a tu IA.",
-    text: "Pluton tiene un servidor MCP con las mismas herramientas que su propio agente. Pregunta a Claude Code, Claude Desktop o Codex por tus leads y tus Plays, y deja que actúen.",
-    rule: "Leer es directo. Una búsqueda enseña antes su coste, y las búsquedas, secuencias de LinkedIn y exportaciones al CRM esperan una confirmación explícita.",
+    heading: "Lleva el asistente a tu IA.",
+    text: "Pluton tiene un servidor MCP con las mismas herramientas que su propio asistente. Pregunta a Claude Code, Claude Desktop o Codex por tus leads y tus búsquedas, y deja que actúen.",
+    rule: "Leer es directo. Una búsqueda enseña antes su coste, y las búsquedas, campañas de LinkedIn y exportaciones al CRM esperan una confirmación explícita.",
     clientLabel: "Cliente de IA",
     hintCode: "Ejecútalo en un terminal.",
     hintDesktop: "Combínalo con claude_desktop_config.json y reinicia Claude Desktop.",
@@ -224,7 +224,7 @@ export default {
       "Pegas tu clave una vez al empezar y Pluton comprueba que funciona",
     ],
     allLines: [
-      "La IA está incluida y se descuenta de tus créditos: investigación, puntuación, redacción y el agente",
+      "La IA está incluida y se descuenta de tus créditos: investigación, puntuación, redacción y el asistente",
       "Los mismos créditos cubren las fuentes de datos que pone Pluton: ofertas de empleo, interacción en LinkedIn, direcciones de email",
       "Nada que conectar: ni clave API, ni cuenta en un proveedor de IA",
     ],
@@ -263,7 +263,7 @@ export default {
       ],
       [
         "¿Se envía algo sin mí?",
-        "No. Cada mensaje espera tu revisión, y lo que apruebas aún se puede deshacer durante diez minutos. Una respuesta de la persona detiene su secuencia.",
+        "No. Cada mensaje espera tu revisión, y lo que apruebas aún se puede deshacer durante diez minutos. Si la persona responde, la campaña se detiene para ella.",
       ],
       [
         "¿De dónde salen los leads?",
@@ -279,7 +279,7 @@ export default {
       ],
       [
         "¿Puedo usarlo desde Claude Code o Codex?",
-        "Sí. Pluton tiene un servidor MCP con las mismas acciones que la app. Una búsqueda muestra primero su coste y espera tu confirmación, igual que las secuencias y las exportaciones al CRM.",
+        "Sí. Pluton tiene un servidor MCP con las mismas acciones que la app. Una búsqueda muestra primero su coste y espera tu confirmación, igual que las campañas y las exportaciones al CRM.",
       ],
       [
         "¿Mantiene mi gasto bajo control?",

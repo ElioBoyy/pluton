@@ -23,6 +23,7 @@ import {
   runChannel,
   sellsServices,
   setPersonLinkedin,
+  setPersonPlace,
   updateRun,
   upsertPerson,
   WATERFALL_ORDER,
@@ -45,13 +46,15 @@ import {
 import { runAgent } from "./backend.ts";
 import { findLinkedinProfiles } from "./linkedin-lookup.ts";
 import { AgentTurnLimitError, FAST_MODEL, localTool } from "./run-agent.ts";
-import { SERVICES_JUDGE, SERVICES_LEADS } from "./offer.ts";
+import { collectLocalBusinesses } from "./local-businesses.ts";
+import { LOCAL_JUDGE, SERVICES_JUDGE, SERVICES_LEADS } from "./offer.ts";
 import { languageInstruction, localized } from "@pluton/i18n/server";
 import messages from "./messages/lead-finding.ts";
 
 const t = localized(messages);
 
-type Candidate = CandidatePerson & { signal: string; evidence: Evidence[] };
+/** `phone`: the business's, from its map listing (small local businesses). */
+type Candidate = CandidatePerson & { signal: string; evidence: Evidence[]; phone?: string };
 type Kept = Candidate & { personId: string };
 
 const candidateSchema = z.object({
@@ -375,6 +378,7 @@ function makeGate(ctx: Ctx, kept: Kept[]) {
         continue;
       }
       const person = await upsertPerson(db, play.workspaceId, c);
+      if (c.phone) await setPersonPlace(db, person.id, { phone: c.phone, website: c.companyWebsite });
       if (ctx.rejectedPeople.has(person.id)) {
         addRejection(report, "rejected_before", label);
         continue;
@@ -422,7 +426,9 @@ async function runPipeline(ctx: Ctx, pipeline: Pipeline, wanted: number, deadlin
     await gate((await collectFromLinkedin(ctx, pipeline, wanted)).slice(0, wanted * 3));
   } else {
     try {
-      await collectByResearch(ctx, pipeline, wanted, gate, research, stage);
+      if (pipeline === "local_business") {
+        await collectLocalBusinesses({ db: ctx.db, play: ctx.play, report: ctx.report, wanted, submit: gate, say: ctx.say, signal: research });
+      } else await collectByResearch(ctx, pipeline, wanted, gate, research, stage);
     } catch (error) {
       // Out of turns or out of time: keep what was found and score it rather than fail the run.
       const outOfBudget = deadline.aborted || error instanceof AgentTurnLimitError;
@@ -569,7 +575,7 @@ ${brainOf(play)
   .join("\n")}
 
 This Play targets: ${JSON.stringify(play.definition.audience)}
-${sellsServices(brainOf(play)) ? `\n${SERVICES_JUDGE}\n` : ""}${ctx.feedback ? `\nThe founder's verdicts on earlier leads. They override the ICP where they disagree: score similar people the same way.\n${ctx.feedback}\n` : ""}
+${sellsServices(brainOf(play)) ? `\n${SERVICES_JUDGE}\n` : ""}${pipeline === "local_business" ? `\n${LOCAL_JUDGE}\nGaps this Play looks for: ${play.definition.local?.gaps.join(", ")}${play.definition.local?.soleTradersOnly ? " (sole traders only)" : ""}\n` : ""}${ctx.feedback ? `\nThe founder's verdicts on earlier leads. They override the ICP where they disagree: score similar people the same way.\n${ctx.feedback}\n` : ""}
 Candidates:
 ${batch.map((c, i) => `${i}. ${JSON.stringify({ name: c.name, title: c.title, company: c.company, location: c.location, signal: c.signal })}`).join("\n")}`,
     tools: [
@@ -619,7 +625,8 @@ ${batch.map((c, i) => `${i}. ${JSON.stringify({ name: c.name, title: c.title, co
       report.duplicates++;
       continue;
     }
-    if (v.stage !== "disqualified" && !c.linkedinUrl) ctx.toLookUp.push(c);
+    // A small business with a phone is reached by calling it; LinkedIn rarely has its owner.
+    if (v.stage !== "disqualified" && !c.linkedinUrl && !(pipeline === "local_business" && c.phone)) ctx.toLookUp.push(c);
     if (v.stage === "qualified") {
       report.qualified++;
       ctx.qualifiedExamples.push(`${c.name} (${c.title} @ ${c.company})`);

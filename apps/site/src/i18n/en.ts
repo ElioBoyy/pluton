@@ -7,7 +7,7 @@ export default {
   },
   nav: {
     how: "How it works",
-    agent: "The agent",
+    agent: "The assistant",
     ai: "Your AI",
     pricing: "Pricing",
     faq: "Questions",
@@ -22,9 +22,9 @@ export default {
     price: "From 24.99\u00a0€ a month.",
   },
   agent: {
-    title: "Agent",
+    title: "Assistant",
     empty: "What can I do for you?",
-    emptySub: "Ask about your leads, Plays, Brain or spend. The agent reads what it needs.",
+    emptySub: "Ask about your leads, searches, business profile or spending. The assistant reads what it needs.",
     placeholder: "Ask Pluton anything",
     send: "Send",
     working: "Working…",
@@ -38,21 +38,21 @@ export default {
     declined: "Left as it was. Nothing ran.",
     today: {
       q: "What should I look at today?",
-      looked: "Looked at Leads, Plays, Sequences",
-      a: "Three things. Four new leads arrived in Studios that are hiring, and the best fit is Camille Roux at 92. Hugo Lefèvre replied on LinkedIn, so his sequence stopped on its own. Two messages wait for your review.",
+      looked: "Looked at Leads, Searches, Campaigns",
+      a: "Three things. Four new leads arrived in Studios that are hiring, and the best match is Camille Roux at 92. Hugo Lefèvre replied on LinkedIn, so the campaign stopped for him on its own. Two messages wait for your review.",
     },
     best: {
-      q: "Which leads are the best fit right now?",
+      q: "Which leads are the best match right now?",
       looked: "Looked at Leads",
-      a: "These four, by fit. Each score comes with the evidence behind it.",
+      a: "These four, best match first. Each score comes with the evidence behind it.",
       card: "Approve the top two",
-      cardMeta: "Camille Roux and Hugo Lefèvre join your LinkedIn sequence.",
+      cardMeta: "Camille Roux and Hugo Lefèvre join your LinkedIn campaign.",
     },
     plan: {
-      q: "Plan a new Play for my ICP",
-      looked: "Looked at Brain, Plays",
-      a: "Your Brain says architecture studios of 5 to 50 people. Studios that are hiring feel the invoicing pain first, so here is a Play for them.",
-      card: "Create this Play",
+      q: "Plan a new search for my ideal customer",
+      looked: "Looked at Business profile, Searches",
+      a: "Your business profile says architecture studios of 5 to 50 people. Studios that are hiring feel the invoicing pain first, so here is a search for them.",
+      card: "Create this search",
       cardMeta: "15 people a week, weekdays at 07:00, up to 300 credits per search.",
     },
     spend: {
@@ -83,12 +83,12 @@ export default {
     stagesLabel: "Stage",
     stages: [
       {
-        name: "Brain",
+        name: "My business",
         clause: "It learns your business",
-        text: "Give it your website, or two sentences: that is all it needs. Pluton works out your market, ideal clients, personas, competitors and tone. Correct anything you like.",
+        text: "Give it your website, or two sentences: that is all it needs. Pluton works out your market, ideal customers, buyer profiles, competitors and tone. Correct anything you like.",
       },
       {
-        name: "Play",
+        name: "Searches",
         clause: "It plans the hunt",
         text: "Say in one sentence who you want to reach. Pluton asks what it needs, then sets everything up: who to look for, where, how many and how often.",
       },
@@ -98,18 +98,18 @@ export default {
         text: "Pluton searches company registers, careers pages, website technologies and the web by itself, and scores each person from 0 to 100, with the evidence. You stop searching.",
       },
       {
-        name: "Message",
+        name: "Messages",
         clause: "It writes for you",
         text: "Up to three messages per person, written from what made them stand out, in your tone. You approve in one click, and as soon as they reply, Pluton stops following up.",
       },
     ],
     brain: {
-      title: "Brain",
+      title: "My business",
       company: "Atelier Kilo",
       rows: [
         ["Company", "Accounting software for architecture studios."],
         ["Ideal customer", "Studios of 5 to 50 people in France and Belgium."],
-        ["Personas", "Studio founder, office manager"],
+        ["Buyer profiles", "Studio founder, office manager"],
         ["Competitors", "Spreadsheets, generalist accounting suites"],
         ["Voice", "Plain, short, no jargon."],
       ],
@@ -123,11 +123,11 @@ export default {
         ["When", "Weekdays at 07:00"],
         ["Limit", "300 credits per search"],
       ],
-      action: "Create this Play",
+      action: "Create this search",
     },
     leads: {
-      title: "Leads, by fit",
-      fit: "Fit",
+      title: "Leads, best match first",
+      fit: "Match",
       rows: [
         ["Camille Roux", "Founder, Atelier Roux", "Hiring a project architect", "92"],
         ["Hugo Lefèvre", "Partner, Studio Brume", "Posted about late invoices", "87"],
@@ -156,12 +156,12 @@ export default {
     search: { time: "07:00", title: "Search ready to run", body: "Studios that are hiring: about 15 people, up to 300 credits. 1,290 credits left this month.", run: "Run search", later: "Not now" },
     cap: { time: "07:04", title: "Search finished under its cap", body: "230 of 300 credits used. The other 70 stay in your month." },
     review: { time: "07:12", title: "A message waits for your review", body: "To Camille Roux on LinkedIn, written from her careers page in your voice.", action: "Review" },
-    reply: { time: "09:41", title: "Hugo Lefèvre replied", body: "His sequence stopped on its own. The reply is in your inbox." },
+    reply: { time: "09:41", title: "Hugo Lefèvre replied", body: "The campaign stopped for him on its own. The reply is in your inbox." },
   },
   mcp: {
-    heading: "Bring the agent to your AI.",
-    text: "Pluton runs an MCP server with the same tools as its own agent. Ask Claude Code, Claude Desktop or Codex about your leads and Plays, and let them act on them.",
-    rule: "Reading is direct. A search shows its cost first, and searches, LinkedIn sequences and CRM exports wait for an explicit confirmation.",
+    heading: "Bring the assistant to your AI.",
+    text: "Pluton runs an MCP server with the same tools as its own assistant. Ask Claude Code, Claude Desktop or Codex about your leads and searches, and let them act on them.",
+    rule: "Reading is direct. A search shows its cost first, and searches, LinkedIn campaigns and CRM exports wait for an explicit confirmation.",
     clientLabel: "AI client",
     hintCode: "Run it in a terminal.",
     hintDesktop: "Merge into claude_desktop_config.json, then restart Claude Desktop.",
@@ -223,7 +223,7 @@ export default {
       "You paste your key once when you start, and Pluton checks that it works",
     ],
     allLines: [
-      "The AI is included and counted in your credits: research, scoring, writing and the agent",
+      "The AI is included and counted in your credits: research, scoring, writing and the assistant",
       "The same credits cover the data sources Pluton provides: job boards, LinkedIn engagement, email addresses",
       "Nothing to connect: no API key, no AI provider account",
     ],
@@ -262,7 +262,7 @@ export default {
       ],
       [
         "Does anything get sent without me?",
-        "No. Every message waits for your review, and anything you approve can still be undone for ten minutes. A reply from the person stops their sequence.",
+        "No. Every message waits for your review, and anything you approve can still be undone for ten minutes. If the person replies, the campaign stops for them.",
       ],
       [
         "Where do the leads come from?",
@@ -278,7 +278,7 @@ export default {
       ],
       [
         "Can I use it from Claude Code or Codex?",
-        "Yes. Pluton has an MCP server with the same actions as the app. A search shows its cost first and waits for your confirmation, and so do sequences and CRM exports.",
+        "Yes. Pluton has an MCP server with the same actions as the app. A search shows its cost first and waits for your confirmation, and so do campaigns and CRM exports.",
       ],
       [
         "Does it keep my spending in check?",

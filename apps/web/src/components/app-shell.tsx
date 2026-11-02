@@ -16,7 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../i18n/index.ts";
 import { cn } from "../lib/cn.ts";
 import { useTRPC } from "../lib/trpc.ts";
@@ -62,6 +62,8 @@ export function AppShell() {
   // Below md the sidebar is a drawer, closed whenever the page changes.
   const [navOpen, setNavOpen] = useState(false);
   const [inspector, setInspector] = useState<HTMLElement | null>(null);
+  const [inspectorOver, setInspectorOver] = useState<HTMLElement | null>(null);
+  const inspectorSlots = useMemo(() => ({ beside: inspector, over: inspectorOver }), [inspector, inspectorOver]);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => setNavOpen(false), [pathname]);
   const [playsOpen, setPlaysOpen] = usePlaysOpen();
@@ -84,7 +86,7 @@ export function AppShell() {
 
   return (
     // Pluto is the desktop; the app is one window of glass over it, its sidebar a pane inside.
-    <InspectorSlot.Provider value={inspector}>
+    <InspectorSlot.Provider value={inspectorSlots}>
       <div className="flex h-full p-2 max-md:p-0">
         <Wallpaper />
         {navOpen && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />}
@@ -233,9 +235,7 @@ export function AppShell() {
         <aside
           ref={setInspector}
           className={cn(
-            "flex shrink-0 flex-col overflow-hidden rounded-[calc(var(--gg-r-window)-8px)] [corner-shape:squircle] empty:hidden",
-            // One width for every inspector, wider than the sidebar it mirrors so a lead's evidence reads in full; pages fill it.
-            "w-96 2xl:w-[28rem] max-xl:w-[min(28rem,calc(100vw-32px))] max-md:w-[min(28rem,calc(100vw-16px))]",
+            INSPECTOR_PANE,
             "xl:relative xl:m-2 xl:ml-0 xl:bg-control xl:shadow-[inset_0_0_0_1px_var(--gg-rim-low)]",
             // Beside the content, it slides a little and fades in as it appears, and back out as it closes.
             "xl:transition-[translate,opacity] xl:duration-250 xl:ease-out xl:starting:translate-x-4 xl:starting:opacity-0 motion-reduce:xl:starting:translate-x-0",
@@ -243,6 +243,19 @@ export function AppShell() {
             "max-xl:drawer max-xl:fixed max-xl:inset-y-4 max-xl:right-4 max-md:inset-y-2 max-md:right-2 max-xl:z-40 max-xl:bg-(--gg-material-thick) max-xl:shadow-window max-xl:backdrop-blur-2xl",
             "xl:has-[[data-closing]]:translate-x-4 xl:has-[[data-closing]]:opacity-0 has-[[data-closing]]:duration-220 has-[[data-closing]]:ease-(--ease-exit)",
             "max-xl:has-[[data-closing]]:translate-x-[calc(100%+16px)] motion-reduce:has-[[data-closing]]:translate-x-0 motion-reduce:has-[[data-closing]]:opacity-0",
+          )}
+        />
+        {/*
+          The same pane over the page at every width, for an inspector that comes and goes over a
+          table (a lead): the content keeps its width, its columns don't reflow as it opens and closes.
+        */}
+        <aside
+          ref={setInspectorOver}
+          className={cn(
+            INSPECTOR_PANE,
+            "drawer fixed inset-y-4 right-4 z-40 bg-(--gg-material-thick) shadow-window backdrop-blur-2xl max-md:inset-y-2 max-md:right-2",
+            "has-[[data-closing]]:translate-x-[calc(100%+16px)] has-[[data-closing]]:duration-220 has-[[data-closing]]:ease-(--ease-exit)",
+            "motion-reduce:has-[[data-closing]]:translate-x-0 motion-reduce:has-[[data-closing]]:opacity-0",
           )}
         />
         </div>
@@ -256,6 +269,12 @@ export function AppShell() {
     </InspectorSlot.Provider>
   );
 }
+
+/** One shape and width for every inspector, wider than the sidebar it mirrors so a lead's evidence reads in full; pages fill it. */
+const INSPECTOR_PANE = cn(
+  "flex shrink-0 flex-col overflow-hidden rounded-[calc(var(--gg-r-window)-8px)] [corner-shape:squircle] empty:hidden",
+  "w-96 2xl:w-[28rem] max-xl:w-[min(28rem,calc(100vw-32px))] max-md:w-[min(28rem,calc(100vw-16px))]",
+);
 
 /** You, at the foot of the sidebar: your avatar opens your profile. */
 function ProfileButton() {
