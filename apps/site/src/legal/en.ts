@@ -65,7 +65,7 @@ const en: Record<LegalDocId, LegalDoc> = {
             list: [
               "Service: the Pluton app hosted by the Publisher, including its MCP server, available after subscribing.",
               "User or Customer: the professional who creates an account and subscribes.",
-              "Customer Content: everything the Customer provides or the Service produces for them (company information, Brain, Plays, leads, messages, settings).",
+              "Customer Content: everything the Customer provides or the Service produces for them (company information, business profile, searches, leads, messages, settings).",
               "Prospect Data: personal data about the people the Customer searches for or contacts with the Service.",
             ],
           },
@@ -81,8 +81,8 @@ const en: Record<LegalDocId, LegalDoc> = {
       {
         heading: "4. The Service",
         body: [
-          "From the Customer's website, Pluton builds a “Brain” of their company (target market, personas, competitors, voice), finds and scores leads from public sources and the services the Customer connects, and prepares LinkedIn and email sequences written in their style.",
-          "No message is sent unless the Customer has reviewed it or has turned on automatic sending for a sequence themselves. Content produced by artificial intelligence (text, scores, analyses) may contain errors: the Customer checks it before relying on it.",
+          "From the Customer's website, Pluton builds a business profile of their company (target market, buyer profiles, competitors, voice), finds and scores leads from public sources and the services the Customer connects, and prepares LinkedIn and email campaigns written in their style.",
+          "No message is sent unless the Customer has reviewed it or has turned on automatic sending for a campaign themselves. Content produced by artificial intelligence (text, scores, analyses) may contain errors: the Customer checks it before relying on it.",
           "The Publisher develops the Service and may change its features, without removing its core during a subscription.",
         ],
       },
@@ -325,9 +325,9 @@ const en: Record<LegalDocId, LegalDoc> = {
           "To provide the Service, Pluton hosts and processes on your behalf:",
           {
             list: [
-              "information about your company and your Brain;",
+              "information about your company and your business profile;",
               "your prospects' data: name, job title, company, LinkedIn profile, work email address, public signals (job posts, technologies, posts);",
-              "your messages, the replies received and sequence history;",
+              "your messages, the replies received and campaign history;",
               "the access you connect (mailbox, API keys), encrypted with AES-256-GCM.",
             ],
           },

@@ -8,7 +8,7 @@ export default {
   },
   nav: {
     how: "Fonctionnement",
-    agent: "L'agent",
+    agent: "L'assistant",
     ai: "Votre IA",
     pricing: "Tarifs",
     faq: "Questions",
@@ -23,9 +23,9 @@ export default {
     price: "À partir de 24,99\u00a0€ par mois.",
   },
   agent: {
-    title: "Agent",
+    title: "Assistant",
     empty: "Que puis-je faire pour vous ?",
-    emptySub: "Posez une question sur vos leads, vos Plays, votre Brain ou vos dépenses. L'agent lit ce dont il a besoin.",
+    emptySub: "Posez une question sur vos leads, vos recherches, votre fiche entreprise ou vos dépenses. L'assistant consulte ce dont il a besoin.",
     placeholder: "Demandez n'importe quoi à Pluton",
     send: "Envoyer",
     working: "Je travaille…",
@@ -39,21 +39,21 @@ export default {
     declined: "Laissé tel quel. Rien n'a été lancé.",
     today: {
       q: "Que dois-je regarder aujourd'hui ?",
-      looked: "A consulté Leads, Plays, Séquences",
-      a: "Trois choses. Quatre nouveaux leads sont arrivés dans Agences qui recrutent, le plus pertinent est Camille Roux à 92. Hugo Lefèvre a répondu sur LinkedIn, sa séquence s'est donc arrêtée d'elle-même. Deux messages attendent votre relecture.",
+      looked: "A consulté Prospects, Recherches, Campagnes",
+      a: "Trois choses. Quatre nouveaux leads sont arrivés dans Agences qui recrutent, le plus pertinent est Camille Roux à 92. Hugo Lefèvre a répondu sur LinkedIn, la campagne s'est donc arrêtée d'elle-même pour lui. Deux messages attendent votre relecture.",
     },
     best: {
       q: "Quels leads sont les plus pertinents en ce moment ?",
-      looked: "A consulté Leads",
+      looked: "A consulté Prospects",
       a: "Ces quatre, par pertinence. Chaque score s'appuie sur les preuves trouvées.",
       card: "Approuver les deux premiers",
-      cardMeta: "Camille Roux et Hugo Lefèvre rejoignent votre séquence LinkedIn.",
+      cardMeta: "Camille Roux et Hugo Lefèvre rejoignent votre campagne LinkedIn.",
     },
     plan: {
-      q: "Prépare un nouveau Play pour mon ICP",
-      looked: "A consulté Brain, Plays",
-      a: "Votre Brain parle d'agences d'architecture de 5 à 50 personnes. Celles qui recrutent sentent la douleur de la facturation en premier, voici donc un Play pour elles.",
-      card: "Créer ce Play",
+      q: "Prépare une nouvelle recherche pour mon client idéal",
+      looked: "A consulté Fiche entreprise, Recherches",
+      a: "Votre fiche entreprise parle d'agences d'architecture de 5 à 50 personnes. Celles qui recrutent sentent la douleur de la facturation en premier, voici donc une recherche pour elles.",
+      card: "Créer cette recherche",
       cardMeta: "15 personnes par semaine, en semaine à 7 h, jusqu'à 300 crédits par recherche.",
     },
     spend: {
@@ -84,33 +84,33 @@ export default {
     stagesLabel: "Étape",
     stages: [
       {
-        name: "Brain",
+        name: "Mon entreprise",
         clause: "Il apprend votre métier",
-        text: "Donnez-lui votre site, ou deux phrases : c'est tout ce qu'il lui faut. Pluton en tire votre marché, vos clients idéaux, vos personas, vos concurrents et votre ton. Vous corrigez si besoin.",
+        text: "Donnez-lui votre site, ou deux phrases : c'est tout ce qu'il lui faut. Pluton en tire votre marché, vos clients idéaux, vos profils d'acheteurs, vos concurrents et votre ton. Vous corrigez si besoin.",
       },
       {
-        name: "Play",
+        name: "Recherches",
         clause: "Il prépare la chasse",
         text: "Dites en une phrase qui vous voulez atteindre. Pluton pose ses questions, puis organise tout : qui chercher, où, combien et à quel rythme.",
       },
       {
-        name: "Leads",
+        name: "Prospects",
         clause: "Il trouve vos prospects",
         text: "Pluton fouille tout seul les registres d'entreprises, les pages carrières, les technos des sites et le web, et note chaque personne de 0 à 100, preuves à l'appui. Vous ne cherchez plus.",
       },
       {
-        name: "Message",
+        name: "Messages",
         clause: "Il écrit à votre place",
         text: "Jusqu'à trois messages par personne, écrits à partir de ce qui l'a fait repérer et avec votre ton. Vous validez d'un clic, et dès qu'elle répond, Pluton arrête de la relancer.",
       },
     ],
     brain: {
-      title: "Brain",
+      title: "Mon entreprise",
       company: "Atelier Kilo",
       rows: [
         ["Entreprise", "Logiciel de comptabilité pour agences d'architecture."],
         ["Client idéal", "Agences de 5 à 50 personnes en France et en Belgique."],
-        ["Personas", "Fondateur d'agence, office manager"],
+        ["Profils d'acheteurs", "Fondateur d'agence, office manager"],
         ["Concurrents", "Tableurs, suites comptables généralistes"],
         ["Ton", "Simple, court, sans jargon."],
       ],
@@ -124,11 +124,11 @@ export default {
         ["Quand", "En semaine à 07:00"],
         ["Limite", "300 crédits par recherche"],
       ],
-      action: "Créer ce Play",
+      action: "Créer cette recherche",
     },
     leads: {
       title: "Leads, par pertinence",
-      fit: "Score",
+      fit: "Correspondance",
       rows: [
         ["Camille Roux", "Fondatrice, Atelier Roux", "Recrute un architecte chef de projet", "92"],
         ["Hugo Lefèvre", "Associé, Studio Brume", "A publié sur les retards de paiement", "87"],
@@ -157,12 +157,12 @@ export default {
     search: { time: "07:00", title: "Recherche prête à lancer", body: "Agences qui recrutent : environ 15 personnes, jusqu'à 300 crédits. Il reste 1\u00a0290 crédits ce mois-ci.", run: "Lancer la recherche", later: "Pas maintenant" },
     cap: { time: "07:04", title: "Recherche terminée sous son plafond", body: "230 crédits utilisés sur 300. Les 70 restants retournent à votre mois." },
     review: { time: "07:12", title: "Un message attend votre relecture", body: "À Camille Roux sur LinkedIn, écrit à partir de sa page carrières, avec votre voix.", action: "Relire" },
-    reply: { time: "09:41", title: "Hugo Lefèvre a répondu", body: "Sa séquence s'est arrêtée d'elle-même. La réponse est dans votre boîte." },
+    reply: { time: "09:41", title: "Hugo Lefèvre a répondu", body: "La campagne s'est arrêtée d'elle-même pour lui. La réponse est dans votre boîte." },
   },
   mcp: {
-    heading: "Amenez l'agent dans votre IA.",
-    text: "Pluton fait tourner un serveur MCP avec les mêmes outils que son propre agent. Interrogez Claude Code, Claude Desktop ou Codex sur vos leads et vos Plays, et laissez-les agir.",
-    rule: "La lecture est directe. Une recherche montre d'abord son coût, et les recherches, séquences LinkedIn et exports CRM attendent une confirmation explicite.",
+    heading: "Amenez l'assistant dans votre IA.",
+    text: "Pluton fait tourner un serveur MCP avec les mêmes outils que son propre assistant. Interrogez Claude Code, Claude Desktop ou Codex sur vos leads et vos recherches, et laissez-les agir.",
+    rule: "La lecture est directe. Une recherche montre d'abord son coût, et les recherches, campagnes LinkedIn et exports CRM attendent une confirmation explicite.",
     clientLabel: "Client IA",
     hintCode: "À lancer dans un terminal.",
     hintDesktop: "À fusionner dans claude_desktop_config.json, puis redémarrez Claude Desktop.",
@@ -224,7 +224,7 @@ export default {
       "Vous collez votre clé une fois au démarrage, et Pluton vérifie qu'elle fonctionne",
     ],
     allLines: [
-      "L'IA est incluse et décomptée de vos crédits : recherche, notation, rédaction et l'agent",
+      "L'IA est incluse et décomptée de vos crédits : recherche, notation, rédaction et l'assistant",
       "Les mêmes crédits couvrent les sources de données fournies par Pluton : offres d'emploi, engagement LinkedIn, adresses email",
       "Rien à connecter : ni clé API, ni compte chez un fournisseur d'IA",
     ],
@@ -263,7 +263,7 @@ export default {
       ],
       [
         "Est-ce que quelque chose part sans moi ?",
-        "Non. Chaque message attend votre relecture, et ce que vous validez peut encore être annulé pendant dix minutes. Une réponse de la personne arrête sa séquence.",
+        "Non. Chaque message attend votre relecture, et ce que vous validez peut encore être annulé pendant dix minutes. Si la personne répond, la campagne s'arrête pour elle.",
       ],
       [
         "D'où viennent les leads ?",
@@ -279,7 +279,7 @@ export default {
       ],
       [
         "Puis-je l'utiliser depuis Claude Code ou Codex ?",
-        "Oui. Pluton a un serveur MCP avec les mêmes actions que l'app. Une recherche annonce d'abord son coût et attend votre confirmation, tout comme les séquences et les exports CRM.",
+        "Oui. Pluton a un serveur MCP avec les mêmes actions que l'app. Une recherche annonce d'abord son coût et attend votre confirmation, tout comme les campagnes et les exports CRM.",
       ],
       [
         "Est-ce qu'il garde mes dépenses sous contrôle ?",
