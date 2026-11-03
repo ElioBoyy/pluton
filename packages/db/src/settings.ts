@@ -192,7 +192,6 @@ export const PLATFORM_KEYS: Record<string, { source: string; plans: Subscription
   apify_token: { source: "apify", plans: ["byo", "all"] },
   theirstack_api_key: { source: "theirstack", plans: ["byo", "all"] },
   hunter_api_key: { source: "hunter", plans: ["byo", "all"] },
-  google_maps_api_key: { source: "google_maps", plans: ["byo", "all"] },
 };
 
 const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`]?.trim() || undefined;
@@ -481,13 +480,14 @@ function platformValue(key: string, workspaceId: string | undefined) {
 
 /**
  * Hosted: whether the workspace's plan covers `key` with Pluton's own, so the workspace has nothing
- * to enter. OpenAI only stands in for Claude, so a plan that includes Claude covers it too.
+ * to enter. OpenAI only stands in for Claude, so a plan that includes Claude covers it too. A key
+ * Pluton hasn't set in its environment covers nothing: the workspace enters its own.
  */
 function includedInPlan(key: string, workspaceId: string | undefined) {
   if (!HOSTED || !workspaceId) return false;
   const plan = plans.get(workspaceId)?.plan;
   const covering = key === "openai_api_key" ? "anthropic_api_key" : key;
-  return Boolean(plan && PLATFORM_KEYS[covering]?.plans.includes(plan));
+  return Boolean(plan && PLATFORM_KEYS[covering]?.plans.includes(plan) && platformKey(covering));
 }
 
 /** Whether a cost from `source` (the ledger's "claude", "hunter"…) is paid through a platform key. */
