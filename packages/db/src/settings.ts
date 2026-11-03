@@ -192,7 +192,6 @@ export const PLATFORM_KEYS: Record<string, { source: string; plans: Subscription
   apify_token: { source: "apify", plans: ["byo", "all"] },
   theirstack_api_key: { source: "theirstack", plans: ["byo", "all"] },
   hunter_api_key: { source: "hunter", plans: ["byo", "all"] },
-  google_maps_api_key: { source: "google_maps", plans: ["byo", "all"] },
 };
 
 const platformKey = (key: string) => process.env[`PLATFORM_${key.toUpperCase()}`]?.trim() || undefined;
