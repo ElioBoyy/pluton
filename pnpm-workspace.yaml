@@ -5,3 +5,7 @@ allowBuilds:
   esbuild: true
   onnxruntime-node: true
   protobufjs: false
+overrides:
+  # Old esbuild builds embed an outdated Go runtime (go1.20 via drizzle-kit's
+  # @esbuild-kit, go1.23 via drizzle-kit) flagged by image scanners.
+  esbuild: ^0.28.2

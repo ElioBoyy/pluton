@@ -18,7 +18,7 @@
   "devDependencies": {
     "@types/node": "^26.6.5",
     "turbo": "^2.11.10",
-    "typescript": "^7.0.2"
+    "typescript": "7.1.0-beta"
   },
   "packageManager": "pnpm@12.3.4"
 }
