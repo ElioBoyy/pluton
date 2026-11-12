@@ -10,7 +10,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.2.0",
+    "@anthropic-ai/sdk": "^1.6.0",
     "@pluton/agent": "workspace:*",
     "@pluton/core": "workspace:*",
     "@pluton/db": "workspace:*",
@@ -19,8 +19,8 @@
     "@pluton/server": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "7.1.0-beta"
   }
 }
