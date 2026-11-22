@@ -15,7 +15,7 @@
     "stripe:setup": "node scripts/stripe-setup.mjs"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.6",
+    "@hono/node-server": "^2.1.9",
     "@hono/trpc-server": "^0.4.2",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@pluton/agent": "workspace:*",
@@ -23,8 +23,8 @@
     "@pluton/db": "workspace:*",
     "@pluton/i18n": "workspace:*",
     "@pluton/providers": "workspace:*",
-    "@trpc/server": "^11.24.0",
-    "hono": "^4.13.16",
+    "@trpc/server": "^11.29.5",
+    "hono": "^4.13.19",
     "superjson": "^2.2.6",
     "zod": "^4.6.7"
   },
